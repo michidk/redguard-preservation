@@ -1,0 +1,22 @@
+[package]
+name = "redguard-preservation"
+version = "0.1.0"
+edition = "2024"
+authors = ["Michael Lohr <michael@lohr.dev>"]
+description = "A CLI tool to preserve Redguard files"
+readme = "README.md"
+repository = "https://github.com/michidk/redguard-preservation"
+documentation = "https://github.com/michidk/redguard-preservation"
+homepage = "https://github.com/michidk/redguard-preservation"
+license = "MIT"
+keywords = ["redguard", "preservation", "cli"]
+categories = ["command-line-utilities"]
+
+[dependencies]
+clap = "4.5.40"
+clap-verbosity-flag = "3.0.3"
+color-eyre = "0.6.5"
+env_logger = "0.11.8"
+gltf-json = "1.4.1"
+log = "0.4.27"
+nom = "8.0.0"
