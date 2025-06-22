@@ -2,7 +2,7 @@
 //!
 //! This module contains the data structures and parsing logic for 3DC/3D model files.
 
-use log::debug;
+use log::trace;
 use nom::{
     IResult, Parser,
     bytes::complete::take,
@@ -264,13 +264,13 @@ pub fn parse_3d_header(input: &[u8]) -> IResult<&[u8], Model3DHeader> {
 
 /// Parse face data with version-specific texture data parsing
 pub fn parse_face_data<'a>(input: &'a [u8], version: &ModelVersion) -> IResult<&'a [u8], FaceData> {
-    debug!(
+    trace!(
         "Starting face data parsing, first 16 bytes: {:02x?}",
         &input[..input.len().min(16)]
     );
 
     let (input, vertex_count) = le_u8(input)?;
-    debug!("Read vertex_count: {}", vertex_count);
+    trace!("Read vertex_count: {}", vertex_count);
 
     let (input, texture_data_raw, unk_01_val) =
         if matches!(version, ModelVersion::V40 | ModelVersion::V50) {
@@ -279,7 +279,7 @@ pub fn parse_face_data<'a>(input: &'a [u8], version: &ModelVersion) -> IResult<&
             let (input, u2) = le_u16(input)?;
             let (input, u3) = le_u8(input)?;
             let raw = ((u3 as u32) << 24) | ((u2 as u32) << 8) | (u1 as u32);
-            debug!(
+            trace!(
                 "v4.0/5.0 texture fields: u1=0x{:04x}, u2=0x{:04x}, u3=0x{:02x}, raw=0x{:08x}",
                 u1, u2, u3, raw
             );
@@ -289,7 +289,7 @@ pub fn parse_face_data<'a>(input: &'a [u8], version: &ModelVersion) -> IResult<&
             let (input, u1) = le_u8(input)?;
             let (input, u2) = le_u16(input)?;
             let raw = ((u2 as u32) << 8) | (u1 as u32);
-            debug!(
+            trace!(
                 "v2.6/2.7 texture fields: u1=0x{:02x}, u2=0x{:04x}, raw=0x{:08x}",
                 u1, u2, raw
             );
@@ -297,20 +297,20 @@ pub fn parse_face_data<'a>(input: &'a [u8], version: &ModelVersion) -> IResult<&
         };
 
     let (input, unk_04) = le_u32(input)?;
-    debug!("Read unk_04: 0x{:08x}", unk_04);
+    trace!("Read unk_04: 0x{:08x}", unk_04);
 
     let texture_data = parse_texture_data_value(texture_data_raw, version);
-    debug!("Parsed texture_data: {:?}", texture_data);
+    trace!("Parsed texture_data: {:?}", texture_data);
 
     if unk_04 != 0 {
-        debug!("Note: Non-zero Unk_04 in face data: {}", unk_04);
+        trace!("Note: Non-zero Unk_04 in face data: {}", unk_04);
     }
 
-    debug!(
+    trace!(
         "After face header, remaining bytes for vertices: {:02x?}",
         &input[..input.len().min(20)]
     );
-    debug!("Expected to parse {} vertices", vertex_count);
+    trace!("Expected to parse {} vertices", vertex_count);
 
     // Step 5: Parse face vertices with cumulative U/V (same for all versions!)
     let mut face_vertices = Vec::with_capacity(vertex_count as usize);
@@ -319,7 +319,7 @@ pub fn parse_face_data<'a>(input: &'a [u8], version: &ModelVersion) -> IResult<&
     let mut input = input;
 
     for i in 0..vertex_count {
-        debug!(
+        trace!(
             "Parsing face vertex {}, remaining bytes: {:02x?}",
             i,
             &input[..input.len().min(12)]
@@ -345,7 +345,7 @@ pub fn parse_face_data<'a>(input: &'a [u8], version: &ModelVersion) -> IResult<&
             vertex_index_raw
         };
 
-        debug!(
+        trace!(
             "Raw vertex_index: {} (0x{:08x}), adjusted: {}, u: {}, v: {}",
             vertex_index_raw, vertex_index_raw, vertex_index, u, v
         );
@@ -525,7 +525,7 @@ fn parse_frame_data_section(input: &[u8], header: &Model3DHeader) -> Vec<u8> {
         &[]
     };
 
-    debug!(
+    trace!(
         "Frame data size: {}, actual data: {} bytes",
         frame_data_size,
         frame_data.len()
@@ -552,7 +552,7 @@ fn parse_section4_data_section(input: &[u8], header: &Model3DHeader) -> Vec<u8> 
         &[]
     };
 
-    debug!(
+    trace!(
         "Section4 data: {} entries, {} bytes",
         header.section4_count,
         section4_data.len()
@@ -570,16 +570,16 @@ fn parse_face_data_section(
 
     if header.offset_face_data < input.len() as u32 {
         let mut face_data_input = &input[header.offset_face_data as usize..];
-        debug!(
+        trace!(
             "Face data starts at offset {}, input size: {}",
             header.offset_face_data,
             face_data_input.len()
         );
-        debug!(
+        trace!(
             "First 32 bytes of face data: {:02x?}",
             &face_data_input[..face_data_input.len().min(32)]
         );
-        debug!(
+        trace!(
             "Next 128 bytes at face_data (offset {}): {:02x?}",
             header.offset_face_data,
             &input[header.offset_face_data as usize
@@ -589,7 +589,7 @@ fn parse_face_data_section(
         for face_index in 0..header.num_faces {
             // Stop if we don't have enough data for even a minimal face
             if face_data_input.len() < 20 {
-                debug!(
+                trace!(
                     "Face {}: Not enough data for minimal face ({} bytes remaining)",
                     face_index,
                     face_data_input.len()
@@ -599,7 +599,7 @@ fn parse_face_data_section(
 
             match parse_face_data(face_data_input, version) {
                 Ok((remaining, face)) => {
-                    debug!(
+                    trace!(
                         "Face {}: vertex_count={}, unk_01={}, texture_data={:?}, unk_04={}, vertices={}",
                         face_index,
                         face.vertex_count,
@@ -613,14 +613,14 @@ fn parse_face_data_section(
                     face_data_input = remaining;
                 }
                 Err(e) => {
-                    debug!("Face {}: Failed to parse face data: {:?}", face_index, e);
+                    trace!("Face {}: Failed to parse face data: {:?}", face_index, e);
                     break;
                 }
             }
         }
     }
 
-    debug!("Successfully parsed {} faces", face_data.len());
+    trace!("Successfully parsed {} faces", face_data.len());
     face_data
 }
 
@@ -634,7 +634,7 @@ fn parse_vertex_coords_section(
 
     if adjusted_offset_vertex_coords < input.len() as u32 {
         let mut vertex_input = &input[adjusted_offset_vertex_coords as usize..];
-        debug!(
+        trace!(
             "Vertex data starts at offset {}, input size: {}",
             adjusted_offset_vertex_coords,
             vertex_input.len()
@@ -644,7 +644,7 @@ fn parse_vertex_coords_section(
             match parse_vertex_coord(vertex_input) {
                 Ok((remaining, vertex)) => {
                     if vertex_index < 5 {
-                        debug!(
+                        trace!(
                             "Vertex {}: ({:.2}, {:.2}, {:.2})",
                             vertex_index, vertex.x, vertex.y, vertex.z
                         );
@@ -653,14 +653,14 @@ fn parse_vertex_coords_section(
                     vertex_input = remaining;
                 }
                 Err(e) => {
-                    debug!("Vertex {}: Failed to parse vertex: {:?}", vertex_index, e);
+                    trace!("Vertex {}: Failed to parse vertex: {:?}", vertex_index, e);
                     break;
                 }
             }
         }
     }
 
-    debug!("Successfully parsed {} vertices", vertex_coords.len());
+    trace!("Successfully parsed {} vertices", vertex_coords.len());
     vertex_coords
 }
 
@@ -670,7 +670,7 @@ fn parse_face_normals_section(input: &[u8], header: &Model3DHeader) -> Vec<FaceN
 
     if header.offset_face_normals < input.len() as u32 {
         let mut normal_input = &input[header.offset_face_normals as usize..];
-        debug!(
+        trace!(
             "Face normal data starts at offset {}, input size: {}",
             header.offset_face_normals,
             normal_input.len()
@@ -680,7 +680,7 @@ fn parse_face_normals_section(input: &[u8], header: &Model3DHeader) -> Vec<FaceN
             match parse_face_normal(normal_input) {
                 Ok((remaining, normal)) => {
                     if normal_index < 5 {
-                        debug!(
+                        trace!(
                             "Normal {}: ({:.2}, {:.2}, {:.2})",
                             normal_index, normal.x, normal.y, normal.z
                         );
@@ -689,14 +689,14 @@ fn parse_face_normals_section(input: &[u8], header: &Model3DHeader) -> Vec<FaceN
                     normal_input = remaining;
                 }
                 Err(e) => {
-                    debug!("Normal {}: Failed to parse normal: {:?}", normal_index, e);
+                    trace!("Normal {}: Failed to parse normal: {:?}", normal_index, e);
                     break;
                 }
             }
         }
     }
 
-    debug!("Successfully parsed {} face normals", face_normals.len());
+    trace!("Successfully parsed {} face normals", face_normals.len());
     face_normals
 }
 
@@ -706,7 +706,7 @@ fn parse_uv_offsets_section(input: &[u8], header: &Model3DHeader) -> Vec<u32> {
 
     if header.offset_uv_offsets < input.len() as u32 {
         let mut uv_offset_input = &input[header.offset_uv_offsets as usize..];
-        debug!(
+        trace!(
             "UV offset data starts at offset {}, input size: {}",
             header.offset_uv_offsets,
             uv_offset_input.len()
@@ -716,13 +716,13 @@ fn parse_uv_offsets_section(input: &[u8], header: &Model3DHeader) -> Vec<u32> {
             match le_u32::<_, nom::error::Error<_>>(uv_offset_input) {
                 Ok((remaining, offset)) => {
                     if offset_index < 5 {
-                        debug!("UV offset {}: {}", offset_index, offset);
+                        trace!("UV offset {}: {}", offset_index, offset);
                     }
                     uv_offsets.push(offset);
                     uv_offset_input = remaining;
                 }
                 Err(e) => {
-                    debug!(
+                    trace!(
                         "UV offset {}: Failed to parse offset: {:?}",
                         offset_index, e
                     );
@@ -732,7 +732,7 @@ fn parse_uv_offsets_section(input: &[u8], header: &Model3DHeader) -> Vec<u32> {
         }
     }
 
-    debug!("Successfully parsed {} UV offsets", uv_offsets.len());
+    trace!("Successfully parsed {} UV offsets", uv_offsets.len());
     uv_offsets
 }
 
@@ -746,7 +746,7 @@ fn parse_uv_coords_section(
 
     if adjusted_offset_uv_data < input.len() as u32 {
         let mut uv_input = &input[adjusted_offset_uv_data as usize..];
-        debug!(
+        trace!(
             "UV coordinate data starts at offset {}, input size: {}",
             adjusted_offset_uv_data,
             uv_input.len()
@@ -760,7 +760,7 @@ fn parse_uv_coords_section(
                 match parse_uv_coord(uv_input) {
                     Ok((remaining, coord)) => {
                         if coord_index < 5 {
-                            debug!(
+                            trace!(
                                 "UV coord {}: ({:.2}, {:.2}, {:.2})",
                                 coord_index, coord.x, coord.y, coord.z
                             );
@@ -769,7 +769,7 @@ fn parse_uv_coords_section(
                         uv_input = remaining;
                     }
                     Err(e) => {
-                        debug!("UV coord {}: Failed to parse coord: {:?}", coord_index, e);
+                        trace!("UV coord {}: Failed to parse coord: {:?}", coord_index, e);
                         // For v2.7 or earlier, UV data might be all zeros, so we'll stop
                         break;
                     }
@@ -781,7 +781,7 @@ fn parse_uv_coords_section(
                 match parse_uv_coord(uv_input) {
                     Ok((remaining, coord)) => {
                         if coord_index < 5 {
-                            debug!(
+                            trace!(
                                 "UV coord {}: ({:.2}, {:.2}, {:.2})",
                                 coord_index, coord.x, coord.y, coord.z
                             );
@@ -790,7 +790,7 @@ fn parse_uv_coords_section(
                         uv_input = remaining;
                     }
                     Err(e) => {
-                        debug!("UV coord {}: Failed to parse coord: {:?}", coord_index, e);
+                        trace!("UV coord {}: Failed to parse coord: {:?}", coord_index, e);
                         break;
                     }
                 }
@@ -798,7 +798,7 @@ fn parse_uv_coords_section(
         }
     }
 
-    debug!("Successfully parsed {} UV coordinates", uv_coords.len());
+    trace!("Successfully parsed {} UV coordinates", uv_coords.len());
     uv_coords
 }
 
@@ -863,7 +863,7 @@ fn calculate_remaining_data<'a>(
         &[]
     };
 
-    debug!(
+    trace!(
         "Parsing complete - max_offset: {}, remaining bytes: {}",
         max_offset,
         remaining.len()
@@ -871,65 +871,19 @@ fn calculate_remaining_data<'a>(
     remaining
 }
 
-/// Helper function to print debug information about file offsets
-fn debug_file_offsets(input: &[u8], header: &Model3DHeader) {
-    debug!("Raw header values:");
-    debug!("  offset_frame_data: {}", header.offset_frame_data);
-    debug!("  offset_section4: {}", header.offset_section4);
-    debug!("  offset_face_data: {}", header.offset_face_data);
-    debug!("  offset_vertex_coords: {}", header.offset_vertex_coords);
-    debug!("  offset_face_normals: {}", header.offset_face_normals);
-    debug!("  offset_uv_offsets: {}", header.offset_uv_offsets);
-    debug!("  offset_uv_data: {}", header.offset_uv_data);
-    debug!("  num_uv_offsets: {}", header.num_uv_offsets);
-    debug!("  num_uv_offsets2: {}", header.num_uv_offsets2);
-
-    debug!(
-        "Header offsets - Frame: {}, Section4: {}, Face: {}, Vertex: {}, Normal: {}, UV: {}",
-        header.offset_frame_data,
-        header.offset_section4,
-        header.offset_face_data,
-        header.offset_vertex_coords,
-        header.offset_face_normals,
-        header.offset_uv_data
-    );
-
-    // Hex dump at each major offset
-    let dump = |label: &str, offset: u32| {
-        if offset < input.len() as u32 {
-            let end = ((offset as usize) + 32).min(input.len());
-            debug!(
-                "Bytes at {} (offset {}): {:02x?}",
-                label,
-                offset,
-                &input[offset as usize..end]
-            );
-        }
-    };
-
-    dump("face_data", header.offset_face_data);
-    dump("vertex_coords", header.offset_vertex_coords);
-    dump("face_normals", header.offset_face_normals);
-    dump("uv_offsets", header.offset_uv_offsets);
-    dump("uv_data", header.offset_uv_data);
-}
-
 /// Parse complete 3DC/3D file with offset-based section parsing
 pub fn parse_3d_file(input: &[u8]) -> IResult<&[u8], Model3DFile> {
-    debug!(
+    trace!(
         "First 128 bytes of file: {:02x?}",
         &input[..128.min(input.len())]
     );
     let (_input_after_header, mut header) = parse_3d_header(input)?;
     let version = header.parse_version();
 
-    debug!(
+    trace!(
         "Parsing 3D file - Version: {:?}, Vertices: {}, Faces: {}",
         version, header.num_vertices, header.num_faces
     );
-
-    // Debug file offsets
-    debug_file_offsets(input, &header);
 
     // Handle version-specific header field interpretations
     let (adjusted_offset_uv_data, adjusted_offset_vertex_coords) = if header.is_v27_or_earlier() {
@@ -941,7 +895,7 @@ pub fn parse_3d_file(input: &[u8]) -> IResult<&[u8], Model3DFile> {
         (header.offset_uv_data, header.offset_vertex_coords)
     };
 
-    debug!(
+    trace!(
         "Adjusted offsets - UV: {}, Vertex: {}",
         adjusted_offset_uv_data, adjusted_offset_vertex_coords
     );

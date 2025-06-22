@@ -13,7 +13,7 @@ use json::{
     mesh::{Mesh, Primitive, Semantic},
     scene::Node,
 };
-use log::debug;
+use log::trace;
 use serde_json::Value;
 use std::collections::BTreeMap;
 
@@ -23,7 +23,7 @@ pub fn convert_models_to_gltf(models: &[Model3DFile]) -> ParseResult<(Root, Vec<
         return Err("No models to convert".to_string());
     }
 
-    debug!("Converting {} models to GLTF", models.len());
+    trace!("Converting {} models to GLTF", models.len());
 
     let mut buffer_data = Vec::new();
     let mut accessors = Vec::new();
@@ -31,27 +31,17 @@ pub fn convert_models_to_gltf(models: &[Model3DFile]) -> ParseResult<(Root, Vec<
     let mut meshes = Vec::new();
     let mut nodes = Vec::new();
 
-    for (model_index, model) in models.iter().enumerate() {
-        debug!(
-            "Processing model {}: {} vertices, {} faces",
-            model_index,
-            model.vertex_coords.len(),
-            model.face_data.len()
-        );
-
+    for model in models.iter() {
         // A model must have vertices and faces to be valid.
         if model.vertex_coords.is_empty() {
-            debug!("Model {}: Skipping - no vertices", model_index);
             continue;
         }
 
         let mut indices = Vec::new();
         let vertex_limit = model.vertex_coords.len() as u32;
-        let mut valid_faces = 0;
 
-        for (face_index, face) in model.face_data.iter().enumerate() {
+        for face in model.face_data.iter() {
             if face.face_vertices.len() >= 3 {
-                valid_faces += 1;
                 let first_vertex = face.face_vertices[0].vertex_index;
                 for i in 1..(face.face_vertices.len() - 1) {
                     let v1 = first_vertex;
@@ -63,32 +53,12 @@ pub fn convert_models_to_gltf(models: &[Model3DFile]) -> ParseResult<(Root, Vec<
                         indices.push(v1);
                         indices.push(v2);
                         indices.push(v3);
-                    } else {
-                        debug!(
-                            "Model {} face {}: Skipping triangle with out-of-bounds indices: {}, {}, {}",
-                            model_index, face_index, v1, v2, v3
-                        );
                     }
                 }
-            } else {
-                debug!(
-                    "Model {} face {}: Skipping face with {} vertices (need >= 3)",
-                    model_index,
-                    face_index,
-                    face.face_vertices.len()
-                );
             }
         }
 
-        debug!(
-            "Model {}: {} valid faces, {} triangles generated",
-            model_index,
-            valid_faces,
-            indices.len() / 3
-        );
-
         if indices.is_empty() {
-            debug!("Model {}: Skipping - no valid triangles", model_index);
             continue;
         }
 
@@ -115,11 +85,6 @@ pub fn convert_models_to_gltf(models: &[Model3DFile]) -> ParseResult<(Root, Vec<
                     max_z.max(z),
                 )
             },
-        );
-
-        debug!(
-            "Model {}: Bounding box: ({:.2}, {:.2}, {:.2}) to ({:.2}, {:.2}, {:.2})",
-            model_index, min_x, min_y, min_z, max_x, max_y, max_z
         );
 
         // Vertices
@@ -247,56 +212,53 @@ pub fn convert_models_to_gltf(models: &[Model3DFile]) -> ParseResult<(Root, Vec<
             extensions: Default::default(),
             extras: Default::default(),
         });
-
-        debug!("Model {}: Successfully converted to mesh", model_index);
     }
 
-    debug!(
-        "Conversion complete: {} meshes, {} nodes, buffer size: {} bytes",
-        meshes.len(),
-        nodes.len(),
-        buffer_data.len()
-    );
+    if nodes.is_empty() {
+        return Err("No valid models found to convert".to_string());
+    }
+
+    let scene = Scene {
+        nodes: nodes.iter().enumerate().map(|(i, _)| Index::new(i as u32)).collect(),
+        name: None,
+        extensions: Default::default(),
+        extras: Default::default(),
+    };
+
+    let buffer = Buffer {
+        byte_length: USize64(buffer_data.len() as u64),
+        uri: None,
+        name: None,
+        extensions: Default::default(),
+        extras: Default::default(),
+    };
 
     let root = Root {
         asset: Asset {
             version: "2.0".to_string(),
-            generator: Some("redguard-preservation".to_string()),
-            copyright: None,
-            min_version: None,
-            extensions: Default::default(),
-            extras: Default::default(),
+            generator: Some(format!(
+                "redguard-preservation {}",
+                env!("CARGO_PKG_VERSION")
+            )),
+            ..Default::default()
         },
-        scene: Some(Index::new(0)),
-        scenes: vec![Scene {
-            nodes: (0..nodes.len()).map(|i| Index::new(i as u32)).collect(),
-            name: None,
-            extensions: Default::default(),
-            extras: Default::default(),
-        }],
-        nodes,
-        meshes,
         accessors,
+        buffers: vec![buffer],
         buffer_views,
-        buffers: vec![Buffer {
-            uri: None,
-            byte_length: USize64(buffer_data.len() as u64),
-            name: None,
-            extensions: Default::default(),
-            extras: Default::default(),
-        }],
-        animations: Default::default(),
-        cameras: Default::default(),
-        images: Default::default(),
-        materials: Default::default(),
-        samplers: Default::default(),
-        skins: Default::default(),
-        textures: Default::default(),
-        extensions_used: Default::default(),
-        extensions_required: Default::default(),
-        extensions: Default::default(),
-        extras: Default::default(),
+        meshes,
+        nodes,
+        scenes: vec![scene],
+        scene: Some(Index::new(0)),
+        ..Default::default()
     };
+
+    trace!(
+        "Final GLTF structure: {} accessors, {} buffer views, {} meshes, {} nodes",
+        root.accessors.len(),
+        root.buffer_views.len(),
+        root.meshes.len(),
+        root.nodes.len()
+    );
 
     Ok((root, buffer_data))
 }
