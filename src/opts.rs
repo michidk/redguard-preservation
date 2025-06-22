@@ -36,6 +36,22 @@ pub(crate) struct ReadArgs {
     pub filetype: Option<FileType>,
 }
 
+/// Arguments for converting files to GLTF
+#[derive(Args, Debug, Clone)]
+pub(crate) struct ConvertArgs {
+    /// The file to convert
+    #[arg(value_parser)]
+    pub file: PathBuf,
+
+    /// The type of file to convert (rob or 3dc)
+    #[arg(short, long)]
+    pub filetype: Option<FileType>,
+
+    /// Output file path (defaults to input file with .gltf extension)
+    #[arg(short, long)]
+    pub output: Option<PathBuf>,
+}
+
 /// Supported file types
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum FileType {
@@ -77,5 +93,21 @@ pub(crate) enum Commands {
     Read {
         #[command(flatten)]
         args: ReadArgs,
+    },
+    /// Convert a ROB or 3D model file to GLTF format
+    Convert {
+        #[command(flatten)]
+        args: ConvertArgs,
+    },
+    /// Dump vertices and faces for quick debugging
+    Dump {
+        #[command(flatten)]
+        args: ConvertArgs,
+        /// Optional model index (0-based) to dump.  If omitted, dumps all models.
+        #[arg(short, long)]
+        model: Option<usize>,
+        /// Limit the number of faces printed per model
+        #[arg(short = 'n', long, default_value_t = 20)]
+        max_faces: usize,
     },
 }

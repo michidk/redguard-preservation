@@ -3,11 +3,13 @@
 //! This library provides parsers for ROB (Redguard Object) files and embedded 3D model data.
 //! It can be used both as a library and as a command-line tool.
 
+pub mod converter;
 pub mod model3d;
 pub mod parser;
 pub mod rob;
 
 // Re-export main types for convenience
+pub use converter::{convert_models_to_gltf, to_glb};
 pub use model3d::{
     FaceData, FaceNormal, FaceVertex, Model3DFile, Model3DHeader, UVCoord, VertexCoord,
 };

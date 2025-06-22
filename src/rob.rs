@@ -38,6 +38,7 @@ pub struct RobFile {
 
 impl RobSegment {
     /// Get the segment name as a string, trimming null bytes
+    //TODO: use cstrings
     pub fn name(&self) -> String {
         String::from_utf8_lossy(&self.segment_name)
             .trim_matches('\0')

@@ -1,0 +1,32 @@
+{
+    "uri": "CARTOGR.glb",
+    "mimeType": "model/gltf-binary",
+    "validatorVersion": "2.0.0-dev.3.10",
+    "issues": {
+        "numErrors": 1,
+        "numWarnings": 0,
+        "numInfos": 2,
+        "numHints": 0,
+        "messages": [
+            {
+                "code": "GLB_EMPTY_BIN_CHUNK",
+                "message": "Empty BIN chunk should be omitted.",
+                "severity": 2,
+                "offset": 136
+            },
+            {
+                "code": "VALUE_NOT_IN_RANGE",
+                "message": "Value 0 is out of range.",
+                "severity": 0,
+                "pointer": "/buffers/0/byteLength"
+            },
+            {
+                "code": "UNUSED_OBJECT",
+                "message": "This object may be unused.",
+                "severity": 2,
+                "pointer": "/buffers/0"
+            }
+        ],
+        "truncated": false
+    }
+}

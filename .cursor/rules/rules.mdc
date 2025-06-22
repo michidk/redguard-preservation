@@ -1,0 +1,10 @@
+---
+description:
+globs:
+alwaysApply: true
+---
+directly execute cargo run, no cargo build before. if you are done, execute cargo check
+
+validate gltf files using `./gltf_validator LHBM4.glb -m`
+
+debug our app with `cargo run -- convert LMBM4.3DC -vvv`

@@ -8,7 +8,9 @@ use log::{error, info, trace};
 use std::io::Write;
 mod opts;
 use opts::{Commands, FileType, Opts};
-use redguard_preservation::{parse_rob_with_models, parser::parse_3d_file};
+use redguard_preservation::{
+    convert_models_to_gltf, to_glb, parse_rob_with_models, parser::parse_3d_file,
+};
 
 fn main() -> Result<()> {
     color_eyre::install()?;
@@ -43,14 +45,31 @@ fn main() -> Result<()> {
             match filetype {
                 FileType::Rob => {
                     match parse_rob_with_models(&file_content) {
-                        Ok((rob_file, models)) => {
+                        Ok((_rob_file, models)) => {
                             info!("Successfully parsed ROB file!");
-                            info!("Header: {:?}", rob_file.header);
-                            info!("Number of segments: {}", rob_file.segments.len());
-                            info!("Number of embedded 3D models: {}", models.len());
+                            info!("Header: {:?}", _rob_file.header);
+                            info!("Number of segments: {}", _rob_file.segments.len());
+
+                            // Count different types of segments
+                            let embedded_count = _rob_file
+                                .segments
+                                .iter()
+                                .filter(|s| s.has_embedded_3d_data())
+                                .count();
+                            let external_count = _rob_file
+                                .segments
+                                .iter()
+                                .filter(|s| s.points_to_external_file())
+                                .count();
+                            let other_count =
+                                _rob_file.segments.len() - embedded_count - external_count;
+
+                            info!("Number of embedded 3D models: {}", embedded_count);
+                            info!("Number of referenced 3D models: {}", external_count);
+                            info!("Number of other segments: {}", other_count);
 
                             // Print segment information
-                            for (i, segment) in rob_file.segments.iter().enumerate() {
+                            for (i, segment) in _rob_file.segments.iter().enumerate() {
                                 let name = segment.name();
 
                                 if segment.points_to_external_file() {
@@ -110,6 +129,149 @@ fn main() -> Result<()> {
                         std::process::exit(1);
                     }
                 },
+            }
+        }
+        Commands::Convert { args } => {
+            let file_path = &args.file;
+            let filetype = args.filetype.unwrap_or_else(|| {
+                FileType::from_extension(file_path).unwrap_or_else(|| {
+                    error!("Could not infer file type from extension. Please specify --filetype");
+                    std::process::exit(1);
+                })
+            });
+
+            // Determine output filename
+            let output_path = args.output.unwrap_or_else(|| {
+                let mut path = file_path.clone();
+                path.set_extension("glb");
+                path
+            });
+
+            info!("Converting file: {} to {}", file_path.display(), output_path.display());
+
+            let file_content = std::fs::read(file_path).map_err(|e| {
+                color_eyre::eyre::eyre!("Failed to read file '{}': {}", file_path.display(), e)
+            })?;
+
+            let models = match filetype {
+                FileType::Rob => match parse_rob_with_models(&file_content) {
+                    Ok((_rob_file, models)) => {
+                        info!("Successfully parsed ROB file, found {} models", models.len());
+                        models
+                    }
+                    Err(e) => {
+                        error!("Failed to parse ROB file: {}", e);
+                        std::process::exit(1);
+                    }
+                },
+                FileType::Model3D => match parse_3d_file(&file_content) {
+                    Ok(model) => {
+                        info!("Successfully parsed 3D model file");
+                        vec![model]
+                    }
+                    Err(e) => {
+                        error!("Failed to parse 3D model file: {}", e);
+                        std::process::exit(1);
+                    }
+                },
+            };
+
+            if models.is_empty() {
+                error!("No 3D models found to convert.");
+                std::process::exit(1);
+            }
+
+            // Convert all models into a single GLB file
+            match convert_models_to_gltf(&models) {
+                Ok((root, buffer)) => {
+                    match to_glb(&root, &buffer) {
+                        Ok(glb_data) => {
+                            std::fs::write(&output_path, glb_data).map_err(|e| {
+                                color_eyre::eyre::eyre!(
+                                    "Failed to write GLB file '{}': {}",
+                                    output_path.display(),
+                                    e
+                                )
+                            })?;
+                            info!("Successfully converted to: {}", output_path.display());
+                        }
+                        Err(e) => {
+                            error!("Failed to serialize to GLB: {}", e);
+                            std::process::exit(1);
+                        }
+                    }
+                }
+                Err(e) => {
+                    error!("Failed to convert models to GLTF: {}", e);
+                    std::process::exit(1);
+                }
+            }
+        }
+        Commands::Dump { args, model, max_faces } => {
+            let file_path = &args.file;
+            let filetype = args.filetype.unwrap_or_else(|| {
+                FileType::from_extension(file_path).unwrap_or_else(|| {
+                    error!("Could not infer file type from extension. Please specify --filetype");
+                    std::process::exit(1);
+                })
+            });
+
+            let file_content = std::fs::read(file_path).map_err(|e| {
+                color_eyre::eyre::eyre!(
+                    "Failed to read file '{}': {}",
+                    file_path.display(),
+                    e
+                )
+            })?;
+
+            let models = match filetype {
+                FileType::Rob => match parse_rob_with_models(&file_content) {
+                    Ok((_rob_file, models)) => models,
+                    Err(e) => {
+                        error!("Failed to parse ROB file: {}", e);
+                        std::process::exit(1);
+                    }
+                },
+                FileType::Model3D => match parse_3d_file(&file_content) {
+                    Ok(model) => vec![model],
+                    Err(e) => {
+                        error!("Failed to parse 3D model file: {}", e);
+                        std::process::exit(1);
+                    }
+                },
+            };
+
+            if models.is_empty() {
+                error!("No 3D models found.");
+                std::process::exit(1);
+            }
+
+            let targets: Vec<(usize, &redguard_preservation::model3d::Model3DFile)> = if let Some(idx) = model {
+                if idx >= models.len() {
+                    error!("Model index {} out of range ({} models)", idx, models.len());
+                    std::process::exit(1);
+                }
+                vec![(idx, &models[idx])]
+            } else {
+                models.iter().enumerate().collect()
+            };
+
+            for (i, m) in targets {
+                println!("\n--- Model {} ---", i);
+                println!("Version: {} (raw: {:?})", m.header.version_string(), m.header.version);
+                println!("Vertices: {}", m.vertex_coords.len());
+                println!("Faces: {}", m.face_data.len());
+
+                println!("First 10 vertices (scaled):");
+                for (vi, v) in m.vertex_coords.iter().take(10).enumerate() {
+                    println!("  {:>3}: ({:.3}, {:.3}, {:.3})", vi, v.x, v.y, v.z);
+                }
+
+                println!("First {} faces (as vertex indices):", max_faces);
+                for (fi, face) in m.face_data.iter().take(max_faces).enumerate() {
+                    let indices: Vec<u32> = face.face_vertices.iter().map(|fv| fv.vertex_index).collect();
+                    println!("  Face {:>3}: {:?}", fi, indices);
+                }
             }
         }
     }
