@@ -3,6 +3,7 @@
 //! This module provides high-level parsing functions that combine ROB and 3D model parsing.
 
 use crate::{ParseResult, model3d::Model3DFile, rob::RobSegment};
+use log::warn;
 
 /// Parse embedded 3D data from a ROB segment
 pub fn parse_embedded_3d_data(segment: &RobSegment) -> ParseResult<Model3DFile> {
@@ -13,10 +14,7 @@ pub fn parse_embedded_3d_data(segment: &RobSegment) -> ParseResult<Model3DFile> 
     match crate::model3d::parse_3d_file(&segment.data) {
         Ok((remaining, model)) => {
             if !remaining.is_empty() {
-                eprintln!(
-                    "Warning: {} bytes remaining in embedded 3D data",
-                    remaining.len()
-                );
+                warn!("{} bytes remaining in embedded 3D data", remaining.len());
             }
             Ok(model)
         }
@@ -29,7 +27,7 @@ pub fn parse_rob_file(input: &[u8]) -> Result<crate::rob::RobFile, String> {
     match crate::rob::parse_rob_file(input) {
         Ok((remaining, rob_file)) => {
             if !remaining.is_empty() {
-                eprintln!("Warning: {} bytes remaining unparsed", remaining.len());
+                warn!("{} bytes remaining unparsed", remaining.len());
             }
             Ok(rob_file)
         }
@@ -42,10 +40,7 @@ pub fn parse_3d_file(input: &[u8]) -> ParseResult<Model3DFile> {
     match crate::model3d::parse_3d_file(input) {
         Ok((remaining, model)) => {
             if !remaining.is_empty() {
-                eprintln!(
-                    "Warning: {} bytes remaining in 3D model data",
-                    remaining.len()
-                );
+                warn!("{} bytes remaining in 3D model data", remaining.len());
             }
             Ok(model)
         }
@@ -65,8 +60,8 @@ pub fn parse_rob_with_models(
             match parse_embedded_3d_data(segment) {
                 Ok(model) => models.push(model),
                 Err(e) => {
-                    eprintln!(
-                        "Warning: Failed to parse embedded 3D data in segment '{}': {}",
+                    warn!(
+                        "Failed to parse embedded 3D data in segment '{}': {}",
                         segment.name(),
                         e
                     );

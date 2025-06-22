@@ -2,55 +2,80 @@
 //!
 //! This module defines the command-line interface using clap.
 
-use clap::{Parser, Subcommand};
-use clap_verbosity_flag::{Verbosity, WarnLevel};
+use clap::{Args, Parser, Subcommand};
+use std::path::PathBuf;
 
-/// Redguard Preservation - A tool for parsing ROB and 3D model files
+/// Main CLI arguments
 #[derive(Parser, Debug)]
-#[command(name = "redguard-preservation")]
-#[command(about = "Parse and analyze ROB files and embedded 3D models")]
-#[command(version)]
-pub struct Opts {
-    /// Input ROB file to parse
-    #[arg(short, long)]
-    pub input: String,
-
-    /// Output directory for extracted models (optional)
-    #[arg(short, long)]
-    pub output: Option<String>,
-
-    /// Extract embedded 3D models to separate files
-    #[arg(short, long)]
-    pub extract: bool,
-
-    /// Verbosity level
+#[command(
+    name = "redguard-preservation",
+    about = "A CLI tool to parse and analyze ROB and 3D model files from Redguard.",
+    author,
+    version,
+    about
+)]
+pub(crate) struct Opts {
+    /// The verbosity of the output
     #[command(flatten)]
-    pub verbose: Verbosity<WarnLevel>,
+    pub verbose: clap_verbosity_flag::Verbosity<clap_verbosity_flag::InfoLevel>,
 
-    /// Subcommand to execute
+    /// The command to run
     #[command(subcommand)]
-    pub command: Option<Commands>,
+    pub command: Commands,
 }
 
-/// Available subcommands
+/// Arguments for reading files
+#[derive(Args, Debug, Clone)]
+pub(crate) struct ReadArgs {
+    /// The file to read
+    #[arg(value_parser)]
+    pub file: PathBuf,
+
+    /// The type of file to read (rob or 3dc)
+    #[arg(short, long)]
+    pub filetype: Option<FileType>,
+}
+
+/// Supported file types
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum FileType {
+    Rob,
+    Model3D,
+}
+
+impl std::str::FromStr for FileType {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "rob" => Ok(FileType::Rob),
+            "3dc" | "3d" => Ok(FileType::Model3D),
+            _ => Err(format!(
+                "Unknown file type: {}. Supported types: rob, 3dc",
+                s
+            )),
+        }
+    }
+}
+
+impl FileType {
+    /// Infer file type from file extension
+    pub fn from_extension(path: &PathBuf) -> Option<Self> {
+        path.extension()
+            .and_then(|ext| ext.to_str())
+            .and_then(|ext| match ext.to_lowercase().as_str() {
+                "rob" => Some(FileType::Rob),
+                "3dc" | "3d" => Some(FileType::Model3D),
+                _ => None,
+            })
+    }
+}
+
 #[derive(Subcommand, Debug)]
-pub enum Commands {
-    /// Parse and display information about a ROB file
-    Parse {
-        /// Show detailed segment information
-        #[arg(short, long)]
-        detailed: bool,
-    },
-    /// Extract embedded 3D models from a ROB file
-    Extract {
-        /// Output format for extracted models
-        #[arg(short, long, default_value = "obj")]
-        format: String,
-    },
-    /// Analyze 3D model statistics
-    Analyze {
-        /// Include bounding box information
-        #[arg(short, long)]
-        bounds: bool,
+pub(crate) enum Commands {
+    /// Read and parse a ROB or 3D model file
+    Read {
+        #[command(flatten)]
+        args: ReadArgs,
     },
 }

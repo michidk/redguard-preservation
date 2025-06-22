@@ -4,7 +4,6 @@
 //! It can be used both as a library and as a command-line tool.
 
 pub mod model3d;
-pub mod opts;
 pub mod parser;
 pub mod rob;
 
@@ -12,7 +11,6 @@ pub mod rob;
 pub use model3d::{
     FaceData, FaceNormal, FaceVertex, Model3DFile, Model3DHeader, UVCoord, VertexCoord,
 };
-pub use opts::Opts;
 pub use parser::{parse_embedded_3d_data, parse_rob_file, parse_rob_with_models};
 pub use rob::{RobFile, RobHeader, RobSegment};
 

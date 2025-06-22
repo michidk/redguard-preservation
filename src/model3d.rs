@@ -5,8 +5,25 @@
 use nom::{
     IResult, Parser,
     bytes::complete::take,
-    number::complete::{le_f32, le_i16, le_u8, le_u32},
+    number::complete::{le_f32, le_i16, le_u8, le_u16, le_u32},
 };
+
+/// Version information for 3DC/3D files
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ModelVersion {
+    V26, // v2.6
+    V27, // v2.7
+    V40, // v4.0
+    V50, // v5.0
+    Unknown,
+}
+
+/// Texture data parsed from face data
+#[derive(Debug, Clone)]
+pub enum TextureData {
+    SolidColor(u8),
+    Texture { texture_id: u16, image_id: u8 },
+}
 
 /// Header structure for 3DC/3D model files
 #[derive(Debug, Clone)]
@@ -42,7 +59,7 @@ pub struct FaceVertex {
 pub struct FaceData {
     pub vertex_count: u8,
     pub unk_01: u8,
-    pub texture_data: u32,
+    pub texture_data: TextureData,
     pub unk_04: u32,
     pub face_vertices: Vec<FaceVertex>,
 }
@@ -75,6 +92,7 @@ pub struct UVCoord {
 #[derive(Debug, Clone)]
 pub struct Model3DFile {
     pub header: Model3DHeader,
+    pub version: ModelVersion,
     pub frame_data: Vec<u8>,
     pub face_data: Vec<FaceData>,
     pub vertex_coords: Vec<VertexCoord>,
@@ -89,6 +107,28 @@ impl Model3DHeader {
         String::from_utf8_lossy(&self.version)
             .trim_matches('\0')
             .to_string()
+    }
+
+    /// Parse version string into ModelVersion enum
+    pub fn parse_version(&self) -> ModelVersion {
+        let version_str = self.version_string();
+        match version_str.as_str() {
+            "v2.6" => ModelVersion::V26,
+            "v2.7" => ModelVersion::V27,
+            "v4.0" => ModelVersion::V40,
+            "v5.0" => ModelVersion::V50,
+            _ => ModelVersion::Unknown,
+        }
+    }
+
+    /// Check if this is a v2.7 or earlier version
+    pub fn is_v27_or_earlier(&self) -> bool {
+        matches!(self.parse_version(), ModelVersion::V26 | ModelVersion::V27)
+    }
+
+    /// Check if this is a v4.0 or later version
+    pub fn is_v40_or_later(&self) -> bool {
+        matches!(self.parse_version(), ModelVersion::V40 | ModelVersion::V50)
     }
 }
 
@@ -128,6 +168,71 @@ impl Model3DFile {
         }
 
         Some((min, max))
+    }
+}
+
+/// Parse texture data based on version
+pub fn parse_texture_data<'a>(
+    input: &'a [u8],
+    version: &ModelVersion,
+) -> IResult<&'a [u8], TextureData> {
+    match version {
+        ModelVersion::V26 | ModelVersion::V27 => {
+            // v2.6 & 2.7 (3DART) - TextureData is u16
+            let (input, texture_data) = le_u16(input)?;
+
+            let texture_id = (texture_data >> 7) as u16;
+
+            // Check if solid color - Note: TEXTURE.000/001 are not used
+            if texture_id < 2 {
+                let color_index = texture_data as u8;
+                Ok((input, TextureData::SolidColor(color_index)))
+            } else {
+                let image_id = (texture_data & 0x7F) as u8;
+                Ok((
+                    input,
+                    TextureData::Texture {
+                        texture_id,
+                        image_id,
+                    },
+                ))
+            }
+        }
+        ModelVersion::V40 | ModelVersion::V50 => {
+            // v4.0 & 5.0 (FXART) - TextureData is u32
+            let (input, texture_data) = le_u32(input)?;
+
+            // Check if solid color
+            if (texture_data >> 20) == 0x0FFF {
+                let color_index = (texture_data >> 8) as u8;
+                Ok((input, TextureData::SolidColor(color_index)))
+            } else {
+                // Parse TextureID
+                let temp_val = (texture_data >> 8) - 4000000;
+                let one = (temp_val / 250) % 40;
+                let ten = ((temp_val - (one * 250)) / 1000) % 100;
+                let hundred = (temp_val - (one * 250) - (ten * 1000)) / 4000;
+                let texture_id = one + ten + hundred;
+
+                // Parse ImageID
+                let one = (texture_data & 0xFF) % 10;
+                let ten = ((texture_data & 0xFF) / 40) * 10;
+                let image_id = (one + ten) as u8;
+
+                Ok((
+                    input,
+                    TextureData::Texture {
+                        texture_id: texture_id as u16,
+                        image_id,
+                    },
+                ))
+            }
+        }
+        ModelVersion::Unknown => {
+            // Default to u32 for unknown versions
+            let (input, texture_data) = le_u32(input)?;
+            Ok((input, TextureData::SolidColor(texture_data as u8)))
+        }
     }
 }
 
@@ -196,8 +301,11 @@ pub fn parse_3d_header(input: &[u8]) -> IResult<&[u8], Model3DHeader> {
     ))
 }
 
-/// Parse a single face vertex
-pub fn parse_face_vertex(input: &[u8]) -> IResult<&[u8], FaceVertex> {
+/// Parse a single face vertex with version-specific vertex index handling
+pub fn parse_face_vertex<'a>(
+    input: &'a [u8],
+    version: &ModelVersion,
+) -> IResult<&'a [u8], FaceVertex> {
     let (input, (vertex_index, u, v)) = (
         le_u32, // VertexIndex
         le_i16, // U
@@ -205,24 +313,40 @@ pub fn parse_face_vertex(input: &[u8]) -> IResult<&[u8], FaceVertex> {
     )
         .parse(input)?;
 
-    Ok((input, FaceVertex { vertex_index, u, v }))
+    // In v2.6/2.7, vertex_index is multiplied by 12, so we need to divide by 12
+    let adjusted_vertex_index = if matches!(version, ModelVersion::V26 | ModelVersion::V27) {
+        vertex_index / 12
+    } else {
+        vertex_index
+    };
+
+    Ok((
+        input,
+        FaceVertex {
+            vertex_index: adjusted_vertex_index,
+            u,
+            v,
+        },
+    ))
 }
 
-/// Parse face data
-pub fn parse_face_data(input: &[u8]) -> IResult<&[u8], FaceData> {
-    let (input, (vertex_count, unk_01, texture_data, unk_04)) = (
-        le_u8,  // VertexCount
-        le_u8,  // Unk_01
-        le_u32, // TextureData
-        le_u32, // Unk_04
+/// Parse face data with version-specific texture data parsing
+pub fn parse_face_data<'a>(input: &'a [u8], version: &ModelVersion) -> IResult<&'a [u8], FaceData> {
+    let (input, (vertex_count, unk_01)) = (
+        le_u8, // VertexCount
+        le_u8, // Unk_01
     )
         .parse(input)?;
+
+    let (input, texture_data) = parse_texture_data(input, version)?;
+
+    let (input, unk_04) = le_u32(input)?; // Unk_04
 
     let mut face_vertices = Vec::new();
     let mut remaining_input = input;
 
     for _ in 0..vertex_count {
-        let (input, vertex) = parse_face_vertex(remaining_input)?;
+        let (input, vertex) = parse_face_vertex(remaining_input, version)?;
         face_vertices.push(vertex);
         remaining_input = input;
     }
@@ -275,9 +399,33 @@ pub fn parse_uv_coord(input: &[u8]) -> IResult<&[u8], UVCoord> {
     Ok((input, UVCoord { x, y, z }))
 }
 
-/// Parse complete 3DC/3D file
+/// Parse frame data header (for v2.7 3DC files)
+pub fn parse_frame_data_header(input: &[u8]) -> IResult<&[u8], (u32, u32, u32, u32)> {
+    let (input, (u1, u2, u3, u4)) = (
+        le_u32, // u1
+        le_u32, // u2
+        le_u32, // u3
+        le_u32, // u4
+    )
+        .parse(input)?;
+
+    Ok((input, (u1, u2, u3, u4)))
+}
+
+/// Parse complete 3DC/3D file with version-specific handling
 pub fn parse_3d_file(input: &[u8]) -> IResult<&[u8], Model3DFile> {
     let (input, header) = parse_3d_header(input)?;
+    let version = header.parse_version();
+
+    // Handle version-specific header field interpretations
+    let (_adjusted_offset_uv_data, adjusted_offset_vertex_coords) = if header.is_v27_or_earlier() {
+        // For v2.7 or earlier:
+        // - NumUVOffsets is the offset to UV Data (which is just all 0s)
+        // - OffsetUVData is an offset to an unknown section
+        (header.num_uv_offsets, header.offset_uv_data)
+    } else {
+        (header.offset_uv_data, header.offset_vertex_coords)
+    };
 
     // Parse frame data (if any)
     let frame_data_size = if header.offset_frame_data > 64 {
@@ -297,10 +445,23 @@ pub fn parse_3d_file(input: &[u8]) -> IResult<&[u8], Model3DFile> {
     let mut remaining_input = input;
 
     for _ in 0..header.num_faces {
-        let (input, face) = parse_face_data(remaining_input)?;
+        let (input, face) = parse_face_data(remaining_input, &version)?;
         face_data.push(face);
         remaining_input = input;
     }
+
+    // Calculate actual vertex coordinates offset for v2.7 3DC files
+    let _vertex_coords_offset = if header.is_v27_or_earlier() && frame_data_size > 0 {
+        // For v2.7 3DC files, vertex coordinates start after frame data header
+        // We need to parse the frame data header to get u3
+        if let Ok((_, (_, _, u3, _))) = parse_frame_data_header(&frame_data) {
+            header.offset_face_data + (face_data.len() as u32 * 8) + u3 // Approximate face data size
+        } else {
+            adjusted_offset_vertex_coords
+        }
+    } else {
+        adjusted_offset_vertex_coords
+    };
 
     // Parse vertex coordinates
     let mut vertex_coords = Vec::new();
@@ -339,6 +500,7 @@ pub fn parse_3d_file(input: &[u8]) -> IResult<&[u8], Model3DFile> {
         remaining_input,
         Model3DFile {
             header,
+            version,
             frame_data: frame_data.to_vec(),
             face_data,
             vertex_coords,

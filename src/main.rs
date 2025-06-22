@@ -5,8 +5,10 @@
 use clap::Parser;
 use color_eyre::Result;
 use log::{error, info, trace};
-use redguard_preservation::{Opts, parse_rob_with_models};
 use std::io::Write;
+mod opts;
+use opts::{Commands, FileType, Opts};
+use redguard_preservation::{parse_rob_with_models, parser::parse_3d_file};
 
 fn main() -> Result<()> {
     color_eyre::install()?;
@@ -21,76 +23,94 @@ fn main() -> Result<()> {
 
     trace!("Parsed Opts:\n{}", opts_dbg);
 
-    // Read the ROB file
-    info!("Reading ROB file: {}", opts.input);
-    let file_content = std::fs::read(&opts.input)
-        .map_err(|e| color_eyre::eyre::eyre!("Failed to read file '{}': {}", opts.input, e))?;
+    match opts.command {
+        Commands::Read { args } => {
+            let file_path = &args.file;
+            let filetype = args.filetype.unwrap_or_else(|| {
+                FileType::from_extension(file_path).unwrap_or_else(|| {
+                    error!("Could not infer file type from extension. Please specify --filetype");
+                    std::process::exit(1);
+                })
+            });
 
-    match parse_rob_with_models(&file_content) {
-        Ok((rob_file, models)) => {
-            info!("Successfully parsed ROB file!");
-            info!("Header: {:?}", rob_file.header);
-            info!("Number of segments: {}", rob_file.segments.len());
-            info!("Number of embedded 3D models: {}", models.len());
+            info!("Reading file: {}", file_path.display());
+            info!("File type: {:?}", filetype);
 
-            // Print segment information
-            for (i, segment) in rob_file.segments.iter().enumerate() {
-                let name = segment.name();
+            let file_content = std::fs::read(file_path).map_err(|e| {
+                color_eyre::eyre::eyre!("Failed to read file '{}': {}", file_path.display(), e)
+            })?;
 
-                if segment.points_to_external_file() {
-                    info!("Segment {}: '{}' points to external 3DC file", i, name);
-                } else if segment.has_embedded_3d_data() {
-                    info!(
-                        "Segment {}: '{}' embeds 3D data (size: {})",
-                        i, name, segment.size
-                    );
-                } else {
-                    info!(
-                        "Segment {}: '{}' contains other data (size: {})",
-                        i, name, segment.size
-                    );
-                }
-            }
+            match filetype {
+                FileType::Rob => {
+                    match parse_rob_with_models(&file_content) {
+                        Ok((rob_file, models)) => {
+                            info!("Successfully parsed ROB file!");
+                            info!("Header: {:?}", rob_file.header);
+                            info!("Number of segments: {}", rob_file.segments.len());
+                            info!("Number of embedded 3D models: {}", models.len());
 
-            // Print 3D model information
-            for (i, model) in models.iter().enumerate() {
-                info!("\n3D Model {}:", i + 1);
-                info!("  Version: {}", model.header.version_string());
-                info!("  Vertices: {}", model.header.num_vertices);
-                info!("  Faces: {}", model.header.num_faces);
-                info!("  Total face vertices: {}", model.total_face_vertices());
-                info!("  UV coordinates: {}", model.uv_coords.len());
+                            // Print segment information
+                            for (i, segment) in rob_file.segments.iter().enumerate() {
+                                let name = segment.name();
 
-                if let Some((min, max)) = model.bounding_box() {
-                    info!("  Bounding box:");
-                    info!("    Min: ({:.2}, {:.2}, {:.2})", min.x, min.y, min.z);
-                    info!("    Max: ({:.2}, {:.2}, {:.2})", max.x, max.y, max.z);
-                }
-            }
+                                if segment.points_to_external_file() {
+                                    info!("Segment {}: '{}' points to external 3DC file", i, name);
+                                } else if segment.has_embedded_3d_data() {
+                                    info!(
+                                        "Segment {}: '{}' embeds 3D data (size: {})",
+                                        i, name, segment.size
+                                    );
+                                } else {
+                                    info!(
+                                        "Segment {}: '{}' contains other data (size: {})",
+                                        i, name, segment.size
+                                    );
+                                }
+                            }
 
-            // Handle subcommands
-            if let Some(command) = opts.command {
-                match command {
-                    redguard_preservation::opts::Commands::Parse { detailed } => {
-                        if detailed {
-                            trace!("Detailed parsing requested");
-                            // TODO: Implement detailed parsing
+                            // Print 3D model information
+                            for (i, model) in models.iter().enumerate() {
+                                info!("\n3D Model {}:", i + 1);
+                                info!("  Version: {}", model.header.version_string());
+                                info!("  Vertices: {}", model.header.num_vertices);
+                                info!("  Faces: {}", model.header.num_faces);
+                                info!("  Total face vertices: {}", model.total_face_vertices());
+                                info!("  UV coordinates: {}", model.uv_coords.len());
+
+                                if let Some((min, max)) = model.bounding_box() {
+                                    info!("  Bounding box:");
+                                    info!("    Min: ({:.2}, {:.2}, {:.2})", min.x, min.y, min.z);
+                                    info!("    Max: ({:.2}, {:.2}, {:.2})", max.x, max.y, max.z);
+                                }
+                            }
+                        }
+                        Err(e) => {
+                            error!("Failed to parse ROB file: {}", e);
+                            std::process::exit(1);
                         }
                     }
-                    redguard_preservation::opts::Commands::Extract { format } => {
-                        info!("Extracting models in {} format", format);
-                        // TODO: Implement model extraction
-                    }
-                    redguard_preservation::opts::Commands::Analyze { bounds } => {
-                        info!("Analyzing models (bounds: {})", bounds);
-                        // TODO: Implement model analysis
-                    }
                 }
+                FileType::Model3D => match parse_3d_file(&file_content) {
+                    Ok(model) => {
+                        info!("Successfully parsed 3D model file!");
+                        info!("Version: {}", model.header.version_string());
+                        info!("Vertices: {}", model.header.num_vertices);
+                        info!("Faces: {}", model.header.num_faces);
+                        info!("Total face vertices: {}", model.total_face_vertices());
+                        info!("UV coordinates: {}", model.uv_coords.len());
+
+                        if let Some((min, max)) = model.bounding_box() {
+                            info!("Bounding box:");
+                            info!("  Min: ({:.2}, {:.2}, {:.2})", min.x, min.y, min.z);
+                            info!("  Max: ({:.2}, {:.2}, {:.2})", max.x, max.y, max.z);
+                        }
+                    }
+                    Err(e) => {
+                        error!("Failed to parse 3D model file: {}", e);
+                        std::process::exit(1);
+                    }
+                },
             }
-        }
-        Err(e) => {
-            error!("Failed to parse ROB file: {}", e);
-            std::process::exit(1);
         }
     }
 

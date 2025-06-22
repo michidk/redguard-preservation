@@ -2,6 +2,7 @@
 //!
 //! This module contains the data structures and parsing logic for ROB files.
 
+use log::warn;
 use nom::{
     IResult, Parser,
     bytes::complete::{tag, take},
@@ -58,13 +59,13 @@ impl RobSegment {
 pub fn parse_rob_header(input: &[u8]) -> IResult<&[u8], RobHeader> {
     let (input, oarc) = opt(tag("OARC")).parse(input)?;
     if oarc.is_none() {
-        eprintln!("Warning: OARC header not found where expected");
+        warn!("OARC header not found where expected");
     }
     let (input, unknown1) = le_u32(input)?;
     let (input, num_segments) = le_u32(input)?;
     let (input, oard) = opt(tag("OARD")).parse(input)?;
     if oard.is_none() {
-        eprintln!("Warning: OARD header not found where expected");
+        warn!("OARD header not found where expected");
     }
     let (input, unknown2) = le_u32(input)?;
 
@@ -134,7 +135,7 @@ pub fn parse_rob_file(input: &[u8]) -> IResult<&[u8], RobFile> {
     // Check for END marker ("END ")
     let (remaining_input, end_marker) = opt(tag("END ")).parse(remaining_input)?;
     if end_marker.is_none() {
-        eprintln!("Warning: END marker not found at end of file");
+        warn!("END marker not found at end of file");
     }
 
     Ok((remaining_input, RobFile { header, segments }))
