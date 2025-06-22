@@ -2,7 +2,7 @@
 //!
 //! This module contains the data structures and parsing logic for 3DC/3D model files.
 
-use log::{debug, info};
+use log::debug;
 use nom::{
     IResult, Parser,
     bytes::complete::take,
@@ -959,8 +959,7 @@ pub fn parse_3d_file(input: &[u8]) -> IResult<&[u8], Model3DFile> {
         header.offset_uv_offsets = header.offset_face_data + face_data_size;
     }
 
-    let vertex_coords =
-        parse_vertex_coords_section(input, &header, adjusted_offset_vertex_coords);
+    let vertex_coords = parse_vertex_coords_section(input, &header, adjusted_offset_vertex_coords);
     let face_normals = parse_face_normals_section(input, &header);
     let uv_offsets = parse_uv_offsets_section(input, &header);
     let uv_coords = parse_uv_coords_section(input, &header, adjusted_offset_uv_data);
