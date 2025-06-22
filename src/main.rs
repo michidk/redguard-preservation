@@ -9,7 +9,7 @@ use std::io::Write;
 mod opts;
 use opts::{Commands, FileType, Opts};
 use redguard_preservation::{
-    convert_models_to_gltf, to_glb, parse_rob_with_models, parser::parse_3d_file,
+    convert_models_to_gltf, parse_rob_with_models, parser::parse_3d_file, to_glb,
 };
 
 fn main() -> Result<()> {
@@ -147,7 +147,11 @@ fn main() -> Result<()> {
                 path
             });
 
-            info!("Converting file: {} to {}", file_path.display(), output_path.display());
+            info!(
+                "Converting file: {} to {}",
+                file_path.display(),
+                output_path.display()
+            );
 
             let file_content = std::fs::read(file_path).map_err(|e| {
                 color_eyre::eyre::eyre!("Failed to read file '{}': {}", file_path.display(), e)
@@ -156,7 +160,10 @@ fn main() -> Result<()> {
             let models = match filetype {
                 FileType::Rob => match parse_rob_with_models(&file_content) {
                     Ok((_rob_file, models)) => {
-                        info!("Successfully parsed ROB file, found {} models", models.len());
+                        info!(
+                            "Successfully parsed ROB file, found {} models",
+                            models.len()
+                        );
                         models
                     }
                     Err(e) => {
@@ -183,31 +190,33 @@ fn main() -> Result<()> {
 
             // Convert all models into a single GLB file
             match convert_models_to_gltf(&models) {
-                Ok((root, buffer)) => {
-                    match to_glb(&root, &buffer) {
-                        Ok(glb_data) => {
-                            std::fs::write(&output_path, glb_data).map_err(|e| {
-                                color_eyre::eyre::eyre!(
-                                    "Failed to write GLB file '{}': {}",
-                                    output_path.display(),
-                                    e
-                                )
-                            })?;
-                            info!("Successfully converted to: {}", output_path.display());
-                        }
-                        Err(e) => {
-                            error!("Failed to serialize to GLB: {}", e);
-                            std::process::exit(1);
-                        }
+                Ok((root, buffer)) => match to_glb(&root, &buffer) {
+                    Ok(glb_data) => {
+                        std::fs::write(&output_path, glb_data).map_err(|e| {
+                            color_eyre::eyre::eyre!(
+                                "Failed to write GLB file '{}': {}",
+                                output_path.display(),
+                                e
+                            )
+                        })?;
+                        info!("Successfully converted to: {}", output_path.display());
                     }
-                }
+                    Err(e) => {
+                        error!("Failed to serialize to GLB: {}", e);
+                        std::process::exit(1);
+                    }
+                },
                 Err(e) => {
                     error!("Failed to convert models to GLTF: {}", e);
                     std::process::exit(1);
                 }
             }
         }
-        Commands::Dump { args, model, max_faces } => {
+        Commands::Dump {
+            args,
+            model,
+            max_faces,
+        } => {
             let file_path = &args.file;
             let filetype = args.filetype.unwrap_or_else(|| {
                 FileType::from_extension(file_path).unwrap_or_else(|| {
@@ -217,11 +226,7 @@ fn main() -> Result<()> {
             });
 
             let file_content = std::fs::read(file_path).map_err(|e| {
-                color_eyre::eyre::eyre!(
-                    "Failed to read file '{}': {}",
-                    file_path.display(),
-                    e
-                )
+                color_eyre::eyre::eyre!("Failed to read file '{}': {}", file_path.display(), e)
             })?;
 
             let models = match filetype {
@@ -246,19 +251,24 @@ fn main() -> Result<()> {
                 std::process::exit(1);
             }
 
-            let targets: Vec<(usize, &redguard_preservation::model3d::Model3DFile)> = if let Some(idx) = model {
-                if idx >= models.len() {
-                    error!("Model index {} out of range ({} models)", idx, models.len());
-                    std::process::exit(1);
-                }
-                vec![(idx, &models[idx])]
-            } else {
-                models.iter().enumerate().collect()
-            };
+            let targets: Vec<(usize, &redguard_preservation::model3d::Model3DFile)> =
+                if let Some(idx) = model {
+                    if idx >= models.len() {
+                        error!("Model index {} out of range ({} models)", idx, models.len());
+                        std::process::exit(1);
+                    }
+                    vec![(idx, &models[idx])]
+                } else {
+                    models.iter().enumerate().collect()
+                };
 
             for (i, m) in targets {
                 println!("\n--- Model {} ---", i);
-                println!("Version: {} (raw: {:?})", m.header.version_string(), m.header.version);
+                println!(
+                    "Version: {} (raw: {:?})",
+                    m.header.version_string(),
+                    m.header.version
+                );
                 println!("Vertices: {}", m.vertex_coords.len());
                 println!("Faces: {}", m.face_data.len());
 
@@ -269,7 +279,11 @@ fn main() -> Result<()> {
 
                 println!("First {} faces (as vertex indices):", max_faces);
                 for (fi, face) in m.face_data.iter().take(max_faces).enumerate() {
-                    let indices: Vec<u32> = face.face_vertices.iter().map(|fv| fv.vertex_index).collect();
+                    let indices: Vec<u32> = face
+                        .face_vertices
+                        .iter()
+                        .map(|fv| fv.vertex_index)
+                        .collect();
                     println!("  Face {:>3}: {:?}", fi, indices);
                 }
             }

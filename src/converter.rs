@@ -2,20 +2,20 @@
 //!
 //! This module provides functions to convert 3D model files to GLTF format.
 
-use crate::{model3d::Model3DFile, ParseResult};
+use crate::{ParseResult, model3d::Model3DFile};
 use gltf::binary::{Glb, Header};
 use gltf_json as json;
 use json::validation::{Checked, USize64};
 use json::{
+    Asset, Index, Root, Scene,
     accessor::{Accessor, ComponentType, GenericComponentType, Type},
     buffer::{Buffer, Target, View},
     mesh::{Mesh, Primitive, Semantic},
     scene::Node,
-    Asset, Index, Root, Scene,
 };
+use log::debug;
 use serde_json::Value;
 use std::collections::BTreeMap;
-use log::debug;
 
 /// Convert one or more 3D models to a GLTF `Root` and a binary buffer.
 pub fn convert_models_to_gltf(models: &[Model3DFile]) -> ParseResult<(Root, Vec<u8>)> {
@@ -32,8 +32,12 @@ pub fn convert_models_to_gltf(models: &[Model3DFile]) -> ParseResult<(Root, Vec<
     let mut nodes = Vec::new();
 
     for (model_index, model) in models.iter().enumerate() {
-        debug!("Processing model {}: {} vertices, {} faces",
-               model_index, model.vertex_coords.len(), model.face_data.len());
+        debug!(
+            "Processing model {}: {} vertices, {} faces",
+            model_index,
+            model.vertex_coords.len(),
+            model.face_data.len()
+        );
 
         // A model must have vertices and faces to be valid.
         if model.vertex_coords.is_empty() {
@@ -60,17 +64,28 @@ pub fn convert_models_to_gltf(models: &[Model3DFile]) -> ParseResult<(Root, Vec<
                         indices.push(v2);
                         indices.push(v3);
                     } else {
-                        debug!("Model {} face {}: Skipping triangle with out-of-bounds indices: {}, {}, {}",
-                               model_index, face_index, v1, v2, v3);
+                        debug!(
+                            "Model {} face {}: Skipping triangle with out-of-bounds indices: {}, {}, {}",
+                            model_index, face_index, v1, v2, v3
+                        );
                     }
                 }
             } else {
-                debug!("Model {} face {}: Skipping face with {} vertices (need >= 3)",
-                       model_index, face_index, face.face_vertices.len());
+                debug!(
+                    "Model {} face {}: Skipping face with {} vertices (need >= 3)",
+                    model_index,
+                    face_index,
+                    face.face_vertices.len()
+                );
             }
         }
 
-        debug!("Model {}: {} valid faces, {} triangles generated", model_index, valid_faces, indices.len() / 3);
+        debug!(
+            "Model {}: {} valid faces, {} triangles generated",
+            model_index,
+            valid_faces,
+            indices.len() / 3
+        );
 
         if indices.is_empty() {
             debug!("Model {}: Skipping - no valid triangles", model_index);
@@ -78,33 +93,34 @@ pub fn convert_models_to_gltf(models: &[Model3DFile]) -> ParseResult<(Root, Vec<
         }
 
         // Calculate min/max for vertex positions, replacing NaN with 0.0 during calculation.
-        let (min_x, max_x, min_y, max_y, min_z, max_z) =
-            model.vertex_coords.iter().fold(
+        let (min_x, max_x, min_y, max_y, min_z, max_z) = model.vertex_coords.iter().fold(
+            (
+                f32::INFINITY,
+                f32::NEG_INFINITY,
+                f32::INFINITY,
+                f32::NEG_INFINITY,
+                f32::INFINITY,
+                f32::NEG_INFINITY,
+            ),
+            |(min_x, max_x, min_y, max_y, min_z, max_z), v| {
+                let x = if v.x.is_nan() { 0.0 } else { v.x };
+                let y = if v.y.is_nan() { 0.0 } else { v.y };
+                let z = if v.z.is_nan() { 0.0 } else { v.z };
                 (
-                    f32::INFINITY,
-                    f32::NEG_INFINITY,
-                    f32::INFINITY,
-                    f32::NEG_INFINITY,
-                    f32::INFINITY,
-                    f32::NEG_INFINITY,
-                ),
-                |(min_x, max_x, min_y, max_y, min_z, max_z), v| {
-                    let x = if v.x.is_nan() { 0.0 } else { v.x };
-                    let y = if v.y.is_nan() { 0.0 } else { v.y };
-                    let z = if v.z.is_nan() { 0.0 } else { v.z };
-                    (
-                        min_x.min(x),
-                        max_x.max(x),
-                        min_y.min(y),
-                        max_y.max(y),
-                        min_z.min(z),
-                        max_z.max(z),
-                    )
-                },
-            );
+                    min_x.min(x),
+                    max_x.max(x),
+                    min_y.min(y),
+                    max_y.max(y),
+                    min_z.min(z),
+                    max_z.max(z),
+                )
+            },
+        );
 
-        debug!("Model {}: Bounding box: ({:.2}, {:.2}, {:.2}) to ({:.2}, {:.2}, {:.2})",
-               model_index, min_x, min_y, min_z, max_x, max_y, max_z);
+        debug!(
+            "Model {}: Bounding box: ({:.2}, {:.2}, {:.2}) to ({:.2}, {:.2}, {:.2})",
+            model_index, min_x, min_y, min_z, max_x, max_y, max_z
+        );
 
         // Vertices
         let vertex_buffer_offset = buffer_data.len();
@@ -235,8 +251,12 @@ pub fn convert_models_to_gltf(models: &[Model3DFile]) -> ParseResult<(Root, Vec<
         debug!("Model {}: Successfully converted to mesh", model_index);
     }
 
-    debug!("Conversion complete: {} meshes, {} nodes, buffer size: {} bytes",
-           meshes.len(), nodes.len(), buffer_data.len());
+    debug!(
+        "Conversion complete: {} meshes, {} nodes, buffer size: {} bytes",
+        meshes.len(),
+        nodes.len(),
+        buffer_data.len()
+    );
 
     let root = Root {
         asset: Asset {

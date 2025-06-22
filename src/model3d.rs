@@ -2,15 +2,12 @@
 //!
 //! This module contains the data structures and parsing logic for 3DC/3D model files.
 
+use log::{debug, info};
 use nom::{
     IResult, Parser,
     bytes::complete::take,
-    combinator::map,
-    multi::count,
-    number::complete::{le_f32, le_i16, le_u8, le_u16, le_u32, le_i32, be_u32},
-    sequence::tuple,
+    number::complete::{le_f32, le_i16, le_i32, le_u8, le_u16, le_u32},
 };
-use log::debug;
 
 /// Version information for 3DC/3D files
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -41,7 +38,7 @@ pub struct Model3DHeader {
     pub num_uv_offsets: u32,
     pub offset_section4: u32,
     pub section4_count: u32,
-    pub unknown4: u32,
+    pub unknown4: u32, // always 0
     pub offset_uv_offsets: u32,
     pub offset_uv_data: u32,
     pub offset_vertex_coords: u32,
@@ -66,6 +63,20 @@ pub struct FaceData {
     pub texture_data: TextureData,
     pub unk_04: u32,
     pub face_vertices: Vec<FaceVertex>,
+}
+
+impl FaceData {
+    // Calculate the size of the face data in bytes
+    pub fn size_in_bytes(&self, version: &ModelVersion) -> usize {
+        let texture_data_size = if matches!(version, ModelVersion::V40 | ModelVersion::V50) {
+            1 + 2 + 2 // unk_01 + u1 + u2 for v4/v5
+        } else {
+            1 + 1 + 2 // unk_01 + u1 + u2 for v2.6/v2.7
+        };
+
+        let vertex_data_size = self.face_vertices.len() * (4 + 2 + 2); // vertex_index + u + v
+        1 + texture_data_size + 4 + vertex_data_size // vertex_count + texture_data + unk_04 + vertices
+    }
 }
 
 /// 3D vertex coordinate
@@ -175,90 +186,6 @@ impl Model3DFile {
     }
 }
 
-/// Parse texture data based on version
-pub fn parse_texture_data<'a>(
-    input: &'a [u8],
-    version: &ModelVersion,
-) -> IResult<&'a [u8], TextureData> {
-    match version {
-        ModelVersion::V26 | ModelVersion::V27 => {
-            // v2.6 & 2.7 (3DART) - TextureData is u16
-            let (input, texture_data) = le_u16(input)?;
-            debug!("v2.6/2.7 texture_data raw: 0x{:04x}", texture_data);
-
-            let texture_id = (texture_data >> 7) as u16;
-            debug!("texture_id: {}", texture_id);
-
-            // Check if solid color - Note: TEXTURE.000/001 are not used
-            if texture_id < 2 {
-                let color_index = texture_data as u8;
-                debug!("Solid color: {}", color_index);
-                Ok((input, TextureData::SolidColor(color_index)))
-            } else {
-                let image_id = (texture_data & 0x7F) as u8;
-                debug!("Texture: id={}, image_id={}", texture_id, image_id);
-                Ok((
-                    input,
-                    TextureData::Texture {
-                        texture_id,
-                        image_id,
-                    },
-                ))
-            }
-        }
-        ModelVersion::V40 | ModelVersion::V50 => {
-            // v4.0 & 5.0 (3DART) - TextureData is u8
-            let (input, texture_data) = le_u8(input)?;
-            debug!("v4.0/5.0 texture_data raw: 0x{:02x}", texture_data);
-
-            let texture_id = (texture_data >> 7) as u16;
-            debug!("texture_id: {}", texture_id);
-
-            // Check if solid color - Note: TEXTURE.000/001 are not used
-            if texture_id < 2 {
-                let color_index = texture_data;
-                debug!("Solid color: {}", color_index);
-                Ok((input, TextureData::SolidColor(color_index)))
-            } else {
-                let image_id = (texture_data & 0x7F) as u8;
-                debug!("Texture: id={}, image_id={}", texture_id, image_id);
-                Ok((
-                    input,
-                    TextureData::Texture {
-                        texture_id,
-                        image_id,
-                    },
-                ))
-            }
-        }
-        ModelVersion::Unknown => {
-            // For unknown versions, try v2.6/2.7 format first
-            let (input, texture_data) = le_u16(input)?;
-            debug!("Unknown version texture_data raw: 0x{:04x}", texture_data);
-
-            let texture_id = (texture_data >> 7) as u16;
-            debug!("texture_id: {}", texture_id);
-
-            // Check if solid color - Note: TEXTURE.000/001 are not used
-            if texture_id < 2 {
-                let color_index = texture_data as u8;
-                debug!("Solid color: {}", color_index);
-                Ok((input, TextureData::SolidColor(color_index)))
-            } else {
-                let image_id = (texture_data & 0x7F) as u8;
-                debug!("Texture: id={}, image_id={}", texture_id, image_id);
-                Ok((
-                    input,
-                    TextureData::Texture {
-                        texture_id,
-                        image_id,
-                    },
-                ))
-            }
-        }
-    }
-}
-
 /// Parse 3DC/3D header (64 bytes)
 pub fn parse_3d_header(input: &[u8]) -> IResult<&[u8], Model3DHeader> {
     let (
@@ -291,7 +218,7 @@ pub fn parse_3d_header(input: &[u8]) -> IResult<&[u8], Model3DHeader> {
         le_u32,    // NumUVOffsets
         le_u32,    // OffsetSection4
         le_u32,    // Section4Count
-        le_u32,    // Unknown4
+        le_u32,    // NumTextures (previously Unknown4)
         le_u32,    // OffsetUVOffsets
         le_u32,    // OffsetUVData
         le_u32,    // OffsetVertexCoors
@@ -335,157 +262,171 @@ pub fn parse_3d_header(input: &[u8]) -> IResult<&[u8], Model3DHeader> {
     Ok((input, header))
 }
 
-/// Parse a single face vertex with version-specific vertex index handling
-pub fn parse_face_vertex<'a>(
-    input: &'a [u8],
-    version: &ModelVersion,
-) -> IResult<&'a [u8], FaceVertex> {
-    debug!("Raw face vertex bytes: {:02x?}", &input[..input.len().min(8)]);
-
-    let (input, (vertex_index, u, v)) = (
-        le_u32, // VertexIndex
-        le_i16, // U
-        le_i16, // V
-    )
-        .parse(input)?;
-
-    debug!("Parsed raw values - vertex_index: 0x{:08x}, u: {}, v: {}", vertex_index, u, v);
-
-    // In v2.6 and v2.7 files the stored value is a byte offset into the vertex
-    // table, where each vertex occupies 12 bytes (3 × i32).  Convert this byte
-    // offset to a zero-based index by dividing by 12.  In v4.0 and v5.0 the
-    // value is already the direct vertex index.
-    let adjusted_vertex_index = match version {
-        ModelVersion::V26 | ModelVersion::V27 => vertex_index / 12,
-        _ => vertex_index,
-    };
-
-    debug!("Adjusted vertex index: {}", adjusted_vertex_index);
-
-    Ok((
-        input,
-        FaceVertex {
-            vertex_index: adjusted_vertex_index,
-            u,
-            v,
-        },
-    ))
-}
-
 /// Parse face data with version-specific texture data parsing
 pub fn parse_face_data<'a>(input: &'a [u8], version: &ModelVersion) -> IResult<&'a [u8], FaceData> {
-    debug!("Starting face data parsing, first 16 bytes: {:02x?}", &input[..input.len().min(16)]);
+    debug!(
+        "Starting face data parsing, first 16 bytes: {:02x?}",
+        &input[..input.len().min(16)]
+    );
 
     let (input, vertex_count) = le_u8(input)?;
     debug!("Read vertex_count: {}", vertex_count);
 
-    let (input, unk_01, _u2, _u3, u4) = match version {
-        ModelVersion::V26 | ModelVersion::V27 | ModelVersion::Unknown => {
-            // For v2.7 and below: VertexCount(1), U1(1), U2(2), U4(4)
-            let (input, unk_01) = le_u8(input)?;
+    let (input, texture_data_raw, unk_01_val) =
+        if matches!(version, ModelVersion::V40 | ModelVersion::V50) {
+            // v4.0/5.0: U1(u16), U2(u16), U3(u8)
+            let (input, u1) = le_u16(input)?;
             let (input, u2) = le_u16(input)?;
-            let u3 = 0u8;
-            let (input, u4) = le_u32(input)?;
-            debug!("v2.7 face header: vertex_count={}, unk_01={}, u2={}, u4={}", vertex_count, unk_01, u2, u4);
-            (input, unk_01, u2, u3, u4)
-        }
-        _ => {
-            // For v4.0+: Let's try a different structure based on the reference implementation
-            // Maybe it's: VertexCount(1), skip(3), U2(2), U3(2), U4(4)
-            let (input, _skip) = take(3u8)(input)?; // Skip 3 bytes
+            let (input, u3) = le_u8(input)?;
+            let raw = ((u3 as u32) << 24) | ((u2 as u32) << 8) | (u1 as u32);
+            debug!(
+                "v4.0/5.0 texture fields: u1=0x{:04x}, u2=0x{:04x}, u3=0x{:02x}, raw=0x{:08x}",
+                u1, u2, u3, raw
+            );
+            (input, raw, u3)
+        } else {
+            // v2.6/2.7: U1(u8), U2(u16), U3=0
+            let (input, u1) = le_u8(input)?;
             let (input, u2) = le_u16(input)?;
-            let (input, u3) = le_u16(input)?;
-            let (input, u4) = le_u32(input)?;
-            debug!("v4.0 face header: vertex_count={}, u2={}, u3={}, u4={}", vertex_count, u2, u3, u4);
-            (input, 0u8, u2, u3 as u8, u4)
-        }
-    };
+            let raw = ((u2 as u32) << 8) | (u1 as u32);
+            debug!(
+                "v2.6/2.7 texture fields: u1=0x{:02x}, u2=0x{:04x}, raw=0x{:08x}",
+                u1, u2, raw
+            );
+            (input, raw, u1)
+        };
 
-    // U4 must be zero (warn if not)
-    if u4 != 0 {
-        log::warn!("Non-zero U4 in face data: {}", u4);
+    let (input, unk_04) = le_u32(input)?;
+    debug!("Read unk_04: 0x{:08x}", unk_04);
+
+    let texture_data = parse_texture_data_value(texture_data_raw, version);
+    debug!("Parsed texture_data: {:?}", texture_data);
+
+    if unk_04 != 0 {
+        debug!("Note: Non-zero Unk_04 in face data: {}", unk_04);
     }
 
-    debug!("After face header, remaining bytes for vertices: {:02x?}", &input[..input.len().min(20)]);
+    debug!(
+        "After face header, remaining bytes for vertices: {:02x?}",
+        &input[..input.len().min(20)]
+    );
     debug!("Expected to parse {} vertices", vertex_count);
 
-    // Parse face vertices with cumulative U/V
+    // Step 5: Parse face vertices with cumulative U/V (same for all versions!)
     let mut face_vertices = Vec::with_capacity(vertex_count as usize);
     let mut acc_u = 0i16;
     let mut acc_v = 0i16;
     let mut input = input;
-    for i in 0..vertex_count {
-        debug!("Parsing face vertex {}, remaining bytes: {:02x?}", i, &input[..input.len().min(12)]);
-        debug!("Looking for vertex index in bytes: {:02x?}", &input[..input.len().min(8)]);
 
-        let (input2, vertex_index, u, v) = match version {
-            ModelVersion::V26 | ModelVersion::V27 | ModelVersion::Unknown => {
-                // v2.7 and below: vertex_index is u32, then divide by 12
-                let (input2, vertex_index) = le_u32(input)?;
-                let (input2, u) = le_i16(input2)?;
-                let (input2, v) = le_i16(input2)?;
-                (input2, vertex_index / 12, u, v)
-            }
-            _ => {
-                // v4.0+: skip 1 byte, vertex_index (1 byte), u (2 bytes), v (2 bytes), skip 2 bytes = 8 bytes total
-                let (input2, _skip1) = take(1u8)(input)?;
-                let (input2, vertex_index) = le_u8(input2)?;
-                let (input2, u) = le_i16(input2)?;
-                let (input2, v) = le_i16(input2)?;
-                let (input2, _skip2) = take(2u8)(input2)?; // Skip 2 bytes to reach 8-byte stride
-                debug!("Read vertex_index: {} (at pos 1), u: {}, v: {}", vertex_index, u, v);
-                (input2, vertex_index as u32, u, v)
-            }
+    for i in 0..vertex_count {
+        debug!(
+            "Parsing face vertex {}, remaining bytes: {:02x?}",
+            i,
+            &input[..input.len().min(12)]
+        );
+
+        // Read vertex index (uint32 for all versions)
+        let (input2, vertex_index_raw) = le_u32(input)?;
+
+        // Read U and V (int16 for all versions)
+        let (input2, u) = le_i16(input2)?;
+        let (input2, v) = le_i16(input2)?;
+
+        // Apply version-specific vertex index adjustment per documentation:
+        // "This is multiplied by 12 in v2.6/2.7 so this must be divided by 12 to get correct index for those versions"
+        let vertex_index = if matches!(
+            version,
+            ModelVersion::V26 | ModelVersion::V27 | ModelVersion::Unknown
+        ) {
+            // v2.7 and below: vertex_index is byte offset, divide by 12
+            vertex_index_raw / 12
+        } else {
+            // v4.0+: vertex_index is already correct
+            vertex_index_raw
         };
 
-        input = input2;
-        debug!("Raw vertex_index: {} (0x{:02x})", vertex_index, vertex_index);
-        debug!("Adjusted vertex_index: {}, u: {}, v: {}", vertex_index, u, v);
+        debug!(
+            "Raw vertex_index: {} (0x{:08x}), adjusted: {}, u: {}, v: {}",
+            vertex_index_raw, vertex_index_raw, vertex_index, u, v
+        );
+
+        // Accumulate U/V values (reference: U = ReadInt16() + u; V = ReadInt16() + v)
         acc_u = acc_u.wrapping_add(u);
         acc_v = acc_v.wrapping_add(v);
+
         face_vertices.push(FaceVertex {
             vertex_index,
             u: acc_u,
             v: acc_v,
         });
+
+        input = input2;
     }
 
-    Ok((input, FaceData {
-        vertex_count,
-        unk_01,
-        texture_data: TextureData::SolidColor(0), // TODO: parse actual texture data if needed
-        unk_04: u4,
-        face_vertices,
-    }))
+    Ok((
+        input,
+        FaceData {
+            vertex_count,
+            unk_01: unk_01_val,
+            texture_data,
+            unk_04,
+            face_vertices,
+        },
+    ))
 }
 
 /// Helper to parse texture_data value into TextureData enum
 pub fn parse_texture_data_value(raw: u32, version: &ModelVersion) -> TextureData {
     match version {
         ModelVersion::V26 | ModelVersion::V27 | ModelVersion::Unknown => {
+            // Reference: faceData.TextureId = (faceData.TextureData >> 7);
             let texture_id = (raw >> 7) as u16;
+
+            // Reference: if(faceData.TextureId < 2)
             if texture_id < 2 {
-                TextureData::SolidColor(raw as u8)
+                // Reference: faceData.ColorIndex = (byte)(faceData.TextureData);
+                let color_index = raw as u8;
+                TextureData::SolidColor(color_index)
             } else {
+                // Reference: faceData.ImageId = (byte)(faceData.TextureData & 0x7f);
                 let image_id = (raw & 0x7F) as u8;
-                TextureData::Texture { texture_id, image_id }
+                TextureData::Texture {
+                    texture_id,
+                    image_id,
+                }
             }
         }
         ModelVersion::V40 | ModelVersion::V50 => {
-            // See UESP for v4.0/5.0 logic
+            // Reference: if((faceData.TextureData >> 20) == 0x0FFF)
             if (raw >> 20) == 0x0FFF {
+                // Reference: faceData.ColorIndex = (byte)(faceData.TextureData>>8);
                 let color_index = (raw >> 8) as u8;
                 TextureData::SolidColor(color_index)
             } else {
-                let temp_val = (raw >> 8).wrapping_sub(4000000);
-                let one = (temp_val / 250) % 40;
-                let ten = ((temp_val - (one * 250)) / 1000) % 100;
-                let hundred = (temp_val - (one * 250) - (ten * 1000)) / 4000;
-                let texture_id = one + ten + hundred;
+                // Reference complex texture ID calculation:
+                // uint tmp = (faceData.TextureData >>8)-4000000;
+                // uint one = (tmp/250)%40;
+                // uint ten = ((tmp-(one*250))/1000)%100;
+                // uint hundred = (tmp-(one*250)-(ten*1000))/4000;
+                // faceData.TextureId = one+ten+hundred;
+                let tmp = (raw >> 8).wrapping_sub(4000000);
+                let one = (tmp / 250) % 40;
+                let ten = ((tmp - (one * 250)) / 1000) % 100;
+                let hundred = (tmp - (one * 250) - (ten * 1000)) / 4000;
+                let texture_id = (one + ten + hundred) as u16;
+
+                // Reference image ID calculation:
+                // one = (faceData.TextureData& 0xFF)%10;
+                // ten = ((faceData.TextureData& 0xFF)/40)*10;
+                // faceData.ImageId = one+ten;
                 let one = (raw & 0xFF) % 10;
                 let ten = ((raw & 0xFF) / 40) * 10;
                 let image_id = (one + ten) as u8;
-                TextureData::Texture { texture_id: texture_id as u16, image_id }
+
+                TextureData::Texture {
+                    texture_id,
+                    image_id,
+                }
             }
         }
     }
@@ -517,9 +458,9 @@ pub fn parse_face_normal(input: &[u8]) -> IResult<&[u8], FaceNormal> {
     // According to UESP documentation and reference implementation,
     // face normals are stored as dword (32-bit integers)
     let (input, (x_raw, y_raw, z_raw)) = (
-        le_u32, // x - dword
-        le_u32, // y - dword
-        le_u32, // z - dword
+        le_i32, // x - signed dword
+        le_i32, // y - signed dword
+        le_i32, // z - signed dword
     )
         .parse(input)?;
 
@@ -538,9 +479,17 @@ pub fn parse_uv_coord(input: &[u8]) -> IResult<&[u8], UVCoord> {
         le_f32, // x
         le_f32, // y
         le_f32, // z
-    ).parse(input)?;
+    )
+        .parse(input)?;
     // If you ever parse as integer, use 1/4096.0 scaling
-    Ok((input, UVCoord { x: x_raw, y: y_raw, z: z_raw }))
+    Ok((
+        input,
+        UVCoord {
+            x: x_raw,
+            y: y_raw,
+            z: z_raw,
+        },
+    ))
 }
 
 /// Parse frame data header (for v2.7 3DC files)
@@ -556,56 +505,8 @@ pub fn parse_frame_data_header(input: &[u8]) -> IResult<&[u8], (u32, u32, u32, u
     Ok((input, (u1, u2, u3, u4)))
 }
 
-/// Parse complete 3DC/3D file with offset-based section parsing
-pub fn parse_3d_file(input: &[u8]) -> IResult<&[u8], Model3DFile> {
-    debug!("First 128 bytes of file: {:02x?}", &input[..128.min(input.len())]);
-    let (input, header) = parse_3d_header(input)?;
-    let version = header.parse_version();
-
-    debug!("Parsing 3D file - Version: {:?}, Vertices: {}, Faces: {}", version, header.num_vertices, header.num_faces);
-    debug!("Raw header values:");
-    debug!("  offset_frame_data: {}", header.offset_frame_data);
-    debug!("  offset_section4: {}", header.offset_section4);
-    debug!("  offset_face_data: {}", header.offset_face_data);
-    debug!("  offset_vertex_coords: {}", header.offset_vertex_coords);
-    debug!("  offset_face_normals: {}", header.offset_face_normals);
-    debug!("  offset_uv_offsets: {}", header.offset_uv_offsets);
-    debug!("  offset_uv_data: {}", header.offset_uv_data);
-    debug!("  num_uv_offsets: {}", header.num_uv_offsets);
-    debug!("  num_uv_offsets2: {}", header.num_uv_offsets2);
-    debug!("Header offsets - Frame: {}, Section4: {}, Face: {}, Vertex: {}, Normal: {}, UV: {}",
-           header.offset_frame_data, header.offset_section4, header.offset_face_data,
-           header.offset_vertex_coords, header.offset_face_normals, header.offset_uv_data);
-
-    // Hex dump at each major offset
-    let dump = |label: &str, offset: u32| {
-        if offset < input.len() as u32 {
-            let end = ((offset as usize) + 32).min(input.len());
-            debug!("Bytes at {} (offset {}): {:02x?}", label, offset, &input[offset as usize..end]);
-        }
-    };
-    dump("face_data", header.offset_face_data);
-    dump("vertex_coords", header.offset_vertex_coords);
-    dump("face_normals", header.offset_face_normals);
-    dump("uv_offsets", header.offset_uv_offsets);
-    dump("uv_data", header.offset_uv_data);
-
-    // In parse_3d_file, after dumping the first 32 bytes at face_data, add:
-    debug!("Next 128 bytes at face_data (offset {}): {:02x?}", header.offset_face_data, &input[header.offset_face_data as usize..(header.offset_face_data as usize + 128).min(input.len())]);
-
-    // Handle version-specific header field interpretations
-    let (adjusted_offset_uv_data, adjusted_offset_vertex_coords) = if header.is_v27_or_earlier() {
-        // For v2.7 or earlier:
-        // - NumUVOffsets is the offset to UV Data (which is just all 0s)
-        // - OffsetUVData is an offset to an unknown section
-        (header.num_uv_offsets, header.offset_uv_data)
-    } else {
-        (header.offset_uv_data, header.offset_vertex_coords)
-    };
-
-    debug!("Adjusted offsets - UV: {}, Vertex: {}", adjusted_offset_uv_data, adjusted_offset_vertex_coords);
-
-    // Parse frame data (if any)
+/// Parse frame data section from the 3D file
+fn parse_frame_data_section(input: &[u8], header: &Model3DHeader) -> Vec<u8> {
     let frame_data_size = if header.offset_frame_data > 64 {
         header.offset_frame_data - 64
     } else {
@@ -624,10 +525,17 @@ pub fn parse_3d_file(input: &[u8]) -> IResult<&[u8], Model3DFile> {
         &[]
     };
 
-    debug!("Frame data size: {}, actual data: {} bytes", frame_data_size, frame_data.len());
+    debug!(
+        "Frame data size: {}, actual data: {} bytes",
+        frame_data_size,
+        frame_data.len()
+    );
+    frame_data.to_vec()
+}
 
-    // Parse Section4 data (if any)
-    let _section4_data = if header.offset_section4 > 0 && header.offset_section4 < input.len() as u32
+/// Parse Section4 data from the 3D file
+fn parse_section4_data_section(input: &[u8], header: &Model3DHeader) -> Vec<u8> {
+    let section4_data = if header.offset_section4 > 0 && header.offset_section4 < input.len() as u32
     {
         let start = header.offset_section4 as usize;
         let end = if header.section4_count > 0 {
@@ -644,39 +552,68 @@ pub fn parse_3d_file(input: &[u8]) -> IResult<&[u8], Model3DFile> {
         &[]
     };
 
-    debug!("Section4 data: {} entries, {} bytes", header.section4_count, _section4_data.len());
+    debug!(
+        "Section4 data: {} entries, {} bytes",
+        header.section4_count,
+        section4_data.len()
+    );
+    section4_data.to_vec()
+}
 
-    // Parse face data using offset
+/// Parse all face data from the 3D file
+fn parse_face_data_section(
+    input: &[u8],
+    header: &Model3DHeader,
+    version: &ModelVersion,
+) -> Vec<FaceData> {
     let mut face_data = Vec::new();
+
     if header.offset_face_data < input.len() as u32 {
         let mut face_data_input = &input[header.offset_face_data as usize..];
-        debug!("Face data starts at offset {}, input size: {}", header.offset_face_data, face_data_input.len());
-        debug!("First 32 bytes of face data: {:02x?}", &face_data_input[..face_data_input.len().min(32)]);
-
-        // Skip the first byte (0x00) as seen in the hex dump
-        if face_data_input.len() > 1 && face_data_input[0] == 0x00 {
-            debug!("Skipping initial 0x00 byte");
-            face_data_input = &face_data_input[1..];
-        }
+        debug!(
+            "Face data starts at offset {}, input size: {}",
+            header.offset_face_data,
+            face_data_input.len()
+        );
+        debug!(
+            "First 32 bytes of face data: {:02x?}",
+            &face_data_input[..face_data_input.len().min(32)]
+        );
+        debug!(
+            "Next 128 bytes at face_data (offset {}): {:02x?}",
+            header.offset_face_data,
+            &input[header.offset_face_data as usize
+                ..(header.offset_face_data as usize + 128).min(input.len())]
+        );
 
         for face_index in 0..header.num_faces {
             // Stop if we don't have enough data for even a minimal face
             if face_data_input.len() < 20 {
-                debug!("Face {}: Not enough data for minimal face ({} bytes remaining)", face_index, face_data_input.len());
+                debug!(
+                    "Face {}: Not enough data for minimal face ({} bytes remaining)",
+                    face_index,
+                    face_data_input.len()
+                );
                 break;
             }
 
-            match parse_face_data(face_data_input, &version) {
+            match parse_face_data(face_data_input, version) {
                 Ok((remaining, face)) => {
-                    debug!("Face {}: vertex_count={}, unk_01={}, texture_data={:?}, unk_04={}, vertices={}",
-                           face_index, face.vertex_count, face.unk_01, face.texture_data, face.unk_04, face.face_vertices.len());
+                    debug!(
+                        "Face {}: vertex_count={}, unk_01={}, texture_data={:?}, unk_04={}, vertices={}",
+                        face_index,
+                        face.vertex_count,
+                        face.unk_01,
+                        face.texture_data,
+                        face.unk_04,
+                        face.face_vertices.len()
+                    );
 
                     face_data.push(face);
                     face_data_input = remaining;
                 }
                 Err(e) => {
                     debug!("Face {}: Failed to parse face data: {:?}", face_index, e);
-                    // If we can't parse more faces, break
                     break;
                 }
             }
@@ -684,25 +621,39 @@ pub fn parse_3d_file(input: &[u8]) -> IResult<&[u8], Model3DFile> {
     }
 
     debug!("Successfully parsed {} faces", face_data.len());
+    face_data
+}
 
-    // Parse vertex coordinates using offset
+/// Parse all vertex coordinates from the 3D file
+fn parse_vertex_coords_section(
+    input: &[u8],
+    header: &Model3DHeader,
+    adjusted_offset_vertex_coords: u32,
+) -> Vec<VertexCoord> {
     let mut vertex_coords = Vec::new();
+
     if adjusted_offset_vertex_coords < input.len() as u32 {
         let mut vertex_input = &input[adjusted_offset_vertex_coords as usize..];
-        debug!("Vertex data starts at offset {}, input size: {}", adjusted_offset_vertex_coords, vertex_input.len());
+        debug!(
+            "Vertex data starts at offset {}, input size: {}",
+            adjusted_offset_vertex_coords,
+            vertex_input.len()
+        );
 
         for vertex_index in 0..header.num_vertices {
             match parse_vertex_coord(vertex_input) {
                 Ok((remaining, vertex)) => {
                     if vertex_index < 5 {
-                        debug!("Vertex {}: ({:.2}, {:.2}, {:.2})", vertex_index, vertex.x, vertex.y, vertex.z);
+                        debug!(
+                            "Vertex {}: ({:.2}, {:.2}, {:.2})",
+                            vertex_index, vertex.x, vertex.y, vertex.z
+                        );
                     }
                     vertex_coords.push(vertex);
                     vertex_input = remaining;
                 }
                 Err(e) => {
                     debug!("Vertex {}: Failed to parse vertex: {:?}", vertex_index, e);
-                    // If we can't parse more vertices, break
                     break;
                 }
             }
@@ -710,25 +661,35 @@ pub fn parse_3d_file(input: &[u8]) -> IResult<&[u8], Model3DFile> {
     }
 
     debug!("Successfully parsed {} vertices", vertex_coords.len());
+    vertex_coords
+}
 
-    // Parse face normals using offset
+/// Parse all face normals from the 3D file
+fn parse_face_normals_section(input: &[u8], header: &Model3DHeader) -> Vec<FaceNormal> {
     let mut face_normals = Vec::new();
+
     if header.offset_face_normals < input.len() as u32 {
         let mut normal_input = &input[header.offset_face_normals as usize..];
-        debug!("Face normal data starts at offset {}, input size: {}", header.offset_face_normals, normal_input.len());
+        debug!(
+            "Face normal data starts at offset {}, input size: {}",
+            header.offset_face_normals,
+            normal_input.len()
+        );
 
         for normal_index in 0..header.num_faces {
             match parse_face_normal(normal_input) {
                 Ok((remaining, normal)) => {
                     if normal_index < 5 {
-                        debug!("Normal {}: ({:.2}, {:.2}, {:.2})", normal_index, normal.x, normal.y, normal.z);
+                        debug!(
+                            "Normal {}: ({:.2}, {:.2}, {:.2})",
+                            normal_index, normal.x, normal.y, normal.z
+                        );
                     }
                     face_normals.push(normal);
                     normal_input = remaining;
                 }
                 Err(e) => {
                     debug!("Normal {}: Failed to parse normal: {:?}", normal_index, e);
-                    // If we can't parse more normals, break
                     break;
                 }
             }
@@ -736,12 +697,20 @@ pub fn parse_3d_file(input: &[u8]) -> IResult<&[u8], Model3DFile> {
     }
 
     debug!("Successfully parsed {} face normals", face_normals.len());
+    face_normals
+}
 
-    // Parse UV offsets using offset
+/// Parse all UV offsets from the 3D file
+fn parse_uv_offsets_section(input: &[u8], header: &Model3DHeader) -> Vec<u32> {
     let mut uv_offsets = Vec::new();
+
     if header.offset_uv_offsets < input.len() as u32 {
         let mut uv_offset_input = &input[header.offset_uv_offsets as usize..];
-        debug!("UV offset data starts at offset {}, input size: {}", header.offset_uv_offsets, uv_offset_input.len());
+        debug!(
+            "UV offset data starts at offset {}, input size: {}",
+            header.offset_uv_offsets,
+            uv_offset_input.len()
+        );
 
         for offset_index in 0..header.num_uv_offsets {
             match le_u32::<_, nom::error::Error<_>>(uv_offset_input) {
@@ -753,8 +722,10 @@ pub fn parse_3d_file(input: &[u8]) -> IResult<&[u8], Model3DFile> {
                     uv_offset_input = remaining;
                 }
                 Err(e) => {
-                    debug!("UV offset {}: Failed to parse offset: {:?}", offset_index, e);
-                    // If we can't parse more UV offsets, break
+                    debug!(
+                        "UV offset {}: Failed to parse offset: {:?}",
+                        offset_index, e
+                    );
                     break;
                 }
             }
@@ -762,12 +733,24 @@ pub fn parse_3d_file(input: &[u8]) -> IResult<&[u8], Model3DFile> {
     }
 
     debug!("Successfully parsed {} UV offsets", uv_offsets.len());
+    uv_offsets
+}
 
-    // Parse UV coordinates using offset
+/// Parse all UV coordinates from the 3D file
+fn parse_uv_coords_section(
+    input: &[u8],
+    header: &Model3DHeader,
+    adjusted_offset_uv_data: u32,
+) -> Vec<UVCoord> {
     let mut uv_coords = Vec::new();
+
     if adjusted_offset_uv_data < input.len() as u32 {
         let mut uv_input = &input[adjusted_offset_uv_data as usize..];
-        debug!("UV coordinate data starts at offset {}, input size: {}", adjusted_offset_uv_data, uv_input.len());
+        debug!(
+            "UV coordinate data starts at offset {}, input size: {}",
+            adjusted_offset_uv_data,
+            uv_input.len()
+        );
 
         // For v2.7 or earlier, UV data might be all zeros, so we need to be careful
         if header.is_v27_or_earlier() {
@@ -777,7 +760,10 @@ pub fn parse_3d_file(input: &[u8]) -> IResult<&[u8], Model3DFile> {
                 match parse_uv_coord(uv_input) {
                     Ok((remaining, coord)) => {
                         if coord_index < 5 {
-                            debug!("UV coord {}: ({:.2}, {:.2}, {:.2})", coord_index, coord.x, coord.y, coord.z);
+                            debug!(
+                                "UV coord {}: ({:.2}, {:.2}, {:.2})",
+                                coord_index, coord.x, coord.y, coord.z
+                            );
                         }
                         uv_coords.push(coord);
                         uv_input = remaining;
@@ -795,14 +781,16 @@ pub fn parse_3d_file(input: &[u8]) -> IResult<&[u8], Model3DFile> {
                 match parse_uv_coord(uv_input) {
                     Ok((remaining, coord)) => {
                         if coord_index < 5 {
-                            debug!("UV coord {}: ({:.2}, {:.2}, {:.2})", coord_index, coord.x, coord.y, coord.z);
+                            debug!(
+                                "UV coord {}: ({:.2}, {:.2}, {:.2})",
+                                coord_index, coord.x, coord.y, coord.z
+                            );
                         }
                         uv_coords.push(coord);
                         uv_input = remaining;
                     }
                     Err(e) => {
                         debug!("UV coord {}: Failed to parse coord: {:?}", coord_index, e);
-                        // If we can't parse more UV coordinates, break
                         break;
                     }
                 }
@@ -811,8 +799,18 @@ pub fn parse_3d_file(input: &[u8]) -> IResult<&[u8], Model3DFile> {
     }
 
     debug!("Successfully parsed {} UV coordinates", uv_coords.len());
+    uv_coords
+}
 
-    // Calculate the actual end of the parsed data
+/// Calculate the remaining data after all sections have been parsed
+fn calculate_remaining_data<'a>(
+    input: &'a [u8],
+    header: &Model3DHeader,
+    face_data: &[FaceData],
+    adjusted_offset_uv_data: u32,
+    adjusted_offset_vertex_coords: u32,
+    frame_data_size: u32,
+) -> &'a [u8] {
     // Find the highest offset + size to determine where our data ends
     let mut max_offset = 0u32;
 
@@ -865,14 +863,130 @@ pub fn parse_3d_file(input: &[u8]) -> IResult<&[u8], Model3DFile> {
         &[]
     };
 
-    debug!("Parsing complete - max_offset: {}, remaining bytes: {}", max_offset, remaining.len());
+    debug!(
+        "Parsing complete - max_offset: {}, remaining bytes: {}",
+        max_offset,
+        remaining.len()
+    );
+    remaining
+}
+
+/// Helper function to print debug information about file offsets
+fn debug_file_offsets(input: &[u8], header: &Model3DHeader) {
+    debug!("Raw header values:");
+    debug!("  offset_frame_data: {}", header.offset_frame_data);
+    debug!("  offset_section4: {}", header.offset_section4);
+    debug!("  offset_face_data: {}", header.offset_face_data);
+    debug!("  offset_vertex_coords: {}", header.offset_vertex_coords);
+    debug!("  offset_face_normals: {}", header.offset_face_normals);
+    debug!("  offset_uv_offsets: {}", header.offset_uv_offsets);
+    debug!("  offset_uv_data: {}", header.offset_uv_data);
+    debug!("  num_uv_offsets: {}", header.num_uv_offsets);
+    debug!("  num_uv_offsets2: {}", header.num_uv_offsets2);
+
+    debug!(
+        "Header offsets - Frame: {}, Section4: {}, Face: {}, Vertex: {}, Normal: {}, UV: {}",
+        header.offset_frame_data,
+        header.offset_section4,
+        header.offset_face_data,
+        header.offset_vertex_coords,
+        header.offset_face_normals,
+        header.offset_uv_data
+    );
+
+    // Hex dump at each major offset
+    let dump = |label: &str, offset: u32| {
+        if offset < input.len() as u32 {
+            let end = ((offset as usize) + 32).min(input.len());
+            debug!(
+                "Bytes at {} (offset {}): {:02x?}",
+                label,
+                offset,
+                &input[offset as usize..end]
+            );
+        }
+    };
+
+    dump("face_data", header.offset_face_data);
+    dump("vertex_coords", header.offset_vertex_coords);
+    dump("face_normals", header.offset_face_normals);
+    dump("uv_offsets", header.offset_uv_offsets);
+    dump("uv_data", header.offset_uv_data);
+}
+
+/// Parse complete 3DC/3D file with offset-based section parsing
+pub fn parse_3d_file(input: &[u8]) -> IResult<&[u8], Model3DFile> {
+    debug!(
+        "First 128 bytes of file: {:02x?}",
+        &input[..128.min(input.len())]
+    );
+    let (_input_after_header, mut header) = parse_3d_header(input)?;
+    let version = header.parse_version();
+
+    debug!(
+        "Parsing 3D file - Version: {:?}, Vertices: {}, Faces: {}",
+        version, header.num_vertices, header.num_faces
+    );
+
+    // Debug file offsets
+    debug_file_offsets(input, &header);
+
+    // Handle version-specific header field interpretations
+    let (adjusted_offset_uv_data, adjusted_offset_vertex_coords) = if header.is_v27_or_earlier() {
+        // For v2.7 or earlier:
+        // - NumUVOffsets is the offset to UV Data (which is just all 0s)
+        // - OffsetUVData is an offset to an unknown section
+        (header.num_uv_offsets, header.offset_uv_data)
+    } else {
+        (header.offset_uv_data, header.offset_vertex_coords)
+    };
+
+    debug!(
+        "Adjusted offsets - UV: {}, Vertex: {}",
+        adjusted_offset_uv_data, adjusted_offset_vertex_coords
+    );
+
+    // Parse all sections using dedicated functions
+    let frame_data = parse_frame_data_section(input, &header);
+    let _section4_data = parse_section4_data_section(input, &header);
+    let face_data = parse_face_data_section(input, &header, &version);
+
+    if header.is_v40_or_later() {
+        let face_data_size: u32 = face_data
+            .iter()
+            .map(|f| f.size_in_bytes(&version) as u32)
+            .sum();
+        header.offset_uv_offsets = header.offset_face_data + face_data_size;
+    }
+
+    let vertex_coords =
+        parse_vertex_coords_section(input, &header, adjusted_offset_vertex_coords);
+    let face_normals = parse_face_normals_section(input, &header);
+    let uv_offsets = parse_uv_offsets_section(input, &header);
+    let uv_coords = parse_uv_coords_section(input, &header, adjusted_offset_uv_data);
+
+    // Calculate remaining data
+    let frame_data_size = if header.offset_frame_data > 64 {
+        header.offset_frame_data - 64
+    } else {
+        0
+    };
+
+    let remaining = calculate_remaining_data(
+        input,
+        &header,
+        &face_data,
+        adjusted_offset_uv_data,
+        adjusted_offset_vertex_coords,
+        frame_data_size,
+    );
 
     Ok((
         remaining,
         Model3DFile {
             header,
             version,
-            frame_data: frame_data.to_vec(),
+            frame_data,
             face_data,
             vertex_coords,
             face_normals,
