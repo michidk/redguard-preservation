@@ -1,0 +1,16 @@
+/target
+/input
+/todo.md
+/fxart
+/tools
+/3dart
+/maps
+/fonts
+/out
+*.glb
+docs/book/
+/output
+node_modules/
+package.json
+package-lock.json
+opencode.json

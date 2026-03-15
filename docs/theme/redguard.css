@@ -1,0 +1,136 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Crimson+Pro:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap');
+
+:root {
+  --rg-parchment:       #f0e4cf;
+  --rg-parchment-light: #f5ead8;
+  --rg-parchment-dark:  #e4d4b8;
+  --rg-burgundy:        #4a1a2a;
+  --rg-burgundy-light:  #5e2538;
+  --rg-burgundy-dark:   #361320;
+  --rg-gold:            #b8860b;
+  --rg-gold-light:      #d4a537;
+  --rg-gold-muted:      #9a7430;
+  --rg-gold-pale:       #e0c888;
+  --rg-red:             #8b1a1a;
+  --rg-red-light:       #a62c2c;
+  --rg-text:            #2d2118;
+  --rg-text-muted:      #7a6854;
+  --rg-stone:           #1e1a14;
+  --rg-stone-mid:       #342c22;
+  --rg-stone-text:      #d9c8a5;
+  --rg-border:          #c4b08a;
+}
+
+.redguard {
+  --bg:                   var(--rg-parchment);
+  --fg:                   var(--rg-text);
+
+  --sidebar-bg:           var(--rg-burgundy);
+  --sidebar-fg:           #eedcc2;
+  --sidebar-non-existant: #a08878;
+  --sidebar-active:       var(--rg-gold-light);
+  --sidebar-spacer:       var(--rg-burgundy-light);
+  --sidebar-header-border-color: var(--rg-gold-muted);
+
+  --scrollbar:            var(--rg-border);
+
+  --icons:                var(--rg-text-muted);
+  --icons-hover:          var(--rg-red);
+
+  --links:                var(--rg-red);
+
+  --inline-code-color:    var(--rg-red-light);
+
+  --theme-popup-bg:       var(--rg-parchment-light);
+  --theme-popup-border:   var(--rg-border);
+  --theme-hover:          var(--rg-parchment-dark);
+
+  --quote-bg:             var(--rg-parchment-dark);
+  --quote-border:         var(--rg-gold-muted);
+
+  --table-border-color:   var(--rg-border);
+  --table-header-bg:      var(--rg-parchment-dark);
+  --table-alternate-bg:   var(--rg-parchment-light);
+
+  --searchbar-border-color:    var(--rg-border);
+  --searchbar-bg:              var(--rg-parchment-light);
+  --searchbar-fg:              var(--rg-text);
+  --searchbar-shadow-color:    rgba(45, 33, 24, 0.15);
+  --searchresults-header-fg:   var(--rg-red);
+  --searchresults-border-color: var(--rg-border);
+  --searchresults-li-bg:       var(--rg-parchment-dark);
+  --search-mark-bg:            var(--rg-gold-pale);
+
+  --copy-button-filter:        invert(45%) sepia(8%) saturate(500%) hue-rotate(350deg) brightness(90%) contrast(85%);
+  --copy-button-filter-hover:  invert(68%) sepia(55%) saturate(531%) hue-rotate(341deg) brightness(104%) contrast(101%);
+
+  --overlay-bg: rgba(45, 33, 24, 0.3);
+
+  --blockquote-note-color:      #6b4c1e;
+  --blockquote-tip-color:       #3d6b1e;
+  --blockquote-important-color: #6b1e4a;
+  --blockquote-warning-color:   #8b5e00;
+  --blockquote-caution-color:   var(--rg-red);
+
+  font-family: 'Crimson Pro', 'Georgia', 'Palatino Linotype', serif;
+}
+
+.redguard body {
+  font-size: 1.7rem;
+}
+
+.redguard h2, .redguard h3 { margin-block-start: 1.5em; }
+.redguard h4, .redguard h5 { margin-block-start: 1.2em; }
+
+.redguard h1, .redguard h2, .redguard h3,
+.redguard h4, .redguard h5, .redguard h6 {
+  font-family: 'Cinzel', 'Palatino Linotype', 'Book Antiqua', serif;
+}
+
+.redguard h1 { color: var(--rg-burgundy); }
+.redguard h2 { color: var(--rg-red); }
+.redguard h3 { color: var(--rg-red-light); }
+
+.redguard .sidebar .chapter li.part-title {
+  color: var(--rg-gold-light);
+  font-family: 'Cinzel', serif;
+}
+
+.redguard .sidebar .chapter li a .section-number {
+  color: var(--rg-gold-pale);
+}
+
+.redguard .menu-title {
+  font-family: 'Cinzel', serif;
+  color: var(--rg-burgundy) !important;
+}
+
+.redguard pre {
+  background: var(--rg-stone) !important;
+  border-color: var(--rg-stone-mid);
+}
+
+.redguard pre > code {
+  color: var(--rg-stone-text) !important;
+  background: transparent !important;
+}
+
+.redguard :not(pre) > code {
+  background: #e4d4b8;
+  padding: 0.1em 0.25em;
+  white-space: nowrap;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+.redguard .content {
+  background:
+    radial-gradient(ellipse at 20% 50%, rgba(217, 200, 165, 0.25) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, rgba(184, 134, 11, 0.06) 0%, transparent 40%),
+    var(--rg-parchment);
+}
+
+.redguard ::selection {
+  background: var(--rg-gold-pale);
+  color: var(--rg-burgundy-dark);
+}

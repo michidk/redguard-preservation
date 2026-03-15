@@ -1,0 +1,14 @@
+[book]
+title = "Redguard Preservation Docs"
+description = "Documented findings from reverse-engineering Redguard assets"
+authors = ["redguard-preservation contributors"]
+language = "en"
+src = "."
+
+[build]
+build-dir = "book"
+
+[output.html]
+default-theme = "redguard"
+preferred-dark-theme = "coal"
+additional-css = ["theme/redguard.css"]
