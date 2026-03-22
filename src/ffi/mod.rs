@@ -1,4 +1,5 @@
 mod buffer;
+pub mod scene;
 
 use self::buffer::{clear_last_error, into_ffi_result, last_error_message, set_last_error};
 use crate::gltf::{
@@ -14,12 +15,16 @@ use std::ptr;
 
 pub use self::buffer::ByteBuffer;
 
-fn i32_to_usize(value: i32, name: &str) -> crate::Result<usize> {
+pub(crate) fn i32_to_usize(value: i32, name: &str) -> crate::Result<usize> {
     usize::try_from(value)
         .map_err(|_| crate::error::Error::Parse(format!("{name} must be >= 0, got {value}")))
 }
 
-unsafe fn read_bytes<'a>(data: *const u8, len: i32, name: &str) -> crate::Result<&'a [u8]> {
+pub(crate) unsafe fn read_bytes<'a>(
+    data: *const u8,
+    len: i32,
+    name: &str,
+) -> crate::Result<&'a [u8]> {
     let len = i32_to_usize(len, name)?;
     if len == 0 {
         return Ok(&[]);
