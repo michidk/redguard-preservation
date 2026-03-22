@@ -148,12 +148,12 @@ impl TextureCache {
 
         // Resolve remapped ID and check if it's already loaded (covers from_data pre-loads)
         let resolved_id = self.resolve_texbsi_id(texture_id);
-        if resolved_id != texture_id {
-            if let Some(bsi) = self.bsi_files.get(&resolved_id).cloned() {
-                self.warn_remapped_once(texture_id, resolved_id);
-                self.bsi_files.insert(texture_id, bsi);
-                return true;
-            }
+        if resolved_id != texture_id
+            && let Some(bsi) = self.bsi_files.get(&resolved_id).cloned()
+        {
+            self.warn_remapped_once(texture_id, resolved_id);
+            self.bsi_files.insert(texture_id, bsi);
+            return true;
         }
 
         let Some((resolved_texture_id, path)) = self.find_texbsi_path(texture_id) else {

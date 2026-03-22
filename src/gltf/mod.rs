@@ -128,16 +128,16 @@ pub fn convert_positioned_models_to_gltf(
 
     let mut mesh_instance_cache: HashMap<&str, u32> = HashMap::new();
     for pm in positioned_models {
-        if let Some(source_id) = &pm.source_id {
-            if let Some(&cached_mesh) = mesh_instance_cache.get(source_id.as_str()) {
-                builder.add_node(Node {
-                    mesh: Some(Index::new(cached_mesh)),
-                    matrix: Some(pm.transform),
-                    name: Some(pm.model_name.clone()),
-                    ..Default::default()
-                });
-                continue;
-            }
+        if let Some(source_id) = &pm.source_id
+            && let Some(&cached_mesh) = mesh_instance_cache.get(source_id.as_str())
+        {
+            builder.add_node(Node {
+                mesh: Some(Index::new(cached_mesh)),
+                matrix: Some(pm.transform),
+                name: Some(pm.model_name.clone()),
+                ..Default::default()
+            });
+            continue;
         }
 
         let unrolled = if let Some(source_id) = &pm.source_id {
@@ -247,16 +247,16 @@ pub fn convert_wld_scene_to_gltf(
 
     let mut mesh_instance_cache: HashMap<&str, u32> = HashMap::new();
     for pm in positioned_models {
-        if let Some(source_id) = &pm.source_id {
-            if let Some(&cached_mesh) = mesh_instance_cache.get(source_id.as_str()) {
-                builder.add_node(Node {
-                    mesh: Some(Index::new(cached_mesh)),
-                    matrix: Some(pm.transform),
-                    name: Some(pm.model_name.clone()),
-                    ..Default::default()
-                });
-                continue;
-            }
+        if let Some(source_id) = &pm.source_id
+            && let Some(&cached_mesh) = mesh_instance_cache.get(source_id.as_str())
+        {
+            builder.add_node(Node {
+                mesh: Some(Index::new(cached_mesh)),
+                matrix: Some(pm.transform),
+                name: Some(pm.model_name.clone()),
+                ..Default::default()
+            });
+            continue;
         }
 
         let unrolled = if let Some(source_id) = &pm.source_id {
