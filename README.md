@@ -53,7 +53,7 @@ cargo build
 Show CLI help:
 
 ```bash
-cargo run -- --help
+rgpre --help
 ```
 
 ## CLI Commands
@@ -67,61 +67,61 @@ cargo run -- --help
 Read a model:
 
 ```bash
-cargo run -- read 3dart/LHBM4.3DC
+rgpre read 3dart/LHBM4.3DC
 ```
 
 Read a ROB archive:
 
 ```bash
-cargo run -- read 3dart/BELLTOWR.ROB
+rgpre read 3dart/BELLTOWR.ROB
 ```
 
 Convert model to GLB:
 
 ```bash
-cargo run -- convert 3dart/LHBM4.3DC -o /tmp/LHBM4.glb
+rgpre convert 3dart/LHBM4.3DC -o output/LHBM4.glb
 ```
 
 Convert ROB archive to GLB:
 
 ```bash
-cargo run -- convert 3dart/BELLTOWR.ROB -o /tmp/BELLTOWR.glb
+rgpre convert 3dart/BELLTOWR.ROB -o output/BELLTOWR.glb
 ```
 
 Convert RGM scene (palette auto-resolved from `WORLD.INI`):
 
 ```bash
-cargo run -- convert maps/ISLAND.RGM --assets . -o /tmp/ISLAND_scene.glb
+rgpre convert maps/ISLAND.RGM --assets . -o output/ISLAND_scene.glb
 ```
 
 Convert WLD world to GLB terrain + companion RGM placement (also writes JSON sidecar metadata):
 
 ```bash
-cargo run -- convert maps/ISLAND.WLD --assets . -o /tmp/ISLAND_world.glb
+rgpre convert maps/ISLAND.WLD --assets . -o output/ISLAND_world.glb
 ```
 
 Convert WLD terrain only:
 
 ```bash
-cargo run -- convert maps/ISLAND.WLD --assets . --terrain-only -o /tmp/ISLAND_terrain.glb
+rgpre convert maps/ISLAND.WLD --assets . --terrain-only -o output/ISLAND_terrain.glb
 ```
 
 Convert TEXBSI texture bank to PNGs (requires `--filetype bsi` since extension is numeric):
 
 ```bash
-cargo run -- convert fxart/TEXBSI.302 --filetype bsi --palette fxart/ISLAND.COL -o /tmp/TEXBSI_302/
+rgpre convert fxart/TEXBSI.302 --filetype bsi --palette fxart/ISLAND.COL -o output/TEXBSI_302/
 ```
 
 Convert with all animation frames:
 
 ```bash
-cargo run -- convert fxart/TEXBSI.302 --filetype bsi --palette fxart/ISLAND.COL --all-frames -o /tmp/TEXBSI_302/
+rgpre convert fxart/TEXBSI.302 --filetype bsi --palette fxart/ISLAND.COL --all-frames -o output/TEXBSI_302/
 ```
 
 Scan a directory:
 
 ```bash
-cargo run -- scan 3dart
+rgpre scan 3dart
 ```
 
 ## Development Checks
