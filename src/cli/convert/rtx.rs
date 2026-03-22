@@ -2,6 +2,7 @@ use crate::opts::ConvertArgs;
 use color_eyre::Result;
 use hound::{SampleFormat, WavSpec, WavWriter};
 use log::info;
+use rayon::prelude::*;
 use redguard_preservation::import::rtx::{self, RtxEntry};
 use serde_json::json;
 use std::path::Path;
@@ -13,75 +14,79 @@ pub(super) fn handle_rtx_convert(args: &ConvertArgs, output_path: &Path) -> Resu
 
     std::fs::create_dir_all(output_path)?;
 
-    let mut audio_written = 0u32;
-    let mut metadata_entries = Vec::new();
+    let metadata_entries: Vec<serde_json::Value> = rtx_file
+        .entries
+        .par_iter()
+        .enumerate()
+        .map(|(i, entry)| {
+            let tag_str = entry.tag_str();
 
-    for (i, entry) in rtx_file.entries.iter().enumerate() {
-        let tag_str = entry.tag_str();
-
-        match entry {
-            RtxEntry::Text { text, .. } => {
-                metadata_entries.push(json!({
+            match entry {
+                RtxEntry::Text { text, .. } => Ok(json!({
                     "index": i,
                     "tag": tag_str,
                     "type": "text",
                     "text": text,
-                }));
-            }
-            RtxEntry::Audio {
-                label,
-                header,
-                pcm_data,
-                ..
-            } => {
-                let wav_path = output_path.join(format!("{tag_str}.wav"));
+                })),
+                RtxEntry::Audio {
+                    label,
+                    header,
+                    pcm_data,
+                    ..
+                } => {
+                    let wav_path = output_path.join(format!("{tag_str}.wav"));
 
-                let spec = WavSpec {
-                    channels: header.audio_type.channels(),
-                    sample_rate: header.sample_rate,
-                    bits_per_sample: header.audio_type.bits_per_sample(),
-                    sample_format: SampleFormat::Int,
-                };
+                    let spec = WavSpec {
+                        channels: header.audio_type.channels(),
+                        sample_rate: header.sample_rate,
+                        bits_per_sample: header.audio_type.bits_per_sample(),
+                        sample_format: SampleFormat::Int,
+                    };
 
-                let mut writer = WavWriter::create(&wav_path, spec)?;
+                    let mut writer = WavWriter::create(&wav_path, spec)?;
 
-                if header.audio_type.bits_per_sample() == 8 {
-                    for &sample in pcm_data {
-                        writer.write_sample(sample as i8)?;
+                    if header.audio_type.bits_per_sample() == 8 {
+                        for &sample in pcm_data {
+                            writer.write_sample(sample as i8)?;
+                        }
+                    } else {
+                        for chunk in pcm_data.chunks_exact(2) {
+                            let sample = i16::from_le_bytes([chunk[0], chunk[1]]);
+                            writer.write_sample(sample)?;
+                        }
                     }
-                } else {
-                    for chunk in pcm_data.chunks_exact(2) {
-                        let sample = i16::from_le_bytes([chunk[0], chunk[1]]);
-                        writer.write_sample(sample)?;
-                    }
+
+                    writer.finalize()?;
+
+                    info!(
+                        "  [{i:04}] '{}' {:?} {}Hz {:.3}s -> {}",
+                        tag_str,
+                        header.audio_type,
+                        header.sample_rate,
+                        header.duration_secs(),
+                        wav_path.display(),
+                    );
+
+                    Ok(json!({
+                        "index": i,
+                        "tag": tag_str,
+                        "type": "audio",
+                        "label": label,
+                        "audio_type": format!("{:?}", header.audio_type),
+                        "sample_rate": header.sample_rate,
+                        "duration_secs": header.duration_secs(),
+                        "pcm_bytes": pcm_data.len(),
+                        "wav_file": format!("{tag_str}.wav"),
+                    }))
                 }
-
-                writer.finalize()?;
-                audio_written += 1;
-
-                info!(
-                    "  [{i:04}] '{}' {:?} {}Hz {:.3}s -> {}",
-                    tag_str,
-                    header.audio_type,
-                    header.sample_rate,
-                    header.duration_secs(),
-                    wav_path.display(),
-                );
-
-                metadata_entries.push(json!({
-                    "index": i,
-                    "tag": tag_str,
-                    "type": "audio",
-                    "label": label,
-                    "audio_type": format!("{:?}", header.audio_type),
-                    "sample_rate": header.sample_rate,
-                    "duration_secs": header.duration_secs(),
-                    "pcm_bytes": pcm_data.len(),
-                    "wav_file": format!("{tag_str}.wav"),
-                }));
             }
-        }
-    }
+        })
+        .collect::<Result<Vec<_>>>()?;
+
+    let audio_written = metadata_entries
+        .iter()
+        .filter(|e| e.get("type").and_then(|t| t.as_str()) == Some("audio"))
+        .count();
 
     let index_path = output_path.join("index.json");
     let index_json = json!({
