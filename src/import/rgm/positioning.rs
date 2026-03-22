@@ -11,6 +11,7 @@ use crate::{
 };
 use glam::{EulerRot, Mat3, Quat, Vec3};
 use log::{debug, info, warn};
+use rayon::prelude::*;
 use std::collections::HashMap;
 
 const RGM_POSITION_SCALE: f32 = 1.0 / 5120.0;
@@ -26,6 +27,59 @@ struct MpsfRecord {
     image_id: u8,
 }
 
+fn build_rob_segment_index(registry: &Registry) -> HashMap<String, Model3DFile> {
+    let mut rob_entries: Vec<_> = registry
+        .files
+        .values()
+        .filter(|e| e.file_type == crate::import::FileType::Rob)
+        .collect();
+    rob_entries.sort_by_key(|entry| registry.source_rank_key(&entry.path));
+
+    let segment_batches: Vec<Vec<(String, Model3DFile)>> = rob_entries
+        .par_iter()
+        .filter_map(|entry| {
+            let data = read_entry_data(entry).ok()?;
+            let rob_file = crate::import::rob::parse_rob_file(&data).ok()?;
+            let segments: Vec<_> = rob_file
+                .segments
+                .iter()
+                .filter(|seg| seg.has_embedded_3d_data())
+                .filter_map(|seg| {
+                    let name = seg.name().to_ascii_uppercase();
+                    seg.parse_embedded_3d_data().ok().map(|model| (name, model))
+                })
+                .collect();
+            Some(segments)
+        })
+        .collect();
+
+    let mut index = HashMap::new();
+    for batch in segment_batches {
+        for (name, model) in batch {
+            index.entry(name).or_insert(model);
+        }
+    }
+    index
+}
+
+/// Cache wrapper around `load_model_from_registry` that avoids redundant disk I/O.
+/// Many MPOB records reference the same model (e.g. SHARKFIN ×30, WATERSND ×30).
+/// The cache stores `None` for models that weren't found, preventing repeated ROB scans.
+fn cached_load_model(
+    model_name: &str,
+    registry: &Registry,
+    cache: &mut HashMap<String, Option<Model3DFile>>,
+    rob_index: &HashMap<String, Model3DFile>,
+) -> Option<Model3DFile> {
+    let key = model_name.trim_matches('\0').trim().to_ascii_uppercase();
+    if let Some(cached) = cache.get(&key) {
+        return cached.clone();
+    }
+    let result = load_model_from_registry(model_name, registry, rob_index);
+    cache.insert(key, result.clone());
+    result
+}
+
 pub(super) fn extract_positioned_models(
     input: &[u8],
     rgm_file: &RgmFile,
@@ -33,6 +87,8 @@ pub(super) fn extract_positioned_models(
 ) -> (Vec<PositionedModel>, Vec<PositionedLight>) {
     let mut positioned_models = Vec::new();
     let mut positioned_lights = Vec::new();
+    let mut model_cache: HashMap<String, Option<Model3DFile>> = HashMap::new();
+    let rob_index = build_rob_segment_index(registry);
     let rahd_data = first_section_payload(input, *b"RAHD");
     let raan_data = first_section_payload(input, *b"RAAN");
 
@@ -60,7 +116,9 @@ pub(super) fn extract_positioned_models(
                     let model_name = record.model_name();
                     if !model_name.is_empty() {
                         info!("Looking for static model: '{model_name}'");
-                        if let Some(model) = load_model_from_registry(&model_name, registry) {
+                        if let Some(model) =
+                            cached_load_model(&model_name, registry, &mut model_cache, &rob_index)
+                        {
                             positioned_models.push(PositionedModel {
                                 model,
                                 transform: mps_transform(record),
@@ -109,7 +167,12 @@ pub(super) fn extract_positioned_models(
                             "Looking for positioned model: '{}' (script='{}', static={})",
                             resolved_name, script_name, record.is_static
                         );
-                        if let Some(model) = load_model_from_registry(&resolved_name, registry) {
+                        if let Some(model) = cached_load_model(
+                            &resolved_name,
+                            registry,
+                            &mut model_cache,
+                            &rob_index,
+                        ) {
                             let mut model = model;
                             let texture_override = rahd_texture_overrides.get(&script_name);
                             if let Some(tex_id) = texture_override {
@@ -141,7 +204,13 @@ pub(super) fn extract_positioned_models(
             }
             RgmSection::MprpParsed(_, records) => {
                 info!("Found MPRP section with {} rope records", records.len());
-                append_rope_records(records, registry, &mut positioned_models);
+                append_rope_records(
+                    records,
+                    registry,
+                    &mut positioned_models,
+                    &mut model_cache,
+                    &rob_index,
+                );
             }
             RgmSection::Mprp(_, mprp_data) => {
                 let records = parse_mprp_records(mprp_data);
@@ -149,7 +218,13 @@ pub(super) fn extract_positioned_models(
                     "Found raw MPRP section with {} decodable rope records",
                     records.len()
                 );
-                append_rope_records(&records, registry, &mut positioned_models);
+                append_rope_records(
+                    &records,
+                    registry,
+                    &mut positioned_models,
+                    &mut model_cache,
+                    &rob_index,
+                );
             }
             RgmSection::Mpf(_, mpf_data) => {
                 let records = parse_mpsf_records(mpf_data);
@@ -204,13 +279,15 @@ fn append_rope_records(
     records: &[MprpRecord],
     registry: &Registry,
     positioned_models: &mut Vec<PositionedModel>,
+    model_cache: &mut HashMap<String, Option<Model3DFile>>,
+    rob_index: &HashMap<String, Model3DFile>,
 ) {
     for (i, record) in records.iter().enumerate() {
         let mut pos = decode_position(record.pos_x, record.pos_y, record.pos_z);
         let link_count = record.length.max(0) as usize;
-
         if !record.rope_model.is_empty()
-            && let Some(model) = load_model_from_registry(&record.rope_model, registry)
+            && let Some(model) =
+                cached_load_model(&record.rope_model, registry, model_cache, rob_index)
         {
             for j in 0..link_count {
                 pos[1] -= ROPE_LINK_Y_STEP;
@@ -222,9 +299,9 @@ fn append_rope_records(
                 });
             }
         }
-
         if !record.static_model.is_empty()
-            && let Some(model) = load_model_from_registry(&record.static_model, registry)
+            && let Some(model) =
+                cached_load_model(&record.static_model, registry, model_cache, rob_index)
         {
             pos[1] -= ROPE_LINK_Y_STEP;
             positioned_models.push(PositionedModel {
@@ -840,7 +917,18 @@ fn mpob_transform(record: &MpobRecord) -> [f32; 16] {
     )
 }
 
-fn load_model_from_registry(model_name: &str, registry: &Registry) -> Option<Model3DFile> {
+fn read_entry_data(entry: &crate::import::registry::FileEntry) -> std::io::Result<Vec<u8>> {
+    if let Some(data) = &entry.data {
+        return Ok(data.clone());
+    }
+    std::fs::read(&entry.path)
+}
+
+fn load_model_from_registry(
+    model_name: &str,
+    registry: &Registry,
+    rob_index: &HashMap<String, Model3DFile>,
+) -> Option<Model3DFile> {
     let mut candidates = Vec::new();
     let trimmed = model_name.trim_matches('\0').trim();
     if !trimmed.is_empty() {
@@ -869,7 +957,7 @@ fn load_model_from_registry(model_name: &str, registry: &Registry) -> Option<Mod
 
         match file_entry.file_type {
             crate::import::FileType::Model3d | crate::import::FileType::Model3dc => {
-                match std::fs::read(&file_entry.path) {
+                match read_entry_data(file_entry) {
                     Ok(data) => match model3d::parse_3d_file(&data) {
                         Ok(model) => {
                             info!("Successfully loaded model '{model_name}'");
@@ -890,7 +978,7 @@ fn load_model_from_registry(model_name: &str, registry: &Registry) -> Option<Mod
                     }
                 }
             }
-            crate::import::FileType::Rob => match std::fs::read(&file_entry.path) {
+            crate::import::FileType::Rob => match read_entry_data(file_entry) {
                 Ok(data) => match crate::import::rob::parse_rob_with_models(&data) {
                     Ok((_, rob_models)) => {
                         info!(
@@ -923,63 +1011,16 @@ fn load_model_from_registry(model_name: &str, registry: &Registry) -> Option<Mod
             }
         }
     } else {
-        let mut rob_files: Vec<_> = registry
-            .files
-            .values()
-            .filter(|entry| entry.file_type == crate::import::FileType::Rob)
-            .collect();
-
-        rob_files.sort_by_key(|entry| registry.source_rank_key(&entry.path));
-
-        for file_entry in rob_files {
-            if file_entry.file_type != crate::import::FileType::Rob {
-                continue;
-            }
-
-            let data = match std::fs::read(&file_entry.path) {
-                Ok(data) => data,
-                Err(_) => continue,
-            };
-
-            let rob_file = match crate::import::rob::parse_rob_file(&data) {
-                Ok(rob) => rob,
-                Err(_) => continue,
-            };
-
-            for segment in &rob_file.segments {
-                let segment_name = segment.name();
-                let is_match = candidates
-                    .iter()
-                    .any(|candidate| segment_name.eq_ignore_ascii_case(candidate));
-                if !is_match {
-                    continue;
-                }
-
-                if segment.has_embedded_3d_data() {
-                    match segment.parse_embedded_3d_data() {
-                        Ok(model) => {
-                            info!(
-                                "Resolved model '{}' via ROB segment '{}' from {}",
-                                model_name,
-                                segment_name,
-                                file_entry.path.display()
-                            );
-                            return Some(model);
-                        }
-                        Err(e) => {
-                            warn!(
-                                "Failed parsing ROB segment '{}' in {}: {}",
-                                segment_name,
-                                file_entry.path.display(),
-                                e
-                            );
-                        }
-                    }
-                }
+        for candidate in &candidates {
+            if let Some(model) = rob_index.get(&candidate.to_ascii_uppercase()) {
+                info!(
+                    "Resolved model '{model_name}' via ROB segment index (candidate '{candidate}')"
+                );
+                return Some(model.clone());
             }
         }
 
-        warn!("Model '{model_name}' not found in registry (tried {candidates:?})");
+        warn!("Model '{model_name}' not found in registry or ROB index (tried {candidates:?})");
         None
     }
 }
