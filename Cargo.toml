@@ -17,6 +17,7 @@ name = "rgpre"
 path = "src/main.rs"
 
 [lib]
+name = "rgpre"
 crate-type = ["lib", "cdylib"]
 
 [dependencies]

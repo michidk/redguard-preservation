@@ -15,6 +15,7 @@ defaults:
 env:
   APP_NAME: rgpre
   BIN_NAME: rgpre
+  LIB_NAME: rgpre
 
 jobs:
   create-release:
@@ -65,15 +66,23 @@ jobs:
         - build: linux
           os: ubuntu-latest
           target: x86_64-unknown-linux-musl
+          lib_file: librgpre.so
         - build: linux-arm
           os: ubuntu-latest
           target: arm-unknown-linux-gnueabihf
+          lib_file: librgpre.so
         - build: macos
           os: macos-latest
           target: x86_64-apple-darwin
+          lib_file: librgpre.dylib
         - build: macos-arm
           os: macos-latest
           target: aarch64-apple-darwin
+          lib_file: librgpre.dylib
+        - build: win-msvc
+          os: windows-latest
+          target: x86_64-pc-windows-msvc
+          lib_file: rgpre.dll
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -95,16 +104,10 @@ jobs:
           cargo install cross
           echo "CARGO=cross" >> $GITHUB_ENV
 
-      - name: Show command used for Cargo
-        run: |
-          echo "cargo command is: ${{ env.CARGO }}"
-          echo "target flag is: ${{ env.TARGET_FLAGS }}"
-          echo "target dir is: ${{ env.TARGET_DIR }}"
-
       - name: Build release binary
         run: ${{ env.CARGO }} build --release --verbose ${{ env.TARGET_FLAGS }}
 
-      - name: Strip release binary (linux)
+      - name: Strip release binary (linux/macos)
         if: matrix.build == 'linux' || matrix.build == 'macos' || matrix.build == 'macos-arm'
         run: strip "${{ env.TARGET_DIR }}/release/${{ env.BIN_NAME }}"
 
@@ -117,22 +120,43 @@ jobs:
             arm-linux-gnueabihf-strip \
             /target/arm-unknown-linux-gnueabihf/release/${{ env.BIN_NAME }}
 
-      - name: Build archive
+      - name: Build archives
         run: |
-          staging="${{ env.APP_NAME }}-${{ matrix.target }}"
-          mkdir -p "$staging"
-          cp "${{ env.TARGET_DIR }}/release/${{ env.BIN_NAME }}" "$staging/"
-          tar czf "$staging.tar.gz" "$staging"
-          echo "ASSET=$staging.tar.gz" >> $GITHUB_ENV
+          cli_staging="${{ env.APP_NAME }}-${{ matrix.target }}"
+          lib_staging="lib${{ env.LIB_NAME }}-${{ matrix.target }}"
+          mkdir -p "$cli_staging" "$lib_staging"
 
-      - name: Upload archive
+          if [[ "${{ matrix.os }}" = "windows-latest" ]]; then
+            cp "${{ env.TARGET_DIR }}/release/${{ env.BIN_NAME }}.exe" "$cli_staging/"
+            cp "${{ env.TARGET_DIR }}/release/${{ matrix.lib_file }}" "$lib_staging/"
+            7z a "$cli_staging.zip" "$cli_staging"
+            7z a "$lib_staging.zip" "$lib_staging"
+            echo "CLI_ASSET=$cli_staging.zip" >> $GITHUB_ENV
+            echo "LIB_ASSET=$lib_staging.zip" >> $GITHUB_ENV
+          else
+            cp "${{ env.TARGET_DIR }}/release/${{ env.BIN_NAME }}" "$cli_staging/"
+            cp "${{ env.TARGET_DIR }}/release/${{ matrix.lib_file }}" "$lib_staging/"
+            tar czf "$cli_staging.tar.gz" "$cli_staging"
+            tar czf "$lib_staging.tar.gz" "$lib_staging"
+            echo "CLI_ASSET=$cli_staging.tar.gz" >> $GITHUB_ENV
+            echo "LIB_ASSET=$lib_staging.tar.gz" >> $GITHUB_ENV
+          fi
+
+      - name: Upload CLI archive
         uses: shogo82148/actions-upload-release-asset@v1
         with:
           upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: ${{ env.ASSET }}
-          asset_name: ${{ env.ASSET }}
+          asset_path: ${{ env.CLI_ASSET }}
+          asset_name: ${{ env.CLI_ASSET }}
           asset_content_type: application/octet-stream
 
+      - name: Upload FFI archive
+        uses: shogo82148/actions-upload-release-asset@v1
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ${{ env.LIB_ASSET }}
+          asset_name: ${{ env.LIB_ASSET }}
+          asset_content_type: application/octet-stream
 
   publish-release:
     name: Publish release
