@@ -4,11 +4,13 @@ use walkdir::WalkDir;
 
 use crate::import::FileType;
 
-/// Represents a file entry in the registry with its metadata
+/// Represents a file entry in the registry with its metadata.
 pub struct FileEntry {
     pub name: String,
     pub path: PathBuf,
     pub file_type: FileType,
+    /// Pre-loaded file bytes. When set, parsers use this instead of reading from `path`.
+    pub data: Option<Vec<u8>>,
 }
 
 impl FileEntry {
@@ -18,6 +20,7 @@ impl FileEntry {
             name,
             path,
             file_type,
+            data: None,
         }
     }
 }
@@ -37,6 +40,26 @@ impl Registry {
         Self {
             root_path,
             files: HashMap::new(),
+        }
+    }
+
+    /// Creates a registry from pre-loaded file data (no filesystem access).
+    pub fn from_data(entries: HashMap<String, (Vec<u8>, FileType)>) -> Self {
+        let mut files = HashMap::new();
+        for (name, (data, file_type)) in entries {
+            files.insert(
+                name.clone(),
+                FileEntry {
+                    name,
+                    path: PathBuf::new(),
+                    file_type,
+                    data: Some(data),
+                },
+            );
+        }
+        Self {
+            root_path: PathBuf::new(),
+            files,
         }
     }
 

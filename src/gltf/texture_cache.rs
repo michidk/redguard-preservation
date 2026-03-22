@@ -54,6 +54,42 @@ impl TextureCache {
         }
     }
 
+    /// Builds a texture cache from pre-loaded TEXBSI data (no filesystem access).
+    ///
+    /// `texbsi_data` maps TEXBSI IDs (e.g. 302) to raw file bytes.
+    /// Used by the FFI layer where the caller provides all data in memory.
+    pub fn from_data(texbsi_data: HashMap<u16, Vec<u8>>, palette: Option<Palette>) -> Self {
+        let mut bsi_files = HashMap::new();
+        let mut texbsi_paths = HashMap::new();
+
+        for (id, data) in texbsi_data {
+            match bsi::parse_bsi_file(&data) {
+                Ok(parsed) => {
+                    bsi_files.insert(id, parsed);
+                    // Populate texbsi_paths so resolve_texbsi_id() can remap other IDs
+                    // to this one. The PathBuf is never used for I/O since bsi_files
+                    // is already populated.
+                    texbsi_paths.insert(id, PathBuf::new());
+                }
+                Err(e) => {
+                    warn!("Failed to parse pre-loaded TEXBSI.{id:03}: {e}");
+                }
+            }
+        }
+
+        Self {
+            palette,
+            bsi_files,
+            texbsi_paths,
+            missing_texture_requests: HashSet::new(),
+            remapped_texture_requests: HashSet::new(),
+        }
+    }
+
+    pub fn palette(&self) -> Option<&Palette> {
+        self.palette.as_ref()
+    }
+
     fn warn_missing_once(&mut self, texture_id: u16, image_id: u8, reason: &str) {
         if self.missing_texture_requests.insert((texture_id, image_id)) {
             warn!(
@@ -108,6 +144,16 @@ impl TextureCache {
     fn ensure_bsi_loaded(&mut self, texture_id: u16, image_id: u8) -> bool {
         if self.bsi_files.contains_key(&texture_id) {
             return true;
+        }
+
+        // Resolve remapped ID and check if it's already loaded (covers from_data pre-loads)
+        let resolved_id = self.resolve_texbsi_id(texture_id);
+        if resolved_id != texture_id {
+            if let Some(bsi) = self.bsi_files.get(&resolved_id).cloned() {
+                self.warn_remapped_once(texture_id, resolved_id);
+                self.bsi_files.insert(texture_id, bsi);
+                return true;
+            }
         }
 
         let Some((resolved_texture_id, path)) = self.find_texbsi_path(texture_id) else {
