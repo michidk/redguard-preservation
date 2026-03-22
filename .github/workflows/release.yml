@@ -38,7 +38,6 @@ jobs:
         id: changelog
         uses: orhun/git-cliff-action@v4
         with:
-          config: cliff.toml
           args: --latest --strip header
 
       - name: Create release
@@ -147,90 +146,9 @@ jobs:
           asset_content_type: application/octet-stream
 
 
-  update-formula:
-    name: Update Homebrew formula
-    needs: ['create-release', 'build-release']
-    runs-on: ubuntu-24.04
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-
-      - name: Get release version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
-
-      - name: Download release assets
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release download "${{ github.ref_name }}" \
-            --repo "${{ github.repository }}" \
-            --pattern "*.tar.gz" \
-            --dir assets
-
-      - name: Compute SHA256 checksums
-        run: |
-          cd assets
-          echo "SHA_MACOS_ARM=$(sha256sum ${APP_NAME}-aarch64-apple-darwin.tar.gz | cut -d' ' -f1)" >> $GITHUB_ENV
-          echo "SHA_MACOS_INTEL=$(sha256sum ${APP_NAME}-x86_64-apple-darwin.tar.gz | cut -d' ' -f1)" >> $GITHUB_ENV
-          echo "SHA_LINUX_INTEL=$(sha256sum ${APP_NAME}-x86_64-unknown-linux-musl.tar.gz | cut -d' ' -f1)" >> $GITHUB_ENV
-          echo "SHA_LINUX_ARM=$(sha256sum ${APP_NAME}-arm-unknown-linux-gnueabihf.tar.gz | cut -d' ' -f1)" >> $GITHUB_ENV
-
-      - name: Generate formula
-        run: |
-          mkdir -p Formula
-          cat > Formula/${BIN_NAME}.rb << RUBY
-          # typed: false
-          # frozen_string_literal: true
-
-          class RedguardPreservation < Formula
-            desc "A CLI tool to preserve Redguard files"
-            homepage "https://github.com/${{ github.repository }}"
-            license "MIT"
-            version "${VERSION}"
-
-            on_macos do
-              on_arm do
-                url "https://github.com/${{ github.repository }}/releases/download/v#{version}/${APP_NAME}-aarch64-apple-darwin.tar.gz"
-                sha256 "${SHA_MACOS_ARM}"
-              end
-              on_intel do
-                url "https://github.com/${{ github.repository }}/releases/download/v#{version}/${APP_NAME}-x86_64-apple-darwin.tar.gz"
-                sha256 "${SHA_MACOS_INTEL}"
-              end
-            end
-
-            on_linux do
-              on_arm do
-                url "https://github.com/${{ github.repository }}/releases/download/v#{version}/${APP_NAME}-arm-unknown-linux-gnueabihf.tar.gz"
-                sha256 "${SHA_LINUX_ARM}"
-              end
-              on_intel do
-                url "https://github.com/${{ github.repository }}/releases/download/v#{version}/${APP_NAME}-x86_64-unknown-linux-musl.tar.gz"
-                sha256 "${SHA_LINUX_INTEL}"
-              end
-            end
-
-            def install
-              bin.install "${BIN_NAME}"
-            end
-
-            test do
-              assert_match version.to_s, shell_output("#{bin}/${BIN_NAME} --version")
-            end
-          end
-          RUBY
-
-      - name: Upload formula artifact
-        uses: shogo82148/actions-upload-release-asset@v1
-        with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: Formula/${BIN_NAME}.rb
-          asset_name: ${BIN_NAME}.rb
-          asset_content_type: text/plain
-
   publish-release:
     name: Publish release
-    needs: ['update-formula']
+    needs: ['build-release']
     runs-on: ubuntu-24.04
     steps:
       - name: Publish release
