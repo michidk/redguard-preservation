@@ -12,6 +12,10 @@ license = "MIT"
 keywords = ["redguard", "preservation", "cli"]
 categories = ["command-line-utilities"]
 
+[[bin]]
+name = "rgpre"
+path = "src/main.rs"
+
 [lib]
 crate-type = ["lib", "cdylib"]
 
