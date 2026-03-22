@@ -5,6 +5,7 @@
 
 /// Error types used by parsing and conversion operations.
 pub mod error;
+pub mod ffi;
 /// GLTF/GLB conversion utilities for parsed Redguard assets.
 pub mod gltf;
 /// Parsers and helpers for Redguard file formats.

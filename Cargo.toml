@@ -12,6 +12,9 @@ license = "MIT"
 keywords = ["redguard", "preservation", "cli"]
 categories = ["command-line-utilities"]
 
+[lib]
+crate-type = ["lib", "cdylib"]
+
 [dependencies]
 color-eyre = "0.6.5"
 clap = { version = "4.6.0", features = ["derive", "color", "help", "usage", "suggestions", "wrap_help", "env"] }
