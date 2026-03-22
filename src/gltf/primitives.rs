@@ -14,6 +14,7 @@ pub(crate) enum MaterialKey {
     White,
 }
 
+#[derive(Clone)]
 pub(crate) struct UnrolledPrimitive {
     pub(crate) material_key: MaterialKey,
     pub(crate) scale_uv_by_texture_dimensions: bool,

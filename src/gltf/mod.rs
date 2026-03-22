@@ -20,6 +20,7 @@ use json::scene::Node;
 use json::validation::Checked;
 use json::{Index, Root};
 use log::trace;
+use rayon::prelude::*;
 use std::collections::HashMap;
 
 /// Engine-to-export coordinate divisor. Engine coordinates are 20x export units.
@@ -48,8 +49,12 @@ pub fn convert_models_to_gltf(
     let mut builder = GltfBuilder::new(texture_cache, compress_textures);
     let texture_cache_available = builder.has_texture_cache();
 
-    for model in models {
-        let unrolled = build_unrolled_primitives(model, palette, texture_cache_available);
+    let all_unrolled: Vec<_> = models
+        .par_iter()
+        .map(|model| build_unrolled_primitives(model, palette, texture_cache_available))
+        .collect();
+
+    for unrolled in all_unrolled {
         if unrolled.is_empty() {
             continue;
         }
@@ -103,22 +108,47 @@ pub fn convert_positioned_models_to_gltf(
 
     let mut builder = GltfBuilder::new(texture_cache, compress_textures);
     let texture_cache_available = builder.has_texture_cache();
-    let mut mesh_instance_cache: HashMap<String, u32> = HashMap::new();
 
+    let mut unique_source_models: HashMap<&str, &crate::model3d::Model3DFile> = HashMap::new();
     for pm in positioned_models {
-        if let Some(source_id) = &pm.source_id
-            && let Some(&cached_mesh) = mesh_instance_cache.get(source_id)
-        {
-            builder.add_node(Node {
-                mesh: Some(Index::new(cached_mesh)),
-                matrix: Some(pm.transform),
-                name: Some(pm.model_name.clone()),
-                ..Default::default()
-            });
-            continue;
+        if let Some(source_id) = &pm.source_id {
+            unique_source_models.entry(source_id).or_insert(&pm.model);
+        }
+    }
+
+    let unrolled_cache: HashMap<&str, Vec<UnrolledPrimitive>> = unique_source_models
+        .par_iter()
+        .map(|(&id, model)| {
+            (
+                id,
+                build_unrolled_primitives(model, palette, texture_cache_available),
+            )
+        })
+        .collect();
+
+    let mut mesh_instance_cache: HashMap<&str, u32> = HashMap::new();
+    for pm in positioned_models {
+        if let Some(source_id) = &pm.source_id {
+            if let Some(&cached_mesh) = mesh_instance_cache.get(source_id.as_str()) {
+                builder.add_node(Node {
+                    mesh: Some(Index::new(cached_mesh)),
+                    matrix: Some(pm.transform),
+                    name: Some(pm.model_name.clone()),
+                    ..Default::default()
+                });
+                continue;
+            }
         }
 
-        let unrolled = build_unrolled_primitives(&pm.model, palette, texture_cache_available);
+        let unrolled = if let Some(source_id) = &pm.source_id {
+            unrolled_cache
+                .get(source_id.as_str())
+                .cloned()
+                .unwrap_or_default()
+        } else {
+            build_unrolled_primitives(&pm.model, palette, texture_cache_available)
+        };
+
         if unrolled.is_empty() {
             builder.add_node(Node {
                 matrix: Some(pm.transform),
@@ -130,9 +160,8 @@ pub fn convert_positioned_models_to_gltf(
 
         let mesh_index = builder.append_mesh(unrolled);
         if let Some(source_id) = &pm.source_id {
-            mesh_instance_cache.insert(source_id.clone(), mesh_index as u32);
+            mesh_instance_cache.insert(source_id, mesh_index as u32);
         }
-
         builder.add_node(Node {
             mesh: Some(Index::new(mesh_index as u32)),
             matrix: Some(pm.transform),
@@ -199,8 +228,46 @@ pub fn convert_wld_scene_to_gltf(
         });
     }
 
+    let mut unique_source_models: HashMap<&str, &crate::model3d::Model3DFile> = HashMap::new();
     for pm in positioned_models {
-        let unrolled = build_unrolled_primitives(&pm.model, palette, texture_cache_available);
+        if let Some(source_id) = &pm.source_id {
+            unique_source_models.entry(source_id).or_insert(&pm.model);
+        }
+    }
+
+    let unrolled_cache: HashMap<&str, Vec<UnrolledPrimitive>> = unique_source_models
+        .par_iter()
+        .map(|(&id, model)| {
+            (
+                id,
+                build_unrolled_primitives(model, palette, texture_cache_available),
+            )
+        })
+        .collect();
+
+    let mut mesh_instance_cache: HashMap<&str, u32> = HashMap::new();
+    for pm in positioned_models {
+        if let Some(source_id) = &pm.source_id {
+            if let Some(&cached_mesh) = mesh_instance_cache.get(source_id.as_str()) {
+                builder.add_node(Node {
+                    mesh: Some(Index::new(cached_mesh)),
+                    matrix: Some(pm.transform),
+                    name: Some(pm.model_name.clone()),
+                    ..Default::default()
+                });
+                continue;
+            }
+        }
+
+        let unrolled = if let Some(source_id) = &pm.source_id {
+            unrolled_cache
+                .get(source_id.as_str())
+                .cloned()
+                .unwrap_or_default()
+        } else {
+            build_unrolled_primitives(&pm.model, palette, texture_cache_available)
+        };
+
         if unrolled.is_empty() {
             builder.add_node(Node {
                 matrix: Some(pm.transform),
@@ -211,6 +278,9 @@ pub fn convert_wld_scene_to_gltf(
         }
 
         let mesh_index = builder.append_mesh(unrolled);
+        if let Some(source_id) = &pm.source_id {
+            mesh_instance_cache.insert(source_id, mesh_index as u32);
+        }
         builder.add_node(Node {
             mesh: Some(Index::new(mesh_index as u32)),
             matrix: Some(pm.transform),
