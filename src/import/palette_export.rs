@@ -32,7 +32,7 @@ fn paired_output_paths(output: &Path) -> (PathBuf, PathBuf) {
     let ext = output
         .extension()
         .and_then(|e| e.to_str())
-        .map(|s| s.to_ascii_lowercase());
+        .map(str::to_ascii_lowercase);
 
     match ext.as_deref() {
         Some("png") => (output.to_path_buf(), output.with_extension("json")),
@@ -57,8 +57,11 @@ pub fn export_col_palette(
     let mut image = RgbImage::new(img_size, img_size);
 
     for (idx, color) in palette.colors.iter().enumerate() {
-        let col = (idx as u32) % GRID_DIM;
-        let row = (idx as u32) / GRID_DIM;
+        let idx_u32 = u32::try_from(idx).map_err(|_| {
+            Error::Conversion("palette index overflow while exporting swatches".to_string())
+        })?;
+        let col = idx_u32 % GRID_DIM;
+        let row = idx_u32 / GRID_DIM;
         let origin_x = col * CELL_SIZE;
         let origin_y = row * CELL_SIZE;
 

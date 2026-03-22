@@ -17,10 +17,190 @@ pub(super) const WLD_HEIGHT_TABLE: [u16; 128] = [
     4920, 5200, 5560, 6040, 6680, 7760,
 ];
 
-pub(super) fn wld_height(value: u8) -> f32 {
-    WLD_HEIGHT_TABLE[(value & 0x7F) as usize] as f32 / ENGINE_UNIT_SCALE
+const UV_ROTATIONS: [[[f32; 2]; 6]; 4] = [
+    [
+        [1.0, 1.0],
+        [1.0, 0.0],
+        [0.0, 0.0],
+        [0.0, 0.0],
+        [0.0, 1.0],
+        [1.0, 1.0],
+    ],
+    [
+        [0.0, 1.0],
+        [1.0, 1.0],
+        [1.0, 0.0],
+        [1.0, 0.0],
+        [0.0, 0.0],
+        [0.0, 1.0],
+    ],
+    [
+        [0.0, 0.0],
+        [0.0, 1.0],
+        [1.0, 1.0],
+        [1.0, 1.0],
+        [1.0, 0.0],
+        [0.0, 0.0],
+    ],
+    [
+        [1.0, 0.0],
+        [0.0, 0.0],
+        [0.0, 1.0],
+        [0.0, 1.0],
+        [1.0, 1.0],
+        [1.0, 0.0],
+    ],
+];
+
+#[must_use]
+fn map_side_from_square_len(len: usize) -> Option<usize> {
+    if len == 0 {
+        return None;
+    }
+
+    let mut side = 1usize;
+    while side.saturating_mul(side) < len {
+        side += 1;
+    }
+
+    (side.saturating_mul(side) == len).then_some(side)
 }
 
+#[must_use]
+fn scaled_grid_coordinate(value: usize) -> f32 {
+    f32::from(u16::try_from(value).expect("terrain grid coordinate exceeds u16::MAX"))
+        * WLD_SIZE_SCALE
+}
+
+#[must_use]
+fn terrain_position(heightmap: &[u8], map_side: usize, x: usize, y: usize) -> [f32; 3] {
+    [
+        -scaled_grid_coordinate(x),
+        wld_height(heightmap[x + y * map_side]),
+        -scaled_grid_coordinate(y),
+    ]
+}
+
+#[must_use]
+fn build_face_normals(
+    heightmap: &[u8],
+    map_side: usize,
+    cells: usize,
+) -> Vec<([f32; 3], [f32; 3])> {
+    let mut face_normals: Vec<([f32; 3], [f32; 3])> = Vec::with_capacity(cells * cells);
+    for y in 0..cells {
+        for x in 0..cells {
+            let top_left = terrain_position(heightmap, map_side, x, y);
+            let top_right = terrain_position(heightmap, map_side, x + 1, y);
+            let bottom_left = terrain_position(heightmap, map_side, x, y + 1);
+            let bottom_right = terrain_position(heightmap, map_side, x + 1, y + 1);
+            face_normals.push((
+                triangle_normal(top_left, bottom_right, top_right),
+                triangle_normal(bottom_right, top_left, bottom_left),
+            ));
+        }
+    }
+    face_normals
+}
+
+#[must_use]
+fn build_vertex_normals(
+    face_normals: &[([f32; 3], [f32; 3])],
+    map_side: usize,
+    cells: usize,
+) -> Vec<[f32; 3]> {
+    let mut vertex_normals: Vec<[f32; 3]> = Vec::with_capacity(map_side * map_side);
+
+    for gy in 0..map_side {
+        for gx in 0..map_side {
+            let mut acc = [0.0f32; 3];
+            let cell =
+                |cx: usize, cy: usize| -> &([f32; 3], [f32; 3]) { &face_normals[cx + cy * cells] };
+            if gx > 0 && gy > 0 {
+                let (tri_1, tri_2) = cell(gx - 1, gy - 1);
+                acc[0] += tri_1[0] + tri_2[0];
+                acc[1] += tri_1[1] + tri_2[1];
+                acc[2] += tri_1[2] + tri_2[2];
+            }
+            if gx < cells && gy > 0 {
+                let (_, tri_2) = cell(gx, gy - 1);
+                acc[0] += tri_2[0];
+                acc[1] += tri_2[1];
+                acc[2] += tri_2[2];
+            }
+            if gx > 0 && gy < cells {
+                let (tri_1, _) = cell(gx - 1, gy);
+                acc[0] += tri_1[0];
+                acc[1] += tri_1[1];
+                acc[2] += tri_1[2];
+            }
+            if gx < cells && gy < cells {
+                let (tri_1, tri_2) = cell(gx, gy);
+                acc[0] += tri_1[0] + tri_2[0];
+                acc[1] += tri_1[1] + tri_2[1];
+                acc[2] += tri_1[2] + tri_2[2];
+            }
+            vertex_normals.push(normalize(acc));
+        }
+    }
+
+    vertex_normals
+}
+
+#[must_use]
+fn resolve_wld_material(
+    primitive_groups: &mut BTreeMap<MaterialKey, UnrolledPrimitive>,
+    texbsi_id: u16,
+    tex_id: u8,
+) -> &mut UnrolledPrimitive {
+    let material_key = MaterialKey::Textured(texbsi_id, tex_id);
+    primitive_groups
+        .entry(material_key)
+        .or_insert_with(|| UnrolledPrimitive {
+            material_key,
+            scale_uv_by_texture_dimensions: false,
+            positions: Vec::new(),
+            normals: Vec::new(),
+            uvs: Vec::new(),
+            indices: Vec::new(),
+            min: [f32::INFINITY, f32::INFINITY, f32::INFINITY],
+            max: [f32::NEG_INFINITY, f32::NEG_INFINITY, f32::NEG_INFINITY],
+        })
+}
+
+fn append_wld_cell(
+    primitive: &mut UnrolledPrimitive,
+    heightmap: &[u8],
+    map_side: usize,
+    vertex_normals: &[[f32; 3]],
+    x: usize,
+    y: usize,
+    uv: [[f32; 2]; 6],
+) {
+    let normal_at = |vx: usize, vy: usize| vertex_normals[vx + vy * map_side];
+    let top_left = terrain_position(heightmap, map_side, x, y);
+    let top_right = terrain_position(heightmap, map_side, x + 1, y);
+    let bottom_left = terrain_position(heightmap, map_side, x, y + 1);
+    let bottom_right = terrain_position(heightmap, map_side, x + 1, y + 1);
+    let normal_top_left = normal_at(x, y);
+    let normal_top_right = normal_at(x + 1, y);
+    let normal_bottom_left = normal_at(x, y + 1);
+    let normal_bottom_right = normal_at(x + 1, y + 1);
+
+    push_terrain_vertex(primitive, top_left, normal_top_left, uv[2]);
+    push_terrain_vertex(primitive, bottom_right, normal_bottom_right, uv[0]);
+    push_terrain_vertex(primitive, top_right, normal_top_right, uv[1]);
+    push_terrain_vertex(primitive, bottom_right, normal_bottom_right, uv[5]);
+    push_terrain_vertex(primitive, top_left, normal_top_left, uv[3]);
+    push_terrain_vertex(primitive, bottom_left, normal_bottom_left, uv[4]);
+}
+
+#[must_use]
+pub(super) fn wld_height(value: u8) -> f32 {
+    f32::from(WLD_HEIGHT_TABLE[usize::from(value & 0x7F)]) / ENGINE_UNIT_SCALE
+}
+
+#[must_use]
 pub(super) fn triangle_normal(a: [f32; 3], b: [f32; 3], c: [f32; 3]) -> [f32; 3] {
     let (a, b, c) = (
         glam::Vec3::from(a),
@@ -30,10 +210,13 @@ pub(super) fn triangle_normal(a: [f32; 3], b: [f32; 3], c: [f32; 3]) -> [f32; 3]
     (b - a).cross(c - a).to_array()
 }
 
+#[must_use]
 pub(super) fn normalize(n: [f32; 3]) -> [f32; 3] {
     glam::Vec3::from(n).normalize_or(glam::Vec3::Y).to_array()
 }
 
+#[allow(clippy::cast_possible_truncation)]
+// GLTF indices are u32; terrain vertex counts are far below u32::MAX.
 pub(super) fn push_terrain_vertex(
     primitive: &mut UnrolledPrimitive,
     pos: [f32; 3],
@@ -65,143 +248,36 @@ pub(super) fn build_wld_unrolled_primitives(
         return Ok(Vec::new());
     }
 
-    let map_side = (heightmap.len() as f64).sqrt() as usize;
-    if map_side < 2 || map_side * map_side != heightmap.len() {
+    let Some(map_side) = map_side_from_square_len(heightmap.len()) else {
+        return Ok(Vec::new());
+    };
+    if map_side < 2 || map_side > usize::from(u16::MAX) {
         return Ok(Vec::new());
     }
 
-    let uv_rotations: [[[f32; 2]; 6]; 4] = [
-        [
-            [1.0, 1.0],
-            [1.0, 0.0],
-            [0.0, 0.0],
-            [0.0, 0.0],
-            [0.0, 1.0],
-            [1.0, 1.0],
-        ],
-        [
-            [0.0, 1.0],
-            [1.0, 1.0],
-            [1.0, 0.0],
-            [1.0, 0.0],
-            [0.0, 0.0],
-            [0.0, 1.0],
-        ],
-        [
-            [0.0, 0.0],
-            [0.0, 1.0],
-            [1.0, 1.0],
-            [1.0, 1.0],
-            [1.0, 0.0],
-            [0.0, 0.0],
-        ],
-        [
-            [1.0, 0.0],
-            [0.0, 0.0],
-            [0.0, 1.0],
-            [0.0, 1.0],
-            [1.0, 1.0],
-            [1.0, 0.0],
-        ],
-    ];
-
     let cells = map_side - 1;
-    let h = |x: usize, y: usize| wld_height(heightmap[x + y * map_side]);
-    let pos = |x: usize, y: usize| -> [f32; 3] {
-        [
-            -(x as f32 * WLD_SIZE_SCALE),
-            h(x, y),
-            -(y as f32 * WLD_SIZE_SCALE),
-        ]
-    };
-
-    let mut face_normals: Vec<([f32; 3], [f32; 3])> = Vec::with_capacity(cells * cells);
-    for y in 0..cells {
-        for x in 0..cells {
-            let tl = pos(x, y);
-            let tr = pos(x + 1, y);
-            let bl = pos(x, y + 1);
-            let br = pos(x + 1, y + 1);
-            face_normals.push((triangle_normal(tl, br, tr), triangle_normal(br, tl, bl)));
-        }
-    }
-
-    let mut vertex_normals: Vec<[f32; 3]> = Vec::with_capacity(map_side * map_side);
-    for gy in 0..map_side {
-        for gx in 0..map_side {
-            let mut acc = [0.0f32; 3];
-            let cell =
-                |cx: usize, cy: usize| -> &([f32; 3], [f32; 3]) { &face_normals[cx + cy * cells] };
-            if gx > 0 && gy > 0 {
-                let (t1, t2) = cell(gx - 1, gy - 1);
-                acc[0] += t1[0] + t2[0];
-                acc[1] += t1[1] + t2[1];
-                acc[2] += t1[2] + t2[2];
-            }
-            if gx < cells && gy > 0 {
-                let (_, t2) = cell(gx, gy - 1);
-                acc[0] += t2[0];
-                acc[1] += t2[1];
-                acc[2] += t2[2];
-            }
-            if gx > 0 && gy < cells {
-                let (t1, _) = cell(gx - 1, gy);
-                acc[0] += t1[0];
-                acc[1] += t1[1];
-                acc[2] += t1[2];
-            }
-            if gx < cells && gy < cells {
-                let (t1, t2) = cell(gx, gy);
-                acc[0] += t1[0] + t2[0];
-                acc[1] += t1[1] + t2[1];
-                acc[2] += t1[2] + t2[2];
-            }
-            vertex_normals.push(normalize(acc));
-        }
-    }
+    let face_normals = build_face_normals(&heightmap, map_side, cells);
+    let vertex_normals = build_vertex_normals(&face_normals, map_side, cells);
 
     let mut primitive_groups: BTreeMap<MaterialKey, UnrolledPrimitive> = BTreeMap::new();
-    let vn = |x: usize, y: usize| vertex_normals[x + y * map_side];
 
     for y in 0..cells {
         for x in 0..cells {
             let idx = x + y * map_side;
             let tex_byte = texturemap_raw[idx];
             let tex_id = tex_byte & 0x3F;
-            let tex_rot = ((tex_byte & 0xC0) >> 6) as usize;
-            let material_key = MaterialKey::Textured(texbsi_id, tex_id);
+            let tex_rot = usize::from((tex_byte & 0xC0) >> 6);
+            let primitive = resolve_wld_material(&mut primitive_groups, texbsi_id, tex_id);
 
-            let primitive =
-                primitive_groups
-                    .entry(material_key)
-                    .or_insert_with(|| UnrolledPrimitive {
-                        material_key,
-                        scale_uv_by_texture_dimensions: false,
-                        positions: Vec::new(),
-                        normals: Vec::new(),
-                        uvs: Vec::new(),
-                        indices: Vec::new(),
-                        min: [f32::INFINITY, f32::INFINITY, f32::INFINITY],
-                        max: [f32::NEG_INFINITY, f32::NEG_INFINITY, f32::NEG_INFINITY],
-                    });
-
-            let tl = pos(x, y);
-            let tr = pos(x + 1, y);
-            let bl = pos(x, y + 1);
-            let br = pos(x + 1, y + 1);
-            let n_tl = vn(x, y);
-            let n_tr = vn(x + 1, y);
-            let n_bl = vn(x, y + 1);
-            let n_br = vn(x + 1, y + 1);
-
-            let uv = uv_rotations[tex_rot.min(3)];
-
-            push_terrain_vertex(primitive, tl, n_tl, uv[2]);
-            push_terrain_vertex(primitive, br, n_br, uv[0]);
-            push_terrain_vertex(primitive, tr, n_tr, uv[1]);
-            push_terrain_vertex(primitive, br, n_br, uv[5]);
-            push_terrain_vertex(primitive, tl, n_tl, uv[3]);
-            push_terrain_vertex(primitive, bl, n_bl, uv[4]);
+            append_wld_cell(
+                primitive,
+                &heightmap,
+                map_side,
+                &vertex_normals,
+                x,
+                y,
+                UV_ROTATIONS[tex_rot.min(3)],
+            );
         }
     }
 

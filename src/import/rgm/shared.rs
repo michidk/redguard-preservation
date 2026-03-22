@@ -1,12 +1,15 @@
 use super::{Error, MpobRecord, MpsRecord, Result, RgmSection, RgmSectionHeader};
+use std::fmt::Write;
 
 impl RgmSectionHeader {
+    #[must_use]
     pub fn name(&self) -> String {
         String::from_utf8_lossy(&self.name).to_string()
     }
 }
 
 impl MpsRecord {
+    #[must_use]
     pub fn model_name(&self) -> String {
         String::from_utf8_lossy(&self.model_name)
             .trim_matches('\0')
@@ -15,12 +18,14 @@ impl MpsRecord {
 }
 
 impl MpobRecord {
+    #[must_use]
     pub fn model_name(&self) -> String {
         String::from_utf8_lossy(&self.model_name)
             .trim_matches('\0')
             .to_string()
     }
 
+    #[must_use]
     pub fn script_name(&self) -> String {
         String::from_utf8_lossy(&self.script_name)
             .trim_matches('\0')
@@ -29,37 +34,38 @@ impl MpobRecord {
 }
 
 impl RgmSection {
-    pub fn header(&self) -> &RgmSectionHeader {
+    #[must_use]
+    pub const fn header(&self) -> &RgmSectionHeader {
         match self {
-            RgmSection::Rahd(header, _)
-            | RgmSection::Rafs(header, _)
-            | RgmSection::Rast(header, _)
-            | RgmSection::Rasb(header, _)
-            | RgmSection::Rava(header, _)
-            | RgmSection::Rasc(header, _)
-            | RgmSection::Rahk(header, _)
-            | RgmSection::Ralc(header, _)
-            | RgmSection::Raex(header, _)
-            | RgmSection::RaexParsed(header, _)
-            | RgmSection::Raat(header, _)
-            | RgmSection::Raan(header, _)
-            | RgmSection::Ragr(header, _)
-            | RgmSection::Ranm(header, _)
-            | RgmSection::Ravc(header, _)
-            | RgmSection::RavcParsed(header, _)
-            | RgmSection::Mpob(header, _)
-            | RgmSection::MpobParsed(header, _)
-            | RgmSection::Mprp(header, _)
-            | RgmSection::MprpParsed(header, _)
-            | RgmSection::Mps(header, _)
-            | RgmSection::Mpl(header, _)
-            | RgmSection::MplParsed(header, _)
-            | RgmSection::Mpf(header, _)
-            | RgmSection::Mpm(header, _)
-            | RgmSection::Mpsz(header, _)
-            | RgmSection::Wdnm(header, _)
-            | RgmSection::Flat(header, _)
-            | RgmSection::End(header) => header,
+            Self::Rahd(header, _)
+            | Self::Rafs(header, _)
+            | Self::Rast(header, _)
+            | Self::Rasb(header, _)
+            | Self::Rava(header, _)
+            | Self::Rasc(header, _)
+            | Self::Rahk(header, _)
+            | Self::Ralc(header, _)
+            | Self::Raex(header, _)
+            | Self::RaexParsed(header, _)
+            | Self::Raat(header, _)
+            | Self::Raan(header, _)
+            | Self::Ragr(header, _)
+            | Self::Ranm(header, _)
+            | Self::Ravc(header, _)
+            | Self::RavcParsed(header, _)
+            | Self::Mpob(header, _)
+            | Self::MpobParsed(header, _)
+            | Self::Mprp(header, _)
+            | Self::MprpParsed(header, _)
+            | Self::Mps(header, _)
+            | Self::Mpl(header, _)
+            | Self::MplParsed(header, _)
+            | Self::Mpf(header, _)
+            | Self::Mpm(header, _)
+            | Self::Mpsz(header, _)
+            | Self::Wdnm(header, _)
+            | Self::Flat(header, _)
+            | Self::End(header) => header,
         }
     }
 }
@@ -86,29 +92,30 @@ pub(super) fn dump_rgm_impl(input: &[u8]) -> Result<String> {
     let mut output = String::new();
     output.push_str("RGM File Structure:\n");
     output.push_str("==================\n\n");
-    output.push_str(&format!("Found {} sections\n", rgm_file.sections.len()));
-    for (i, section) in rgm_file.sections.iter().enumerate() {
-        output.push_str(&format!("Section {}: {:?}\n", i + 1, section));
+    let _ = writeln!(output, "Found {} sections", rgm_file.sections.len());
+    for (section_index, section) in rgm_file.sections.iter().enumerate() {
+        let _ = writeln!(output, "Section {}: {:?}", section_index + 1, section);
         match section {
             RgmSection::Mps(_, mps_records) => {
-                output.push_str(&format!("  MPSO ({} records)\n", mps_records.len()));
-                for (j, record) in mps_records.iter().enumerate() {
-                    if j < 5 {
-                        output.push_str(&format!(
-                            "    Record {}: Model='{}'\n",
-                            j + 1,
+                let _ = writeln!(output, "  MPSO ({} records)", mps_records.len());
+                for (record_index, record) in mps_records.iter().enumerate() {
+                    if record_index < 5 {
+                        let _ = writeln!(
+                            output,
+                            "    Record {}: Model='{}'",
+                            record_index + 1,
                             record.model_name()
-                        ));
-                    } else if j == 5 {
-                        output.push_str(&format!(
-                            "    ... and {} more records\n",
-                            mps_records.len() - 5
-                        ));
+                        );
+                    } else if record_index == 5 {
+                        let _ =
+                            writeln!(output, "    ... and {} more records", mps_records.len() - 5);
                         break;
                     }
                 }
             }
-            RgmSection::End(header) => output.push_str(&format!("  END ({})\n", header.name())),
+            RgmSection::End(header) => {
+                let _ = writeln!(output, "  END ({})", header.name());
+            }
             _ => {}
         }
     }

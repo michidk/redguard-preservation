@@ -11,10 +11,18 @@ pub struct ByteBuffer {
 }
 
 impl ByteBuffer {
+    #[must_use]
     pub fn from_vec(bytes: Vec<u8>) -> Self {
+        let Ok(length) = i32::try_from(bytes.len()) else {
+            set_last_error("buffer length exceeds i32::MAX");
+            return Self::null();
+        };
+        let Ok(capacity) = i32::try_from(bytes.capacity()) else {
+            set_last_error("buffer capacity exceeds i32::MAX");
+            return Self::null();
+        };
+
         let mut bytes = ManuallyDrop::new(bytes);
-        let length = i32::try_from(bytes.len()).expect("buffer length exceeds i32::MAX");
-        let capacity = i32::try_from(bytes.capacity()).expect("buffer capacity exceeds i32::MAX");
         Self {
             ptr: bytes.as_mut_ptr(),
             length,
@@ -31,12 +39,20 @@ impl ByteBuffer {
             return;
         }
 
+        let Ok(length) = usize::try_from(self.length) else {
+            return;
+        };
+        let Ok(capacity) = usize::try_from(self.capacity) else {
+            return;
+        };
+
         unsafe {
-            let _ = Vec::from_raw_parts(self.ptr, self.length as usize, self.capacity as usize);
+            let _ = Vec::from_raw_parts(self.ptr, length, capacity);
         }
     }
 
-    pub fn null() -> Self {
+    #[must_use]
+    pub const fn null() -> Self {
         Self {
             ptr: ptr::null_mut(),
             length: 0,
@@ -61,11 +77,12 @@ pub fn clear_last_error() {
     });
 }
 
+#[must_use]
 pub fn last_error_message() -> Option<String> {
     LAST_ERROR.with(|cell| cell.borrow().clone())
 }
 
-pub(crate) fn into_ffi_result(result: crate::Result<Vec<u8>>) -> *mut ByteBuffer {
+pub fn into_ffi_result(result: crate::Result<Vec<u8>>) -> *mut ByteBuffer {
     match result {
         Ok(bytes) => {
             clear_last_error();

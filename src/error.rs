@@ -26,9 +26,9 @@ impl From<nom::Err<nom::error::Error<&[u8]>>> for Error {
     fn from(err: nom::Err<nom::error::Error<&[u8]>>) -> Self {
         match &err {
             nom::Err::Error(e) | nom::Err::Failure(e) => {
-                Error::Parse(format!("nom {:?}: {}", e.code, err))
+                Self::Parse(format!("nom {:?}: {}", e.code, err))
             }
-            nom::Err::Incomplete(needed) => Error::Parse(format!("incomplete input: {needed:?}")),
+            nom::Err::Incomplete(needed) => Self::Parse(format!("incomplete input: {needed:?}")),
         }
     }
 }

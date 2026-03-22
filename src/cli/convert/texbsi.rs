@@ -3,7 +3,7 @@ use color_eyre::Result;
 use image::{Rgba, RgbaImage};
 use log::info;
 use rayon::prelude::*;
-use redguard_preservation::import::{bsi, palette::Palette};
+use rgpre::import::{bsi, palette::Palette};
 use serde_json::json;
 use std::path::Path;
 
@@ -52,7 +52,12 @@ pub(super) fn handle_texbsi_convert(args: &ConvertArgs, output_path: &Path) -> R
             let png_name = format!("{}.png", image.name);
             let png_path = output_path.join(&png_name);
             let rgba = image.decode_rgba(palette.as_ref());
-            save_rgba_png(&png_path, image.width as u32, image.height as u32, &rgba)?;
+            save_rgba_png(
+                &png_path,
+                u32::from(image.width),
+                u32::from(image.height),
+                &rgba,
+            )?;
 
             let mut frame_files: Vec<String> = vec![png_name.clone()];
 
@@ -63,8 +68,8 @@ pub(super) fn handle_texbsi_convert(args: &ConvertArgs, output_path: &Path) -> R
                         let frame_path = output_path.join(&frame_name);
                         save_rgba_png(
                             &frame_path,
-                            image.width as u32,
-                            image.height as u32,
+                            u32::from(image.width),
+                            u32::from(image.height),
                             &frame_rgba,
                         )?;
                         frame_files.push(frame_name);

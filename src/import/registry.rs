@@ -15,6 +15,9 @@ pub struct FileEntry {
 
 impl FileEntry {
     /// Creates a registry entry for a discovered file.
+    #[must_use]
+    #[allow(clippy::missing_const_for_fn)]
+    // Heap-owned String/PathBuf constructor is runtime-only in this API.
     pub fn new(name: String, path: PathBuf, file_type: FileType) -> Self {
         Self {
             name,
@@ -36,6 +39,7 @@ pub struct Registry {
 
 impl Registry {
     /// Creates an empty registry rooted at `root_path`.
+    #[must_use]
     pub fn new(root_path: PathBuf) -> Self {
         Self {
             root_path,
@@ -44,6 +48,7 @@ impl Registry {
     }
 
     /// Creates a registry from pre-loaded file data (no filesystem access).
+    #[must_use]
     pub fn from_data(entries: HashMap<String, (Vec<u8>, FileType)>) -> Self {
         let mut files = HashMap::new();
         for (name, (data, file_type)) in entries {
@@ -64,6 +69,7 @@ impl Registry {
     }
 
     /// Returns a sort key used to prioritize duplicate file sources.
+    #[must_use]
     pub fn source_rank_key(&self, path: &Path) -> (usize, usize, String) {
         let rel = path.strip_prefix(&self.root_path).unwrap_or(path);
         let depth = rel.components().count();
@@ -124,11 +130,13 @@ impl Registry {
     }
 
     /// Get a file entry by its model name
+    #[must_use]
     pub fn get_file_by_name(&self, name: &str) -> Option<&FileEntry> {
         self.files.get(name)
     }
 
     /// Get a file entry by its path (extracts the name from the path)
+    #[must_use]
     pub fn get_file_by_path<P: AsRef<Path>>(&self, path: P) -> Option<&FileEntry> {
         let path_ref = path.as_ref();
         let name = path_ref.file_stem().unwrap_or_default().to_string_lossy();
@@ -136,11 +144,13 @@ impl Registry {
     }
 
     /// Get all model names in the registry
+    #[must_use]
     pub fn get_all_names(&self) -> Vec<&String> {
         self.files.keys().collect()
     }
 
     /// Check if a model name exists in the registry
+    #[must_use]
     pub fn has_model(&self, name: &str) -> bool {
         self.files.contains_key(name)
     }

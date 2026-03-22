@@ -2,6 +2,7 @@ use crate::error::Error;
 use crate::import::{fnt, fnt_ttf};
 use image::{Rgba, RgbaImage};
 use serde_json::json;
+use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone)]
@@ -28,7 +29,7 @@ fn paired_output_paths(output: &Path) -> (PathBuf, PathBuf) {
     let ext = output
         .extension()
         .and_then(|e| e.to_str())
-        .map(|s| s.to_ascii_lowercase());
+        .map(str::to_ascii_lowercase);
 
     match ext.as_deref() {
         Some("png") => (output.to_path_buf(), output.with_extension("json")),
@@ -42,6 +43,140 @@ fn paired_output_paths(output: &Path) -> (PathBuf, PathBuf) {
             (png, json_path)
         }
     }
+}
+
+fn ceil_sqrt(value: u32) -> u32 {
+    let mut cols = 1_u32;
+    while cols.saturating_mul(cols) < value.max(1) {
+        cols = cols.saturating_add(1);
+    }
+    cols
+}
+
+fn sheet_layout(glyphs: &[fnt::FntGlyph]) -> Result<(u32, u32, u32, u32, u32, u32), Error> {
+    let glyph_count = u32::try_from(glyphs.len())
+        .map_err(|e| Error::Conversion(format!("glyph count does not fit in u32: {e}")))?;
+    let max_width = glyphs
+        .iter()
+        .map(|glyph| u32::from(glyph.width))
+        .max()
+        .unwrap_or(1);
+    let max_height = glyphs
+        .iter()
+        .map(|glyph| u32::from(glyph.height))
+        .max()
+        .unwrap_or(1);
+
+    let cell_w = max_width.saturating_add(2);
+    let cell_h = max_height.saturating_add(2);
+    let cols = ceil_sqrt(glyph_count);
+    let rows = glyph_count.max(1).div_ceil(cols);
+    let sheet_w = cols.saturating_mul(cell_w).max(1);
+    let sheet_h = rows.saturating_mul(cell_h).max(1);
+
+    Ok((cell_w, cell_h, cols, rows, sheet_w, sheet_h))
+}
+
+fn clear_image(image: &mut RgbaImage) {
+    for px in image.pixels_mut() {
+        *px = Rgba([0, 0, 0, 0]);
+    }
+}
+
+fn palette_rgba(fnt: &fnt::FntFile, pal_idx: usize) -> [u8; 4] {
+    let color = fnt
+        .palette
+        .colors
+        .get(pal_idx)
+        .copied()
+        .unwrap_or([0_u8, 0_u8, 0_u8]);
+
+    if pal_idx == 0 {
+        [0, 0, 0, 0]
+    } else {
+        [
+            color[0].saturating_mul(4),
+            color[1].saturating_mul(4),
+            color[2].saturating_mul(4),
+            255,
+        ]
+    }
+}
+
+fn draw_glyph(
+    image: &mut RgbaImage,
+    fnt: &fnt::FntFile,
+    glyph: &fnt::FntGlyph,
+    origin_x: u32,
+    origin_y: u32,
+) {
+    for y in 0..u32::from(glyph.height) {
+        for x in 0..u32::from(glyph.width) {
+            let pix_idx = usize::try_from(y)
+                .unwrap_or(0)
+                .saturating_mul(usize::from(glyph.width))
+                .saturating_add(usize::try_from(x).unwrap_or(0));
+            let pal_idx = usize::from(*glyph.pixels.get(pix_idx).unwrap_or(&0));
+            image.put_pixel(origin_x + x, origin_y + y, Rgba(palette_rgba(fnt, pal_idx)));
+        }
+    }
+}
+
+fn glyph_metadata_entry(
+    idx: usize,
+    codepoint: u32,
+    glyph: &fnt::FntGlyph,
+    origin_x: u32,
+    origin_y: u32,
+) -> serde_json::Value {
+    let ch = char::from_u32(codepoint).unwrap_or('?');
+    json!({
+        "index": idx,
+        "codepoint": codepoint,
+        "char": ch.to_string(),
+        "enabled": glyph.enabled,
+        "offset_left": glyph.offset_left,
+        "offset_top": glyph.offset_top,
+        "width": glyph.width,
+        "height": glyph.height,
+        "sheet_x": origin_x,
+        "sheet_y": origin_y
+    })
+}
+
+fn build_glyph_atlas(
+    fnt: &fnt::FntFile,
+    image: &mut RgbaImage,
+    cell_w: u32,
+    cell_h: u32,
+    cols: u32,
+) -> Result<Vec<serde_json::Value>, Error> {
+    let mut glyph_meta = Vec::with_capacity(fnt.glyphs.len());
+
+    for (idx, glyph) in fnt.glyphs.iter().enumerate() {
+        let glyph_index = u32::try_from(idx)
+            .map_err(|e| Error::Conversion(format!("glyph index does not fit in u32: {e}")))?;
+        let col = glyph_index % cols;
+        let row = glyph_index / cols;
+        let origin_x = col.saturating_mul(cell_w).saturating_add(1);
+        let origin_y = row.saturating_mul(cell_h).saturating_add(1);
+        let codepoint = u32::from(fnt.header.character_start).saturating_add(glyph_index);
+
+        draw_glyph(image, fnt, glyph, origin_x, origin_y);
+        glyph_meta.push(glyph_metadata_entry(
+            idx, codepoint, glyph, origin_x, origin_y,
+        ));
+    }
+
+    Ok(glyph_meta)
+}
+
+fn build_description_raw_hex(description_raw: &[u8; 32]) -> String {
+    let mut hex = String::with_capacity(description_raw.len() * 2);
+    for byte in description_raw {
+        let _ = write!(hex, "{byte:02x}");
+    }
+    hex
 }
 
 fn write_bmfont_text(
@@ -59,36 +194,58 @@ fn write_bmfont_text(
         .unwrap_or("atlas.png");
 
     let mut text = String::new();
-    text.push_str(&format!(
-        "info face=\"{face_name}\" size={line_height} bold=0 italic=0 charset=\"\" unicode=1 stretchH=100 smooth=1 aa=1 padding=0,0,0,0 spacing=1,1 outline=0\n"
-    ));
-    text.push_str(&format!(
-        "common lineHeight={line_height} base={line_height} scaleW={sheet_w} scaleH={sheet_h} pages=1 packed=0 alphaChnl=0 redChnl=0 greenChnl=0 blueChnl=0\n"
-    ));
-    text.push_str(&format!("page id=0 file=\"{page_file}\"\n"));
+    writeln!(
+        text,
+        "info face=\"{face_name}\" size={line_height} bold=0 italic=0 charset=\"\" unicode=1 stretchH=100 smooth=1 aa=1 padding=0,0,0,0 spacing=1,1 outline=0"
+    )
+    .map_err(|e| Error::Conversion(format!("failed to compose BMFont info line: {e}")))?;
+    writeln!(
+        text,
+        "common lineHeight={line_height} base={line_height} scaleW={sheet_w} scaleH={sheet_h} pages=1 packed=0 alphaChnl=0 redChnl=0 greenChnl=0 blueChnl=0"
+    )
+    .map_err(|e| Error::Conversion(format!("failed to compose BMFont common line: {e}")))?;
+    writeln!(text, "page id=0 file=\"{page_file}\"")
+        .map_err(|e| Error::Conversion(format!("failed to compose BMFont page line: {e}")))?;
     text.push_str("chars count=");
     text.push_str(&glyph_entries.len().to_string());
     text.push('\n');
 
     for glyph in glyph_entries {
-        let codepoint = glyph.get("codepoint").and_then(|v| v.as_u64()).unwrap_or(0);
-        let x = glyph.get("sheet_x").and_then(|v| v.as_u64()).unwrap_or(0);
-        let y = glyph.get("sheet_y").and_then(|v| v.as_u64()).unwrap_or(0);
-        let width = glyph.get("width").and_then(|v| v.as_u64()).unwrap_or(0);
-        let height = glyph.get("height").and_then(|v| v.as_u64()).unwrap_or(0);
+        let codepoint = glyph
+            .get("codepoint")
+            .and_then(serde_json::Value::as_u64)
+            .unwrap_or(0);
+        let x = glyph
+            .get("sheet_x")
+            .and_then(serde_json::Value::as_u64)
+            .unwrap_or(0);
+        let y = glyph
+            .get("sheet_y")
+            .and_then(serde_json::Value::as_u64)
+            .unwrap_or(0);
+        let width = glyph
+            .get("width")
+            .and_then(serde_json::Value::as_u64)
+            .unwrap_or(0);
+        let height = glyph
+            .get("height")
+            .and_then(serde_json::Value::as_u64)
+            .unwrap_or(0);
         let xoffset = glyph
             .get("offset_left")
-            .and_then(|v| v.as_i64())
+            .and_then(serde_json::Value::as_i64)
             .unwrap_or(0);
         let yoffset = glyph
             .get("offset_top")
-            .and_then(|v| v.as_i64())
+            .and_then(serde_json::Value::as_i64)
             .unwrap_or(0);
         let xadvance = width.saturating_add(1);
 
-        text.push_str(&format!(
-            "char id={codepoint} x={x} y={y} width={width} height={height} xoffset={xoffset} yoffset={yoffset} xadvance={xadvance} page=0 chnl=15\n"
-        ));
+        writeln!(
+            text,
+            "char id={codepoint} x={x} y={y} width={width} height={height} xoffset={xoffset} yoffset={yoffset} xadvance={xadvance} page=0 chnl=15"
+        )
+        .map_err(|e| Error::Conversion(format!("failed to compose BMFont char line: {e}")))?;
     }
 
     std::fs::write(fnt_path, text)?;
@@ -96,6 +253,7 @@ fn write_bmfont_text(
 }
 
 /// Converts an input FNT file to a TTF file at `output_path`.
+#[allow(clippy::missing_errors_doc)]
 pub fn export_fnt_ttf(input_path: &Path, output_path: &Path) -> Result<(), Error> {
     let bytes = std::fs::read(input_path)?;
     let parsed = fnt::parse_fnt(&bytes)?;
@@ -113,97 +271,18 @@ pub fn export_fnt_ttf(input_path: &Path, output_path: &Path) -> Result<(), Error
     Ok(())
 }
 
-/// Exports an input FNT file as atlas PNG plus JSON and BMFont metadata.
+/// Exports an input FNT file as atlas image plus `JSON` and `BMFont` metadata.
+#[allow(clippy::missing_errors_doc)]
 pub fn export_fnt_bitmap(
     input_path: &Path,
     output_path: &Path,
 ) -> Result<BitmapExportPaths, Error> {
     let bytes = std::fs::read(input_path)?;
     let fnt = fnt::parse_fnt(&bytes)?;
-
-    let glyph_count = fnt.glyphs.len() as u32;
-    let max_width = fnt
-        .glyphs
-        .iter()
-        .map(|g| u32::from(g.width))
-        .max()
-        .unwrap_or(1);
-    let max_height = fnt
-        .glyphs
-        .iter()
-        .map(|g| u32::from(g.height))
-        .max()
-        .unwrap_or(1);
-
-    let cell_w = max_width.saturating_add(2);
-    let cell_h = max_height.saturating_add(2);
-
-    let mut cols = 1_u32;
-    while cols.saturating_mul(cols) < glyph_count.max(1) {
-        cols = cols.saturating_add(1);
-    }
-    let rows = glyph_count.max(1).div_ceil(cols);
-
-    let sheet_w = (cols.saturating_mul(cell_w)).max(1);
-    let sheet_h = (rows.saturating_mul(cell_h)).max(1);
+    let (cell_w, cell_h, cols, rows, sheet_w, sheet_h) = sheet_layout(&fnt.glyphs)?;
     let mut image = RgbaImage::new(sheet_w, sheet_h);
-
-    for px in image.pixels_mut() {
-        *px = Rgba([0, 0, 0, 0]);
-    }
-
-    let mut glyph_meta = Vec::with_capacity(fnt.glyphs.len());
-
-    for (idx, glyph) in fnt.glyphs.iter().enumerate() {
-        let i = idx as u32;
-        let col = i % cols;
-        let row = i / cols;
-        let origin_x = col.saturating_mul(cell_w).saturating_add(1);
-        let origin_y = row.saturating_mul(cell_h).saturating_add(1);
-
-        let codepoint = u32::from(fnt.header.character_start).saturating_add(i);
-        let ch = char::from_u32(codepoint).unwrap_or('?');
-
-        for y in 0..u32::from(glyph.height) {
-            for x in 0..u32::from(glyph.width) {
-                let pix_idx = (y as usize)
-                    .saturating_mul(usize::from(glyph.width))
-                    .saturating_add(x as usize);
-                let pal_idx = *glyph.pixels.get(pix_idx).unwrap_or(&0) as usize;
-                let color = fnt
-                    .palette
-                    .colors
-                    .get(pal_idx)
-                    .copied()
-                    .unwrap_or([0_u8, 0_u8, 0_u8]);
-                let rgba = if pal_idx == 0 {
-                    [0, 0, 0, 0]
-                } else {
-                    [
-                        color[0].saturating_mul(4),
-                        color[1].saturating_mul(4),
-                        color[2].saturating_mul(4),
-                        255,
-                    ]
-                };
-
-                image.put_pixel(origin_x + x, origin_y + y, Rgba(rgba));
-            }
-        }
-
-        glyph_meta.push(json!({
-            "index": idx,
-            "codepoint": codepoint,
-            "char": ch.to_string(),
-            "enabled": glyph.enabled,
-            "offset_left": glyph.offset_left,
-            "offset_top": glyph.offset_top,
-            "width": glyph.width,
-            "height": glyph.height,
-            "sheet_x": origin_x,
-            "sheet_y": origin_y
-        }));
-    }
+    clear_image(&mut image);
+    let glyph_meta = build_glyph_atlas(&fnt, &mut image, cell_w, cell_h, cols)?;
 
     let (png_path, json_path) = paired_output_paths(output_path);
     let bmfont_path = json_path.with_extension("fnt");
@@ -247,12 +326,7 @@ pub fn export_fnt_bitmap(
         },
         "header": {
             "description_text": fnt.header.description_text,
-            "description_raw_hex": fnt
-                .header
-                .description_raw
-                .iter()
-                .map(|b| format!("{b:02x}"))
-                .collect::<String>(),
+            "description_raw_hex": build_description_raw_hex(&fnt.header.description_raw),
             "unknown_24": fnt.header.unknown_24,
             "has_rdat": fnt.header.has_rdat,
             "unknown_28": fnt.header.unknown_28,
@@ -285,7 +359,7 @@ mod tests {
     use std::path::Path;
 
     #[test]
-    #[ignore]
+    #[ignore = "manual local fixture export"]
     fn manual_export_redsel_ttf_to_out() {
         let input = Path::new("fonts/REDSEL.FNT");
         let output = Path::new("out/REDSEL.ttf");

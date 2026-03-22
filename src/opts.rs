@@ -3,11 +3,11 @@
 //! This module defines the command-line interface using clap.
 
 use clap::{Args, Parser, Subcommand};
-use redguard_preservation::import::FileType;
+use rgpre::import::FileType;
 use std::path::PathBuf;
 
 #[derive(Debug, Clone, Copy, clap::ValueEnum, PartialEq, Eq)]
-pub(crate) enum FontOutputMode {
+pub enum FontOutputMode {
     Bitmap,
     Ttf,
 }
@@ -21,7 +21,7 @@ pub(crate) enum FontOutputMode {
     version,
     about
 )]
-pub(crate) struct Opts {
+pub struct Opts {
     /// The verbosity of the output
     #[command(flatten)]
     pub verbose: clap_verbosity_flag::Verbosity<clap_verbosity_flag::InfoLevel>,
@@ -33,7 +33,7 @@ pub(crate) struct Opts {
 
 /// Arguments for reading files
 #[derive(Args, Debug, Clone)]
-pub(crate) struct ReadArgs {
+pub struct ReadArgs {
     /// The file to read
     #[arg(value_parser)]
     pub file: PathBuf,
@@ -45,7 +45,9 @@ pub(crate) struct ReadArgs {
 
 /// Arguments for converting files to GLTF
 #[derive(Args, Debug, Clone)]
-pub(crate) struct ConvertArgs {
+#[allow(clippy::struct_excessive_bools)]
+// CLI flags mirror user-facing switches; bool options are intentional here.
+pub struct ConvertArgs {
     /// The file to convert
     #[arg(value_parser)]
     pub file: PathBuf,
@@ -96,14 +98,14 @@ pub(crate) struct ConvertArgs {
 
 /// Arguments for scanning a directory
 #[derive(Args, Debug, Clone)]
-pub(crate) struct ScanArgs {
+pub struct ScanArgs {
     /// The directory to scan
     #[arg(value_parser)]
     pub dir: PathBuf,
 }
 
 #[derive(Subcommand, Debug)]
-pub(crate) enum Commands {
+pub enum Commands {
     /// Read and parse a ROB or 3D model file
     #[clap(alias = "r")]
     Read(ReadArgs),

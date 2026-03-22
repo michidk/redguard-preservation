@@ -16,6 +16,7 @@ use crate::{
 use gltf::binary::{Glb, Header};
 use gltf_json as json;
 use gltf_json::extensions::scene::khr_lights_punctual;
+use json::extras::Void;
 use json::scene::Node;
 use json::validation::Checked;
 use json::{Index, Root};
@@ -29,9 +30,16 @@ const ENGINE_UNIT_SCALE: f32 = 20.0;
 /// UV coordinates in the 3D format are stored as i16 values in 4-bit fixed-point
 /// (1/16th pixel precision). The engine multiplies raw values by 1/16.0 to get
 /// pixel-space texture coordinates, then scales by texture dimensions for rendering.
-/// For GLB export, we normalize to 0..1 by dividing raw values by (texture_dim × 16).
+/// For GLB export, we normalize to 0..1 by dividing raw values by (`texture_dim` × 16).
 pub(super) const UV_FIXED_POINT_SCALE: f32 = 16.0;
 
+#[allow(clippy::cast_possible_truncation)]
+// GLTF indices are u32; generated mesh/light indices are far below u32::MAX.
+const fn index_u32(value: usize) -> u32 {
+    value as u32
+}
+
+#[allow(clippy::missing_errors_doc)]
 pub fn convert_models_to_gltf(
     models: &[Model3DFile],
     palette: Option<&Palette>,
@@ -60,7 +68,7 @@ pub fn convert_models_to_gltf(
         }
         let mesh_index = builder.append_mesh(unrolled);
         builder.add_node(Node {
-            mesh: Some(Index::new(mesh_index as u32)),
+            mesh: Some(Index::new(index_u32(mesh_index))),
             ..Default::default()
         });
     }
@@ -71,9 +79,10 @@ pub fn convert_models_to_gltf(
         ));
     }
 
-    builder.finish()
+    Ok(builder.finish())
 }
 
+#[allow(clippy::missing_errors_doc)]
 pub fn to_glb(root: &Root, buffer: &[u8]) -> Result<Vec<u8>> {
     let json_string = serde_json::to_string(root)?;
     let glb = Glb {
@@ -88,6 +97,7 @@ pub fn to_glb(root: &Root, buffer: &[u8]) -> Result<Vec<u8>> {
     Ok(glb.to_vec()?)
 }
 
+#[allow(clippy::missing_errors_doc)]
 pub fn convert_positioned_models_to_gltf(
     positioned_models: &[crate::import::rgm::PositionedModel],
     lights: &[PositionedLight],
@@ -140,14 +150,15 @@ pub fn convert_positioned_models_to_gltf(
             continue;
         }
 
-        let unrolled = if let Some(source_id) = &pm.source_id {
-            unrolled_cache
-                .get(source_id.as_str())
-                .cloned()
-                .unwrap_or_default()
-        } else {
-            build_unrolled_primitives(&pm.model, palette, texture_cache_available)
-        };
+        let unrolled = pm.source_id.as_ref().map_or_else(
+            || build_unrolled_primitives(&pm.model, palette, texture_cache_available),
+            |source_id| {
+                unrolled_cache
+                    .get(source_id.as_str())
+                    .cloned()
+                    .unwrap_or_default()
+            },
+        );
 
         if unrolled.is_empty() {
             builder.add_node(Node {
@@ -160,10 +171,10 @@ pub fn convert_positioned_models_to_gltf(
 
         let mesh_index = builder.append_mesh(unrolled);
         if let Some(source_id) = &pm.source_id {
-            mesh_instance_cache.insert(source_id, mesh_index as u32);
+            mesh_instance_cache.insert(source_id, index_u32(mesh_index));
         }
         builder.add_node(Node {
-            mesh: Some(Index::new(mesh_index as u32)),
+            mesh: Some(Index::new(index_u32(mesh_index))),
             matrix: Some(pm.transform),
             name: Some(pm.model_name.clone()),
             ..Default::default()
@@ -179,8 +190,8 @@ pub fn convert_positioned_models_to_gltf(
             type_: Checked::Valid(khr_lights_punctual::Type::Point),
             name: Some(light.name.clone()),
             spot: None,
-            extensions: Default::default(),
-            extras: Default::default(),
+            extensions: None,
+            extras: Void::default(),
         });
 
         builder.add_node(Node {
@@ -188,7 +199,7 @@ pub fn convert_positioned_models_to_gltf(
             name: Some(light.name.clone()),
             extensions: Some(json::extensions::scene::Node {
                 khr_lights_punctual: Some(khr_lights_punctual::KhrLightsPunctual {
-                    light: Index::new(light_index as u32),
+                    light: Index::new(index_u32(light_index)),
                 }),
             }),
             ..Default::default()
@@ -201,9 +212,10 @@ pub fn convert_positioned_models_to_gltf(
         ));
     }
 
-    builder.finish_with_lights(light_definitions)
+    Ok(builder.finish_with_lights(light_definitions))
 }
 
+#[allow(clippy::missing_errors_doc)]
 pub fn convert_wld_scene_to_gltf(
     wld_file: &crate::import::wld::WldFile,
     texbsi_id: u16,
@@ -219,7 +231,7 @@ pub fn convert_wld_scene_to_gltf(
     if !terrain_primitives.is_empty() {
         let mesh_index = builder.append_mesh(terrain_primitives);
         builder.add_node(Node {
-            mesh: Some(Index::new(mesh_index as u32)),
+            mesh: Some(Index::new(index_u32(mesh_index))),
             matrix: Some([
                 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0,
             ]),
@@ -259,14 +271,15 @@ pub fn convert_wld_scene_to_gltf(
             continue;
         }
 
-        let unrolled = if let Some(source_id) = &pm.source_id {
-            unrolled_cache
-                .get(source_id.as_str())
-                .cloned()
-                .unwrap_or_default()
-        } else {
-            build_unrolled_primitives(&pm.model, palette, texture_cache_available)
-        };
+        let unrolled = pm.source_id.as_ref().map_or_else(
+            || build_unrolled_primitives(&pm.model, palette, texture_cache_available),
+            |source_id| {
+                unrolled_cache
+                    .get(source_id.as_str())
+                    .cloned()
+                    .unwrap_or_default()
+            },
+        );
 
         if unrolled.is_empty() {
             builder.add_node(Node {
@@ -279,10 +292,10 @@ pub fn convert_wld_scene_to_gltf(
 
         let mesh_index = builder.append_mesh(unrolled);
         if let Some(source_id) = &pm.source_id {
-            mesh_instance_cache.insert(source_id, mesh_index as u32);
+            mesh_instance_cache.insert(source_id, index_u32(mesh_index));
         }
         builder.add_node(Node {
-            mesh: Some(Index::new(mesh_index as u32)),
+            mesh: Some(Index::new(index_u32(mesh_index))),
             matrix: Some(pm.transform),
             name: Some(pm.model_name.clone()),
             ..Default::default()
@@ -295,5 +308,5 @@ pub fn convert_wld_scene_to_gltf(
         ));
     }
 
-    builder.finish()
+    Ok(builder.finish())
 }

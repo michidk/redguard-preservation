@@ -18,9 +18,13 @@ pub struct TextureCache {
 
 impl TextureCache {
     /// Builds a texture cache by indexing `TEXBSI.*` files under `asset_dir`.
+    #[must_use]
     pub fn new(asset_dir: PathBuf, palette: Option<Palette>) -> Self {
         let mut texbsi_paths = HashMap::new();
-        for entry in WalkDir::new(&asset_dir).into_iter().filter_map(|e| e.ok()) {
+        for entry in WalkDir::new(asset_dir)
+            .into_iter()
+            .filter_map(std::result::Result::ok)
+        {
             if !entry.file_type().is_file() {
                 continue;
             }
@@ -58,6 +62,7 @@ impl TextureCache {
     ///
     /// `texbsi_data` maps TEXBSI IDs (e.g. 302) to raw file bytes.
     /// Used by the FFI layer where the caller provides all data in memory.
+    #[must_use]
     pub fn from_data(texbsi_data: HashMap<u16, Vec<u8>>, palette: Option<Palette>) -> Self {
         let mut bsi_files = HashMap::new();
         let mut texbsi_paths = HashMap::new();
@@ -86,7 +91,8 @@ impl TextureCache {
         }
     }
 
-    pub fn palette(&self) -> Option<&Palette> {
+    #[must_use]
+    pub const fn palette(&self) -> Option<&Palette> {
         self.palette.as_ref()
     }
 
@@ -163,20 +169,14 @@ impl TextureCache {
 
         self.warn_remapped_once(texture_id, resolved_texture_id);
 
-        let data = match std::fs::read(&path) {
-            Ok(data) => data,
-            Err(_) => {
-                self.warn_missing_once(texture_id, image_id, "file not found or unreadable");
-                return false;
-            }
+        let Ok(data) = std::fs::read(&path) else {
+            self.warn_missing_once(texture_id, image_id, "file not found or unreadable");
+            return false;
         };
 
-        let bsi = match bsi::parse_bsi_file(&data) {
-            Ok(parsed) => parsed,
-            Err(_) => {
-                self.warn_missing_once(texture_id, image_id, "failed to parse TEXBSI file");
-                return false;
-            }
+        let Ok(bsi) = bsi::parse_bsi_file(&data) else {
+            self.warn_missing_once(texture_id, image_id, "failed to parse TEXBSI file");
+            return false;
         };
 
         self.bsi_files.insert(texture_id, bsi.clone());
@@ -191,16 +191,13 @@ impl TextureCache {
         }
 
         let bsi = self.bsi_files.get(&texture_id)?;
-        let image = match bsi
+        let Some(image) = bsi
             .images
             .iter()
-            .find(|entry| entry.image_index == image_id as u16)
-        {
-            Some(image) => image,
-            None => {
-                self.warn_missing_once(texture_id, image_id, "image id not present in TEXBSI file");
-                return None;
-            }
+            .find(|entry| entry.image_index == u16::from(image_id))
+        else {
+            self.warn_missing_once(texture_id, image_id, "image id not present in TEXBSI file");
+            return None;
         };
         let rgba = image.decode_rgba(self.palette.as_ref());
         Some((rgba, image.width, image.height))
@@ -213,16 +210,13 @@ impl TextureCache {
         }
 
         let bsi = self.bsi_files.get(&texture_id)?;
-        let image = match bsi
+        let Some(image) = bsi
             .images
             .iter()
-            .find(|entry| entry.image_index == image_id as u16)
-        {
-            Some(image) => image,
-            None => {
-                self.warn_missing_once(texture_id, image_id, "image id not present in TEXBSI file");
-                return None;
-            }
+            .find(|entry| entry.image_index == u16::from(image_id))
+        else {
+            self.warn_missing_once(texture_id, image_id, "image id not present in TEXBSI file");
+            return None;
         };
 
         Some((image.width, image.height))
@@ -238,7 +232,8 @@ impl TextureCache {
     ) -> Option<(Vec<u8>, u16, u16, bool)> {
         let (rgba, width, height) = self.get_image_rgba(texture_id, image_id)?;
         let has_alpha = rgba.chunks_exact(4).any(|pixel| pixel[3] == 0);
-        let Some(png_bytes) = encode_rgba_png(width as u32, height as u32, &rgba, compress) else {
+        let Some(png_bytes) = encode_rgba_png(u32::from(width), u32::from(height), &rgba, compress)
+        else {
             self.warn_missing_once(
                 texture_id,
                 image_id,

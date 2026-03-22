@@ -35,16 +35,16 @@ fn section_header(input: &[u8]) -> IResult<&[u8], RgmSectionHeader> {
 
 fn le_u24(input: &[u8]) -> IResult<&[u8], u32> {
     let (input, bytes) = take(3usize)(input)?;
-    let value = (bytes[0] as u32) | ((bytes[1] as u32) << 8) | ((bytes[2] as u32) << 16);
+    let value = u32::from(bytes[0]) | (u32::from(bytes[1]) << 8) | (u32::from(bytes[2]) << 16);
     Ok((input, value))
 }
 
 fn le_i24(input: &[u8]) -> IResult<&[u8], i32> {
     let (input, value) = le_u24(input)?;
     let signed = if value & 0x0080_0000 != 0 {
-        (value | 0xFF00_0000) as i32
+        (value | 0xFF00_0000).cast_signed()
     } else {
-        value as i32
+        value.cast_signed()
     };
     Ok((input, signed))
 }
@@ -65,7 +65,7 @@ fn mps_record(input: &[u8]) -> IResult<&[u8], MpsRecord> {
     let mut remaining = input;
     for value in &mut rotation_matrix {
         let (next, parsed) = le_u32(remaining)?;
-        *value = parsed as i32;
+        *value = parsed.cast_signed();
         remaining = next;
     }
 
@@ -148,11 +148,11 @@ fn mpob_record(input: &[u8]) -> IResult<&[u8], MpobRecord> {
     let (input, unknown1) = le_i16(input)?;
 
     let (input, pos_x) = le_i24(input)?;
-    let (input, x_pad) = take(1usize)(input)?;
-    let pad_x = x_pad[0];
+    let (input, x_padding_byte) = take(1usize)(input)?;
+    let pad_x = x_padding_byte[0];
     let (input, pos_y) = le_i24(input)?;
-    let (input, y_pad) = take(1usize)(input)?;
-    let pad_y = y_pad[0];
+    let (input, y_padding_byte) = take(1usize)(input)?;
+    let pad_y = y_padding_byte[0];
     let (input, pos_z) = le_u24(input)?;
 
     let (input, angle_x) = le_u32(input)?;
@@ -160,8 +160,9 @@ fn mpob_record(input: &[u8]) -> IResult<&[u8], MpobRecord> {
     let (input, angle_z) = le_u32(input)?;
 
     let (input, texture_data_raw) = le_i16(input)?;
-    let texture_id = ((texture_data_raw as u16) >> 7) as u8;
-    let image_id = ((texture_data_raw as u16) & 0x7F) as u8;
+    let texture_word = texture_data_raw.cast_unsigned();
+    let texture_id = u8::try_from(texture_word >> 7).unwrap_or_default();
+    let image_id = u8::try_from(texture_word & 0x7F).unwrap_or_default();
     let (input, intensity) = le_i16(input)?;
     let (input, radius) = le_i16(input)?;
     let (input, model_id) = le_i16(input)?;
@@ -287,11 +288,11 @@ fn mprp_record(input: &[u8]) -> IResult<&[u8], MprpRecord> {
     let (input, unknown0_bytes) = take(1usize)(input)?;
     let unknown0 = unknown0_bytes[0];
     let (input, pos_x) = le_i24(input)?;
-    let (input, pad_x_bytes) = take(1usize)(input)?;
-    let pad_x = pad_x_bytes[0];
+    let (input, x_padding_byte) = take(1usize)(input)?;
+    let pad_x = x_padding_byte[0];
     let (input, pos_y) = le_i24(input)?;
-    let (input, pad_y_bytes) = take(1usize)(input)?;
-    let pad_y = pad_y_bytes[0];
+    let (input, y_padding_byte) = take(1usize)(input)?;
+    let pad_y = y_padding_byte[0];
     let (input, pos_z) = le_u24(input)?;
     let (input, angle_y) = le_u32(input)?;
     let (input, rope_type) = le_u32(input)?;
@@ -305,7 +306,7 @@ fn mprp_record(input: &[u8]) -> IResult<&[u8], MprpRecord> {
     let mut remaining = input;
     for value in &mut unknown1 {
         let (next, parsed) = le_u32(remaining)?;
-        *value = parsed as i32;
+        *value = parsed.cast_signed();
         remaining = next;
     }
 
@@ -319,10 +320,10 @@ fn mprp_record(input: &[u8]) -> IResult<&[u8], MprpRecord> {
             pos_y,
             pad_y,
             pos_z,
-            angle_y: angle_y as i32,
-            rope_type: rope_type as i32,
-            swing: swing as i32,
-            speed: speed as i32,
+            angle_y: angle_y.cast_signed(),
+            rope_type: rope_type.cast_signed(),
+            swing: swing.cast_signed(),
+            speed: speed.cast_signed(),
             length,
             static_model: String::from_utf8_lossy(static_model_bytes)
                 .trim_matches('\0')
@@ -350,12 +351,12 @@ fn mprp_section_data(input: &[u8]) -> IResult<&[u8], Vec<MprpRecord>> {
 }
 
 fn mpsl_record(input: &[u8]) -> IResult<&[u8], MpslRecord> {
-    let (input, color_r_bytes) = take(1usize)(input)?;
-    let color_r = color_r_bytes[0];
-    let (input, color_g_bytes) = take(1usize)(input)?;
-    let color_g = color_g_bytes[0];
-    let (input, color_b_bytes) = take(1usize)(input)?;
-    let color_b = color_b_bytes[0];
+    let (input, red_byte) = take(1usize)(input)?;
+    let color_r = red_byte[0];
+    let (input, green_byte) = take(1usize)(input)?;
+    let color_g = green_byte[0];
+    let (input, blue_byte) = take(1usize)(input)?;
+    let color_b = blue_byte[0];
     let (input, color_flags_bytes) = take(1usize)(input)?;
     let color_flags = color_flags_bytes[0];
     let (input, unknown0) = le_u32(input)?;
@@ -403,187 +404,172 @@ fn mpsl_section_data(input: &[u8]) -> IResult<&[u8], Vec<MpslRecord>> {
     Ok((remaining, records))
 }
 
+fn take_payload<'a>(input: &'a [u8], header: &RgmSectionHeader) -> IResult<&'a [u8], &'a [u8]> {
+    let length = usize::try_from(header.data_length).unwrap_or_default();
+    take(length)(input)
+}
+
+fn raw_section<'a>(
+    input: &'a [u8],
+    header: &RgmSectionHeader,
+    build: impl FnOnce(RgmSectionHeader, Vec<u8>) -> RgmSection,
+) -> IResult<&'a [u8], RgmSection> {
+    let (input, data) = take_payload(input, header)?;
+    Ok((input, build(*header, data.to_vec())))
+}
+
+fn parse_raex_section<'a>(
+    input: &'a [u8],
+    header: &RgmSectionHeader,
+) -> IResult<&'a [u8], RgmSection> {
+    let (input, data) = take_payload(input, header)?;
+    match raex_section_data(data) {
+        Ok(([], records)) => Ok((input, RgmSection::RaexParsed(*header, records))),
+        Ok((remaining, _)) => {
+            debug!(
+                "RAEX typed parse left {} trailing bytes, treating as raw data",
+                remaining.len()
+            );
+            Ok((input, RgmSection::Raex(*header, data.to_vec())))
+        }
+        Err(error) => {
+            debug!("Failed to parse RAEX records: {error:?}, treating as raw data");
+            Ok((input, RgmSection::Raex(*header, data.to_vec())))
+        }
+    }
+}
+
+fn parse_ravc_section<'a>(
+    input: &'a [u8],
+    header: &RgmSectionHeader,
+) -> IResult<&'a [u8], RgmSection> {
+    let (input, data) = take_payload(input, header)?;
+    match ravc_section_data(data) {
+        Ok(([], records)) => Ok((input, RgmSection::RavcParsed(*header, records))),
+        Ok((remaining, _)) => {
+            debug!(
+                "RAVC typed parse left {} trailing bytes, treating as raw data",
+                remaining.len()
+            );
+            Ok((input, RgmSection::Ravc(*header, data.to_vec())))
+        }
+        Err(error) => {
+            debug!("Failed to parse RAVC records: {error:?}, treating as raw data");
+            Ok((input, RgmSection::Ravc(*header, data.to_vec())))
+        }
+    }
+}
+
+fn parse_mprp_section<'a>(
+    input: &'a [u8],
+    header: &RgmSectionHeader,
+) -> IResult<&'a [u8], RgmSection> {
+    let (input, data) = take_payload(input, header)?;
+    match mprp_section_data(data) {
+        Ok(([], records)) => Ok((input, RgmSection::MprpParsed(*header, records))),
+        Ok((remaining, _)) => {
+            debug!(
+                "MPRP typed parse left {} trailing bytes, treating as raw data",
+                remaining.len()
+            );
+            Ok((input, RgmSection::Mprp(*header, data.to_vec())))
+        }
+        Err(error) => {
+            debug!("Failed to parse MPRP records: {error:?}, treating as raw data");
+            Ok((input, RgmSection::Mprp(*header, data.to_vec())))
+        }
+    }
+}
+
+fn parse_mpl_section<'a>(
+    input: &'a [u8],
+    header: &RgmSectionHeader,
+) -> IResult<&'a [u8], RgmSection> {
+    let (input, data) = take_payload(input, header)?;
+    match mpsl_section_data(data) {
+        Ok(([], records)) => Ok((input, RgmSection::MplParsed(*header, records))),
+        Ok((remaining, _)) => {
+            debug!(
+                "MPSL typed parse left {} trailing bytes, treating as raw data",
+                remaining.len()
+            );
+            Ok((input, RgmSection::Mpl(*header, data.to_vec())))
+        }
+        Err(error) => {
+            debug!("Failed to parse MPSL records: {error:?}, treating as raw data");
+            Ok((input, RgmSection::Mpl(*header, data.to_vec())))
+        }
+    }
+}
+
+fn parse_mpob_section<'a>(
+    input: &'a [u8],
+    header: &RgmSectionHeader,
+) -> IResult<&'a [u8], RgmSection> {
+    let (input, data) = take_payload(input, header)?;
+    match mpob_section_data(data) {
+        Ok((_, records)) => {
+            debug!("Successfully parsed {} MPOB records", records.len());
+            Ok((input, RgmSection::MpobParsed(*header, records)))
+        }
+        Err(error) => {
+            debug!("Failed to parse MPOB records: {error:?}, treating as raw data");
+            Ok((input, RgmSection::Mpob(*header, data.to_vec())))
+        }
+    }
+}
+
+fn parse_mps_section<'a>(
+    input: &'a [u8],
+    header: &RgmSectionHeader,
+) -> IResult<&'a [u8], RgmSection> {
+    let (input, data) = take_payload(input, header)?;
+    match mps_section_data(data) {
+        Ok((_, records)) => {
+            debug!("Successfully parsed {} MPSO records", records.len());
+            Ok((input, RgmSection::Mps(*header, records)))
+        }
+        Err(error) => {
+            debug!("Failed to parse MPSO records: {error:?}, returning empty record list");
+            Ok((input, RgmSection::Mps(*header, Vec::new())))
+        }
+    }
+}
+
 /// Parse section data based on section type
 fn section_data<'a>(input: &'a [u8], header: &RgmSectionHeader) -> IResult<&'a [u8], RgmSection> {
     let section_name = String::from_utf8_lossy(&header.name);
 
     match section_name.as_ref() {
-        "RAHD" => {
-            let (input, data) = take(header.data_length as usize)(input)?;
-            Ok((input, RgmSection::Rahd(*header, data.to_vec())))
-        }
-        "RAFS" => {
-            let (input, data) = take(header.data_length as usize)(input)?;
-            Ok((input, RgmSection::Rafs(*header, data.to_vec())))
-        }
-        "RAST" => {
-            let (input, data) = take(header.data_length as usize)(input)?;
-            Ok((input, RgmSection::Rast(*header, data.to_vec())))
-        }
-        "RASB" => {
-            let (input, data) = take(header.data_length as usize)(input)?;
-            Ok((input, RgmSection::Rasb(*header, data.to_vec())))
-        }
-        "RAVA" => {
-            let (input, data) = take(header.data_length as usize)(input)?;
-            Ok((input, RgmSection::Rava(*header, data.to_vec())))
-        }
-        "RASC" => {
-            let (input, data) = take(header.data_length as usize)(input)?;
-            Ok((input, RgmSection::Rasc(*header, data.to_vec())))
-        }
-        "RAHK" => {
-            let (input, data) = take(header.data_length as usize)(input)?;
-            Ok((input, RgmSection::Rahk(*header, data.to_vec())))
-        }
-        "RALC" => {
-            let (input, data) = take(header.data_length as usize)(input)?;
-            Ok((input, RgmSection::Ralc(*header, data.to_vec())))
-        }
-        "RAEX" => {
-            let (input, data) = take(header.data_length as usize)(input)?;
-            match raex_section_data(data) {
-                Ok(([], records)) => Ok((input, RgmSection::RaexParsed(*header, records))),
-                Ok((remaining, _)) => {
-                    debug!(
-                        "RAEX typed parse left {} trailing bytes, treating as raw data",
-                        remaining.len()
-                    );
-                    Ok((input, RgmSection::Raex(*header, data.to_vec())))
-                }
-                Err(e) => {
-                    debug!("Failed to parse RAEX records: {e:?}, treating as raw data");
-                    Ok((input, RgmSection::Raex(*header, data.to_vec())))
-                }
-            }
-        }
-        "RAAT" => {
-            let (input, data) = take(header.data_length as usize)(input)?;
-            Ok((input, RgmSection::Raat(*header, data.to_vec())))
-        }
-        "RAAN" => {
-            let (input, data) = take(header.data_length as usize)(input)?;
-            Ok((input, RgmSection::Raan(*header, data.to_vec())))
-        }
-        "RAGR" => {
-            let (input, data) = take(header.data_length as usize)(input)?;
-            Ok((input, RgmSection::Ragr(*header, data.to_vec())))
-        }
-        "RANM" => {
-            let (input, data) = take(header.data_length as usize)(input)?;
-            Ok((input, RgmSection::Ranm(*header, data.to_vec())))
-        }
-        "RAVC" => {
-            let (input, data) = take(header.data_length as usize)(input)?;
-            match ravc_section_data(data) {
-                Ok(([], records)) => Ok((input, RgmSection::RavcParsed(*header, records))),
-                Ok((remaining, _)) => {
-                    debug!(
-                        "RAVC typed parse left {} trailing bytes, treating as raw data",
-                        remaining.len()
-                    );
-                    Ok((input, RgmSection::Ravc(*header, data.to_vec())))
-                }
-                Err(e) => {
-                    debug!("Failed to parse RAVC records: {e:?}, treating as raw data");
-                    Ok((input, RgmSection::Ravc(*header, data.to_vec())))
-                }
-            }
-        }
-        "MPOB" => {
-            let (input, data) = take(header.data_length as usize)(input)?;
-            match mpob_section_data(data) {
-                Ok((_, records)) => {
-                    debug!("Successfully parsed {} MPOB records", records.len());
-                    Ok((input, RgmSection::MpobParsed(*header, records)))
-                }
-                Err(e) => {
-                    debug!("Failed to parse MPOB records: {e:?}, treating as raw data");
-                    // Fallback to raw data if parsing fails
-                    Ok((input, RgmSection::Mpob(*header, data.to_vec())))
-                }
-            }
-        }
-        "MPRP" => {
-            let (input, data) = take(header.data_length as usize)(input)?;
-            match mprp_section_data(data) {
-                Ok(([], records)) => Ok((input, RgmSection::MprpParsed(*header, records))),
-                Ok((remaining, _)) => {
-                    debug!(
-                        "MPRP typed parse left {} trailing bytes, treating as raw data",
-                        remaining.len()
-                    );
-                    Ok((input, RgmSection::Mprp(*header, data.to_vec())))
-                }
-                Err(e) => {
-                    debug!("Failed to parse MPRP records: {e:?}, treating as raw data");
-                    Ok((input, RgmSection::Mprp(*header, data.to_vec())))
-                }
-            }
-        }
-        "MPSO" => {
-            let (input, data) = take(header.data_length as usize)(input)?;
-            match mps_section_data(data) {
-                Ok((_, records)) => {
-                    debug!("Successfully parsed {} MPSO records", records.len());
-                    Ok((input, RgmSection::Mps(*header, records)))
-                }
-                Err(e) => {
-                    debug!("Failed to parse MPSO records: {e:?}, returning empty record list");
-                    Ok((input, RgmSection::Mps(*header, Vec::new())))
-                }
-            }
-        }
-        "MPL " | "MPSL" => {
-            let (input, data) = take(header.data_length as usize)(input)?;
-            match mpsl_section_data(data) {
-                Ok(([], records)) => Ok((input, RgmSection::MplParsed(*header, records))),
-                Ok((remaining, _)) => {
-                    debug!(
-                        "MPSL typed parse left {} trailing bytes, treating as raw data",
-                        remaining.len()
-                    );
-                    Ok((input, RgmSection::Mpl(*header, data.to_vec())))
-                }
-                Err(e) => {
-                    debug!("Failed to parse MPSL records: {e:?}, treating as raw data");
-                    Ok((input, RgmSection::Mpl(*header, data.to_vec())))
-                }
-            }
-        }
-        "MPF " | "MPSF" => {
-            let (input, data) = take(header.data_length as usize)(input)?;
-            Ok((input, RgmSection::Mpf(*header, data.to_vec())))
-        }
-        "MPM " | "MPMK" => {
-            let (input, data) = take(header.data_length as usize)(input)?;
-            Ok((input, RgmSection::Mpm(*header, data.to_vec())))
-        }
-        "MPSZ" => {
-            let (input, data) = take(header.data_length as usize)(input)?;
-            Ok((input, RgmSection::Mpsz(*header, data.to_vec())))
-        }
-        "WDNM" => {
-            let (input, data) = take(header.data_length as usize)(input)?;
-            Ok((input, RgmSection::Wdnm(*header, data.to_vec())))
-        }
-        "FLAT" => {
-            let (input, data) = take(header.data_length as usize)(input)?;
-            Ok((input, RgmSection::Flat(*header, data.to_vec())))
-        }
-        "END " => {
-            // END section has no data
-            Ok((input, RgmSection::End(*header)))
-        }
-        _ => {
-            // Unknown section, just take the data
-            let (input, data) = take(header.data_length as usize)(input)?;
-            Ok((input, RgmSection::Rahd(*header, data.to_vec()))) // Use Rahd as default for unknown sections
-        }
+        "RAFS" => raw_section(input, header, RgmSection::Rafs),
+        "RAST" => raw_section(input, header, RgmSection::Rast),
+        "RASB" => raw_section(input, header, RgmSection::Rasb),
+        "RAVA" => raw_section(input, header, RgmSection::Rava),
+        "RASC" => raw_section(input, header, RgmSection::Rasc),
+        "RAHK" => raw_section(input, header, RgmSection::Rahk),
+        "RALC" => raw_section(input, header, RgmSection::Ralc),
+        "RAEX" => parse_raex_section(input, header),
+        "RAAT" => raw_section(input, header, RgmSection::Raat),
+        "RAAN" => raw_section(input, header, RgmSection::Raan),
+        "RAGR" => raw_section(input, header, RgmSection::Ragr),
+        "RANM" => raw_section(input, header, RgmSection::Ranm),
+        "RAVC" => parse_ravc_section(input, header),
+        "MPOB" => parse_mpob_section(input, header),
+        "MPRP" => parse_mprp_section(input, header),
+        "MPSO" => parse_mps_section(input, header),
+        "MPL " | "MPSL" => parse_mpl_section(input, header),
+        "MPF " | "MPSF" => raw_section(input, header, RgmSection::Mpf),
+        "MPM " | "MPMK" => raw_section(input, header, RgmSection::Mpm),
+        "MPSZ" => raw_section(input, header, RgmSection::Mpsz),
+        "WDNM" => raw_section(input, header, RgmSection::Wdnm),
+        "FLAT" => raw_section(input, header, RgmSection::Flat),
+        "END " => Ok((input, RgmSection::End(*header))),
+        _ => raw_section(input, header, RgmSection::Rahd),
     }
 }
 
 /// Parse a complete RGM file
+#[allow(clippy::missing_errors_doc)] // nom-based parser surface is internal and error details are represented in the nom type.
 pub fn parse_rgm_file(input: &[u8]) -> IResult<&[u8], RgmFile> {
     let mut sections = Vec::new();
     let mut remaining = input;

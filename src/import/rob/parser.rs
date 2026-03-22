@@ -9,14 +9,14 @@ use nom::{
 
 /// Parses the fixed ROB file header.
 pub fn parse_rob_header(input: &[u8]) -> IResult<&[u8], RobHeader> {
-    let (input, oarc) = opt(tag("OARC")).parse(input)?;
-    if oarc.is_none() {
+    let (input, found_archive_magic) = opt(tag("OARC")).parse(input)?;
+    if found_archive_magic.is_none() {
         warn!("OARC header not found where expected");
     }
     let (input, unknown_04) = be_u32(input)?;
     let (input, num_segments) = le_u32(input)?;
-    let (input, oard) = opt(tag("OARD")).parse(input)?;
-    if oard.is_none() {
+    let (input, found_segment_magic) = opt(tag("OARD")).parse(input)?;
+    if found_segment_magic.is_none() {
         warn!("OARD header not found where expected");
     }
     let (input, payload_size) = be_u32(input)?;
@@ -39,8 +39,8 @@ pub fn parse_rob_segment(input: &[u8]) -> IResult<&[u8], RobSegment> {
     let (input, segment_flags) = le_u16(input)?;
 
     let (input, segment_attribs) = nom::number::complete::le_u8(input)?;
-    let (input, _face_count_low) = take(3usize)(input)?;
-    let (input, _unused_14) = be_u32(input)?;
+    let (input, face_count_low) = take(3usize)(input)?;
+    let (input, unused_14) = be_u32(input)?;
     let (input, _reserved_18) = le_u32(input)?;
 
     let (input, extent_x) = le_u32(input)?;
@@ -62,25 +62,26 @@ pub fn parse_rob_segment(input: &[u8]) -> IResult<&[u8], RobSegment> {
     let (input, data_size) = le_u32(input)?;
 
     let (input, data) = if data_size > 0 && segment_type != 512 {
-        take(data_size as usize)(input)?
+        take(usize::try_from(data_size).unwrap_or(usize::MAX))(input)?
     } else {
         (input, &[] as &[u8])
     };
+
+    let mut segment_name_bytes = [0_u8; 8];
+    segment_name_bytes.copy_from_slice(segment_name);
+    let mut face_count_low_bytes = [0_u8; 3];
+    face_count_low_bytes.copy_from_slice(face_count_low);
 
     Ok((
         input,
         RobSegment {
             total_size,
-            segment_name: segment_name
-                .try_into()
-                .expect("ROB segment name must be 8 bytes"),
+            segment_name: segment_name_bytes,
             segment_type,
             segment_flags,
             segment_attribs,
-            _face_count_low: _face_count_low
-                .try_into()
-                .expect("ROB face_count_low must be 3 bytes"),
-            _unused_14,
+            _face_count_low: face_count_low_bytes,
+            _unused_14: unused_14,
             bbox: SegmentBBox {
                 extent_x,
                 extent_y,
@@ -100,7 +101,7 @@ pub fn parse_rob_segment(input: &[u8]) -> IResult<&[u8], RobSegment> {
 
 /// Parses a complete ROB file into header and segment records.
 pub fn parse_rob_file(input: &[u8]) -> IResult<&[u8], RobFile> {
-    let file_size = input.len() as u32;
+    let file_size = u32::try_from(input.len()).unwrap_or(u32::MAX);
     let (input, header) = parse_rob_header(input)?;
 
     // Validated across all 72 shipped ROB files: payload_size == file_size - 24

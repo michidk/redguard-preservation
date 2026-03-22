@@ -40,15 +40,16 @@ pub enum RtxEntry {
 }
 
 impl RtxEntry {
+    #[must_use]
     pub fn tag_str(&self) -> String {
         let tag = match self {
-            Self::Text { tag, .. } => tag,
-            Self::Audio { tag, .. } => tag,
+            Self::Text { tag, .. } | Self::Audio { tag, .. } => tag,
         };
         String::from_utf8_lossy(tag).to_string()
     }
 
-    pub fn is_audio(&self) -> bool {
+    #[must_use]
+    pub const fn is_audio(&self) -> bool {
         matches!(self, Self::Audio { .. })
     }
 }
@@ -97,8 +98,10 @@ fn parse_index_table(
     index_offset: u32,
     index_count: u32,
 ) -> Result<Vec<RtxIndexEntry>> {
-    let offset = index_offset as usize;
-    let count = index_count as usize;
+    let offset = usize::try_from(index_offset)
+        .map_err(|_| Error::Parse("RTX index_offset does not fit usize".to_string()))?;
+    let count = usize::try_from(index_count)
+        .map_err(|_| Error::Parse("RTX index_count does not fit usize".to_string()))?;
     let required = offset + count * INDEX_ENTRY_SIZE;
 
     if required > input.len() {
@@ -119,7 +122,11 @@ fn parse_index_table(
         let payload_size = read_u32_le(input, base + 8)
             .ok_or_else(|| Error::Parse(format!("index {i}: failed to read payload_size")))?;
 
-        let end = payload_offset as usize + payload_size as usize;
+        let payload_offset_usize = usize::try_from(payload_offset)
+            .map_err(|_| Error::Parse(format!("index {i}: payload_offset does not fit usize")))?;
+        let payload_size_usize = usize::try_from(payload_size)
+            .map_err(|_| Error::Parse(format!("index {i}: payload_size does not fit usize")))?;
+        let end = payload_offset_usize + payload_size_usize;
         if end > input.len() {
             return Err(Error::Parse(format!(
                 "index {i} (tag '{}'): payload extends beyond file ({end} > {})",
@@ -151,6 +158,7 @@ fn parse_audio_header(data: &[u8]) -> Result<RtxAudioHeader> {
     let _bit_depth = read_u32_le(data, 4);
     let sample_rate = read_u32_le(data, 8)
         .ok_or_else(|| Error::Parse("audio header: failed to read sample_rate".into()))?;
+    #[allow(clippy::cast_possible_wrap)] // Engine stores this as a signed flag byte in binary data.
     let loop_flag = data[13] as i8;
     let loop_offset = read_u32_le(data, 14)
         .ok_or_else(|| Error::Parse("audio header: failed to read loop_offset".into()))?;
@@ -184,9 +192,9 @@ fn parse_payload(tag: [u8; 4], payload: &[u8]) -> Result<RtxEntry> {
     }
 
     let subtype = payload[1];
-    let string_len = read_u16_le(payload, 2)
+    let string_len: usize = read_u16_le(payload, 2)
         .ok_or_else(|| Error::Parse(format!("entry '{tag_str}': failed to read string_len")))?
-        as usize;
+        .into();
 
     let string_start = PAYLOAD_PREFIX_SIZE;
     let string_end = string_start + string_len;
@@ -212,7 +220,12 @@ fn parse_payload(tag: [u8; 4], payload: &[u8]) -> Result<RtxEntry> {
 
             let header = parse_audio_header(&payload[audio_start..])?;
             let pcm_start = audio_start + AUDIO_HEADER_SIZE;
-            let pcm_end = pcm_start + header.audio_length as usize;
+            let pcm_len = usize::try_from(header.audio_length).map_err(|_| {
+                Error::Parse(format!(
+                    "entry '{tag_str}': audio_length does not fit usize"
+                ))
+            })?;
+            let pcm_end = pcm_start + pcm_len;
 
             if pcm_end > payload.len() {
                 return Err(Error::Parse(format!(
@@ -243,8 +256,11 @@ pub fn parse_rtx_file(input: &[u8]) -> Result<RtxFile> {
 
     let mut entries = Vec::with_capacity(index.len());
     for (i, idx) in index.iter().enumerate() {
-        let start = idx.payload_offset as usize;
-        let end = start + idx.payload_size as usize;
+        let start = usize::try_from(idx.payload_offset)
+            .map_err(|_| Error::Parse(format!("index {i}: payload_offset does not fit usize")))?;
+        let size = usize::try_from(idx.payload_size)
+            .map_err(|_| Error::Parse(format!("index {i}: payload_size does not fit usize")))?;
+        let end = start + size;
         let payload = &input[start..end];
 
         let entry = parse_payload(idx.tag, payload).map_err(|e| {
@@ -263,23 +279,26 @@ pub fn parse_rtx_file(input: &[u8]) -> Result<RtxFile> {
 }
 
 impl RtxFile {
+    #[must_use]
     pub fn audio_count(&self) -> usize {
         self.entries.iter().filter(|e| e.is_audio()).count()
     }
 
+    #[must_use]
     pub fn text_count(&self) -> usize {
         self.entries.iter().filter(|e| !e.is_audio()).count()
     }
 }
 
 impl RtxAudioHeader {
+    #[must_use]
     pub fn duration_secs(&self) -> f64 {
-        let bytes_per_sample =
-            (self.audio_type.bits_per_sample() as u32 / 8) * self.audio_type.channels() as u32;
+        let bytes_per_sample = (u32::from(self.audio_type.bits_per_sample()) / 8)
+            * u32::from(self.audio_type.channels());
         if self.sample_rate == 0 || bytes_per_sample == 0 {
             return 0.0;
         }
-        self.audio_length as f64 / (self.sample_rate as f64 * bytes_per_sample as f64)
+        f64::from(self.audio_length) / (f64::from(self.sample_rate) * f64::from(bytes_per_sample))
     }
 }
 
@@ -293,13 +312,14 @@ mod tests {
 
         for (tag, payload) in payloads {
             buf.extend_from_slice(*tag);
-            buf.extend_from_slice(&(payload.len() as u32).to_be_bytes());
-            let payload_offset = buf.len() as u32;
+            let payload_len = u32::try_from(payload.len()).expect("payload length must fit u32");
+            buf.extend_from_slice(&payload_len.to_be_bytes());
+            let payload_offset = u32::try_from(buf.len()).expect("offset must fit u32");
             buf.extend_from_slice(payload);
-            index_entries.push((**tag, payload_offset, payload.len() as u32));
+            index_entries.push((**tag, payload_offset, payload_len));
         }
 
-        let index_offset = buf.len() as u32;
+        let index_offset = u32::try_from(buf.len()).expect("index offset must fit u32");
         for (tag, off, size) in &index_entries {
             buf.extend_from_slice(tag);
             buf.extend_from_slice(&off.to_le_bytes());
@@ -308,7 +328,11 @@ mod tests {
 
         buf.extend_from_slice(FOOTER_TAG);
         buf.extend_from_slice(&index_offset.to_le_bytes());
-        buf.extend_from_slice(&(payloads.len() as u32).to_le_bytes());
+        buf.extend_from_slice(
+            &u32::try_from(payloads.len())
+                .expect("payload count must fit u32")
+                .to_le_bytes(),
+        );
 
         buf
     }
@@ -317,7 +341,11 @@ mod tests {
         let mut buf = Vec::new();
         buf.push(0); // kind
         buf.push(0); // subtype
-        buf.extend_from_slice(&(text.len() as u16).to_le_bytes());
+        buf.extend_from_slice(
+            &u16::try_from(text.len())
+                .expect("text length must fit u16")
+                .to_le_bytes(),
+        );
         buf.extend_from_slice(&0u16.to_le_bytes());
         buf.extend_from_slice(text.as_bytes());
         buf
@@ -327,7 +355,11 @@ mod tests {
         let mut buf = Vec::new();
         buf.push(0); // kind
         buf.push(1); // subtype
-        buf.extend_from_slice(&(label.len() as u16).to_le_bytes());
+        buf.extend_from_slice(
+            &u16::try_from(label.len())
+                .expect("label length must fit u16")
+                .to_le_bytes(),
+        );
         buf.extend_from_slice(&0u16.to_le_bytes());
         buf.extend_from_slice(label.as_bytes());
         // 27-byte audio header
@@ -340,7 +372,8 @@ mod tests {
         buf.extend_from_slice(&0xFFFF_FFFFu32.to_le_bytes()); // loop_end
         buf.extend_from_slice(&pcm_len.to_le_bytes()); // audio_length
         buf.push(0); // reserved_1a
-        buf.extend_from_slice(&vec![0x80u8; pcm_len as usize]);
+        let pcm_size = usize::try_from(pcm_len).expect("pcm length must fit usize");
+        buf.extend_from_slice(&vec![0x80u8; pcm_size]);
         buf
     }
 
@@ -357,7 +390,7 @@ mod tests {
                 assert_eq!(tag, b"txt1");
                 assert_eq!(text, "Hello world");
             }
-            _ => panic!("expected text entry"),
+            RtxEntry::Audio { .. } => panic!("expected text entry"),
         }
     }
 
@@ -382,7 +415,7 @@ mod tests {
                 assert_eq!(header.sample_rate, 22050);
                 assert_eq!(pcm_data.len(), 100);
             }
-            _ => panic!("expected audio entry"),
+            RtxEntry::Text { .. } => panic!("expected audio entry"),
         }
     }
 

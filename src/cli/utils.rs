@@ -3,9 +3,9 @@
 use color_eyre::Result;
 use color_eyre::eyre::eyre;
 use log::{info, warn};
-use redguard_preservation::import::FileType;
-use redguard_preservation::import::palette::Palette;
-use redguard_preservation::import::world_ini::WorldIni;
+use rgpre::import::FileType;
+use rgpre::import::palette::Palette;
+use rgpre::import::world_ini::WorldIni;
 use std::path::{Path, PathBuf};
 
 const KNOWN_GAME_SUBDIRS: [&str; 4] = ["3dart", "fxart", "input", "maps"];
@@ -59,28 +59,27 @@ pub fn resolve_filetype(path: &Path, override_filetype: Option<FileType>) -> Res
 
 pub fn parse_file(
     file_path: &std::path::Path,
-    filetype: Option<redguard_preservation::import::FileType>,
-    registry: Option<&redguard_preservation::import::registry::Registry>,
-) -> Result<Vec<redguard_preservation::import::model3d::Model3DFile>> {
+    filetype: Option<rgpre::import::FileType>,
+    registry: Option<&rgpre::import::registry::Registry>,
+) -> Result<Vec<rgpre::import::model3d::Model3DFile>> {
     let filetype = resolve_filetype(file_path, filetype)?;
 
     let file_content = std::fs::read(file_path)?;
 
     match filetype {
-        redguard_preservation::import::FileType::Rob => {
-            let (_rob_file, models) =
-                redguard_preservation::import::rob::parse_rob_with_models(&file_content)?;
+        rgpre::import::FileType::Rob => {
+            let (_rob_file, models) = rgpre::import::rob::parse_rob_with_models(&file_content)?;
             info!(
                 "Successfully parsed ROB file, found {} models",
                 models.len()
             );
             Ok(models)
         }
-        redguard_preservation::import::FileType::Rgm => {
+        rgpre::import::FileType::Rgm => {
             let registry = registry
                 .ok_or_else(|| eyre!("internal error: registry is required for RGM files"))?;
             let (_rgm_file, positioned_models, _lights) =
-                redguard_preservation::import::rgm::parse_rgm_with_models(&file_content, registry)?;
+                rgpre::import::rgm::parse_rgm_with_models(&file_content, registry)?;
             info!(
                 "Successfully parsed RGM file, found {} positioned models",
                 positioned_models.len()
@@ -89,9 +88,8 @@ pub fn parse_file(
             let models: Vec<_> = positioned_models.into_iter().map(|pm| pm.model).collect();
             Ok(models)
         }
-        redguard_preservation::import::FileType::Model3d
-        | redguard_preservation::import::FileType::Model3dc => {
-            let model = redguard_preservation::import::model3d::parse_3d_file(&file_content)?;
+        rgpre::import::FileType::Model3d | rgpre::import::FileType::Model3dc => {
+            let model = rgpre::import::model3d::parse_3d_file(&file_content)?;
             info!("Successfully parsed 3D model file");
             Ok(vec![model])
         }
@@ -116,7 +114,7 @@ fn find_palette_on_disk(asset_root: &Path, ini_palette_path: &str) -> Option<Pat
         .trim()
         .rsplit(['\\', '/'])
         .next()
-        .unwrap_or(ini_palette_path.trim());
+        .unwrap_or_else(|| ini_palette_path.trim());
     let filename_lower = filename.to_ascii_lowercase();
 
     for dir_name in &["fxart", "3dart", "FXART", "3DART"] {
@@ -148,9 +146,8 @@ pub fn auto_resolve_palette(
         return Ok(None);
     }
 
-    let ini_path = match find_world_ini(asset_root) {
-        Some(p) => p,
-        None => return Ok(None),
+    let Some(ini_path) = find_world_ini(asset_root) else {
+        return Ok(None);
     };
 
     let content = std::fs::read_to_string(&ini_path)?;
@@ -184,17 +181,14 @@ pub fn auto_resolve_palette(
         );
     }
 
-    let palette_path = match find_palette_on_disk(asset_root, &matches[0].palette) {
-        Some(p) => p,
-        None => {
-            warn!(
-                "WORLD.INI specifies palette '{}' for world {}, but file not found under {}",
-                matches[0].palette,
-                matches[0].index,
-                asset_root.display()
-            );
-            return Ok(None);
-        }
+    let Some(palette_path) = find_palette_on_disk(asset_root, &matches[0].palette) else {
+        warn!(
+            "WORLD.INI specifies palette '{}' for world {}, but file not found under {}",
+            matches[0].palette,
+            matches[0].index,
+            asset_root.display()
+        );
+        return Ok(None);
     };
 
     info!(

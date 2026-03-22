@@ -23,7 +23,7 @@ pub fn parse_3d_header(input: &[u8]) -> IResult<&[u8], Model3DHeader> {
             total_face_vertices,
             offset_section4,
             section4_count,
-            _unused_24,
+            unused_24,
             offset_normal_indices,
             offset_vertex_normals,
             offset_vertex_coords,
@@ -51,10 +51,11 @@ pub fn parse_3d_header(input: &[u8]) -> IResult<&[u8], Model3DHeader> {
     )
         .parse(input)?;
 
+    let mut version_bytes = [0_u8; 4];
+    version_bytes.copy_from_slice(version);
+
     let mut header = Model3DHeader {
-        version: version
-            .try_into()
-            .expect("3D header version must be exactly 4 bytes"),
+        version: version_bytes,
         num_vertices,
         num_faces,
         radius,
@@ -63,7 +64,7 @@ pub fn parse_3d_header(input: &[u8]) -> IResult<&[u8], Model3DHeader> {
         total_face_vertices,
         offset_section4,
         section4_count,
-        _unused_24,
+        _unused_24: unused_24,
         offset_normal_indices,
         offset_vertex_normals,
         offset_vertex_coords,
@@ -107,7 +108,7 @@ pub fn parse_face_data<'a>(input: &'a [u8], version: &ModelVersion) -> IResult<&
     } else {
         let (input, u1) = le_u8(input)?;
         let (input, texture_data) = le_u16(input)?;
-        let raw = texture_data as u32;
+        let raw = u32::from(texture_data);
         trace!(
             "v2.6/2.7 texture fields: u1=0x{u1:02x}, texture_data=0x{texture_data:04x}, raw=0x{raw:08x}"
         );
@@ -119,7 +120,7 @@ pub fn parse_face_data<'a>(input: &'a [u8], version: &ModelVersion) -> IResult<&
     let texture_data = parse_texture_data_value(texture_data_raw, version);
     trace!("Parsed texture_data: {texture_data:?}");
 
-    let mut face_vertices = Vec::with_capacity(vertex_count as usize);
+    let mut face_vertices = Vec::with_capacity(usize::from(vertex_count));
     let mut acc_u = 0i16;
     let mut acc_v = 0i16;
     let mut input = input;
@@ -172,7 +173,10 @@ pub fn parse_face_data<'a>(input: &'a [u8], version: &ModelVersion) -> IResult<&
 }
 
 /// Decodes a raw texture field into `TextureData` for a given model version.
-pub fn parse_texture_data_value(raw: u32, version: &ModelVersion) -> TextureData {
+#[must_use]
+pub const fn parse_texture_data_value(raw: u32, version: &ModelVersion) -> TextureData {
+    #[allow(clippy::cast_possible_truncation)]
+    // Bitfield extraction is range-limited by masks/shifts.
     match version {
         ModelVersion::V26 | ModelVersion::V27 | ModelVersion::Unknown => {
             let texture_id = (raw >> 7) as u16;
@@ -192,7 +196,7 @@ pub fn parse_texture_data_value(raw: u32, version: &ModelVersion) -> TextureData
                 let color_index = (raw >> 8) as u8;
                 TextureData::SolidColor(color_index)
             } else {
-                let tmp = (raw >> 8).wrapping_sub(4000000);
+                let tmp = (raw >> 8).wrapping_sub(4_000_000);
                 let one = (tmp / 250) % 40;
                 let ten = ((tmp - (one * 250)) / 1000) % 100;
                 let hundred = (tmp - (one * 250) - (ten * 1000)) / 4000;
@@ -215,6 +219,7 @@ pub fn parse_texture_data_value(raw: u32, version: &ModelVersion) -> TextureData
 pub fn parse_vertex_coord(input: &[u8]) -> IResult<&[u8], VertexCoord> {
     let (input, (x_raw, y_raw, z_raw)) = (le_i32, le_i32, le_i32).parse(input)?;
     let scale = 1.0 / 256.0;
+    #[allow(clippy::cast_precision_loss)] // Source format stores fixed-point i32 positions.
     Ok((
         input,
         VertexCoord {
@@ -229,6 +234,7 @@ pub fn parse_vertex_coord(input: &[u8]) -> IResult<&[u8], VertexCoord> {
 pub fn parse_face_normal(input: &[u8]) -> IResult<&[u8], FaceNormal> {
     let (input, (x_raw, y_raw, z_raw)) = (le_i32, le_i32, le_i32).parse(input)?;
     let scale = 1.0 / 256.0;
+    #[allow(clippy::cast_precision_loss)] // Source format stores fixed-point i32 normals.
     Ok((
         input,
         FaceNormal {
@@ -247,32 +253,34 @@ pub fn parse_vertex_normal(input: &[u8]) -> IResult<&[u8], VertexNormal> {
 
 fn parse_frame_data_section(input: &[u8], header: &Model3DHeader) -> Vec<FrameDataEntry> {
     let mut entries = Vec::new();
-    let mut off = header.offset_frame_data as usize;
+    let Ok(mut off) = usize::try_from(header.offset_frame_data) else {
+        return entries;
+    };
 
     for _ in 0..header.num_frames {
         if off + 16 > input.len() {
             break;
         }
-        let vertex_offset = u32::from_le_bytes(
-            input[off..off + 4]
-                .try_into()
-                .expect("frame entry vertex_offset must be 4 bytes"),
-        );
-        let normal_offset = u32::from_le_bytes(
-            input[off + 4..off + 8]
-                .try_into()
-                .expect("frame entry normal_offset must be 4 bytes"),
-        );
-        let reserved = u32::from_le_bytes(
-            input[off + 8..off + 12]
-                .try_into()
-                .expect("frame entry reserved field must be 4 bytes"),
-        );
-        let raw_type = u32::from_le_bytes(
-            input[off + 12..off + 16]
-                .try_into()
-                .expect("frame entry type field must be 4 bytes"),
-        );
+        let vertex_offset =
+            u32::from_le_bytes([input[off], input[off + 1], input[off + 2], input[off + 3]]);
+        let normal_offset = u32::from_le_bytes([
+            input[off + 4],
+            input[off + 5],
+            input[off + 6],
+            input[off + 7],
+        ]);
+        let reserved = u32::from_le_bytes([
+            input[off + 8],
+            input[off + 9],
+            input[off + 10],
+            input[off + 11],
+        ]);
+        let raw_type = u32::from_le_bytes([
+            input[off + 12],
+            input[off + 13],
+            input[off + 14],
+            input[off + 15],
+        ]);
 
         let frame_type = match raw_type {
             0 => FrameType::Static3D,
@@ -303,7 +311,9 @@ fn parse_section4_data_section(input: &[u8], header: &Model3DHeader) -> Vec<u8> 
     if header.offset_section4 == 0 || header.section4_count == 0 {
         return Vec::new();
     }
-    let start = header.offset_section4 as usize;
+    let Ok(start) = usize::try_from(header.offset_section4) else {
+        return Vec::new();
+    };
     if start >= input.len() {
         return Vec::new();
     }
@@ -316,9 +326,13 @@ fn parse_face_data_section(
     version: &ModelVersion,
 ) -> Vec<FaceData> {
     let mut face_data = Vec::new();
+    let input_len_u32 = u32::try_from(input.len()).unwrap_or(u32::MAX);
 
-    if header.offset_face_data < input.len() as u32 {
-        let mut face_data_input = &input[header.offset_face_data as usize..];
+    if header.offset_face_data < input_len_u32 {
+        let Ok(offset_face_data) = usize::try_from(header.offset_face_data) else {
+            return face_data;
+        };
+        let mut face_data_input = &input[offset_face_data..];
 
         for face_index in 0..header.num_faces {
             if face_data_input.len() < 20 {
@@ -357,9 +371,13 @@ fn parse_vertex_coords_section(
     adjusted_offset_vertex_coords: u32,
 ) -> Vec<VertexCoord> {
     let mut vertex_coords = Vec::new();
+    let input_len_u32 = u32::try_from(input.len()).unwrap_or(u32::MAX);
 
-    if adjusted_offset_vertex_coords < input.len() as u32 {
-        let mut vertex_input = &input[adjusted_offset_vertex_coords as usize..];
+    if adjusted_offset_vertex_coords < input_len_u32 {
+        let Ok(offset_vertex_coords) = usize::try_from(adjusted_offset_vertex_coords) else {
+            return vertex_coords;
+        };
+        let mut vertex_input = &input[offset_vertex_coords..];
 
         for vertex_index in 0..header.num_vertices {
             match parse_vertex_coord(vertex_input) {
@@ -387,9 +405,13 @@ fn parse_vertex_coords_section(
 
 fn parse_face_normals_section(input: &[u8], header: &Model3DHeader) -> Vec<FaceNormal> {
     let mut face_normals = Vec::new();
+    let input_len_u32 = u32::try_from(input.len()).unwrap_or(u32::MAX);
 
-    if header.offset_face_normals < input.len() as u32 {
-        let mut normal_input = &input[header.offset_face_normals as usize..];
+    if header.offset_face_normals < input_len_u32 {
+        let Ok(offset_face_normals) = usize::try_from(header.offset_face_normals) else {
+            return face_normals;
+        };
+        let mut normal_input = &input[offset_face_normals..];
 
         for normal_index in 0..header.num_faces {
             match parse_face_normal(normal_input) {
@@ -417,12 +439,16 @@ fn parse_face_normals_section(input: &[u8], header: &Model3DHeader) -> Vec<FaceN
 
 fn parse_normal_indices_section(input: &[u8], header: &Model3DHeader) -> Vec<u32> {
     let mut indices = Vec::new();
+    let input_len_u32 = u32::try_from(input.len()).unwrap_or(u32::MAX);
 
-    if header.offset_normal_indices == 0 || header.offset_normal_indices >= input.len() as u32 {
+    if header.offset_normal_indices == 0 || header.offset_normal_indices >= input_len_u32 {
         return indices;
     }
 
-    let mut idx_input = &input[header.offset_normal_indices as usize..];
+    let Ok(offset_normal_indices) = usize::try_from(header.offset_normal_indices) else {
+        return indices;
+    };
+    let mut idx_input = &input[offset_normal_indices..];
 
     for i in 0..header.total_face_vertices {
         match le_u32::<_, nom::error::Error<_>>(idx_input) {
@@ -450,12 +476,16 @@ fn parse_vertex_normals_section(
     offset: u32,
 ) -> Vec<VertexNormal> {
     let mut normals = Vec::new();
+    let input_len_u32 = u32::try_from(input.len()).unwrap_or(u32::MAX);
 
-    if offset == 0 || offset >= input.len() as u32 {
+    if offset == 0 || offset >= input_len_u32 {
         return normals;
     }
 
-    let mut norm_input = &input[offset as usize..];
+    let Ok(normals_offset) = usize::try_from(offset) else {
+        return normals;
+    };
+    let mut norm_input = &input[normals_offset..];
 
     for i in 0..header.num_vertices {
         match parse_vertex_normal(norm_input) {

@@ -2,7 +2,7 @@
 
 use crate::opts::ScanArgs;
 use color_eyre::Result;
-use redguard_preservation::import::{FileType, registry};
+use rgpre::import::{FileType, registry};
 use std::collections::{BTreeMap, HashMap};
 
 /// Count files by their type
@@ -10,7 +10,7 @@ fn count_files_by_type(registry: &registry::Registry) -> HashMap<FileType, usize
     let mut file_type_counts = HashMap::new();
 
     for entry in registry.files.values() {
-        *file_type_counts.entry(entry.file_type).or_insert(0) += 1;
+        *file_type_counts.entry(entry.file_type).or_default() += 1;
     }
 
     file_type_counts
@@ -53,7 +53,9 @@ fn print_scan_results(total_files: usize, type_groups: &BTreeMap<&str, (Vec<&str
     }
 }
 
-pub(crate) fn handle_scan_command(args: ScanArgs) -> Result<()> {
+#[allow(clippy::needless_pass_by_value)]
+// CLI handlers take owned args by clap design for consistent command dispatch.
+pub fn handle_scan_command(args: ScanArgs) -> Result<()> {
     let registry = registry::scan_dir(&args.dir)?;
     let file_type_counts = count_files_by_type(&registry);
     let total_files = registry.files.len();

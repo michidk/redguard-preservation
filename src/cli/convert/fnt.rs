@@ -2,14 +2,14 @@ use crate::opts::{ConvertArgs, FontOutputMode};
 use color_eyre::Result;
 use color_eyre::eyre::bail;
 use log::{info, warn};
-use redguard_preservation::import::fnt_export;
+use rgpre::import::fnt_export;
 use std::path::Path;
 
 pub(super) fn handle_fnt_convert(args: &ConvertArgs, output_path: &Path) -> Result<()> {
     let out_ext = output_path
         .extension()
         .and_then(|e| e.to_str())
-        .map(|s| s.to_ascii_lowercase());
+        .map(str::to_ascii_lowercase);
 
     let mode = args.font_output.unwrap_or({
         if matches!(out_ext.as_deref(), Some("ttf")) {

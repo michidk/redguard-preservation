@@ -25,6 +25,7 @@ pub struct WorldIni {
 
 /// Extract the filename (last path component) from a WORLD.INI path value,
 /// normalizing backslash separators.
+#[must_use]
 fn extract_filename(ini_path: &str) -> &str {
     let normalized = ini_path.trim();
     normalized.rsplit(['\\', '/']).next().unwrap_or(normalized)
@@ -32,6 +33,7 @@ fn extract_filename(ini_path: &str) -> &str {
 
 /// Extract the file stem (filename without extension) from a WORLD.INI path,
 /// lowercased for case-insensitive matching.
+#[must_use]
 fn stem_lower(ini_path: &str) -> String {
     let filename = extract_filename(ini_path);
     match filename.rsplit_once('.') {
@@ -46,6 +48,7 @@ impl WorldIni {
     /// Only extracts `world_map[N]`, `world_world[N]`, and `world_palette[N]`
     /// keys. All other keys are ignored. Malformed lines (including the known
     /// typos in the shipped file) are silently skipped.
+    #[must_use]
     pub fn parse(content: &str) -> Self {
         let mut maps: HashMap<u32, String> = HashMap::new();
         let mut worlds: HashMap<u32, String> = HashMap::new();
@@ -89,11 +92,12 @@ impl WorldIni {
             .collect();
 
         entries.sort_by_key(|e| e.index);
-        WorldIni { entries }
+        Self { entries }
     }
 
     /// Returns all world entries whose RGM map stem matches `file_stem`
     /// (case-insensitive).
+    #[must_use]
     pub fn find_by_map_stem(&self, file_stem: &str) -> Vec<&WorldEntry> {
         let needle = file_stem.to_ascii_lowercase();
         self.entries
@@ -104,6 +108,7 @@ impl WorldIni {
 
     /// Returns all world entries whose WLD terrain stem matches `file_stem`
     /// (case-insensitive).
+    #[must_use]
     pub fn find_by_world_stem(&self, file_stem: &str) -> Vec<&WorldEntry> {
         let needle = file_stem.to_ascii_lowercase();
         self.entries
@@ -114,6 +119,7 @@ impl WorldIni {
 }
 
 /// Parses `prefix[N]` and returns `N`, or `None` if the key doesn't match.
+#[must_use]
 fn parse_indexed_key(key: &str, prefix: &str) -> Option<u32> {
     let rest = key.strip_prefix(prefix)?;
     let rest = rest.strip_prefix('[')?;

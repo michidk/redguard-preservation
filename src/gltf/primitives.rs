@@ -7,7 +7,7 @@ use std::collections::BTreeMap;
 use super::ENGINE_UNIT_SCALE;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub(crate) enum MaterialKey {
+pub(super) enum MaterialKey {
     SolidColor([u8; 3]),
     PaletteTexture([u8; 3]),
     Textured(u16, u8),
@@ -15,35 +15,35 @@ pub(crate) enum MaterialKey {
 }
 
 #[derive(Clone)]
-pub(crate) struct UnrolledPrimitive {
-    pub(crate) material_key: MaterialKey,
-    pub(crate) scale_uv_by_texture_dimensions: bool,
-    pub(crate) positions: Vec<[f32; 3]>,
-    pub(crate) normals: Vec<[f32; 3]>,
-    pub(crate) uvs: Vec<[f32; 2]>,
-    pub(crate) indices: Vec<u32>,
-    pub(crate) min: [f32; 3],
-    pub(crate) max: [f32; 3],
+pub(super) struct UnrolledPrimitive {
+    pub(super) material_key: MaterialKey,
+    pub(super) scale_uv_by_texture_dimensions: bool,
+    pub(super) positions: Vec<[f32; 3]>,
+    pub(super) normals: Vec<[f32; 3]>,
+    pub(super) uvs: Vec<[f32; 2]>,
+    pub(super) indices: Vec<u32>,
+    pub(super) min: [f32; 3],
+    pub(super) max: [f32; 3],
 }
 
-pub(crate) fn sanitize_f32(value: f32) -> f32 {
+#[must_use]
+pub(super) const fn sanitize_f32(value: f32) -> f32 {
     if value.is_nan() { 0.0 } else { value }
 }
 
-pub(crate) fn material_for_face(
+#[must_use]
+pub(super) fn material_for_face(
     texture_data: &TextureData,
     palette: Option<&Palette>,
     texture_cache_available: bool,
 ) -> (MaterialKey, [f32; 4]) {
     match texture_data {
         TextureData::SolidColor(index) => {
-            let rgb_u8 = palette
-                .map(|pal| pal.colors[*index as usize])
-                .unwrap_or([128, 128, 128]);
+            let rgb_u8 = palette.map_or([128, 128, 128], |pal| pal.colors[usize::from(*index)]);
             let face_color = [
-                rgb_u8[0] as f32 / 255.0,
-                rgb_u8[1] as f32 / 255.0,
-                rgb_u8[2] as f32 / 255.0,
+                f32::from(rgb_u8[0]) / 255.0,
+                f32::from(rgb_u8[1]) / 255.0,
+                f32::from(rgb_u8[2]) / 255.0,
                 1.0,
             ];
             let material = if texture_cache_available && palette.is_some() {
@@ -67,7 +67,8 @@ pub(crate) fn material_for_face(
     }
 }
 
-pub(crate) fn resolve_vertex_normal(
+#[must_use]
+pub(super) fn resolve_vertex_normal(
     model: &Model3DFile,
     vertex_index: usize,
     cumulative_fv_index: usize,
@@ -77,7 +78,7 @@ pub(crate) fn resolve_vertex_normal(
         model
             .normal_indices
             .get(cumulative_fv_index)
-            .map(|&i| i as usize)
+            .and_then(|&index| usize::try_from(index).ok())
     } else if !model.vertex_normals.is_empty() {
         Some(vertex_index)
     } else {
@@ -96,6 +97,9 @@ pub(crate) fn resolve_vertex_normal(
     face_normal
 }
 
+#[allow(clippy::cast_possible_truncation)]
+// GLTF indices are u32; generated vertex/index counts remain far below u32::MAX.
+#[must_use]
 pub(super) fn build_unrolled_primitives(
     model: &Model3DFile,
     palette: Option<&Palette>,
@@ -147,15 +151,18 @@ pub(super) fn build_unrolled_primitives(
 
             let tri_fv = [v0, v1, v2];
             let tri_fv_indices = [0usize, i, i + 1];
-            if tri_fv
-                .iter()
-                .any(|fv| fv.vertex_index as usize >= model.vertex_coords.len())
-            {
+            if tri_fv.iter().any(|fv| {
+                usize::try_from(fv.vertex_index)
+                    .ok()
+                    .is_none_or(|index| index >= model.vertex_coords.len())
+            }) {
                 continue;
             }
 
             for (fv, &fv_idx) in tri_fv.iter().zip(&tri_fv_indices) {
-                let idx = fv.vertex_index as usize;
+                let Ok(idx) = usize::try_from(fv.vertex_index) else {
+                    continue;
+                };
                 let pos = &model.vertex_coords[idx];
                 let x = -sanitize_f32(pos.x) / ENGINE_UNIT_SCALE;
                 let y = -sanitize_f32(pos.y) / ENGINE_UNIT_SCALE;
@@ -173,7 +180,7 @@ pub(super) fn build_unrolled_primitives(
                     resolve_vertex_normal(model, idx, cumulative_fv_base + fv_idx, face_normal);
                 group.normals.push(normal);
 
-                group.uvs.push([fv.u as f32, fv.v as f32]);
+                group.uvs.push([f32::from(fv.u), f32::from(fv.v)]);
                 group.indices.push((group.positions.len() - 1) as u32);
             }
         }

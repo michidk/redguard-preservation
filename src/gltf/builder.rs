@@ -1,6 +1,6 @@
-use crate::Result;
 use gltf_json as json;
 use gltf_json::extensions::scene::khr_lights_punctual;
+use json::extras::Void;
 use json::validation::{Checked, USize64};
 use json::{
     Asset, Index, Root, Scene,
@@ -39,6 +39,18 @@ pub(super) struct GltfBuilder<'a> {
 }
 
 impl<'a> GltfBuilder<'a> {
+    #[allow(clippy::cast_possible_truncation)]
+    // GLTF indices are u32; input data is far below u32::MAX.
+    const fn index_u32(value: usize) -> u32 {
+        value as u32
+    }
+
+    #[allow(clippy::cast_possible_truncation)]
+    // glTF JSON uses u64 byte offsets/lengths; buffers here are far below u64::MAX.
+    const fn usize_u64(value: usize) -> u64 {
+        value as u64
+    }
+
     pub(super) fn new(
         texture_cache: Option<&'a mut TextureCache>,
         compress_textures: bool,
@@ -67,7 +79,8 @@ impl<'a> GltfBuilder<'a> {
         }
     }
 
-    pub(super) fn has_texture_cache(&self) -> bool {
+    #[must_use]
+    pub(super) const fn has_texture_cache(&self) -> bool {
         self.texture_cache_available
     }
 
@@ -99,21 +112,21 @@ impl<'a> GltfBuilder<'a> {
         let view_index = self.buffer_views.len();
         self.buffer_views.push(View {
             buffer: Index::new(0),
-            byte_offset: Some(USize64(buffer_offset as u64)),
-            byte_length: USize64(bytes.len() as u64),
+            byte_offset: Some(USize64(Self::usize_u64(buffer_offset))),
+            byte_length: USize64(Self::usize_u64(bytes.len())),
             byte_stride: None,
             name: None,
             target: Some(Checked::Valid(Target::ArrayBuffer)),
-            extensions: Default::default(),
-            extras: Default::default(),
+            extensions: None,
+            extras: Void::default(),
         });
 
         let accessor_index = self.accessors.len();
         self.accessors.push(Accessor {
-            buffer_view: Some(Index::new(view_index as u32)),
+            buffer_view: Some(Index::new(Self::index_u32(view_index))),
             byte_offset: Some(USize64(0)),
             component_type: Checked::Valid(GenericComponentType(ComponentType::F32)),
-            count: USize64(data.len() as u64),
+            count: USize64(Self::usize_u64(data.len())),
             type_: Checked::Valid(Type::Vec3),
             min: min.map(|v| {
                 Value::Array(vec![
@@ -132,8 +145,8 @@ impl<'a> GltfBuilder<'a> {
             name: None,
             normalized: false,
             sparse: None,
-            extensions: Default::default(),
-            extras: Default::default(),
+            extensions: None,
+            extras: Void::default(),
         });
 
         accessor_index
@@ -152,29 +165,29 @@ impl<'a> GltfBuilder<'a> {
         let view_index = self.buffer_views.len();
         self.buffer_views.push(View {
             buffer: Index::new(0),
-            byte_offset: Some(USize64(buffer_offset as u64)),
-            byte_length: USize64(bytes.len() as u64),
+            byte_offset: Some(USize64(Self::usize_u64(buffer_offset))),
+            byte_length: USize64(Self::usize_u64(bytes.len())),
             byte_stride: None,
             name: None,
             target: Some(Checked::Valid(Target::ArrayBuffer)),
-            extensions: Default::default(),
-            extras: Default::default(),
+            extensions: None,
+            extras: Void::default(),
         });
 
         let accessor_index = self.accessors.len();
         self.accessors.push(Accessor {
-            buffer_view: Some(Index::new(view_index as u32)),
+            buffer_view: Some(Index::new(Self::index_u32(view_index))),
             byte_offset: Some(USize64(0)),
             component_type: Checked::Valid(GenericComponentType(ComponentType::F32)),
-            count: USize64(data.len() as u64),
+            count: USize64(Self::usize_u64(data.len())),
             type_: Checked::Valid(Type::Vec2),
             min: None,
             max: None,
             name: None,
             normalized: false,
             sparse: None,
-            extensions: Default::default(),
-            extras: Default::default(),
+            extensions: None,
+            extras: Void::default(),
         });
 
         accessor_index
@@ -192,29 +205,29 @@ impl<'a> GltfBuilder<'a> {
         let view_index = self.buffer_views.len();
         self.buffer_views.push(View {
             buffer: Index::new(0),
-            byte_offset: Some(USize64(buffer_offset as u64)),
-            byte_length: USize64(bytes.len() as u64),
+            byte_offset: Some(USize64(Self::usize_u64(buffer_offset))),
+            byte_length: USize64(Self::usize_u64(bytes.len())),
             target: Some(Checked::Valid(Target::ElementArrayBuffer)),
             byte_stride: None,
             name: None,
-            extensions: Default::default(),
-            extras: Default::default(),
+            extensions: None,
+            extras: Void::default(),
         });
 
         let accessor_index = self.accessors.len();
         self.accessors.push(Accessor {
-            buffer_view: Some(Index::new(view_index as u32)),
+            buffer_view: Some(Index::new(Self::index_u32(view_index))),
             byte_offset: Some(USize64(0)),
             component_type: Checked::Valid(GenericComponentType(ComponentType::U32)),
-            count: USize64(indices.len() as u64),
+            count: USize64(Self::usize_u64(indices.len())),
             type_: Checked::Valid(Type::Scalar),
             min: None,
             max: None,
             name: None,
             normalized: false,
             sparse: None,
-            extensions: Default::default(),
-            extras: Default::default(),
+            extensions: None,
+            extras: Void::default(),
         });
 
         accessor_index
@@ -227,13 +240,13 @@ impl<'a> GltfBuilder<'a> {
         let view_index = self.buffer_views.len();
         self.buffer_views.push(View {
             buffer: Index::new(0),
-            byte_offset: Some(USize64(buffer_offset as u64)),
-            byte_length: USize64(data.len() as u64),
+            byte_offset: Some(USize64(Self::usize_u64(buffer_offset))),
+            byte_length: USize64(Self::usize_u64(data.len())),
             byte_stride: None,
             name: None,
             target: None,
-            extensions: Default::default(),
-            extras: Default::default(),
+            extensions: None,
+            extras: Void::default(),
         });
 
         view_index
@@ -256,13 +269,13 @@ impl<'a> GltfBuilder<'a> {
         index
     }
 
-    fn create_solid_material(&self, rgb: [u8; 3]) -> json::Material {
+    fn create_solid_material(rgb: [u8; 3]) -> json::Material {
         json::Material {
             pbr_metallic_roughness: PbrMetallicRoughness {
                 base_color_factor: json::material::PbrBaseColorFactor([
-                    rgb[0] as f32 / 255.0,
-                    rgb[1] as f32 / 255.0,
-                    rgb[2] as f32 / 255.0,
+                    f32::from(rgb[0]) / 255.0,
+                    f32::from(rgb[1]) / 255.0,
+                    f32::from(rgb[2]) / 255.0,
                     1.0,
                 ]),
                 metallic_factor: json::material::StrengthFactor(0.0),
@@ -273,14 +286,14 @@ impl<'a> GltfBuilder<'a> {
         }
     }
 
-    fn create_textured_material(&self, texture_index: usize, has_alpha: bool) -> json::Material {
+    fn create_textured_material(texture_index: usize, has_alpha: bool) -> json::Material {
         json::Material {
             pbr_metallic_roughness: PbrMetallicRoughness {
                 base_color_texture: Some(json::texture::Info {
-                    index: Index::new(texture_index as u32),
+                    index: Index::new(Self::index_u32(texture_index)),
                     tex_coord: 0,
-                    extensions: Default::default(),
-                    extras: Default::default(),
+                    extensions: None,
+                    extras: Void::default(),
                 }),
                 metallic_factor: json::material::StrengthFactor(0.0),
                 roughness_factor: json::material::StrengthFactor(1.0),
@@ -301,7 +314,7 @@ impl<'a> GltfBuilder<'a> {
         }
     }
 
-    fn create_white_material(&self) -> json::Material {
+    fn create_white_material() -> json::Material {
         json::Material {
             pbr_metallic_roughness: PbrMetallicRoughness {
                 base_color_factor: json::material::PbrBaseColorFactor([1.0, 1.0, 1.0, 1.0]),
@@ -318,133 +331,127 @@ impl<'a> GltfBuilder<'a> {
             index
         } else {
             let index = self.materials.len();
-            self.materials.push(self.create_white_material());
+            self.materials.push(Self::create_white_material());
             self.white_material_index = Some(index);
             index
         }
     }
 
+    fn resolve_solid_color_material(&mut self, rgb: [u8; 3]) -> usize {
+        if let Some(index) = self.solid_material_cache.get(&rgb) {
+            *index
+        } else {
+            let index = self.materials.len();
+            self.materials.push(Self::create_solid_material(rgb));
+            self.solid_material_cache.insert(rgb, index);
+            index
+        }
+    }
+
+    fn push_png_texture(&mut self, png_bytes: &[u8], sampler_index: usize) -> usize {
+        let image_view_index = self.push_blob_buffer_view(png_bytes);
+        let image_index = self.images.len();
+        self.images.push(json::Image {
+            buffer_view: Some(Index::new(Self::index_u32(image_view_index))),
+            mime_type: Some(json::image::MimeType("image/png".to_string())),
+            uri: None,
+            name: None,
+            extensions: None,
+            extras: Void::default(),
+        });
+        let texture_index = self.textures.len();
+        self.textures.push(json::Texture {
+            sampler: Some(Index::new(Self::index_u32(sampler_index))),
+            source: Index::new(Self::index_u32(image_index)),
+            name: None,
+            extensions: None,
+            extras: Void::default(),
+        });
+
+        texture_index
+    }
+
+    fn resolve_palette_texture_index(&mut self, rgb: [u8; 3]) -> Option<usize> {
+        if let Some(cached) = self.palette_texture_index_cache.get(&rgb) {
+            return *cached;
+        }
+
+        let sampler_index = self.nearest_sampler();
+        let resolved = create_palette_color_png(rgb, self.compress_textures)
+            .map(|png_bytes| self.push_png_texture(&png_bytes, sampler_index));
+        self.palette_texture_index_cache.insert(rgb, resolved);
+        resolved
+    }
+
+    fn resolve_palette_texture_material(&mut self, rgb: [u8; 3]) -> usize {
+        if let Some(index) = self.palette_texture_material_cache.get(&rgb) {
+            return *index;
+        }
+
+        let index = if let Some(texture_index) = self.resolve_palette_texture_index(rgb) {
+            let new_index = self.materials.len();
+            self.materials
+                .push(Self::create_textured_material(texture_index, false));
+            new_index
+        } else {
+            self.resolve_white_material()
+        };
+
+        self.palette_texture_material_cache.insert(rgb, index);
+        index
+    }
+
+    fn resolve_textured_texture_index(
+        &mut self,
+        texture_id: u16,
+        image_id: u8,
+    ) -> Option<(usize, bool)> {
+        if let Some(cached) = self.texture_index_cache.get(&(texture_id, image_id)) {
+            return *cached;
+        }
+
+        let sampler_index = self.nearest_sampler();
+        let texture_png = if let Some(cache) = self.texture_cache.as_deref_mut() {
+            cache.get_image_png(texture_id, image_id, self.compress_textures)
+        } else {
+            None
+        };
+        let resolved = texture_png.map(|(png_bytes, _, _, has_alpha)| {
+            (self.push_png_texture(&png_bytes, sampler_index), has_alpha)
+        });
+
+        self.texture_index_cache
+            .insert((texture_id, image_id), resolved);
+        resolved
+    }
+
+    fn resolve_textured_material(&mut self, texture_id: u16, image_id: u8) -> usize {
+        if let Some(index) = self.textured_material_cache.get(&(texture_id, image_id)) {
+            return *index;
+        }
+
+        let index = if let Some((texture_index, has_alpha)) =
+            self.resolve_textured_texture_index(texture_id, image_id)
+        {
+            let new_index = self.materials.len();
+            self.materials
+                .push(Self::create_textured_material(texture_index, has_alpha));
+            new_index
+        } else {
+            self.resolve_white_material()
+        };
+
+        self.textured_material_cache
+            .insert((texture_id, image_id), index);
+        index
+    }
+
     fn resolve_material(&mut self, material_key: MaterialKey) -> usize {
         match material_key {
-            MaterialKey::SolidColor(rgb) => {
-                if let Some(index) = self.solid_material_cache.get(&rgb) {
-                    *index
-                } else {
-                    let index = self.materials.len();
-                    self.materials.push(self.create_solid_material(rgb));
-                    self.solid_material_cache.insert(rgb, index);
-                    index
-                }
-            }
-            MaterialKey::PaletteTexture(rgb) => {
-                if let Some(index) = self.palette_texture_material_cache.get(&rgb) {
-                    *index
-                } else {
-                    let texture_index =
-                        if let Some(cached) = self.palette_texture_index_cache.get(&rgb) {
-                            *cached
-                        } else {
-                            let sampler_idx = self.nearest_sampler();
-                            let resolved = if let Some(png_bytes) =
-                                create_palette_color_png(rgb, self.compress_textures)
-                            {
-                                let image_view_index = self.push_blob_buffer_view(&png_bytes);
-                                let image_index = self.images.len();
-                                self.images.push(json::Image {
-                                    buffer_view: Some(Index::new(image_view_index as u32)),
-                                    mime_type: Some(json::image::MimeType("image/png".to_string())),
-                                    uri: None,
-                                    name: None,
-                                    extensions: Default::default(),
-                                    extras: Default::default(),
-                                });
-                                let tex_idx = self.textures.len();
-                                self.textures.push(json::Texture {
-                                    sampler: Some(Index::new(sampler_idx as u32)),
-                                    source: Index::new(image_index as u32),
-                                    name: None,
-                                    extensions: Default::default(),
-                                    extras: Default::default(),
-                                });
-                                Some(tex_idx)
-                            } else {
-                                None
-                            };
-                            self.palette_texture_index_cache.insert(rgb, resolved);
-                            resolved
-                        };
-
-                    let index = if let Some(tex_idx) = texture_index {
-                        let new_index = self.materials.len();
-                        self.materials
-                            .push(self.create_textured_material(tex_idx, false));
-                        new_index
-                    } else {
-                        self.resolve_white_material()
-                    };
-
-                    self.palette_texture_material_cache.insert(rgb, index);
-                    index
-                }
-            }
+            MaterialKey::SolidColor(rgb) => self.resolve_solid_color_material(rgb),
+            MaterialKey::PaletteTexture(rgb) => self.resolve_palette_texture_material(rgb),
             MaterialKey::Textured(texture_id, image_id) => {
-                if let Some(index) = self.textured_material_cache.get(&(texture_id, image_id)) {
-                    *index
-                } else {
-                    let texture_info = if let Some(cached) =
-                        self.texture_index_cache.get(&(texture_id, image_id))
-                    {
-                        *cached
-                    } else {
-                        let sampler_idx = self.nearest_sampler();
-                        let resolved = if let Some(cache) = self.texture_cache.as_deref_mut() {
-                            if let Some((png_bytes, _, _, has_alpha)) =
-                                cache.get_image_png(texture_id, image_id, self.compress_textures)
-                            {
-                                let image_view_index = self.push_blob_buffer_view(&png_bytes);
-                                let image_index = self.images.len();
-                                self.images.push(json::Image {
-                                    buffer_view: Some(Index::new(image_view_index as u32)),
-                                    mime_type: Some(json::image::MimeType("image/png".to_string())),
-                                    uri: None,
-                                    name: None,
-                                    extensions: Default::default(),
-                                    extras: Default::default(),
-                                });
-                                let tex_idx = self.textures.len();
-                                self.textures.push(json::Texture {
-                                    sampler: Some(Index::new(sampler_idx as u32)),
-                                    source: Index::new(image_index as u32),
-                                    name: None,
-                                    extensions: Default::default(),
-                                    extras: Default::default(),
-                                });
-                                Some((tex_idx, has_alpha))
-                            } else {
-                                None
-                            }
-                        } else {
-                            None
-                        };
-
-                        self.texture_index_cache
-                            .insert((texture_id, image_id), resolved);
-                        resolved
-                    };
-
-                    let index = if let Some((tex_idx, has_alpha)) = texture_info {
-                        let new_index = self.materials.len();
-                        self.materials
-                            .push(self.create_textured_material(tex_idx, has_alpha));
-                        new_index
-                    } else {
-                        self.resolve_white_material()
-                    };
-
-                    self.textured_material_cache
-                        .insert((texture_id, image_id), index);
-                    index
-                }
+                self.resolve_textured_material(texture_id, image_id)
             }
             MaterialKey::White => self.resolve_white_material(),
         }
@@ -459,15 +466,14 @@ impl<'a> GltfBuilder<'a> {
                 MaterialKey::Textured(texture_id, image_id)
                     if primitive.scale_uv_by_texture_dimensions =>
                 {
-                    let texture_dims = if let Some(cache) = self.texture_cache.as_deref_mut() {
-                        cache.get_image_dimensions(texture_id, image_id)
-                    } else {
-                        None
-                    };
+                    let texture_dims = self
+                        .texture_cache
+                        .as_deref_mut()
+                        .and_then(|cache| cache.get_image_dimensions(texture_id, image_id));
 
                     if let Some((width, height)) = texture_dims {
-                        let u_scale = (width.max(1) as f32) * UV_FIXED_POINT_SCALE;
-                        let v_scale = (height.max(1) as f32) * UV_FIXED_POINT_SCALE;
+                        let u_scale = f32::from(width.max(1)) * UV_FIXED_POINT_SCALE;
+                        let v_scale = f32::from(height.max(1)) * UV_FIXED_POINT_SCALE;
                         primitive
                             .uvs
                             .iter()
@@ -501,27 +507,27 @@ impl<'a> GltfBuilder<'a> {
             let mut attributes = BTreeMap::new();
             attributes.insert(
                 Checked::Valid(Semantic::Positions),
-                Index::new(position_accessor_index as u32),
+                Index::new(Self::index_u32(position_accessor_index)),
             );
             attributes.insert(
                 Checked::Valid(Semantic::Normals),
-                Index::new(normal_accessor_index as u32),
+                Index::new(Self::index_u32(normal_accessor_index)),
             );
             attributes.insert(
                 Checked::Valid(Semantic::TexCoords(0)),
-                Index::new(texcoord_accessor_index as u32),
+                Index::new(Self::index_u32(texcoord_accessor_index)),
             );
 
             let material_index = self.resolve_material(primitive.material_key);
 
             primitives.push(Primitive {
                 attributes,
-                indices: Some(Index::new(index_accessor_index as u32)),
-                material: Some(Index::new(material_index as u32)),
+                indices: Some(Index::new(Self::index_u32(index_accessor_index))),
+                material: Some(Index::new(Self::index_u32(material_index))),
                 mode: Checked::Valid(json::mesh::Mode::Triangles),
                 targets: None,
-                extensions: Default::default(),
-                extras: Default::default(),
+                extensions: None,
+                extras: Void::default(),
             });
         }
 
@@ -529,50 +535,51 @@ impl<'a> GltfBuilder<'a> {
             primitives,
             weights: None,
             name: None,
-            extensions: Default::default(),
-            extras: Default::default(),
+            extensions: None,
+            extras: Void::default(),
         });
 
         mesh_index
     }
 
-    pub(super) fn finish(self) -> Result<(Root, Vec<u8>)> {
+    pub(super) fn finish(self) -> (Root, Vec<u8>) {
         self.finish_internal(None)
     }
 
     pub(super) fn finish_with_lights(
         self,
         lights: Vec<khr_lights_punctual::Light>,
-    ) -> Result<(Root, Vec<u8>)> {
+    ) -> (Root, Vec<u8>) {
         self.finish_internal(Some(lights))
     }
 
     fn finish_internal(
         mut self,
         lights: Option<Vec<khr_lights_punctual::Light>>,
-    ) -> Result<(Root, Vec<u8>)> {
-        let child_indices: Vec<Index<Node>> =
-            (0..self.nodes.len() as u32).map(Index::new).collect();
+    ) -> (Root, Vec<u8>) {
+        let child_indices: Vec<Index<Node>> = (0..Self::index_u32(self.nodes.len()))
+            .map(Index::new)
+            .collect();
         self.nodes.push(Node {
             children: Some(child_indices),
             name: Some("Root".to_string()),
             ..Default::default()
         });
-        let root_node_index = (self.nodes.len() - 1) as u32;
+        let root_node_index = Self::index_u32(self.nodes.len() - 1);
 
         let scene = Scene {
             nodes: vec![Index::new(root_node_index)],
             name: None,
-            extensions: Default::default(),
-            extras: Default::default(),
+            extensions: None,
+            extras: Void::default(),
         };
 
         let buffer = Buffer {
-            byte_length: USize64(self.buffer_data.len() as u64),
+            byte_length: USize64(Self::usize_u64(self.buffer_data.len())),
             uri: None,
             name: None,
-            extensions: Default::default(),
-            extras: Default::default(),
+            extensions: None,
+            extras: Void::default(),
         };
 
         let mut root = Root {
@@ -609,6 +616,6 @@ impl<'a> GltfBuilder<'a> {
             root.extensions_used = vec!["KHR_lights_punctual".to_string()];
         }
 
-        Ok((root, self.buffer_data))
+        (root, self.buffer_data)
     }
 }

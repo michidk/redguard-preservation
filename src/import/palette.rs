@@ -21,16 +21,17 @@ impl Palette {
             color[2] = data[offset + 2];
         }
 
-        Ok(Palette { colors })
+        Ok(Self { colors })
     }
 
     /// Returns a palette entry normalized to 0.0..=1.0 RGB values.
+    #[must_use]
     pub fn get_rgb_f32(&self, index: u8) -> [f32; 3] {
-        let c = self.colors[index as usize];
+        let c = self.colors[usize::from(index)];
         [
-            c[0] as f32 / 255.0,
-            c[1] as f32 / 255.0,
-            c[2] as f32 / 255.0,
+            f32::from(c[0]) / 255.0,
+            f32::from(c[1]) / 255.0,
+            f32::from(c[2]) / 255.0,
         ]
     }
 }

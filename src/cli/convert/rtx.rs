@@ -3,7 +3,7 @@ use color_eyre::Result;
 use hound::{SampleFormat, WavSpec, WavWriter};
 use log::info;
 use rayon::prelude::*;
-use redguard_preservation::import::rtx::{self, RtxEntry};
+use rgpre::import::rtx::{self, RtxEntry};
 use serde_json::json;
 use std::path::Path;
 
@@ -47,7 +47,7 @@ pub(super) fn handle_rtx_convert(args: &ConvertArgs, output_path: &Path) -> Resu
 
                     if header.audio_type.bits_per_sample() == 8 {
                         for &sample in pcm_data {
-                            writer.write_sample(sample as i8)?;
+                            writer.write_sample(sample.cast_signed())?;
                         }
                     } else {
                         for chunk in pcm_data.chunks_exact(2) {

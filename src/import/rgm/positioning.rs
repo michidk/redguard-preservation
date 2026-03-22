@@ -17,6 +17,9 @@ use std::collections::HashMap;
 const RGM_POSITION_SCALE: f32 = 1.0 / 5120.0;
 const MPOB_ANGLE_TO_DEGREES: f32 = 180.0 / 1024.0;
 const ROPE_LINK_Y_STEP: f32 = 0.8;
+const MPSF_ITEM_SIZE: usize = 24;
+const RAHD_ITEM_SIZE: usize = 165;
+const MPRP_RECORD_SIZE: usize = 80;
 
 #[derive(Debug, Clone)]
 struct MpsfRecord {
@@ -106,102 +109,23 @@ pub(super) fn extract_positioned_models(
         info!("Processing section {}: {}", i + 1, section.header().name());
 
         match section {
-            RgmSection::Mps(_, mps_records) => {
-                info!(
-                    "Found MPSO section with {} static objects",
-                    mps_records.len()
-                );
-
-                for (idx, record) in mps_records.iter().enumerate() {
-                    let model_name = record.model_name();
-                    if !model_name.is_empty() {
-                        info!("Looking for static model: '{model_name}'");
-                        if let Some(model) =
-                            cached_load_model(&model_name, registry, &mut model_cache, &rob_index)
-                        {
-                            positioned_models.push(PositionedModel {
-                                model,
-                                transform: mps_transform(record),
-                                model_name: format!("S{idx:03}_{model_name}"),
-                                source_id: Some(model_name.clone()),
-                            });
-                        }
-                    }
-                }
-            }
-            RgmSection::MpobParsed(_, mpob_records) => {
-                info!(
-                    "Found MPOB section with {} object records",
-                    mpob_records.len()
-                );
-
-                for (idx, record) in mpob_records.iter().enumerate() {
-                    let model_name = record.model_name();
-                    let script_name = record.script_name();
-                    let raan_fallback = if let (Some(raan), Some((raan_offset, _raan_count))) =
-                        (raan_data, rahd_index.get(&script_name))
-                    {
-                        parse_raan_model_name(raan, *raan_offset)
-                    } else {
-                        None
-                    };
-
-                    if model_name.is_empty()
-                        && let Some(fallback) = raan_fallback.as_ref()
-                    {
-                        info!(
-                            "Resolved empty MPOB model via RAAN fallback: script='{script_name}' -> '{fallback}'"
-                        );
-                    }
-
-                    let resolved_name = if !model_name.is_empty() {
-                        model_name
-                    } else if let Some(name) = raan_fallback {
-                        name
-                    } else {
-                        script_name.clone()
-                    };
-
-                    if !resolved_name.is_empty() {
-                        info!(
-                            "Looking for positioned model: '{}' (script='{}', static={})",
-                            resolved_name, script_name, record.is_static
-                        );
-                        if let Some(model) = cached_load_model(
-                            &resolved_name,
-                            registry,
-                            &mut model_cache,
-                            &rob_index,
-                        ) {
-                            let mut model = model;
-                            let texture_override = rahd_texture_overrides.get(&script_name);
-                            if let Some(tex_id) = texture_override {
-                                debug!(
-                                    "Applying RAHD texture override for script '{script_name}': TEXBSI.{tex_id:03}"
-                                );
-                                apply_texture_override(&mut model, *tex_id);
-                            }
-                            let source_id = match texture_override {
-                                Some(tex_id) => format!("{resolved_name}:tex{tex_id}"),
-                                None => resolved_name.clone(),
-                            };
-                            positioned_models.push(PositionedModel {
-                                model,
-                                transform: mpob_transform(record),
-                                model_name: format!("B_{idx:03}_{script_name}"),
-                                source_id: Some(source_id),
-                            });
-                        } else {
-                            positioned_models.push(PositionedModel {
-                                model: build_empty_model(),
-                                transform: mpob_transform(record),
-                                model_name: format!("B_{idx:03}_{script_name}"),
-                                source_id: None,
-                            });
-                        }
-                    }
-                }
-            }
+            RgmSection::Mps(_, mps_records) => process_mps_section(
+                mps_records,
+                registry,
+                &mut positioned_models,
+                &mut model_cache,
+                &rob_index,
+            ),
+            RgmSection::MpobParsed(_, mpob_records) => process_mpob_section(
+                mpob_records,
+                raan_data,
+                &rahd_index,
+                &rahd_texture_overrides,
+                registry,
+                &mut positioned_models,
+                &mut model_cache,
+                &rob_index,
+            ),
             RgmSection::MprpParsed(_, records) => {
                 info!("Found MPRP section with {} rope records", records.len());
                 append_rope_records(
@@ -226,43 +150,8 @@ pub(super) fn extract_positioned_models(
                     &rob_index,
                 );
             }
-            RgmSection::Mpf(_, mpf_data) => {
-                let records = parse_mpsf_records(mpf_data);
-                if !records.is_empty() {
-                    info!("Found MPSF section with {} flat records", records.len());
-                }
-
-                for (i, record) in records.iter().enumerate() {
-                    positioned_models.push(PositionedModel {
-                        model: build_flat_model(record.texture_id, record.image_id),
-                        transform: translation_matrix(decode_position(
-                            record.pos_x,
-                            record.pos_y,
-                            record.pos_z,
-                        )),
-                        model_name: format!("F{i:03}_{}/{}", record.texture_id, record.image_id),
-                        source_id: None,
-                    });
-                }
-            }
-            RgmSection::MplParsed(_, records) => {
-                if !records.is_empty() {
-                    info!("Found MPSL section with {} lights", records.len());
-                }
-
-                for (idx, record) in records.iter().enumerate() {
-                    positioned_lights.push(PositionedLight {
-                        color: [
-                            decode_mpsl_color(record.color_r),
-                            decode_mpsl_color(record.color_g),
-                            decode_mpsl_color(record.color_b),
-                        ],
-                        position: decode_position(record.pos_x, record.pos_y, record.pos_z),
-                        range: decode_mpsl_range(record.param0, record.param1),
-                        name: format!("L{idx:03}"),
-                    });
-                }
-            }
+            RgmSection::Mpf(_, mpf_data) => append_mpf_models(mpf_data, &mut positioned_models),
+            RgmSection::MplParsed(_, records) => append_mpl_lights(records, &mut positioned_lights),
             _ => {}
         }
     }
@@ -275,6 +164,178 @@ pub(super) fn extract_positioned_models(
     (positioned_models, positioned_lights)
 }
 
+fn process_mps_section(
+    mps_records: &[MpsRecord],
+    registry: &Registry,
+    positioned_models: &mut Vec<PositionedModel>,
+    model_cache: &mut HashMap<String, Option<Model3DFile>>,
+    rob_index: &HashMap<String, Model3DFile>,
+) {
+    info!(
+        "Found MPSO section with {} static objects",
+        mps_records.len()
+    );
+
+    for (idx, record) in mps_records.iter().enumerate() {
+        let model_name = record.model_name();
+        if model_name.is_empty() {
+            continue;
+        }
+
+        info!("Looking for static model: '{model_name}'");
+        if let Some(model) = cached_load_model(&model_name, registry, model_cache, rob_index) {
+            positioned_models.push(PositionedModel {
+                model,
+                transform: mps_transform(record),
+                model_name: format!("S{idx:03}_{model_name}"),
+                source_id: Some(model_name),
+            });
+        }
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn process_mpob_section(
+    mpob_records: &[MpobRecord],
+    raan_data: Option<&[u8]>,
+    rahd_index: &HashMap<String, (usize, usize)>,
+    rahd_texture_overrides: &HashMap<String, u16>,
+    registry: &Registry,
+    positioned_models: &mut Vec<PositionedModel>,
+    model_cache: &mut HashMap<String, Option<Model3DFile>>,
+    rob_index: &HashMap<String, Model3DFile>,
+) {
+    info!(
+        "Found MPOB section with {} object records",
+        mpob_records.len()
+    );
+
+    for (idx, record) in mpob_records.iter().enumerate() {
+        let script_name = record.script_name();
+        let resolved_name = resolve_mpob_model_name(record, &script_name, raan_data, rahd_index);
+        if resolved_name.is_empty() {
+            continue;
+        }
+
+        info!(
+            "Looking for positioned model: '{}' (script='{}', static={})",
+            resolved_name, script_name, record.is_static
+        );
+
+        if let Some(model) = cached_load_model(&resolved_name, registry, model_cache, rob_index) {
+            positioned_models.push(build_loaded_mpob_model(
+                model,
+                record,
+                idx,
+                &script_name,
+                &resolved_name,
+                rahd_texture_overrides.get(&script_name).copied(),
+            ));
+        } else {
+            positioned_models.push(PositionedModel {
+                model: build_empty_model(),
+                transform: mpob_transform(record),
+                model_name: format!("B_{idx:03}_{script_name}"),
+                source_id: None,
+            });
+        }
+    }
+}
+
+fn resolve_mpob_model_name(
+    record: &MpobRecord,
+    script_name: &str,
+    raan_data: Option<&[u8]>,
+    rahd_index: &HashMap<String, (usize, usize)>,
+) -> String {
+    let model_name = record.model_name();
+    let raan_fallback = match (raan_data, rahd_index.get(script_name)) {
+        (Some(raan), Some((raan_offset, _raan_count))) => parse_raan_model_name(raan, *raan_offset),
+        _ => None,
+    };
+
+    if model_name.is_empty()
+        && let Some(fallback) = raan_fallback.as_ref()
+    {
+        info!(
+            "Resolved empty MPOB model via RAAN fallback: script='{script_name}' -> '{fallback}'"
+        );
+    }
+
+    if !model_name.is_empty() {
+        model_name
+    } else if let Some(name) = raan_fallback {
+        name
+    } else {
+        script_name.to_owned()
+    }
+}
+
+fn build_loaded_mpob_model(
+    mut model: Model3DFile,
+    record: &MpobRecord,
+    idx: usize,
+    script_name: &str,
+    resolved_name: &str,
+    texture_override: Option<u16>,
+) -> PositionedModel {
+    if let Some(tex_id) = texture_override {
+        debug!("Applying RAHD texture override for script '{script_name}': TEXBSI.{tex_id:03}");
+        apply_texture_override(&mut model, tex_id);
+    }
+
+    let source_id = texture_override.map_or_else(
+        || resolved_name.to_owned(),
+        |tex_id| format!("{resolved_name}:tex{tex_id}"),
+    );
+
+    PositionedModel {
+        model,
+        transform: mpob_transform(record),
+        model_name: format!("B_{idx:03}_{script_name}"),
+        source_id: Some(source_id),
+    }
+}
+
+fn append_mpf_models(mpf_data: &[u8], positioned_models: &mut Vec<PositionedModel>) {
+    let records = parse_mpsf_records(mpf_data);
+    if !records.is_empty() {
+        info!("Found MPSF section with {} flat records", records.len());
+    }
+
+    for (idx, record) in records.iter().enumerate() {
+        positioned_models.push(PositionedModel {
+            model: build_flat_model(record.texture_id, record.image_id),
+            transform: translation_matrix(decode_position(
+                record.pos_x,
+                record.pos_y,
+                record.pos_z,
+            )),
+            model_name: format!("F{idx:03}_{}/{}", record.texture_id, record.image_id),
+            source_id: None,
+        });
+    }
+}
+
+fn append_mpl_lights(records: &[super::MpslRecord], positioned_lights: &mut Vec<PositionedLight>) {
+    if !records.is_empty() {
+        info!("Found MPSL section with {} lights", records.len());
+    }
+
+    for (idx, record) in records.iter().enumerate() {
+        positioned_lights.push(PositionedLight {
+            color: [
+                decode_mpsl_color(record.color_r),
+                decode_mpsl_color(record.color_g),
+                decode_mpsl_color(record.color_b),
+            ],
+            position: decode_position(record.pos_x, record.pos_y, record.pos_z),
+            range: decode_mpsl_range(record.param0, record.param1),
+            name: format!("L{idx:03}"),
+        });
+    }
+}
+
 fn append_rope_records(
     records: &[MprpRecord],
     registry: &Registry,
@@ -284,7 +345,7 @@ fn append_rope_records(
 ) {
     for (i, record) in records.iter().enumerate() {
         let mut pos = decode_position(record.pos_x, record.pos_y, record.pos_z);
-        let link_count = record.length.max(0) as usize;
+        let link_count = usize::try_from(record.length.max(0)).unwrap_or_default();
         if !record.rope_model.is_empty()
             && let Some(model) =
                 cached_load_model(&record.rope_model, registry, model_cache, rob_index)
@@ -314,27 +375,30 @@ fn append_rope_records(
     }
 }
 
+#[allow(clippy::cast_precision_loss, clippy::cast_possible_truncation)]
+// Fixed-point scene units are intentionally converted to f32 transforms.
 pub(super) fn decode_position(pos_x: i32, pos_y: i32, pos_z: u32) -> [f32; 3] {
-    let x = -(((pos_x as i64) * 256) as f32) * RGM_POSITION_SCALE;
-    let y = -(((pos_y as i64) * 256) as f32) * RGM_POSITION_SCALE;
-    let z24 = (pos_z & 0x00FF_FFFF) as i64;
-    let z = -((0x00FF_FFFF_i64 - (z24 * 256)) as f32) * RGM_POSITION_SCALE;
+    let x = -(f64::from(pos_x) * 256.0) as f32 * RGM_POSITION_SCALE;
+    let y = -(f64::from(pos_y) * 256.0) as f32 * RGM_POSITION_SCALE;
+    let z24 = f64::from(pos_z & 0x00FF_FFFF);
+    let z_full_scale = f64::from(0x00FF_FFFF_u32);
+    let z = -((z_full_scale - (z24 * 256.0)) as f32) * RGM_POSITION_SCALE;
     [x, y, z]
 }
 
 fn decode_mpsl_color(color_byte: u8) -> f32 {
-    (color_byte as f32 - 31.0) / 193.0
+    (f32::from(color_byte) - 31.0) / 193.0
 }
 
 fn decode_mpsl_range(param0: i16, param1: i16) -> f32 {
     let raw = if param0 != 0 { param0 } else { param1 };
-    (raw as f32).abs() * 0.05
+    f32::from(raw).abs() * 0.05
 }
 
 fn read_i24_le_signed(bytes: &[u8], offset: usize) -> Option<i32> {
-    let b0 = *bytes.get(offset)? as i32;
-    let b1 = (*bytes.get(offset + 1)? as i32) << 8;
-    let b2 = (*bytes.get(offset + 2)? as i32) << 16;
+    let b0 = i32::from(*bytes.get(offset)?);
+    let b1 = i32::from(*bytes.get(offset + 1)?) << 8;
+    let b2 = i32::from(*bytes.get(offset + 2)?) << 16;
     let mut value = b0 | b1 | b2;
     if (value & 0x0080_0000) != 0 {
         value |= !0x00FF_FFFF;
@@ -347,28 +411,28 @@ fn parse_mpsf_records(data: &[u8]) -> Vec<MpsfRecord> {
         return Vec::new();
     }
 
-    let count = u32::from_le_bytes([data[0], data[1], data[2], data[3]]) as usize;
-    const ITEM_SIZE: usize = 24;
+    let count = usize::try_from(u32::from_le_bytes([data[0], data[1], data[2], data[3]]))
+        .unwrap_or_default();
     let mut records = Vec::with_capacity(count);
     let mut cursor = 4usize;
     for _ in 0..count {
-        if cursor + ITEM_SIZE > data.len() {
+        if cursor + MPSF_ITEM_SIZE > data.len() {
             break;
         }
 
-        let item = &data[cursor..cursor + ITEM_SIZE];
+        let item = &data[cursor..cursor + MPSF_ITEM_SIZE];
         let Some(pos_x) = read_i24_le_signed(item, 8) else {
-            cursor += ITEM_SIZE;
+            cursor += MPSF_ITEM_SIZE;
             continue;
         };
         let Some(pos_y) = read_i24_le_signed(item, 12) else {
-            cursor += ITEM_SIZE;
+            cursor += MPSF_ITEM_SIZE;
             continue;
         };
         let pos_z = u32::from_le_bytes([item[16], item[17], item[18], 0]);
         let texture_data = u16::from_le_bytes([item[20], item[21]]);
         let texture_id = texture_data >> 7;
-        let image_id = (texture_data & 0x7F) as u8;
+        let image_id = u8::try_from(texture_data & 0x7F).unwrap_or_default();
 
         records.push(MpsfRecord {
             pos_x,
@@ -378,21 +442,47 @@ fn parse_mpsf_records(data: &[u8]) -> Vec<MpsfRecord> {
             image_id,
         });
 
-        cursor += ITEM_SIZE;
+        cursor += MPSF_ITEM_SIZE;
     }
 
     records
 }
 
 fn build_flat_model(texture_id: u16, image_id: u8) -> Model3DFile {
-    let header = Model3DHeader {
+    Model3DFile {
+        header: model_header(4, 1, 4),
+        version: ModelVersion::V27,
+        frame_data: vec![FrameDataEntry {
+            vertex_offset: 0,
+            normal_offset: 0,
+            reserved: 0,
+            frame_type: FrameType::Static3D,
+        }],
+        face_data: vec![flat_model_face(texture_id, image_id)],
+        vertex_coords: flat_model_vertices(),
+        face_normals: vec![FaceNormal {
+            x: 0.0,
+            y: 1.0,
+            z: 0.0,
+        }],
+        normal_indices: vec![],
+        vertex_normals: flat_model_normals(),
+    }
+}
+
+const fn model_header(
+    num_vertices: u32,
+    num_faces: u32,
+    total_face_vertices: u32,
+) -> Model3DHeader {
+    Model3DHeader {
         version: *b"v2.7",
-        num_vertices: 4,
-        num_faces: 1,
+        num_vertices,
+        num_faces,
         radius: 0,
         num_frames: 0,
         offset_frame_data: 0,
-        total_face_vertices: 4,
+        total_face_vertices,
         offset_section4: 0,
         section4_count: 0,
         _unused_24: 0,
@@ -400,11 +490,13 @@ fn build_flat_model(texture_id: u16, image_id: u8) -> Model3DFile {
         offset_vertex_normals: 0,
         offset_vertex_coords: 0,
         offset_face_normals: 0,
-        total_face_vertices_dup: 4,
+        total_face_vertices_dup: total_face_vertices,
         offset_face_data: 0,
-    };
+    }
+}
 
-    let face_data = FaceData {
+fn flat_model_face(texture_id: u16, image_id: u8) -> FaceData {
+    FaceData {
         vertex_count: 4,
         tex_hi: 0,
         texture_data: TextureData::Texture {
@@ -433,93 +525,63 @@ fn build_flat_model(texture_id: u16, image_id: u8) -> Model3DFile {
                 v: 256,
             },
         ],
-    };
-
-    Model3DFile {
-        header,
-        version: ModelVersion::V27,
-        frame_data: vec![FrameDataEntry {
-            vertex_offset: 0,
-            normal_offset: 0,
-            reserved: 0,
-            frame_type: FrameType::Static3D,
-        }],
-        face_data: vec![face_data],
-        vertex_coords: vec![
-            VertexCoord {
-                x: -0.5,
-                y: 0.0,
-                z: 0.5,
-            },
-            VertexCoord {
-                x: 0.5,
-                y: 0.0,
-                z: 0.5,
-            },
-            VertexCoord {
-                x: 0.5,
-                y: 0.0,
-                z: -0.5,
-            },
-            VertexCoord {
-                x: -0.5,
-                y: 0.0,
-                z: -0.5,
-            },
-        ],
-        face_normals: vec![FaceNormal {
-            x: 0.0,
-            y: 1.0,
-            z: 0.0,
-        }],
-        normal_indices: vec![],
-        vertex_normals: vec![
-            VertexNormal {
-                x: 0.0,
-                y: 1.0,
-                z: 0.0,
-            },
-            VertexNormal {
-                x: 0.0,
-                y: 1.0,
-                z: 0.0,
-            },
-            VertexNormal {
-                x: 0.0,
-                y: 1.0,
-                z: 0.0,
-            },
-            VertexNormal {
-                x: 0.0,
-                y: 1.0,
-                z: 0.0,
-            },
-        ],
     }
 }
 
-fn build_empty_model() -> Model3DFile {
-    let header = Model3DHeader {
-        version: *b"v2.7",
-        num_vertices: 0,
-        num_faces: 0,
-        radius: 0,
-        num_frames: 0,
-        offset_frame_data: 0,
-        total_face_vertices: 0,
-        offset_section4: 0,
-        section4_count: 0,
-        _unused_24: 0,
-        offset_normal_indices: 0,
-        offset_vertex_normals: 0,
-        offset_vertex_coords: 0,
-        offset_face_normals: 0,
-        total_face_vertices_dup: 0,
-        offset_face_data: 0,
-    };
+fn flat_model_vertices() -> Vec<VertexCoord> {
+    vec![
+        VertexCoord {
+            x: -0.5,
+            y: 0.0,
+            z: 0.5,
+        },
+        VertexCoord {
+            x: 0.5,
+            y: 0.0,
+            z: 0.5,
+        },
+        VertexCoord {
+            x: 0.5,
+            y: 0.0,
+            z: -0.5,
+        },
+        VertexCoord {
+            x: -0.5,
+            y: 0.0,
+            z: -0.5,
+        },
+    ]
+}
 
+fn flat_model_normals() -> Vec<VertexNormal> {
+    vec![
+        VertexNormal {
+            x: 0.0,
+            y: 1.0,
+            z: 0.0,
+        },
+        VertexNormal {
+            x: 0.0,
+            y: 1.0,
+            z: 0.0,
+        },
+        VertexNormal {
+            x: 0.0,
+            y: 1.0,
+            z: 0.0,
+        },
+        VertexNormal {
+            x: 0.0,
+            y: 1.0,
+            z: 0.0,
+        },
+    ]
+}
+
+#[allow(clippy::missing_const_for_fn)] // Contains heap allocations (`Vec`), so this cannot be const.
+fn build_empty_model() -> Model3DFile {
     Model3DFile {
-        header,
+        header: model_header(0, 0, 0),
         version: ModelVersion::V27,
         frame_data: vec![],
         face_data: vec![],
@@ -536,10 +598,14 @@ fn parse_rahd_raan_index(rahd_data: &[u8]) -> HashMap<String, (usize, usize)> {
         return out;
     }
 
-    let count =
-        u32::from_le_bytes([rahd_data[0], rahd_data[1], rahd_data[2], rahd_data[3]]) as usize;
+    let count = usize::try_from(u32::from_le_bytes([
+        rahd_data[0],
+        rahd_data[1],
+        rahd_data[2],
+        rahd_data[3],
+    ]))
+    .unwrap_or_default();
     let mut cursor = 8usize;
-    const RAHD_ITEM_SIZE: usize = 165;
 
     for _ in 0..count {
         if cursor + RAHD_ITEM_SIZE > rahd_data.len() {
@@ -551,11 +617,15 @@ fn parse_rahd_raan_index(rahd_data: &[u8]) -> HashMap<String, (usize, usize)> {
             cursor += RAHD_ITEM_SIZE;
             continue;
         };
-        let Some(raan_count) = read_i32_le(item, 0x21).map(|v| v.max(0) as usize) else {
+        let Some(raan_count) =
+            read_i32_le(item, 0x21).map(|value| usize::try_from(value.max(0)).unwrap_or_default())
+        else {
             cursor += RAHD_ITEM_SIZE;
             continue;
         };
-        let Some(raan_offset) = read_i32_le(item, 0x29).map(|v| v.max(0) as usize) else {
+        let Some(raan_offset) =
+            read_i32_le(item, 0x29).map(|value| usize::try_from(value.max(0)).unwrap_or_default())
+        else {
             cursor += RAHD_ITEM_SIZE;
             continue;
         };
@@ -576,10 +646,14 @@ fn parse_rahd_texture_overrides(rahd_data: &[u8]) -> HashMap<String, u16> {
         return out;
     }
 
-    let count =
-        u32::from_le_bytes([rahd_data[0], rahd_data[1], rahd_data[2], rahd_data[3]]) as usize;
+    let count = usize::try_from(u32::from_le_bytes([
+        rahd_data[0],
+        rahd_data[1],
+        rahd_data[2],
+        rahd_data[3],
+    ]))
+    .unwrap_or_default();
     let mut cursor = 8usize;
-    const RAHD_ITEM_SIZE: usize = 165;
 
     for _ in 0..count {
         if cursor + RAHD_ITEM_SIZE > rahd_data.len() {
@@ -591,7 +665,9 @@ fn parse_rahd_texture_overrides(rahd_data: &[u8]) -> HashMap<String, u16> {
             cursor += RAHD_ITEM_SIZE;
             continue;
         };
-        let Some(texture_id) = read_i16_le(item, 0x9B).map(|v| v.max(0) as u16) else {
+        let Some(texture_id) =
+            read_i16_le(item, 0x9B).map(|value| u16::try_from(value.max(0)).unwrap_or_default())
+        else {
             cursor += RAHD_ITEM_SIZE;
             continue;
         };
@@ -678,10 +754,10 @@ fn parse_mprp_records(data: &[u8]) -> Vec<MprpRecord> {
     if data.len() < 4 {
         return Vec::new();
     }
-    let count = u32::from_le_bytes([data[0], data[1], data[2], data[3]]) as usize;
+    let count = usize::try_from(u32::from_le_bytes([data[0], data[1], data[2], data[3]]))
+        .unwrap_or_default();
     let mut records = Vec::new();
     let mut cursor = 4usize;
-    const MPRP_RECORD_SIZE: usize = 80;
 
     for _ in 0..count {
         if cursor + MPRP_RECORD_SIZE > data.len() {
@@ -691,25 +767,17 @@ fn parse_mprp_records(data: &[u8]) -> Vec<MprpRecord> {
 
         let id = u32::from_le_bytes([rec[0], rec[1], rec[2], rec[3]]);
         let unknown0 = rec[4];
-        let pos_x_u = u32::from_le_bytes([rec[5], rec[6], rec[7], 0]);
+        let encoded_pos_x = u32::from_le_bytes([rec[5], rec[6], rec[7], 0]);
         let pad_x = rec[8];
-        let pos_y_u = u32::from_le_bytes([rec[9], rec[10], rec[11], 0]);
+        let encoded_pos_y = u32::from_le_bytes([rec[9], rec[10], rec[11], 0]);
         let pad_y = rec[12];
         let pos_z = u32::from_le_bytes([rec[13], rec[14], rec[15], 0]);
         let angle_y = i32::from_le_bytes([rec[16], rec[17], rec[18], rec[19]]);
         let rope_type = i32::from_le_bytes([rec[20], rec[21], rec[22], rec[23]]);
         let swing = i32::from_le_bytes([rec[24], rec[25], rec[26], rec[27]]);
         let speed = i32::from_le_bytes([rec[28], rec[29], rec[30], rec[31]]);
-        let pos_x = if pos_x_u & 0x0080_0000 != 0 {
-            (pos_x_u | 0xFF00_0000) as i32
-        } else {
-            pos_x_u as i32
-        };
-        let pos_y = if pos_y_u & 0x0080_0000 != 0 {
-            (pos_y_u | 0xFF00_0000) as i32
-        } else {
-            pos_y_u as i32
-        };
+        let pos_x = sign_extend_u24(encoded_pos_x);
+        let pos_y = sign_extend_u24(encoded_pos_y);
         let length = i16::from_le_bytes([rec[32], rec[33]]);
         let static_model = String::from_utf8_lossy(&rec[34..43])
             .trim_matches('\0')
@@ -748,7 +816,7 @@ fn parse_mprp_records(data: &[u8]) -> Vec<MprpRecord> {
     records
 }
 
-fn translation_matrix(translation: [f32; 3]) -> [f32; 16] {
+const fn translation_matrix(translation: [f32; 3]) -> [f32; 16] {
     [
         1.0,
         0.0,
@@ -769,6 +837,14 @@ fn translation_matrix(translation: [f32; 3]) -> [f32; 16] {
     ]
 }
 
+const fn sign_extend_u24(value: u32) -> i32 {
+    let mut bytes = value.to_le_bytes();
+    if (value & 0x0080_0000) != 0 {
+        bytes[3] = 0xFF;
+    }
+    i32::from_le_bytes(bytes)
+}
+
 pub(super) fn first_section_payload(input: &[u8], target: [u8; 4]) -> Option<&[u8]> {
     let mut cursor = 0usize;
     while cursor + 8 <= input.len() {
@@ -778,12 +854,13 @@ pub(super) fn first_section_payload(input: &[u8], target: [u8; 4]) -> Option<&[u
             input[cursor + 2],
             input[cursor + 3],
         ];
-        let length = u32::from_be_bytes([
+        let length = usize::try_from(u32::from_be_bytes([
             input[cursor + 4],
             input[cursor + 5],
             input[cursor + 6],
             input[cursor + 7],
-        ]) as usize;
+        ]))
+        .unwrap_or_default();
         cursor += 8;
 
         if name == [b'E', b'N', b'D', b' '] {
@@ -803,11 +880,12 @@ pub(super) fn first_section_payload(input: &[u8], target: [u8; 4]) -> Option<&[u
     None
 }
 
+#[allow(clippy::cast_precision_loss)] // Q4.28 fixed-point values are intentionally narrowed for transforms.
 fn q4_28_to_f32(value: i32) -> f32 {
     value as f32 / 268_435_456.0
 }
 
-fn build_column_major_matrix(
+const fn build_column_major_matrix(
     rotation_row_major: [[f32; 3]; 3],
     translation: [f32; 3],
 ) -> [f32; 16] {
@@ -880,9 +958,13 @@ fn mps_transform(record: &MpsRecord) -> [f32; 16] {
 }
 
 fn mpob_transform(record: &MpobRecord) -> [f32; 16] {
-    let ex = (record.angle_x % 2048) as f32 * MPOB_ANGLE_TO_DEGREES;
-    let ey = (record.angle_y % 2048) as f32 * MPOB_ANGLE_TO_DEGREES;
-    let ez = -((record.angle_z % 2048) as f32 * MPOB_ANGLE_TO_DEGREES);
+    let angle_x = u16::try_from(record.angle_x % 2048).unwrap_or_default();
+    let angle_y = u16::try_from(record.angle_y % 2048).unwrap_or_default();
+    let angle_z = u16::try_from(record.angle_z % 2048).unwrap_or_default();
+
+    let ex = f32::from(angle_x) * MPOB_ANGLE_TO_DEGREES;
+    let ey = f32::from(angle_y) * MPOB_ANGLE_TO_DEGREES;
+    let ez = -(f32::from(angle_z) * MPOB_ANGLE_TO_DEGREES);
 
     let rx = ex.to_radians();
     let ry = ey.to_radians();
@@ -891,30 +973,30 @@ fn mpob_transform(record: &MpobRecord) -> [f32; 16] {
     let (sy, cy) = ry.sin_cos();
     let (sz, cz) = rz.sin_cos();
 
-    let ry_m = [[cy, 0.0, sy], [0.0, 1.0, 0.0], [-sy, 0.0, cy]];
-    let rx_m = [[1.0, 0.0, 0.0], [0.0, cx, -sx], [0.0, sx, cx]];
-    let rz_m = [[cz, -sz, 0.0], [sz, cz, 0.0], [0.0, 0.0, 1.0]];
+    let yaw_matrix = [[cy, 0.0, sy], [0.0, 1.0, 0.0], [-sy, 0.0, cy]];
+    let pitch_matrix = [[1.0, 0.0, 0.0], [0.0, cx, -sx], [0.0, sx, cx]];
+    let roll_matrix = [[cz, -sz, 0.0], [sz, cz, 0.0], [0.0, 0.0, 1.0]];
 
-    let mut temp = [[0.0_f32; 3]; 3];
-    for i in 0..3 {
-        for j in 0..3 {
-            temp[i][j] =
-                ry_m[i][0] * rx_m[0][j] + ry_m[i][1] * rx_m[1][j] + ry_m[i][2] * rx_m[2][j];
-        }
-    }
-
-    let mut rotation = [[0.0_f32; 3]; 3];
-    for i in 0..3 {
-        for j in 0..3 {
-            rotation[i][j] =
-                temp[i][0] * rz_m[0][j] + temp[i][1] * rz_m[1][j] + temp[i][2] * rz_m[2][j];
-        }
-    }
+    let temp = multiply_3x3(yaw_matrix, pitch_matrix);
+    let rotation = multiply_3x3(temp, roll_matrix);
 
     build_column_major_matrix(
         rotation,
         decode_position(record.pos_x, record.pos_y, record.pos_z),
     )
+}
+
+fn multiply_3x3(lhs: [[f32; 3]; 3], rhs: [[f32; 3]; 3]) -> [[f32; 3]; 3] {
+    let mut out = [[0.0_f32; 3]; 3];
+    for row in 0..3 {
+        for col in 0..3 {
+            out[row][col] = lhs[row][0].mul_add(
+                rhs[0][col],
+                lhs[row][1].mul_add(rhs[1][col], lhs[row][2] * rhs[2][col]),
+            );
+        }
+    }
+    out
 }
 
 fn read_entry_data(entry: &crate::import::registry::FileEntry) -> std::io::Result<Vec<u8>> {

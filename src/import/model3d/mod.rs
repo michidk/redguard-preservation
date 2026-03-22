@@ -30,6 +30,10 @@ pub struct Model3DHeader {
     pub total_face_vertices: u32,
     pub offset_section4: u32,
     pub section4_count: u32,
+    #[allow(
+        clippy::pub_underscore_fields,
+        reason = "field name mirrors reverse-engineered binary layout"
+    )]
     /// Always 0 in v4.0/v5.0; bulk-copied as part of the 64-byte header but never
     /// individually read at runtime.
     pub _unused_24: u32,
@@ -60,7 +64,8 @@ pub struct FaceData {
 
 impl FaceData {
     /// Returns the encoded byte size for this face in the given model version.
-    pub fn size_in_bytes(&self, version: &ModelVersion) -> usize {
+    #[must_use]
+    pub const fn size_in_bytes(&self, version: &ModelVersion) -> usize {
         let texture_header_size = if matches!(version, ModelVersion::V40 | ModelVersion::V50) {
             1 + 2 + 2
         } else {
@@ -129,6 +134,7 @@ pub struct Model3DFile {
 
 impl Model3DHeader {
     /// Returns the header version bytes as a trimmed UTF-8 string.
+    #[must_use]
     pub fn version_string(&self) -> String {
         String::from_utf8_lossy(&self.version)
             .trim_matches('\0')
@@ -136,6 +142,7 @@ impl Model3DHeader {
     }
 
     /// Maps the header version string to a known `ModelVersion` variant.
+    #[must_use]
     pub fn parse_version(&self) -> ModelVersion {
         let version_str = self.version_string();
         match version_str.as_str() {
@@ -148,11 +155,13 @@ impl Model3DHeader {
     }
 
     /// Returns `true` for v2.6 and v2.7 layout variants.
+    #[must_use]
     pub fn is_v27_or_earlier(&self) -> bool {
         matches!(self.parse_version(), ModelVersion::V26 | ModelVersion::V27)
     }
 
     /// Returns `true` for v4.0 and v5.0 layout variants.
+    #[must_use]
     pub fn is_v40_or_later(&self) -> bool {
         matches!(self.parse_version(), ModelVersion::V40 | ModelVersion::V50)
     }
@@ -160,14 +169,16 @@ impl Model3DHeader {
 
 impl Model3DFile {
     /// Counts vertices referenced by all parsed faces.
+    #[must_use]
     pub fn total_face_vertices(&self) -> usize {
         self.face_data
             .iter()
-            .map(|face| face.vertex_count as usize)
+            .map(|face| usize::from(face.vertex_count))
             .sum()
     }
 
     /// Computes an axis-aligned bounding box from parsed vertex positions.
+    #[must_use]
     pub fn bounding_box(&self) -> Option<(VertexCoord, VertexCoord)> {
         if self.vertex_coords.is_empty() {
             return None;
@@ -200,7 +211,7 @@ impl Model3DFile {
 use crate::{Result, error::Error};
 use log::warn;
 
-fn _parse_data(input: &[u8], kind: &str) -> Result<Model3DFile> {
+fn parse_data_internal(input: &[u8], kind: &str) -> Result<Model3DFile> {
     match parser::parse_3d_file(input) {
         Ok((remaining, model)) => {
             if !remaining.is_empty() {
@@ -214,5 +225,5 @@ fn _parse_data(input: &[u8], kind: &str) -> Result<Model3DFile> {
 
 /// Parses a complete 3D/3DC model file from bytes.
 pub fn parse_3d_file(input: &[u8]) -> Result<Model3DFile> {
-    _parse_data(input, "3D model file")
+    parse_data_internal(input, "3D model file")
 }

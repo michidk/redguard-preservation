@@ -19,7 +19,8 @@ pub struct WldHeader {
 
 impl WldHeader {
     /// Returns the four section offsets from header fields 36..39.
-    pub fn section_offsets(&self) -> [u32; WLD_SECTION_COUNT] {
+    #[must_use]
+    pub const fn section_offsets(&self) -> [u32; WLD_SECTION_COUNT] {
         [
             self.fields[36],
             self.fields[37],
@@ -88,13 +89,13 @@ pub fn parse_wld_file(data: &[u8]) -> Result<WldFile> {
     let header = WldHeader { fields };
 
     let offsets = header.section_offsets();
-    if offsets[0] as usize != WLD_HEADER_BYTES {
+    if usize::try_from(offsets[0]).unwrap_or(usize::MAX) != WLD_HEADER_BYTES {
         return Err(Error::Parse(format!(
             "WLD section0 offset mismatch: expected {WLD_HEADER_BYTES}, found {}",
             offsets[0]
         )));
     }
-    if header.fields[6] as usize != WLD_SECTION_HEADER_BYTES {
+    if usize::try_from(header.fields[6]).unwrap_or(usize::MAX) != WLD_SECTION_HEADER_BYTES {
         return Err(Error::Parse(format!(
             "WLD section-header-size mismatch: expected {WLD_SECTION_HEADER_BYTES}, found {}",
             header.fields[6]
@@ -102,12 +103,12 @@ pub fn parse_wld_file(data: &[u8]) -> Result<WldFile> {
     }
     for (idx, off) in offsets.iter().enumerate() {
         let next_off = if idx + 1 < WLD_SECTION_COUNT {
-            offsets[idx + 1] as usize
+            usize::try_from(offsets[idx + 1]).unwrap_or(usize::MAX)
         } else {
             data.len().saturating_sub(WLD_FOOTER_BYTES)
         };
 
-        let current = *off as usize;
+        let current = usize::try_from(*off).unwrap_or(usize::MAX);
         if current >= data.len() {
             return Err(Error::Parse(format!(
                 "WLD section {idx} offset out of range: {current}"
@@ -128,7 +129,8 @@ pub fn parse_wld_file(data: &[u8]) -> Result<WldFile> {
 
     let mut parsed_sections = Vec::with_capacity(WLD_SECTION_COUNT);
     for off in offsets {
-        let start = off as usize;
+        let start = usize::try_from(off)
+            .map_err(|_| Error::Parse("WLD section offset does not fit usize".to_string()))?;
         let header_bytes = read_fixed::<WLD_SECTION_HEADER_BYTES>(data, start)?;
         let mut cursor = start + WLD_SECTION_HEADER_BYTES;
         let mut maps = [[0_u8; WLD_MAP_BYTES]; 4];
@@ -239,10 +241,14 @@ fn write_luma_png(output_path: &Path, luma: &[u8]) -> Result<()> {
         )));
     }
 
-    let mut image = GrayImage::new((WLD_MAP_SIDE * 2) as u32, (WLD_MAP_SIDE * 2) as u32);
+    let image_side = u32::try_from(WLD_MAP_SIDE * 2)
+        .map_err(|_| Error::Conversion("WLD image side does not fit u32".to_string()))?;
+    let mut image = GrayImage::new(image_side, image_side);
     for (idx, px) in luma.iter().enumerate() {
-        let x = (idx % (WLD_MAP_SIDE * 2)) as u32;
-        let y = (idx / (WLD_MAP_SIDE * 2)) as u32;
+        let x = u32::try_from(idx % (WLD_MAP_SIDE * 2))
+            .map_err(|_| Error::Conversion("WLD x coordinate does not fit u32".to_string()))?;
+        let y = u32::try_from(idx / (WLD_MAP_SIDE * 2))
+            .map_err(|_| Error::Conversion("WLD y coordinate does not fit u32".to_string()))?;
         image.put_pixel(x, y, Luma([*px]));
     }
 

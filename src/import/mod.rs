@@ -66,48 +66,52 @@ const ALL_FILE_TYPES: [FileType; 12] = [
 ];
 
 impl FileType {
-    pub const fn all() -> &'static [FileType] {
+    #[must_use]
+    pub const fn all() -> &'static [Self] {
         &ALL_FILE_TYPES
     }
 
+    #[must_use]
     pub const fn display_name(self) -> &'static str {
         match self {
-            FileType::Bsi => "Texture BSI",
-            FileType::Cht => "Cheat States",
-            FileType::Col => "Palette",
-            FileType::Model3d => "Model",
-            FileType::Model3dc => "Animated Model",
-            FileType::Rob => "ROB World",
-            FileType::Rgm => "Map Data",
-            FileType::Pvo => "PVO Data",
-            FileType::Wld => "World Geometry",
-            FileType::Fnt => "Font",
-            FileType::Sfx => "Sound Effects",
-            FileType::Rtx => "Dialogue Audio",
+            Self::Bsi => "Texture BSI",
+            Self::Cht => "Cheat States",
+            Self::Col => "Palette",
+            Self::Model3d => "Model",
+            Self::Model3dc => "Animated Model",
+            Self::Rob => "ROB World",
+            Self::Rgm => "Map Data",
+            Self::Pvo => "PVO Data",
+            Self::Wld => "World Geometry",
+            Self::Fnt => "Font",
+            Self::Sfx => "Sound Effects",
+            Self::Rtx => "Dialogue Audio",
         }
     }
 
+    #[must_use]
     pub const fn extensions(self) -> &'static [&'static str] {
         match self {
-            FileType::Bsi => &[".bsi"],
-            FileType::Cht => &[".cht"],
-            FileType::Col => &[".col"],
-            FileType::Model3d => &[".3d"],
-            FileType::Model3dc => &[".3dc"],
-            FileType::Rob => &[".rob"],
-            FileType::Rgm => &[".rgm"],
-            FileType::Pvo => &[".pvo"],
-            FileType::Wld => &[".wld"],
-            FileType::Fnt => &[".fnt"],
-            FileType::Sfx => &[".sfx"],
-            FileType::Rtx => &[".rtx"],
+            Self::Bsi => &[".bsi"],
+            Self::Cht => &[".cht"],
+            Self::Col => &[".col"],
+            Self::Model3d => &[".3d"],
+            Self::Model3dc => &[".3dc"],
+            Self::Rob => &[".rob"],
+            Self::Rgm => &[".rgm"],
+            Self::Pvo => &[".pvo"],
+            Self::Wld => &[".wld"],
+            Self::Fnt => &[".fnt"],
+            Self::Sfx => &[".sfx"],
+            Self::Rtx => &[".rtx"],
         }
     }
 
     /// Matches a bare extension string (case-insensitive, without leading dot).
+    #[must_use]
     pub fn from_extension(ext: &str) -> Option<Self> {
-        let lower = ext.to_lowercase();
-        FileType::all().iter().copied().find(|ft| {
+        let lower = ext.to_ascii_lowercase();
+        Self::all().iter().copied().find(|ft| {
             ft.extensions()
                 .iter()
                 .any(|e| e.trim_start_matches('.') == lower)
@@ -126,7 +130,7 @@ impl std::str::FromStr for FileType {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Self::from_extension(s.trim()).ok_or_else(|| {
-            let supported = FileType::all()
+            let supported = Self::all()
                 .iter()
                 .flat_map(|ft| {
                     ft.extensions()

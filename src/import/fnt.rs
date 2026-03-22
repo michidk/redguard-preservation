@@ -173,7 +173,117 @@ fn parse_fbmp(data: &[u8], glyph_count: u16) -> Result<Vec<FntGlyph>, Error> {
     Ok(glyphs)
 }
 
+fn read_chunk_tag(bytes: &[u8], pos: usize) -> Result<[u8; 4], Error> {
+    let tag_end = pos
+        .checked_add(4)
+        .ok_or_else(|| Error::Parse("tag offset overflow".to_string()))?;
+    if tag_end > bytes.len() {
+        return Err(Error::Parse("truncated chunk tag".to_string()));
+    }
+
+    let mut tag = [0_u8; 4];
+    tag.copy_from_slice(&bytes[pos..tag_end]);
+    Ok(tag)
+}
+
+fn read_chunk_data_bounds(bytes: &[u8], tag: [u8; 4], pos: usize) -> Result<(usize, usize), Error> {
+    let len_off = pos
+        .checked_add(4)
+        .ok_or_else(|| Error::Parse("length offset overflow".to_string()))?;
+    let len_end = len_off
+        .checked_add(4)
+        .ok_or_else(|| Error::Parse("length offset overflow".to_string()))?;
+    if len_end > bytes.len() {
+        return Err(Error::Parse("truncated chunk length".to_string()));
+    }
+
+    let chunk_len = usize::try_from(u32::from_be_bytes([
+        bytes[len_off],
+        bytes[len_off + 1],
+        bytes[len_off + 2],
+        bytes[len_off + 3],
+    ]))
+    .map_err(|e| Error::Parse(format!("chunk length does not fit usize: {e}")))?;
+
+    let data_start = len_end;
+    let data_end = data_start
+        .checked_add(chunk_len)
+        .ok_or_else(|| Error::Parse("chunk data offset overflow".to_string()))?;
+    if data_end > bytes.len() {
+        return Err(Error::Parse(format!(
+            "chunk '{}' length {} exceeds file size",
+            String::from_utf8_lossy(&tag),
+            chunk_len
+        )));
+    }
+
+    Ok((data_start, data_end))
+}
+
+fn parse_non_end_chunk(
+    tag: [u8; 4],
+    data: &[u8],
+    header: &mut Option<FntHeader>,
+    palette: &mut Option<FntPalette>,
+    glyphs: &mut Option<Vec<FntGlyph>>,
+    rdat: &mut Option<Vec<u8>>,
+) -> Result<(), Error> {
+    match &tag {
+        b"FNHD" => {
+            if header.is_some() {
+                return Err(Error::Parse("duplicate FNHD chunk".to_string()));
+            }
+            *header = Some(parse_fnhd(data)?);
+        }
+        b"BPAL" | b"FPAL" => {
+            if palette.is_some() {
+                return Err(Error::Parse("duplicate palette chunk".to_string()));
+            }
+            *palette = Some(parse_palette(tag, data)?);
+        }
+        b"FBMP" => {
+            if glyphs.is_some() {
+                return Err(Error::Parse("duplicate FBMP chunk".to_string()));
+            }
+            let hdr = header
+                .as_ref()
+                .ok_or_else(|| Error::Parse("FBMP encountered before FNHD".to_string()))?;
+            *glyphs = Some(parse_fbmp(data, hdr.character_count)?);
+        }
+        b"RDAT" => {
+            if rdat.is_some() {
+                return Err(Error::Parse("duplicate RDAT chunk".to_string()));
+            }
+            *rdat = Some(data.to_vec());
+        }
+        _ => {
+            return Err(Error::Parse(format!(
+                "unsupported FNT chunk tag: '{}'",
+                String::from_utf8_lossy(&tag)
+            )));
+        }
+    }
+
+    Ok(())
+}
+
+fn read_trailing_padding(bytes: &[u8], pos: usize) -> Result<Vec<u8>, Error> {
+    if pos >= bytes.len() {
+        return Ok(Vec::new());
+    }
+
+    let tail = bytes[pos..].to_vec();
+    if !tail.iter().all(|b| *b == 0) {
+        return Err(Error::Parse(
+            "non-zero trailing data after END marker".to_string(),
+        ));
+    }
+
+    Ok(tail)
+}
+
 /// Parses a Redguard FNT file from raw bytes.
+#[allow(clippy::missing_errors_doc)]
 pub fn parse_fnt(bytes: &[u8]) -> Result<FntFile, Error> {
     let mut pos = 0_usize;
 
@@ -184,87 +294,18 @@ pub fn parse_fnt(bytes: &[u8]) -> Result<FntFile, Error> {
     let mut rdat: Option<Vec<u8>> = None;
 
     while pos < bytes.len() {
-        let tag_end = pos
-            .checked_add(4)
-            .ok_or_else(|| Error::Parse("tag offset overflow".to_string()))?;
-        if tag_end > bytes.len() {
-            return Err(Error::Parse("truncated chunk tag".to_string()));
-        }
-
-        let mut tag = [0_u8; 4];
-        tag.copy_from_slice(&bytes[pos..tag_end]);
+        let tag = read_chunk_tag(bytes, pos)?;
 
         if tag == *b"END " {
             chunk_order.push("END".to_string());
-            pos = tag_end;
+            pos = pos.saturating_add(4);
             break;
         }
 
-        let len_off = tag_end;
-        let len_end = len_off
-            .checked_add(4)
-            .ok_or_else(|| Error::Parse("length offset overflow".to_string()))?;
-        if len_end > bytes.len() {
-            return Err(Error::Parse("truncated chunk length".to_string()));
-        }
-
-        let chunk_len = u32::from_be_bytes([
-            bytes[len_off],
-            bytes[len_off + 1],
-            bytes[len_off + 2],
-            bytes[len_off + 3],
-        ]) as usize;
-
-        let data_start = len_end;
-        let data_end = data_start
-            .checked_add(chunk_len)
-            .ok_or_else(|| Error::Parse("chunk data offset overflow".to_string()))?;
-        if data_end > bytes.len() {
-            return Err(Error::Parse(format!(
-                "chunk '{}' length {} exceeds file size",
-                String::from_utf8_lossy(&tag),
-                chunk_len
-            )));
-        }
-
+        let (data_start, data_end) = read_chunk_data_bounds(bytes, tag, pos)?;
         let data = &bytes[data_start..data_end];
         chunk_order.push(String::from_utf8_lossy(&tag).to_string());
-
-        match &tag {
-            b"FNHD" => {
-                if header.is_some() {
-                    return Err(Error::Parse("duplicate FNHD chunk".to_string()));
-                }
-                header = Some(parse_fnhd(data)?);
-            }
-            b"BPAL" | b"FPAL" => {
-                if palette.is_some() {
-                    return Err(Error::Parse("duplicate palette chunk".to_string()));
-                }
-                palette = Some(parse_palette(tag, data)?);
-            }
-            b"FBMP" => {
-                if glyphs.is_some() {
-                    return Err(Error::Parse("duplicate FBMP chunk".to_string()));
-                }
-                let hdr = header
-                    .as_ref()
-                    .ok_or_else(|| Error::Parse("FBMP encountered before FNHD".to_string()))?;
-                glyphs = Some(parse_fbmp(data, hdr.character_count)?);
-            }
-            b"RDAT" => {
-                if rdat.is_some() {
-                    return Err(Error::Parse("duplicate RDAT chunk".to_string()));
-                }
-                rdat = Some(data.to_vec());
-            }
-            _ => {
-                return Err(Error::Parse(format!(
-                    "unsupported FNT chunk tag: '{}'",
-                    String::from_utf8_lossy(&tag)
-                )));
-            }
-        }
+        parse_non_end_chunk(tag, data, &mut header, &mut palette, &mut glyphs, &mut rdat)?;
 
         pos = data_end;
     }
@@ -284,17 +325,7 @@ pub fn parse_fnt(bytes: &[u8]) -> Result<FntFile, Error> {
         ));
     }
 
-    let trailing_padding = if pos < bytes.len() {
-        let tail = bytes[pos..].to_vec();
-        if !tail.iter().all(|b| *b == 0) {
-            return Err(Error::Parse(
-                "non-zero trailing data after END marker".to_string(),
-            ));
-        }
-        tail
-    } else {
-        Vec::new()
-    };
+    let trailing_padding = read_trailing_padding(bytes, pos)?;
 
     Ok(FntFile {
         chunk_order,

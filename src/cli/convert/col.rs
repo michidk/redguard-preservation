@@ -1,7 +1,7 @@
 use crate::opts::ConvertArgs;
 use color_eyre::Result;
 use log::info;
-use redguard_preservation::import::{palette::Palette, palette_export};
+use rgpre::import::{palette::Palette, palette_export};
 use std::path::Path;
 
 pub(super) fn handle_col_convert(args: &ConvertArgs, output_path: &Path) -> Result<()> {

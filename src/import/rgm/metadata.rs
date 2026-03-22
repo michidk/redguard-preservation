@@ -24,9 +24,11 @@ const OPCODE_NAMES: [&str; 16] = [
 ];
 
 const ANIM_TYPE_NAMES: [&str; 3] = ["interruptible", "must_complete", "no_panic_revert"];
+const RAHD_ITEM_SIZE: usize = 165;
 
 impl RagrCommand {
-    fn sign_extend(val: i32, bits: u32) -> i16 {
+    #[allow(clippy::cast_possible_truncation)] // Sign extension limits the value to the requested bit-width.
+    const fn sign_extend(val: i32, bits: u32) -> i16 {
         let mask = (1i32 << bits) - 1;
         let sign_bit = 1i32 << (bits - 1);
         let raw = val & mask;
@@ -37,32 +39,39 @@ impl RagrCommand {
         }
     }
 
-    pub fn param_10a(&self) -> i16 {
-        Self::sign_extend((self.raw >> 4) as i32, 10)
+    #[must_use]
+    pub const fn param_10a(&self) -> i16 {
+        Self::sign_extend((self.raw >> 4).cast_signed(), 10)
     }
 
-    pub fn param_10b(&self) -> i16 {
-        Self::sign_extend((self.raw >> 14) as i32, 10)
+    #[must_use]
+    pub const fn param_10b(&self) -> i16 {
+        Self::sign_extend((self.raw >> 14).cast_signed(), 10)
     }
 
-    pub fn param_6a(&self) -> i16 {
-        Self::sign_extend((self.raw >> 4) as i32, 6)
+    #[must_use]
+    pub const fn param_6a(&self) -> i16 {
+        Self::sign_extend((self.raw >> 4).cast_signed(), 6)
     }
 
-    pub fn param_6b(&self) -> i16 {
-        Self::sign_extend((self.raw >> 10) as i32, 6)
+    #[must_use]
+    pub const fn param_6b(&self) -> i16 {
+        Self::sign_extend((self.raw >> 10).cast_signed(), 6)
     }
 
-    pub fn param_6c(&self) -> i16 {
-        Self::sign_extend((self.raw >> 16) as i32, 6)
+    #[must_use]
+    pub const fn param_6c(&self) -> i16 {
+        Self::sign_extend((self.raw >> 16).cast_signed(), 6)
     }
 
-    pub fn param_2(&self) -> u8 {
+    #[must_use]
+    pub const fn param_2(&self) -> u8 {
         ((self.raw >> 4) & 0x3) as u8
     }
 
-    pub fn param_18(&self) -> i32 {
-        let raw = ((self.raw >> 6) & 0x3FFFF) as i32;
+    #[must_use]
+    pub const fn param_18(&self) -> i32 {
+        let raw = ((self.raw >> 6) & 0x3FFFF).cast_signed();
         let sign_bit = 1i32 << 17;
         if raw & sign_bit != 0 {
             raw | !0x3FFFF
@@ -71,20 +80,24 @@ impl RagrCommand {
         }
     }
 
-    pub fn param_6(&self) -> i16 {
-        Self::sign_extend((self.raw >> 4) as i32, 6)
+    #[must_use]
+    pub const fn param_6(&self) -> i16 {
+        Self::sign_extend((self.raw >> 4).cast_signed(), 6)
     }
 
-    pub fn param_7a(&self) -> i16 {
-        Self::sign_extend((self.raw >> 10) as i32, 7)
+    #[must_use]
+    pub const fn param_7a(&self) -> i16 {
+        Self::sign_extend((self.raw >> 10).cast_signed(), 7)
     }
 
-    pub fn param_7b(&self) -> i16 {
-        Self::sign_extend((self.raw >> 17) as i32, 7)
+    #[must_use]
+    pub const fn param_7b(&self) -> i16 {
+        Self::sign_extend((self.raw >> 17).cast_signed(), 7)
     }
 
-    pub fn param_20(&self) -> i32 {
-        let raw = ((self.raw >> 4) & 0xFFFFF) as i32;
+    #[must_use]
+    pub const fn param_20(&self) -> i32 {
+        let raw = ((self.raw >> 4) & 0xFFFFF).cast_signed();
         let sign_bit = 1i32 << 19;
         if raw & sign_bit != 0 {
             raw | !0xFFFFF
@@ -93,21 +106,25 @@ impl RagrCommand {
         }
     }
 
-    pub fn handle_index(&self) -> i16 {
+    #[must_use]
+    pub const fn handle_index(&self) -> i16 {
         self.param_10a()
     }
 
-    pub fn vertex_index(&self) -> i16 {
+    #[must_use]
+    pub const fn vertex_index(&self) -> i16 {
         self.param_10b()
     }
 
-    pub fn sets_attachment(&self) -> bool {
+    #[must_use]
+    pub const fn sets_attachment(&self) -> bool {
         self.opcode == 0
     }
 }
 
+#[allow(clippy::missing_const_for_fn)] // `u32::from` in const fn requires unstable const-trait support.
 pub(super) fn decode_ragr_command(b0: u8, b1: u8, b2: u8) -> RagrCommand {
-    let raw = (b0 as u32) | ((b1 as u32) << 8) | ((b2 as u32) << 16);
+    let raw = u32::from(b0) | (u32::from(b1) << 8) | (u32::from(b2) << 16);
     RagrCommand {
         raw,
         opcode: (raw & 0xF) as u8,
@@ -180,8 +197,6 @@ pub(super) fn parse_rahd_ragr_index_impl(rahd_data: &[u8]) -> HashMap<String, us
     let count =
         u32::from_le_bytes([rahd_data[0], rahd_data[1], rahd_data[2], rahd_data[3]]) as usize;
     let mut cursor = 8usize;
-    const RAHD_ITEM_SIZE: usize = 165;
-
     for _ in 0..count {
         if cursor + RAHD_ITEM_SIZE > rahd_data.len() {
             break;
@@ -192,7 +207,9 @@ pub(super) fn parse_rahd_ragr_index_impl(rahd_data: &[u8]) -> HashMap<String, us
             cursor += RAHD_ITEM_SIZE;
             continue;
         };
-        let Some(ragr_offset) = read_i32_le(item, 0x31).map(|v| v.max(0) as usize) else {
+        let Some(ragr_offset) =
+            read_i32_le(item, 0x31).map(|value| usize::try_from(value.max(0)).unwrap_or_default())
+        else {
             cursor += RAHD_ITEM_SIZE;
             continue;
         };
@@ -207,7 +224,7 @@ pub(super) fn parse_rahd_ragr_index_impl(rahd_data: &[u8]) -> HashMap<String, us
     out
 }
 
-fn command_to_json(cmd: &RagrCommand) -> serde_json::Value {
+fn command_to_json(cmd: RagrCommand) -> serde_json::Value {
     let mut obj = serde_json::Map::new();
     obj.insert("opcode".into(), cmd.opcode.into());
     obj.insert("name".into(), OPCODE_NAMES[cmd.opcode as usize].into());
@@ -258,7 +275,7 @@ fn group_to_json(group: &RagrAnimGroup) -> serde_json::Value {
         "anim_type": group.flag,
         "anim_type_name": anim_type_name,
         "frame_count": group.frame_count,
-        "commands": group.commands.iter().map(command_to_json).collect::<Vec<_>>()
+        "commands": group.commands.iter().copied().map(command_to_json).collect::<Vec<_>>()
     })
 }
 
@@ -304,8 +321,6 @@ pub(super) fn export_rgm_metadata_json_impl(rgm: &RgmFile) -> serde_json::Value 
     }
 
     let count = u32::from_le_bytes([rahd[0], rahd[1], rahd[2], rahd[3]]) as usize;
-    const RAHD_ITEM_SIZE: usize = 165;
-
     let mut actors = Vec::new();
     for i in 0..count {
         let rec_off = 8 + i * RAHD_ITEM_SIZE;
@@ -325,9 +340,9 @@ pub(super) fn export_rgm_metadata_json_impl(rgm: &RgmFile) -> serde_json::Value 
         actor.insert("script_name".into(), script_name.clone().into());
 
         if let Some(ragr) = ragr_data
-            && ragr_offset >= 0
+            && let Ok(ragr_offset) = usize::try_from(ragr_offset)
         {
-            let groups = parse_ragr_actor_groups_impl(ragr, ragr_offset as usize);
+            let groups = parse_ragr_actor_groups_impl(ragr, ragr_offset);
             if !groups.is_empty() {
                 actor.insert(
                     "animation_groups".into(),

@@ -3,7 +3,7 @@ use color_eyre::Result;
 use hound::{SampleFormat, WavSpec, WavWriter};
 use log::info;
 use rayon::prelude::*;
-use redguard_preservation::import::sfx;
+use rgpre::import::sfx;
 use std::path::Path;
 
 pub(super) fn handle_sfx_convert(args: &ConvertArgs, output_path: &Path) -> Result<()> {
@@ -31,7 +31,7 @@ pub(super) fn handle_sfx_convert(args: &ConvertArgs, output_path: &Path) -> Resu
 
             if effect.audio_type.bits_per_sample() == 8 {
                 for &sample in &effect.pcm_data {
-                    writer.write_sample(sample as i8)?;
+                    writer.write_sample(sample.cast_signed())?;
                 }
             } else {
                 for chunk in effect.pcm_data.chunks_exact(2) {

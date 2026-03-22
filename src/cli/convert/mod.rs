@@ -15,11 +15,11 @@ use color_eyre::Result;
 use color_eyre::eyre::WrapErr;
 use color_eyre::eyre::bail;
 use log::{info, warn};
-use redguard_preservation::gltf::{
+use rgpre::gltf::{
     TextureCache, convert_models_to_gltf, convert_positioned_models_to_gltf, to_glb,
 };
-use redguard_preservation::import::FileType;
-use redguard_preservation::import::{palette::Palette, registry};
+use rgpre::import::FileType;
+use rgpre::import::{palette::Palette, registry};
 use std::path::{Path, PathBuf};
 
 fn resolve_asset_root(args: &ConvertArgs) -> PathBuf {
@@ -33,14 +33,11 @@ fn resolve_asset_root(args: &ConvertArgs) -> PathBuf {
 fn default_output_for(file: &Path, filetype: FileType) -> PathBuf {
     let mut path = file.to_path_buf();
     match filetype {
-        FileType::Fnt | FileType::Col => {
+        FileType::Fnt | FileType::Col | FileType::Wld => {
             path.set_extension("png");
         }
         FileType::Cht | FileType::Pvo => {
             path.set_extension("json");
-        }
-        FileType::Wld => {
-            path.set_extension("png");
         }
         FileType::Sfx | FileType::Rtx => {
             path.set_extension("");
@@ -98,7 +95,150 @@ pub(super) fn ensure_parent_dir(path: &Path) -> Result<(), color_eyre::eyre::Err
     Ok(())
 }
 
-pub(crate) fn handle_convert_command(args: ConvertArgs) -> Result<()> {
+fn resolve_output_path(args: &ConvertArgs, filetype: FileType) -> PathBuf {
+    if filetype != FileType::Fnt {
+        return args
+            .output
+            .clone()
+            .unwrap_or_else(|| default_output_for(&args.file, filetype));
+    }
+
+    match (args.output.clone(), args.font_output) {
+        (Some(path), _) => path,
+        (None, Some(mode)) => default_fnt_output_for_mode(&args.file, mode),
+        (None, None) => default_output_for(&args.file, filetype),
+    }
+}
+
+fn dispatch_direct_conversion(
+    args: &ConvertArgs,
+    output_path: &Path,
+    filetype: FileType,
+) -> Option<Result<()>> {
+    match filetype {
+        FileType::Cht => Some(cht::handle_cht_convert(args, output_path)),
+        FileType::Col => Some(col::handle_col_convert(args, output_path)),
+        FileType::Pvo => Some(pvo::handle_pvo_convert(args, output_path)),
+        FileType::Fnt => Some(fnt::handle_fnt_convert(args, output_path)),
+        FileType::Wld => Some(wld::handle_wld_convert(args, output_path)),
+        FileType::Sfx => Some(sfx::handle_sfx_convert(args, output_path)),
+        FileType::Rtx => Some(rtx::handle_rtx_convert(args, output_path)),
+        FileType::Bsi => Some(texbsi::handle_texbsi_convert(args, output_path)),
+        FileType::Rgm | FileType::Model3d | FileType::Model3dc | FileType::Rob => None,
+    }
+}
+
+fn load_palette(
+    args: &ConvertArgs,
+    asset_root: &Path,
+    filetype: FileType,
+) -> Result<Option<Palette>> {
+    match args.palette.as_ref() {
+        Some(path) => {
+            let data = std::fs::read(path)?;
+            let palette = Palette::parse(&data).map_err(|e| color_eyre::eyre::eyre!("{e}"))?;
+            Ok(Some(palette))
+        }
+        None => auto_resolve_palette(asset_root, &args.file, filetype),
+    }
+}
+
+fn build_texture_cache(palette: Option<&Palette>, asset_root: PathBuf) -> Option<TextureCache> {
+    palette.map_or_else(
+        || {
+            warn!(
+                "No palette provided (and none found in WORLD.INI); texture export is disabled and materials will be plain white"
+            );
+            None
+        },
+        |pal| {
+            Some(TextureCache::new(
+            asset_root,
+            Some(Palette { colors: pal.colors }),
+            ))
+        },
+    )
+}
+
+fn convert_rgm(
+    args: &ConvertArgs,
+    output_path: &Path,
+    registry: &registry::Registry,
+    palette: Option<&Palette>,
+    texture_cache: &mut Option<TextureCache>,
+) -> Result<()> {
+    let file_content = std::fs::read(&args.file)?;
+    let (rgm_file, positioned_models, lights) =
+        rgpre::import::rgm::parse_rgm_with_models(&file_content, registry)?;
+
+    if positioned_models.is_empty() && lights.is_empty() {
+        bail!("No positioned models or lights found to convert.");
+    }
+
+    info!(
+        "Converting {} positioned models and {} lights with transformations",
+        positioned_models.len(),
+        lights.len()
+    );
+
+    let (root, buffer) = convert_positioned_models_to_gltf(
+        &positioned_models,
+        &lights,
+        palette,
+        texture_cache.as_mut(),
+        args.compress_textures,
+    )?;
+    let glb_data = to_glb(&root, &buffer)?;
+    ensure_parent_dir(output_path)?;
+    std::fs::write(output_path, &glb_data)?;
+    info!("Successfully converted to: {}", output_path.display());
+
+    let json_path = output_path.with_extension("json");
+    let metadata = rgpre::import::rgm::export_rgm_metadata_json(&rgm_file);
+    let json_bytes = serde_json::to_string_pretty(&metadata)?;
+    std::fs::write(&json_path, json_bytes)?;
+    info!("Actor metadata exported to: {}", json_path.display());
+
+    Ok(())
+}
+
+fn convert_models(
+    args: &ConvertArgs,
+    output_path: &Path,
+    filetype: FileType,
+    registry: Option<&registry::Registry>,
+    palette: Option<&Palette>,
+    texture_cache: &mut Option<TextureCache>,
+) -> Result<()> {
+    let models = parse_file(&args.file, Some(filetype), registry)?;
+
+    if filetype == FileType::Rob {
+        warn!(
+            "ROB conversion exports segment geometry only (no scene instance placement). Full area/object placement requires RGM scene data."
+        );
+    }
+
+    if models.is_empty() {
+        bail!("No 3D models found to convert.");
+    }
+
+    let (root, buffer) = convert_models_to_gltf(
+        &models,
+        palette,
+        texture_cache.as_mut(),
+        args.compress_textures,
+    )?;
+    let glb_data = to_glb(&root, &buffer)?;
+    ensure_parent_dir(output_path)?;
+    std::fs::write(output_path, glb_data)?;
+    info!("Successfully converted to: {}", output_path.display());
+
+    Ok(())
+}
+
+#[allow(clippy::needless_pass_by_value)]
+// CLI handlers take owned args by clap design for consistent command dispatch.
+pub fn handle_convert_command(args: ConvertArgs) -> Result<()> {
     let filetype = resolve_filetype(&args.file, args.filetype)?;
     let asset_root = resolve_asset_root(&args);
 
@@ -106,31 +246,13 @@ pub(crate) fn handle_convert_command(args: ConvertArgs) -> Result<()> {
         warn!("--asset-path/--asset-dir are deprecated aliases; prefer --assets");
     }
 
-    let output_path = if filetype == FileType::Fnt {
-        match (args.output.clone(), args.font_output) {
-            (Some(path), _) => path,
-            (None, Some(mode)) => default_fnt_output_for_mode(&args.file, mode),
-            (None, None) => default_output_for(&args.file, filetype),
-        }
-    } else {
-        args.output
-            .clone()
-            .unwrap_or_else(|| default_output_for(&args.file, filetype))
-    };
+    let output_path = resolve_output_path(&args, filetype);
 
     info!("Converting file: {}", args.file.display());
     info!("Requested output path: {}", output_path.display());
 
-    match filetype {
-        FileType::Cht => return cht::handle_cht_convert(&args, &output_path),
-        FileType::Col => return col::handle_col_convert(&args, &output_path),
-        FileType::Pvo => return pvo::handle_pvo_convert(&args, &output_path),
-        FileType::Fnt => return fnt::handle_fnt_convert(&args, &output_path),
-        FileType::Wld => return wld::handle_wld_convert(&args, &output_path),
-        FileType::Sfx => return sfx::handle_sfx_convert(&args, &output_path),
-        FileType::Rtx => return rtx::handle_rtx_convert(&args, &output_path),
-        FileType::Bsi => return texbsi::handle_texbsi_convert(&args, &output_path),
-        FileType::Rgm | FileType::Model3d | FileType::Model3dc | FileType::Rob => {}
+    if let Some(result) = dispatch_direct_conversion(&args, &output_path, filetype) {
+        return result;
     }
 
     let registry = if filetype == FileType::Rgm {
@@ -143,85 +265,28 @@ pub(crate) fn handle_convert_command(args: ConvertArgs) -> Result<()> {
         None
     };
 
-    let palette = match args.palette.as_ref() {
-        Some(p) => {
-            let data = std::fs::read(p)?;
-            Some(Palette::parse(&data).map_err(|e| color_eyre::eyre::eyre!("{e}"))?)
-        }
-        None => auto_resolve_palette(&asset_root, &args.file, filetype)?,
-    };
-
-    let mut texture_cache = if let Some(pal) = palette.as_ref() {
-        Some(TextureCache::new(
-            asset_root.clone(),
-            Some(Palette { colors: pal.colors }),
-        ))
-    } else {
-        warn!(
-            "No palette provided (and none found in WORLD.INI); texture export is disabled and materials will be plain white"
-        );
-        None
-    };
+    let palette = load_palette(&args, &asset_root, filetype)?;
+    let mut texture_cache = build_texture_cache(palette.as_ref(), asset_root);
 
     if filetype == FileType::Rgm {
         let registry = registry.ok_or_else(|| {
             color_eyre::eyre::eyre!("internal error: registry is required for RGM files")
         })?;
-        let file_content = std::fs::read(&args.file)?;
-        let (rgm_file, positioned_models, lights) =
-            redguard_preservation::import::rgm::parse_rgm_with_models(&file_content, &registry)?;
-
-        if positioned_models.is_empty() && lights.is_empty() {
-            bail!("No positioned models or lights found to convert.");
-        }
-
-        info!(
-            "Converting {} positioned models and {} lights with transformations",
-            positioned_models.len(),
-            lights.len()
+        return convert_rgm(
+            &args,
+            &output_path,
+            &registry,
+            palette.as_ref(),
+            &mut texture_cache,
         );
-
-        let (root, buffer) = convert_positioned_models_to_gltf(
-            &positioned_models,
-            &lights,
-            palette.as_ref(),
-            texture_cache.as_mut(),
-            args.compress_textures,
-        )?;
-        let glb_data = to_glb(&root, &buffer)?;
-        ensure_parent_dir(&output_path)?;
-        std::fs::write(&output_path, &glb_data)?;
-        info!("Successfully converted to: {}", output_path.display());
-
-        let json_path = output_path.with_extension("json");
-        let metadata = redguard_preservation::import::rgm::export_rgm_metadata_json(&rgm_file);
-        let json_bytes = serde_json::to_string_pretty(&metadata)?;
-        std::fs::write(&json_path, json_bytes)?;
-        info!("Actor metadata exported to: {}", json_path.display());
-    } else {
-        let models = parse_file(&args.file, Some(filetype), registry.as_ref())?;
-
-        if filetype == FileType::Rob {
-            warn!(
-                "ROB conversion exports segment geometry only (no scene instance placement). Full area/object placement requires RGM scene data."
-            );
-        }
-
-        if models.is_empty() {
-            bail!("No 3D models found to convert.");
-        }
-
-        let (root, buffer) = convert_models_to_gltf(
-            &models,
-            palette.as_ref(),
-            texture_cache.as_mut(),
-            args.compress_textures,
-        )?;
-        let glb_data = to_glb(&root, &buffer)?;
-        ensure_parent_dir(&output_path)?;
-        std::fs::write(&output_path, glb_data)?;
-        info!("Successfully converted to: {}", output_path.display());
     }
 
-    Ok(())
+    convert_models(
+        &args,
+        &output_path,
+        filetype,
+        registry.as_ref(),
+        palette.as_ref(),
+        &mut texture_cache,
+    )
 }

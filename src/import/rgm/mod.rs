@@ -187,14 +187,17 @@ pub enum RgmSection {
     End(RgmSectionHeader),
 }
 
+#[must_use]
 pub fn parse_ragr_actor_groups(ragr_data: &[u8], ragr_offset: usize) -> Vec<RagrAnimGroup> {
     metadata::parse_ragr_actor_groups_impl(ragr_data, ragr_offset)
 }
 
+#[must_use]
 pub fn parse_rahd_ragr_index(rahd_data: &[u8]) -> HashMap<String, usize> {
     metadata::parse_rahd_ragr_index_impl(rahd_data)
 }
 
+#[allow(clippy::missing_errors_doc)] // Public wrapper delegates parser errors into crate error type.
 pub fn parse_rgm_file(input: &[u8]) -> Result<RgmFile> {
     match parser::parse_rgm_file(input) {
         Ok((remaining, rgm_file)) => {
@@ -207,6 +210,7 @@ pub fn parse_rgm_file(input: &[u8]) -> Result<RgmFile> {
     }
 }
 
+#[allow(clippy::missing_errors_doc)] // Public wrapper combines parser/model-loading errors into crate error type.
 pub fn parse_rgm_with_models(
     input: &[u8],
     registry: &Registry,
@@ -217,10 +221,12 @@ pub fn parse_rgm_with_models(
     Ok((rgm_file, positioned_models, positioned_lights))
 }
 
+#[must_use]
 pub fn export_rgm_metadata_json(rgm: &RgmFile) -> serde_json::Value {
     metadata::export_rgm_metadata_json_impl(rgm)
 }
 
+#[allow(clippy::missing_errors_doc)] // Public wrapper delegates parse errors into crate error type.
 pub fn dump_rgm(input: &[u8]) -> Result<String> {
     shared::dump_rgm_impl(input)
 }

@@ -1,6 +1,4 @@
-use redguard_preservation::import::{
-    FileType, bsi, fnt, model3d, palette::Palette, pvo, rgm, rob, wld,
-};
+use rgpre::import::{FileType, bsi, fnt, model3d, palette::Palette, pvo, rgm, rob, wld};
 use std::path::{Path, PathBuf};
 
 fn with_large_stack<T: Send + 'static>(f: impl FnOnce() -> T + Send + 'static) -> T {

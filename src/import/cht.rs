@@ -46,7 +46,8 @@ pub struct CheatEntry {
 
 impl CheatEntry {
     /// Returns `true` when this cheat is active (nonzero value).
-    pub fn is_on(&self) -> bool {
+    #[must_use]
+    pub const fn is_on(&self) -> bool {
         self.value != 0
     }
 }
@@ -60,11 +61,13 @@ pub struct ChtFile {
 
 impl ChtFile {
     /// Returns only the 13 named cheat entries.
+    #[must_use]
     pub fn named_cheats(&self) -> &[CheatEntry] {
         &self.entries[..CHT_CHEAT_COUNT]
     }
 
     /// Returns cheat entries for unused slots that have nonzero values (unexpected).
+    #[must_use]
     pub fn nonzero_unnamed(&self) -> Vec<&CheatEntry> {
         self.entries[CHT_CHEAT_COUNT..]
             .iter()

@@ -10,7 +10,8 @@ pub enum AudioType {
 }
 
 impl AudioType {
-    pub(crate) fn from_type_id(id: u32) -> Option<Self> {
+    #[must_use]
+    pub(crate) const fn from_type_id(id: u32) -> Option<Self> {
         match id {
             0 => Some(Self::Mono8),
             1 => Some(Self::Mono16),
@@ -21,7 +22,8 @@ impl AudioType {
     }
 
     /// Returns the number of PCM channels for this audio type.
-    pub fn channels(&self) -> u16 {
+    #[must_use]
+    pub const fn channels(&self) -> u16 {
         match self {
             Self::Mono8 | Self::Mono16 => 1,
             Self::Stereo8 | Self::Stereo16 => 2,
@@ -29,7 +31,8 @@ impl AudioType {
     }
 
     /// Returns bits per sample for this audio type.
-    pub fn bits_per_sample(&self) -> u16 {
+    #[must_use]
+    pub const fn bits_per_sample(&self) -> u16 {
         match self {
             Self::Mono8 | Self::Stereo8 => 8,
             Self::Mono16 | Self::Stereo16 => 16,
@@ -50,13 +53,15 @@ pub struct SfxEffect {
 
 impl SfxEffect {
     /// Estimates effect duration in seconds from PCM byte length and format.
+    #[must_use]
     pub fn duration_secs(&self) -> f64 {
-        let bytes_per_sample =
-            (self.audio_type.bits_per_sample() as u32 / 8) * self.audio_type.channels() as u32;
+        let bytes_per_sample = (u32::from(self.audio_type.bits_per_sample()) / 8)
+            * u32::from(self.audio_type.channels());
         if self.sample_rate == 0 || bytes_per_sample == 0 {
             return 0.0;
         }
-        self.pcm_data.len() as f64 / (self.sample_rate as f64 * bytes_per_sample as f64)
+        let pcm_len = u32::try_from(self.pcm_data.len()).unwrap_or(u32::MAX);
+        f64::from(pcm_len) / (f64::from(self.sample_rate) * f64::from(bytes_per_sample))
     }
 }
 
@@ -91,9 +96,11 @@ pub fn parse_sfx_file(input: &[u8]) -> Result<SfxFile> {
         .trim_matches('\0')
         .to_string();
 
-    let effect_count = read_u32_le(input, 36)
-        .ok_or_else(|| Error::Parse("failed to read FXHD effect_count".into()))?
-        as usize;
+    let effect_count = usize::try_from(
+        read_u32_le(input, 36)
+            .ok_or_else(|| Error::Parse("failed to read FXHD effect_count".into()))?,
+    )
+    .map_err(|_| Error::Parse("FXHD effect_count does not fit usize".to_string()))?;
 
     // FXDT: starts at offset 40 with 4 bytes BE section_size
     let fxdt_offset = 40;
@@ -118,14 +125,18 @@ pub fn parse_sfx_file(input: &[u8]) -> Result<SfxFile> {
         let _bit_depth = read_u32_le(input, cursor + 4);
         let sample_rate = read_u32_le(input, cursor + 8)
             .ok_or_else(|| Error::Parse(format!("effect {i}: failed to read sample_rate")))?;
+        #[allow(clippy::cast_possible_wrap)]
+        // Engine stores this as a signed flag byte in binary data.
         let loop_flag = input[cursor + 13] as i8;
         let loop_offset = read_u32_le(input, cursor + 14)
             .ok_or_else(|| Error::Parse(format!("effect {i}: failed to read loop_offset")))?;
         let loop_end = read_u32_le(input, cursor + 18)
             .ok_or_else(|| Error::Parse(format!("effect {i}: failed to read loop_end")))?;
-        let data_length = read_u32_le(input, cursor + 22)
-            .ok_or_else(|| Error::Parse(format!("effect {i}: failed to read data_length")))?
-            as usize;
+        let data_length = usize::try_from(
+            read_u32_le(input, cursor + 22)
+                .ok_or_else(|| Error::Parse(format!("effect {i}: failed to read data_length")))?,
+        )
+        .map_err(|_| Error::Parse(format!("effect {i}: data_length does not fit usize")))?;
 
         cursor += 27;
 
@@ -167,7 +178,7 @@ mod tests {
         buf.extend_from_slice(&fxhd_payload_size.to_be_bytes());
         buf.extend_from_slice(&[0u8; 32]);
         buf.extend_from_slice(&effect_count.to_le_bytes());
-        let fxdt_size = effects_data.len() as u32;
+        let fxdt_size = u32::try_from(effects_data.len()).expect("effects data must fit u32");
         buf.extend_from_slice(&fxdt_size.to_be_bytes());
         buf.extend_from_slice(effects_data);
         buf.extend_from_slice(b"END ");
@@ -185,7 +196,8 @@ mod tests {
         buf.extend_from_slice(&0xFFFF_FFFFu32.to_le_bytes()); // loop_end
         buf.extend_from_slice(&pcm_len.to_le_bytes());
         buf.push(0); // unknown_1a
-        buf.extend_from_slice(&vec![0x80u8; pcm_len as usize]);
+        let pcm_size = usize::try_from(pcm_len).expect("pcm length must fit usize");
+        buf.extend_from_slice(&vec![0x80u8; pcm_size]);
         buf
     }
 

@@ -2,7 +2,7 @@ use crate::cli::convert::ensure_parent_dir;
 use crate::opts::ConvertArgs;
 use color_eyre::Result;
 use log::info;
-use redguard_preservation::import::pvo;
+use rgpre::import::pvo;
 use serde_json::json;
 use std::path::Path;
 

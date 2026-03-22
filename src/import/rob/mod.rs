@@ -39,9 +39,17 @@ pub struct RobSegment {
     pub segment_flags: u16,
     /// Attribute flags byte at offset 0x10. 0x02 = texture preload, 0x40 = special object.
     pub segment_attribs: u8,
-    /// Build-tool artifact (face_count mod 256); not read at runtime.
+    /// Build-tool artifact (`face_count` mod 256); not read at runtime.
+    #[allow(
+        clippy::pub_underscore_fields,
+        reason = "field name mirrors reverse-engineered binary layout"
+    )]
     pub _face_count_low: [u8; 3],
     /// Never read at runtime.
+    #[allow(
+        clippy::pub_underscore_fields,
+        reason = "field name mirrors reverse-engineered binary layout"
+    )]
     pub _unused_14: u32,
     pub bbox: SegmentBBox,
     pub data_size: u32,
@@ -57,6 +65,7 @@ pub struct RobFile {
 
 impl RobSegment {
     /// Returns the segment name decoded from its 8-byte field.
+    #[must_use]
     pub fn name(&self) -> String {
         String::from_utf8_lossy(&self.segment_name)
             .trim_matches('\0')
@@ -65,23 +74,27 @@ impl RobSegment {
 
     /// Render mode derived from the high byte of `segment_flags`.
     /// Value 0 or >0xFD defaults to 0xFF (standard rendering).
+    #[must_use]
     pub fn render_mode(&self) -> u8 {
-        let hi = (self.segment_flags >> 8) as u8;
+        let hi = u8::try_from(self.segment_flags >> 8).unwrap_or(0xFF);
         if hi == 0 || hi > 0xFD { 0xFF } else { hi }
     }
 
     /// Returns `true` when this segment stores embedded 3D model bytes.
-    pub fn has_embedded_3d_data(&self) -> bool {
+    #[must_use]
+    pub const fn has_embedded_3d_data(&self) -> bool {
         self.segment_type == 0 && self.data_size > 0
     }
 
     /// Returns `true` when this segment stores embedded special-object bytes.
-    pub fn has_special_embedded_data(&self) -> bool {
+    #[must_use]
+    pub const fn has_special_embedded_data(&self) -> bool {
         self.segment_type == 256 && self.data_size > 0
     }
 
     /// Returns `true` when this segment references an external file.
-    pub fn points_to_external_file(&self) -> bool {
+    #[must_use]
+    pub const fn points_to_external_file(&self) -> bool {
         self.segment_type == 512
     }
 
