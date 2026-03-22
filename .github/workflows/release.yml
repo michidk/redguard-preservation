@@ -31,7 +31,7 @@ jobs:
         include:
         - build: linux
           os: ubuntu-latest
-          target: x86_64-unknown-linux-musl
+          target: x86_64-unknown-linux-gnu
           lib_file: librgpre.so
         - build: linux-arm
           os: ubuntu-latest
@@ -65,7 +65,7 @@ jobs:
           echo "TARGET_DIR=./target/${{ matrix.target }}" >> $GITHUB_ENV
 
       - name: Setup Cross
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.build == 'linux-arm'
         run: |
           cargo install cross
           echo "CARGO=cross" >> $GITHUB_ENV
