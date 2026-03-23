@@ -1,6 +1,5 @@
 use crate::opts::{ConvertArgs, FontOutputMode};
 use color_eyre::Result;
-use color_eyre::eyre::bail;
 use log::{info, warn};
 use rgpre::import::fnt_export;
 use std::path::Path;
@@ -20,10 +19,6 @@ pub(super) fn handle_fnt_convert(args: &ConvertArgs, output_path: &Path) -> Resu
     });
 
     if mode == FontOutputMode::Ttf {
-        if matches!(out_ext.as_deref(), Some("otf")) {
-            bail!("OTF output is not implemented yet; use --font-output ttf and .ttf output path");
-        }
-
         if !matches!(out_ext.as_deref(), Some("ttf")) {
             warn!("--font-output ttf selected; overriding output extension to .ttf");
         }
@@ -41,10 +36,6 @@ pub(super) fn handle_fnt_convert(args: &ConvertArgs, output_path: &Path) -> Resu
             ttf_output.display()
         );
         return Ok(());
-    }
-
-    if matches!(out_ext.as_deref(), Some("otf")) {
-        bail!("OTF output is not implemented yet; use --font-output ttf with .ttf output");
     }
 
     let paths = fnt_export::export_fnt_bitmap(&args.file, output_path)
