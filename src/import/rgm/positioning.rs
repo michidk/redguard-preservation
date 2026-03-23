@@ -1107,6 +1107,10 @@ fn load_model_from_registry(
     }
 }
 
+fn strip_extension(name: &str) -> &str {
+    name.split('.').next().unwrap_or(name)
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
 pub enum PlacementType {
@@ -1147,9 +1151,10 @@ pub(super) fn extract_placements(
                     if file_name.is_empty() {
                         continue;
                     }
+                    let stem = strip_extension(&file_name).to_owned();
                     placements.push(Placement {
-                        model_name: file_name.clone(),
-                        source_id: format!("S{idx:03}_{file_name}"),
+                        model_name: stem.clone(),
+                        source_id: format!("S{idx:03}_{stem}"),
                         transform: mps_transform(record),
                         object_type: PlacementType::Mesh,
                         texture_id: 0,
@@ -1162,9 +1167,10 @@ pub(super) fn extract_placements(
                     let script_name = record.script_name();
                     let resolved_name =
                         resolve_mpob_model_name(record, &script_name, raan_data, &rahd_index);
+                    let stem = strip_extension(&resolved_name).to_owned();
                     let texture_override = rahd_texture_overrides.get(&script_name).copied();
                     placements.push(Placement {
-                        model_name: resolved_name,
+                        model_name: stem,
                         source_id: format!("B_{idx:03}_{script_name}"),
                         transform: mpob_transform(record),
                         object_type: PlacementType::Mesh,
@@ -1222,12 +1228,14 @@ fn append_rope_placements(records: &[MprpRecord], placements: &mut Vec<Placement
     for (i, record) in records.iter().enumerate() {
         let mut pos = decode_position(record.pos_x, record.pos_y, record.pos_z);
         let link_count = usize::try_from(record.length.max(0)).unwrap_or_default();
-        if !record.rope_model.is_empty() {
+        let rope_stem = strip_extension(&record.rope_model);
+        let static_stem = strip_extension(&record.static_model);
+        if !rope_stem.is_empty() {
             for j in 0..link_count {
                 pos[1] -= ROPE_LINK_Y_STEP;
                 placements.push(Placement {
-                    model_name: record.rope_model.clone(),
-                    source_id: format!("R{i:03}_{j:03}_{}", record.rope_model),
+                    model_name: rope_stem.to_owned(),
+                    source_id: format!("R{i:03}_{j:03}_{rope_stem}"),
                     transform: translation_matrix(pos),
                     object_type: PlacementType::RopeLink,
                     texture_id: 0,
@@ -1235,11 +1243,11 @@ fn append_rope_placements(records: &[MprpRecord], placements: &mut Vec<Placement
                 });
             }
         }
-        if !record.static_model.is_empty() {
+        if !static_stem.is_empty() {
             pos[1] -= ROPE_LINK_Y_STEP;
             placements.push(Placement {
-                model_name: record.static_model.clone(),
-                source_id: format!("R{i:03}_{link_count:03}_{}", record.static_model),
+                model_name: static_stem.to_owned(),
+                source_id: format!("R{i:03}_{link_count:03}_{static_stem}"),
                 transform: translation_matrix(pos),
                 object_type: PlacementType::Mesh,
                 texture_id: 0,
