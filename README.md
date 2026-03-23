@@ -182,7 +182,7 @@ Produce standard glTF Binary files from game assets:
 | `rg_convert_rob_to_glb` | ROB bytes + texture cache | GLB bytes |
 | `rg_convert_rgm_to_glb` | RGM bytes + texture cache + model files | GLB bytes |
 | `rg_convert_wld_to_glb` | WLD bytes + texture cache + optional RGM + models | GLB bytes |
-| `rg_get_rgm_metadata` | RGM bytes | JSON bytes (scripts, animations, object IDs) |
+| `rg_get_rgm_metadata` | RGM bytes | JSON bytes (scripts/animations + MPOB runtime object records) |
 
 ### Scene Data Functions
 
@@ -202,6 +202,7 @@ Return pre-transformed mesh data for direct engine consumption (RGMD binary form
 | `rg_decode_texture` | texture cache + texture ID + image ID | RGBA pixels (width, height, frame_count, pixel data) |
 | `rg_decode_texture_all_frames` | texture cache + texture ID + image ID | RGBA pixels for all animation frames |
 | `rg_texbsi_image_count` | texture cache + texture ID | Image count (`i32`, -1 on error) |
+| `rg_decode_gxa` | GXA bytes + frame index | RGBA pixels (currently returns not implemented error) |
 
 ### Audio Functions
 
@@ -221,6 +222,7 @@ Return pre-transformed mesh data for direct engine consumption (RGMD binary form
 | `rg_convert_pvo_to_json` | PVO bytes | JSON bytes (octree nodes, leaves, polygon indices) |
 | `rg_convert_cht_to_json` | CHT bytes | JSON bytes (cheat name → value map) |
 | `rg_convert_fnt_to_ttf` | FNT bytes | TTF font bytes |
+| `rg_parse_ini` | INI bytes (WORLD.INI) | JSON bytes (`{"worlds": [...]}`) |
 
 ## Development Checks
 

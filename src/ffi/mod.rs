@@ -344,8 +344,7 @@ pub unsafe extern "C" fn rg_get_rgm_metadata(rgm_data: *const u8, rgm_len: i32) 
     let result = (|| -> crate::Result<Vec<u8>> {
         let rgm_bytes = unsafe { read_bytes(rgm_data, rgm_len, "rgm_data") }?;
         run_on_large_stack(move || {
-            let parsed = rgm::parse_rgm_file(rgm_bytes)?;
-            let metadata = rgm::export_rgm_metadata_json(&parsed);
+            let metadata = rgm::export_rgm_runtime_metadata_json(rgm_bytes)?;
             Ok(serde_json::to_vec(&metadata)?)
         })
     })();
