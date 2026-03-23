@@ -147,42 +147,24 @@ byte[] --P/Invoke--> Rust native plugin --> ByteBuffer*
   rg_free_buffer(buf)
 ```
 
-The caller provides raw file bytes. Rust parses and converts them in memory. Results are returned as `ByteBuffer` pointers that the caller must free with `rg_free_buffer`.
+Results are returned as `ByteBuffer` pointers that the caller must free with `rg_free_buffer`. On error, functions return NULL and the message is available via `rg_last_error()`.
 
-### Memory Management
+### GLB Export (Path-Based)
 
-```c
-// All buffers returned by rg_* functions must be freed by the caller:
-void rg_free_buffer(ByteBuffer* buffer);
-
-// On error, functions return NULL. Retrieve the error message with:
-ByteBuffer* rg_last_error(void);  // NULL if no error; caller must free
-```
-
-### Texture Cache (Reusable Handle)
-
-For textured conversions, create a texture cache once and reuse it:
-
-```c
-// Create from palette (.COL) + TEXBSI files
-TextureCache* rg_texture_cache_create(
-    const uint8_t* palette_data, int32_t palette_len,      // nullable
-    const uint16_t* texbsi_ids, const uint8_t** texbsi_datas,
-    const int32_t* texbsi_lens, int32_t texbsi_count
-);
-void rg_texture_cache_free(TextureCache* cache);
-```
-
-### GLB Export Functions
-
-Produce standard glTF Binary files from game assets:
+Pass file paths and the game's asset root directory. The DLL handles all I/O, dependency resolution (models, textures, palette via `WORLD.INI`), and conversion internally:
 
 | Function | Input | Output |
 |----------|-------|--------|
-| `rg_convert_model_to_glb` | 3D/3DC bytes + texture cache | GLB bytes |
-| `rg_convert_rob_to_glb` | ROB bytes + texture cache | GLB bytes |
-| `rg_convert_rgm_to_glb` | RGM bytes + texture cache + model files | GLB bytes |
-| `rg_convert_wld_to_glb` | WLD bytes + texture cache + optional RGM + models | GLB bytes |
+| `rg_convert_model_from_path` | file path + assets directory | GLB bytes |
+| `rg_convert_rgm_from_path` | file path + assets directory | GLB bytes |
+| `rg_convert_wld_from_path` | file path + assets directory | GLB bytes |
+
+The assets directory should be the game's root directory containing `3dart/`, `fxart/`, `maps/` etc. WLD conversion auto-discovers the companion RGM file.
+
+### RGM Metadata
+
+| Function | Input | Output |
+|----------|-------|--------|
 | `rg_get_rgm_metadata` | RGM bytes | JSON bytes (scripts/animations + MPOB runtime object records) |
 
 ### Scene Data Functions
@@ -195,6 +177,19 @@ Return pre-transformed mesh data for direct engine consumption (RGMD binary form
 | `rg_parse_rob_data` | ROB bytes + texture cache | Segment names + RGMD per segment |
 | `rg_parse_wld_terrain_data` | WLD bytes | RGMD binary (terrain mesh) |
 | `rg_parse_rgm_placements` | RGM bytes | RGPL binary (transforms, names, lights) |
+
+### Texture Cache (for Scene Data / Texture Functions)
+
+Scene data and texture functions that need texture lookups accept a `TextureCache*` handle:
+
+```c
+TextureCache* rg_texture_cache_create(
+    const uint8_t* palette_data, int32_t palette_len,
+    const uint16_t* texbsi_ids, const uint8_t** texbsi_datas,
+    const int32_t* texbsi_lens, int32_t texbsi_count
+);
+void rg_texture_cache_free(TextureCache* cache);
+```
 
 ### Texture Functions
 
@@ -216,25 +211,6 @@ Return pre-transformed mesh data for direct engine consumption (RGMD binary form
 | `rg_convert_rtx_entry_to_wav` | RTX bytes + entry index | WAV bytes (audio entries only) |
 | `rg_rtx_entry_count` | RTX bytes | Entry count (`i32`, -1 on error) |
 | `rg_rtx_metadata` | RTX bytes | JSON bytes (entry index with tags, types, durations) |
-
-### Dependency Discovery Functions
-
-Query which external assets a file references before loading them for conversion:
-
-| Function | Input | Output |
-|----------|-------|--------|
-| `rg_rgm_dependencies` | RGM bytes | JSON bytes (`{"model_names": [...], "texbsi_ids": [...]}`) |
-| `rg_model_dependencies` | 3D/3DC bytes | JSON bytes (`{"texbsi_ids": [...]}`) |
-| `rg_rob_dependencies` | ROB bytes | JSON bytes (`{"texbsi_ids": [...]}`) |
-| `rg_wld_dependencies` | WLD bytes | JSON bytes (`{"texbsi_ids": [...]}`) |
-
-Typical two-phase workflow for RGM/WLD conversion:
-
-1. `rg_rgm_dependencies` → learn which model files and TEXBSI banks are needed
-2. `rg_model_dependencies` / `rg_rob_dependencies` on each loaded model → discover additional TEXBSI IDs from face data
-3. Load all required TEXBSI + palette files, create texture cache, call conversion
-
-For WLD with a companion RGM, call `rg_wld_dependencies` and `rg_rgm_dependencies` separately and union the TEXBSI IDs.
 
 ### Data / Config Functions
 

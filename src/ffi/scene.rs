@@ -8,7 +8,7 @@ use crate::import::{
 use crate::model3d::{self, Model3DFile, TextureData};
 use hound::{SampleFormat, WavSpec, WavWriter};
 use serde_json::json;
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 use std::io::Cursor;
 
 const ENGINE_UNIT_SCALE: f32 = 20.0;
@@ -964,128 +964,6 @@ pub unsafe extern "C" fn rg_parse_rgm_placements(data: *const u8, len: i32) -> *
         run_on_large_stack(move || {
             let (placements, lights) = rgm::extract_rgm_placements(slice)?;
             serialize_rgm_placements(&placements, &lights)
-        })
-    })();
-
-    into_ffi_result(result)
-}
-
-fn collect_model_texbsi_ids(model: &Model3DFile) -> BTreeSet<u16> {
-    model
-        .face_data
-        .iter()
-        .filter_map(|face| match face.texture_data {
-            TextureData::Texture { texture_id, .. } => Some(texture_id),
-            _ => None,
-        })
-        .collect()
-}
-
-/// Returns JSON: `{"model_names": ["TORCH", ...], "texbsi_ids": [302, ...]}`
-///
-/// # Safety
-///
-/// `data` must point to readable bytes of length `len`.
-/// The returned pointer must be released with `rg_free_buffer`.
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn rg_rgm_dependencies(data: *const u8, len: i32) -> *mut ByteBuffer {
-    let result = (|| -> crate::Result<Vec<u8>> {
-        let slice = unsafe { read_bytes(data, len, "data") }?;
-        run_on_large_stack(move || {
-            let (placements, _) = rgm::extract_rgm_placements(slice)?;
-
-            let mut model_names = BTreeSet::new();
-            let mut texbsi_ids = BTreeSet::new();
-
-            for p in &placements {
-                if !p.model_name.is_empty() && p.object_type != rgm::PlacementType::FlatSprite {
-                    model_names.insert(p.model_name.to_ascii_uppercase());
-                }
-                if p.texture_id >= 2 {
-                    texbsi_ids.insert(p.texture_id);
-                }
-            }
-
-            let json = json!({
-                "model_names": model_names.into_iter().collect::<Vec<_>>(),
-                "texbsi_ids": texbsi_ids.into_iter().collect::<Vec<_>>(),
-            });
-            Ok(serde_json::to_vec(&json)?)
-        })
-    })();
-
-    into_ffi_result(result)
-}
-
-/// Returns JSON: `{"texbsi_ids": [302, ...]}`
-///
-/// # Safety
-///
-/// `data` must point to readable bytes of length `len`.
-/// The returned pointer must be released with `rg_free_buffer`.
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn rg_model_dependencies(data: *const u8, len: i32) -> *mut ByteBuffer {
-    let result = (|| -> crate::Result<Vec<u8>> {
-        let slice = unsafe { read_bytes(data, len, "data") }?;
-        run_on_large_stack(move || {
-            let model = model3d::parse_3d_file(slice)?;
-            let texbsi_ids = collect_model_texbsi_ids(&model);
-            let json = json!({
-                "texbsi_ids": texbsi_ids.into_iter().collect::<Vec<_>>(),
-            });
-            Ok(serde_json::to_vec(&json)?)
-        })
-    })();
-
-    into_ffi_result(result)
-}
-
-/// Returns JSON: `{"texbsi_ids": [302, ...]}`
-///
-/// # Safety
-///
-/// `data` must point to readable bytes of length `len`.
-/// The returned pointer must be released with `rg_free_buffer`.
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn rg_rob_dependencies(data: *const u8, len: i32) -> *mut ByteBuffer {
-    let result = (|| -> crate::Result<Vec<u8>> {
-        let slice = unsafe { read_bytes(data, len, "data") }?;
-        run_on_large_stack(move || {
-            let (_, models) = rob::parse_rob_with_models(slice)?;
-            let mut texbsi_ids = BTreeSet::new();
-            for model in &models {
-                texbsi_ids.extend(collect_model_texbsi_ids(model));
-            }
-            let json = json!({
-                "texbsi_ids": texbsi_ids.into_iter().collect::<Vec<_>>(),
-            });
-            Ok(serde_json::to_vec(&json)?)
-        })
-    })();
-
-    into_ffi_result(result)
-}
-
-/// Returns JSON: `{"texbsi_ids": [302]}`
-///
-/// # Safety
-///
-/// `data` must point to readable bytes of length `len`.
-/// The returned pointer must be released with `rg_free_buffer`.
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn rg_wld_dependencies(data: *const u8, len: i32) -> *mut ByteBuffer {
-    let result = (|| -> crate::Result<Vec<u8>> {
-        let slice = unsafe { read_bytes(data, len, "data") }?;
-        run_on_large_stack(move || {
-            let wld_file = wld::parse_wld_file(slice)?;
-            let texbsi_id = u16::from_le_bytes([
-                wld_file.sections[0].header[6],
-                wld_file.sections[0].header[7],
-            ]);
-            let json = json!({
-                "texbsi_ids": [texbsi_id],
-            });
-            Ok(serde_json::to_vec(&json)?)
         })
     })();
 

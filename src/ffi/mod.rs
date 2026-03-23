@@ -8,11 +8,12 @@ use crate::gltf::{
     TextureCache, convert_models_to_gltf, convert_positioned_models_to_gltf,
     convert_wld_scene_to_gltf, to_glb,
 };
-use crate::import::{FileType, palette::Palette, registry::Registry, rgm, rob, wld};
+use crate::import::{FileType, palette::Palette, registry, rgm, rob, wld, world_ini::WorldIni};
 use crate::model3d;
 use std::collections::HashMap;
 use std::ffi::CStr;
 use std::os::raw::c_char;
+use std::path::{Path, PathBuf};
 use std::ptr;
 
 pub use self::buffer::ByteBuffer;
@@ -53,64 +54,100 @@ unsafe fn read_array<'a, T>(data: *const T, count: usize, name: &str) -> crate::
     Ok(items)
 }
 
-fn normalize_model_name(raw: &str) -> String {
-    let normalized = raw.replace('\\', "/");
-    let file_name = normalized.rsplit('/').next().unwrap_or(&normalized);
-    let stem = file_name.split('.').next().unwrap_or(file_name).trim();
-    stem.to_ascii_uppercase()
+unsafe fn read_c_str(ptr: *const c_char, name: &str) -> crate::Result<String> {
+    if ptr.is_null() {
+        return Err(crate::error::Error::Parse(format!("{name} is null")));
+    }
+    let cstr = unsafe { CStr::from_ptr(ptr) };
+    cstr.to_str()
+        .map(|s| s.to_owned())
+        .map_err(|e| crate::error::Error::Parse(format!("{name} is not valid UTF-8: {e}")))
 }
 
-fn parse_model_file_type(discriminant: u8) -> crate::Result<FileType> {
-    match discriminant {
-        3 => Ok(FileType::Model3d),
-        4 => Ok(FileType::Model3dc),
-        5 => Ok(FileType::Rob),
-        _ => Err(crate::error::Error::Parse(format!(
-            "unsupported model file type discriminant: {discriminant}"
-        ))),
+const WORLD_INI_NAMES: [&str; 2] = ["WORLD.INI", "world.ini"];
+
+fn find_world_ini(asset_root: &Path) -> Option<PathBuf> {
+    for name in &WORLD_INI_NAMES {
+        let path = asset_root.join(name);
+        if path.is_file() {
+            return Some(path);
+        }
     }
+    None
 }
 
-unsafe fn build_registry_from_raw(
-    model_names: *const *const u8,
-    model_datas: *const *const u8,
-    model_lens: *const i32,
-    model_types: *const u8,
-    model_count: i32,
-) -> crate::Result<Registry> {
-    let count = i32_to_usize(model_count, "model_count")?;
-    if count == 0 {
-        return Ok(Registry::from_data(HashMap::new()));
-    }
+fn find_palette_on_disk(asset_root: &Path, ini_palette_path: &str) -> Option<PathBuf> {
+    let filename = ini_palette_path
+        .trim()
+        .rsplit(['\\', '/'])
+        .next()
+        .unwrap_or_else(|| ini_palette_path.trim());
+    let filename_lower = filename.to_ascii_lowercase();
 
-    let names = unsafe { read_array(model_names, count, "model_names") }?;
-    let datas = unsafe { read_array(model_datas, count, "model_datas") }?;
-    let lens = unsafe { read_array(model_lens, count, "model_lens") }?;
-    let types = unsafe { read_array(model_types, count, "model_types") }?;
-
-    let mut entries: HashMap<String, (Vec<u8>, FileType)> = HashMap::with_capacity(count);
-    for idx in 0..count {
-        let name_ptr = names[idx];
-        if name_ptr.is_null() {
-            return Err(crate::error::Error::Parse(format!(
-                "model_names[{idx}] is null"
-            )));
-        }
-        let c_name = unsafe { CStr::from_ptr(name_ptr.cast::<c_char>()) };
-        let model_name = normalize_model_name(&c_name.to_string_lossy());
-        if model_name.is_empty() {
-            return Err(crate::error::Error::Parse(format!(
-                "model_names[{idx}] resolves to empty model name"
-            )));
+    for dir_name in &["fxart", "3dart", "FXART", "3DART"] {
+        let dir = asset_root.join(dir_name);
+        if !dir.is_dir() {
+            continue;
         }
 
-        let file_type = parse_model_file_type(types[idx])?;
-        let data = unsafe { read_bytes(datas[idx], lens[idx], &format!("model_datas[{idx}]")) }?;
+        let exact = dir.join(filename);
+        if exact.is_file() {
+            return Some(exact);
+        }
 
-        entries.insert(model_name, (data.to_vec(), file_type));
+        let Ok(entries) = std::fs::read_dir(&dir) else {
+            continue;
+        };
+        for entry in entries.filter_map(Result::ok) {
+            if entry.file_name().to_string_lossy().to_ascii_lowercase() == filename_lower {
+                return Some(entry.path());
+            }
+        }
+    }
+    None
+}
+
+fn auto_resolve_palette(
+    asset_root: &Path,
+    input_file: &Path,
+    file_type: FileType,
+) -> Option<Palette> {
+    if !matches!(file_type, FileType::Rgm | FileType::Wld) {
+        return None;
     }
 
-    Ok(Registry::from_data(entries))
+    let ini_path = find_world_ini(asset_root)?;
+    let content = std::fs::read_to_string(ini_path).ok()?;
+    let world_ini = WorldIni::parse(&content);
+
+    let file_stem = input_file.file_stem()?.to_str().unwrap_or("");
+    let matches = match file_type {
+        FileType::Rgm => world_ini.find_by_map_stem(file_stem),
+        FileType::Wld => world_ini.find_by_world_stem(file_stem),
+        _ => return None,
+    };
+    let entry = matches.first()?;
+    let palette_path = find_palette_on_disk(asset_root, &entry.palette)?;
+    let bytes = std::fs::read(palette_path).ok()?;
+    Palette::parse(&bytes).ok()
+}
+
+fn build_path_texture_cache(
+    asset_root: &Path,
+    file_path: &Path,
+    file_type: FileType,
+) -> (Option<Palette>, Option<TextureCache>) {
+    let palette = auto_resolve_palette(asset_root, file_path, file_type);
+    match palette {
+        Some(pal) => {
+            let cache = TextureCache::new(
+                asset_root.to_path_buf(),
+                Some(Palette { colors: pal.colors }),
+            );
+            (Some(pal), Some(cache))
+        }
+        None => (None, None),
+    }
 }
 
 #[allow(clippy::type_complexity)]
@@ -145,13 +182,6 @@ unsafe fn extract_texbsi_data(
     }
 
     Ok((palette, texbsi_map))
-}
-
-fn extract_palette(cache: &Option<&mut TextureCache>) -> Option<Palette> {
-    match cache {
-        Some(tc) => tc.palette().map(|p| Palette { colors: p.colors }),
-        None => None,
-    }
 }
 
 fn wld_texbsi_id(wld_file: &wld::WldFile) -> u16 {
@@ -235,53 +265,49 @@ pub unsafe extern "C" fn rg_texture_cache_free(cache: *mut TextureCache) {
 
 /// # Safety
 ///
-/// `model_data` must point to readable bytes of length `model_len`.
-/// `texture_cache` may be null or a valid pointer from `rg_texture_cache_create`.
+/// `file_path` and `assets_dir` must be valid null-terminated UTF-8 strings.
 /// The returned buffer must be freed with `rg_free_buffer`.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn rg_convert_model_to_glb(
-    model_data: *const u8,
-    model_len: i32,
-    texture_cache: *mut TextureCache,
+pub unsafe extern "C" fn rg_convert_model_from_path(
+    file_path: *const c_char,
+    assets_dir: *const c_char,
 ) -> *mut ByteBuffer {
     let result = (|| -> crate::Result<Vec<u8>> {
-        let model_bytes = unsafe { read_bytes(model_data, model_len, "model_data") }?;
-        let texture_cache = unsafe { texture_cache.as_mut() };
-        run_on_large_stack(move || {
-            let model = model3d::parse_3d_file(model_bytes)?;
-            let palette = extract_palette(&texture_cache);
-            let (root, buffer) = convert_models_to_gltf(
-                std::slice::from_ref(&model),
-                palette.as_ref(),
-                texture_cache,
-                false,
-            )?;
-            to_glb(&root, &buffer)
-        })
-    })();
+        let file_path = unsafe { read_c_str(file_path, "file_path") }?;
+        let assets_dir = unsafe { read_c_str(assets_dir, "assets_dir") }?;
+        let file_path = PathBuf::from(file_path);
+        let assets_dir = PathBuf::from(assets_dir);
 
-    into_ffi_result(result)
-}
+        let file_type = FileType::from_path(&file_path).ok_or_else(|| {
+            crate::error::Error::Parse(format!(
+                "unsupported model path extension: {}",
+                file_path.display()
+            ))
+        })?;
 
-/// # Safety
-///
-/// `rob_data` must point to readable bytes of length `rob_len`.
-/// `texture_cache` may be null or a valid pointer from `rg_texture_cache_create`.
-/// The returned buffer must be freed with `rg_free_buffer`.
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn rg_convert_rob_to_glb(
-    rob_data: *const u8,
-    rob_len: i32,
-    texture_cache: *mut TextureCache,
-) -> *mut ByteBuffer {
-    let result = (|| -> crate::Result<Vec<u8>> {
-        let rob_bytes = unsafe { read_bytes(rob_data, rob_len, "rob_data") }?;
-        let texture_cache = unsafe { texture_cache.as_mut() };
+        let model_bytes = std::fs::read(&file_path)?;
+        let (palette, mut texture_cache) =
+            build_path_texture_cache(&assets_dir, &file_path, file_type);
+
         run_on_large_stack(move || {
-            let (_, models) = rob::parse_rob_with_models(rob_bytes)?;
-            let palette = extract_palette(&texture_cache);
+            let models = match file_type {
+                FileType::Model3d | FileType::Model3dc => {
+                    vec![model3d::parse_3d_file(&model_bytes)?]
+                }
+                FileType::Rob => {
+                    let (_, models) = rob::parse_rob_with_models(&model_bytes)?;
+                    models
+                }
+                _ => {
+                    return Err(crate::error::Error::Parse(format!(
+                        "rg_convert_model_from_path supports .3d/.3dc/.rob, got: {}",
+                        file_path.display()
+                    )));
+                }
+            };
+
             let (root, buffer) =
-                convert_models_to_gltf(&models, palette.as_ref(), texture_cache, false)?;
+                convert_models_to_gltf(&models, palette.as_ref(), texture_cache.as_mut(), false)?;
             to_glb(&root, &buffer)
         })
     })();
@@ -291,41 +317,31 @@ pub unsafe extern "C" fn rg_convert_rob_to_glb(
 
 /// # Safety
 ///
-/// `rgm_data` must point to readable bytes of length `rgm_len`.
-/// Model arrays must all have `model_count` entries when `model_count > 0`.
-/// `texture_cache` may be null or a valid pointer from `rg_texture_cache_create`.
+/// `file_path` and `assets_dir` must be valid null-terminated UTF-8 strings.
 /// The returned buffer must be freed with `rg_free_buffer`.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn rg_convert_rgm_to_glb(
-    rgm_data: *const u8,
-    rgm_len: i32,
-    texture_cache: *mut TextureCache,
-    model_names: *const *const u8,
-    model_datas: *const *const u8,
-    model_lens: *const i32,
-    model_types: *const u8,
-    model_count: i32,
+pub unsafe extern "C" fn rg_convert_rgm_from_path(
+    file_path: *const c_char,
+    assets_dir: *const c_char,
 ) -> *mut ByteBuffer {
     let result = (|| -> crate::Result<Vec<u8>> {
-        let rgm_bytes = unsafe { read_bytes(rgm_data, rgm_len, "rgm_data") }?;
-        let registry = unsafe {
-            build_registry_from_raw(
-                model_names,
-                model_datas,
-                model_lens,
-                model_types,
-                model_count,
-            )
-        }?;
-        let texture_cache = unsafe { texture_cache.as_mut() };
+        let file_path = unsafe { read_c_str(file_path, "file_path") }?;
+        let assets_dir = unsafe { read_c_str(assets_dir, "assets_dir") }?;
+        let file_path = PathBuf::from(file_path);
+        let assets_dir = PathBuf::from(assets_dir);
+
+        let rgm_bytes = std::fs::read(&file_path)?;
+        let registry = registry::scan_dir(&assets_dir)?;
+        let (palette, mut texture_cache) =
+            build_path_texture_cache(&assets_dir, &file_path, FileType::Rgm);
+
         run_on_large_stack(move || {
-            let (_, positioned_models, lights) = rgm::parse_rgm_with_models(rgm_bytes, &registry)?;
-            let palette = extract_palette(&texture_cache);
+            let (_, positioned_models, lights) = rgm::parse_rgm_with_models(&rgm_bytes, &registry)?;
             let (root, buffer) = convert_positioned_models_to_gltf(
                 &positioned_models,
                 &lights,
                 palette.as_ref(),
-                texture_cache,
+                texture_cache.as_mut(),
                 false,
             )?;
             to_glb(&root, &buffer)
@@ -354,64 +370,54 @@ pub unsafe extern "C" fn rg_get_rgm_metadata(rgm_data: *const u8, rgm_len: i32) 
 
 /// # Safety
 ///
-/// `wld_data` must point to readable bytes of length `wld_len`.
-/// If `rgm_data` is non-null, it must point to readable bytes of length `rgm_len`.
-/// Model arrays must all have `model_count` entries when `model_count > 0`.
-/// `texture_cache` may be null or a valid pointer from `rg_texture_cache_create`.
+/// `file_path` and `assets_dir` must be valid null-terminated UTF-8 strings.
 /// The returned buffer must be freed with `rg_free_buffer`.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn rg_convert_wld_to_glb(
-    wld_data: *const u8,
-    wld_len: i32,
-    texture_cache: *mut TextureCache,
-    rgm_data: *const u8,
-    rgm_len: i32,
-    model_names: *const *const u8,
-    model_datas: *const *const u8,
-    model_lens: *const i32,
-    model_types: *const u8,
-    model_count: i32,
+pub unsafe extern "C" fn rg_convert_wld_from_path(
+    file_path: *const c_char,
+    assets_dir: *const c_char,
 ) -> *mut ByteBuffer {
     let result = (|| -> crate::Result<Vec<u8>> {
-        let wld_bytes = unsafe { read_bytes(wld_data, wld_len, "wld_data") }?;
-        let rgm_context = if rgm_data.is_null() {
-            None
+        let file_path = unsafe { read_c_str(file_path, "file_path") }?;
+        let assets_dir = unsafe { read_c_str(assets_dir, "assets_dir") }?;
+        let file_path = PathBuf::from(file_path);
+        let assets_dir = PathBuf::from(assets_dir);
+
+        let wld_bytes = std::fs::read(&file_path)?;
+        let wld_file = wld::parse_wld_file(&wld_bytes)?;
+        let texbsi_id = wld_texbsi_id(&wld_file);
+
+        let rgm_upper = file_path.with_extension("RGM");
+        let rgm_lower = file_path.with_extension("rgm");
+        let companion_rgm = if rgm_upper.is_file() {
+            Some(rgm_upper)
+        } else if rgm_lower.is_file() {
+            Some(rgm_lower)
         } else {
-            let rgm_bytes = unsafe { read_bytes(rgm_data, rgm_len, "rgm_data") }?;
-            let registry = unsafe {
-                build_registry_from_raw(
-                    model_names,
-                    model_datas,
-                    model_lens,
-                    model_types,
-                    model_count,
-                )
-            }?;
-            Some((rgm_bytes, registry))
+            None
         };
-        let texture_cache = unsafe { texture_cache.as_mut() };
+
+        let positioned_models = if let Some(rgm_path) = companion_rgm {
+            let registry = registry::scan_dir(&assets_dir)?;
+            let rgm_bytes = std::fs::read(rgm_path)?;
+            let (_, models, _) = rgm::parse_rgm_with_models(&rgm_bytes, &registry)?;
+            models
+        } else {
+            Vec::new()
+        };
+
+        let (palette, mut texture_cache) =
+            build_path_texture_cache(&assets_dir, &file_path, FileType::Wld);
+
         run_on_large_stack(move || {
-            let wld_file = wld::parse_wld_file(wld_bytes)?;
-
-            let positioned_models = match rgm_context {
-                Some((rgm_bytes, ref registry)) => {
-                    let (_, models, _) = rgm::parse_rgm_with_models(rgm_bytes, registry)?;
-                    models
-                }
-                None => Vec::new(),
-            };
-
-            let texbsi_id = wld_texbsi_id(&wld_file);
-            let palette = extract_palette(&texture_cache);
             let (root, buffer) = convert_wld_scene_to_gltf(
                 &wld_file,
                 texbsi_id,
                 &positioned_models,
                 palette.as_ref(),
-                texture_cache,
+                texture_cache.as_mut(),
                 false,
             )?;
-
             to_glb(&root, &buffer)
         })
     })();
