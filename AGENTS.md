@@ -17,12 +17,34 @@ Primary outcomes in this repo:
 - Rust source: `src/`
 - Importers/parsers: `src/import/`
 - GLTF/GLB conversion: `src/gltf/` (`builder.rs`, `primitives.rs`, `terrain.rs`, `texture_cache.rs`)
+- FFI native plugin: `src/ffi/` (`mod.rs` for GLB exports, `scene.rs` for mesh data + textures + audio + config, `buffer.rs` for memory management)
 - CLI handlers: `src/cli/` (convert subcommands in `src/cli/convert/`)
 - Error types: `src/error.rs`
 - Format specifications: `docs/formats/`
 - Engine discoveries: `docs/engine/` (`cheats.md`, `attachment.md`, `SOUP.md`, `SOUPDEF.md`)
 - Configuration docs: `docs/config/`
 - Docs index: `docs/README.md`
+
+## Commit conventions
+
+This project uses [Conventional Commits](https://www.conventionalcommits.org/). Every commit message must follow:
+
+```
+type(scope): description
+```
+
+**Types:** `feat`, `fix`, `refactor`, `perf`, `docs`, `style`, `test`, `build`, `ci`, `chore`
+
+**Scopes** (optional, use when it clarifies): `ffi`, `cli`, `gltf`, `import`, `wld`, `rgm`, `rob`, `3d`, `texbsi`, `sfx`, `rtx`, `fnt`, `col`, `pvo`, `cht`
+
+**Examples:**
+- `feat(ffi): add scene-data FFI with pre-transformed mesh output`
+- `fix(gltf): collapse nested if blocks for clippy 1.94`
+- `perf: parallelize mesh primitive building with rayon`
+- `docs: document FFI native plugin API in README`
+- `ci: add FFI library assets to release workflow`
+
+Release notes are auto-generated from these prefixes via `cliff.toml`.
 
 ## Working style for agents
 
