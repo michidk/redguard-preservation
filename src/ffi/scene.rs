@@ -1,6 +1,6 @@
 use super::buffer::*;
 use super::{i32_to_usize, read_bytes};
-use crate::gltf::{MaterialKey, TextureCache, build_wld_unrolled_primitives};
+use crate::gltf::{MaterialKey, TextureCache, UV_FIXED_POINT_SCALE, build_wld_unrolled_primitives};
 use crate::import::rtx::RtxEntry;
 use crate::import::{
     cht, fnt, fnt_ttf, gxa, palette::Palette, pvo, rgm, rob, rtx, sfx, wld, world_ini,
@@ -12,7 +12,6 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::io::Cursor;
 
 const ENGINE_UNIT_SCALE: f32 = 20.0;
-const UV_FIXED_POINT_SCALE: f32 = 16.0;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 enum SubmeshKey {
@@ -73,7 +72,10 @@ fn usize_to_u32(value: usize, name: &str) -> crate::Result<u32> {
         .map_err(|_| crate::error::Error::Parse(format!("{name} exceeds u32::MAX: {value}")))
 }
 
-fn serialize_model_3d(model: &Model3DFile) -> crate::Result<Vec<u8>> {
+fn serialize_model_3d(
+    model: &Model3DFile,
+    mut texture_cache: Option<&mut TextureCache>,
+) -> crate::Result<Vec<u8>> {
     let mut submeshes: BTreeMap<SubmeshKey, SubmeshData> = BTreeMap::new();
     let mut cumulative_fv_base: usize = 0;
 
@@ -133,10 +135,7 @@ fn serialize_model_3d(model: &Model3DFile) -> crate::Result<Vec<u8>> {
                     resolve_vertex_normal(model, idx, cumulative_fv_base + fv_idx, face_normal);
                 submesh.normals.push(normal);
 
-                submesh.uvs.push([
-                    f32::from(fv.u) / UV_FIXED_POINT_SCALE,
-                    f32::from(fv.v) / UV_FIXED_POINT_SCALE,
-                ]);
+                submesh.uvs.push([f32::from(fv.u), f32::from(fv.v)]);
                 submesh.indices.push(usize_to_u32(
                     submesh.positions.len() - 1,
                     "submesh_vertex_index",
@@ -147,10 +146,29 @@ fn serialize_model_3d(model: &Model3DFile) -> crate::Result<Vec<u8>> {
         cumulative_fv_base += face.face_vertices.len();
     }
 
-    let populated_submeshes: Vec<_> = submeshes
+    let mut populated_submeshes: Vec<_> = submeshes
         .into_iter()
         .filter(|(_, submesh)| !submesh.indices.is_empty())
         .collect();
+
+    for (key, submesh) in &mut populated_submeshes {
+        let (u_scale, v_scale) = match key {
+            SubmeshKey::Textured(texture_id, image_id) => texture_cache
+                .as_mut()
+                .and_then(|c| c.get_image_dimensions(*texture_id, *image_id))
+                .map_or((UV_FIXED_POINT_SCALE, UV_FIXED_POINT_SCALE), |(w, h)| {
+                    (
+                        f32::from(w.max(1)) * UV_FIXED_POINT_SCALE,
+                        f32::from(h.max(1)) * UV_FIXED_POINT_SCALE,
+                    )
+                }),
+            _ => (UV_FIXED_POINT_SCALE, UV_FIXED_POINT_SCALE),
+        };
+        for uv in &mut submesh.uvs {
+            uv[0] /= u_scale;
+            uv[1] /= v_scale;
+        }
+    }
 
     let total_vertex_count = populated_submeshes
         .iter()
@@ -311,14 +329,20 @@ fn rtx_index_json(rtx_file: &rtx::RtxFile) -> serde_json::Value {
 /// # Safety
 ///
 /// `data` must point to readable bytes of length `len`.
+/// `texture_cache` may be null or a valid pointer from `rg_texture_cache_create`.
 /// The returned pointer must be released with `rg_free_buffer`.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn rg_parse_model_data(data: *const u8, len: i32) -> *mut ByteBuffer {
+pub unsafe extern "C" fn rg_parse_model_data(
+    data: *const u8,
+    len: i32,
+    texture_cache: *mut TextureCache,
+) -> *mut ByteBuffer {
     let result = (|| -> crate::Result<Vec<u8>> {
         let slice = unsafe { read_bytes(data, len, "data") }?;
+        let texture_cache = unsafe { texture_cache.as_mut() };
         run_on_large_stack(move || {
             let model = model3d::parse_3d_file(slice)?;
-            serialize_model_3d(&model)
+            serialize_model_3d(&model, texture_cache)
         })
     })();
 
@@ -328,11 +352,17 @@ pub unsafe extern "C" fn rg_parse_model_data(data: *const u8, len: i32) -> *mut 
 /// # Safety
 ///
 /// `data` must point to readable bytes of length `len`.
+/// `texture_cache` may be null or a valid pointer from `rg_texture_cache_create`.
 /// The returned pointer must be released with `rg_free_buffer`.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn rg_parse_rob_data(data: *const u8, len: i32) -> *mut ByteBuffer {
+pub unsafe extern "C" fn rg_parse_rob_data(
+    data: *const u8,
+    len: i32,
+    texture_cache: *mut TextureCache,
+) -> *mut ByteBuffer {
     let result = (|| -> crate::Result<Vec<u8>> {
         let slice = unsafe { read_bytes(data, len, "data") }?;
+        let mut texture_cache = unsafe { texture_cache.as_mut() };
         run_on_large_stack(move || {
             let rob_file = rob::parse_rob_file(slice)?;
 
@@ -347,7 +377,7 @@ pub unsafe extern "C" fn rg_parse_rob_data(data: *const u8, len: i32) -> *mut By
                 if segment.has_embedded_3d_data() {
                     out.push(1);
                     let model = segment.parse_embedded_3d_data()?;
-                    let serialized = serialize_model_3d(&model)?;
+                    let serialized = serialize_model_3d(&model, texture_cache.as_deref_mut())?;
                     out.extend_from_slice(
                         &usize_to_i32(serialized.len(), "model_data_size")?.to_le_bytes(),
                     );

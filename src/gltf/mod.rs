@@ -32,7 +32,7 @@ const ENGINE_UNIT_SCALE: f32 = 20.0;
 /// (1/16th pixel precision). The engine multiplies raw values by 1/16.0 to get
 /// pixel-space texture coordinates, then scales by texture dimensions for rendering.
 /// For GLB export, we normalize to 0..1 by dividing raw values by (`texture_dim` × 16).
-pub(super) const UV_FIXED_POINT_SCALE: f32 = 16.0;
+pub(crate) const UV_FIXED_POINT_SCALE: f32 = 16.0;
 
 #[allow(clippy::cast_possible_truncation)]
 // GLTF indices are u32; generated mesh/light indices are far below u32::MAX.
