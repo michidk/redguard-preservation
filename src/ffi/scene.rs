@@ -1,8 +1,12 @@
 use super::buffer::*;
 use super::{i32_to_usize, read_bytes};
-use crate::import::{bsi, palette::Palette, rob};
+use crate::import::rtx::RtxEntry;
+use crate::import::{bsi, cht, fnt, fnt_ttf, palette::Palette, pvo, rob, rtx, sfx};
 use crate::model3d::{self, Model3DFile, TextureData};
+use hound::{SampleFormat, WavSpec, WavWriter};
+use serde_json::json;
 use std::collections::BTreeMap;
+use std::io::Cursor;
 
 const ENGINE_UNIT_SCALE: f32 = 20.0;
 
@@ -216,6 +220,87 @@ fn serialize_model_3d(model: &Model3DFile) -> crate::Result<Vec<u8>> {
     Ok(out)
 }
 
+fn pcm_to_wav_bytes(
+    audio_type: sfx::AudioType,
+    sample_rate: u32,
+    pcm_data: &[u8],
+) -> crate::Result<Vec<u8>> {
+    let spec = WavSpec {
+        channels: audio_type.channels(),
+        sample_rate,
+        bits_per_sample: audio_type.bits_per_sample(),
+        sample_format: SampleFormat::Int,
+    };
+
+    let mut cursor = Cursor::new(Vec::new());
+    let mut writer = WavWriter::new(&mut cursor, spec).map_err(|e| {
+        crate::error::Error::Conversion(format!("failed to create WAV writer: {e}"))
+    })?;
+
+    if audio_type.bits_per_sample() == 8 {
+        for &sample in pcm_data {
+            writer.write_sample(sample.cast_signed()).map_err(|e| {
+                crate::error::Error::Conversion(format!("failed to write WAV sample: {e}"))
+            })?;
+        }
+    } else {
+        for chunk in pcm_data.chunks_exact(2) {
+            let sample = i16::from_le_bytes([chunk[0], chunk[1]]);
+            writer.write_sample(sample).map_err(|e| {
+                crate::error::Error::Conversion(format!("failed to write WAV sample: {e}"))
+            })?;
+        }
+    }
+
+    writer.finalize().map_err(|e| {
+        crate::error::Error::Conversion(format!("failed to finalize WAV writer: {e}"))
+    })?;
+    Ok(cursor.into_inner())
+}
+
+fn rtx_index_json(rtx_file: &rtx::RtxFile) -> serde_json::Value {
+    let metadata_entries: Vec<serde_json::Value> = rtx_file
+        .entries
+        .iter()
+        .enumerate()
+        .map(|(i, entry)| {
+            let tag_str = entry.tag_str();
+
+            match entry {
+                RtxEntry::Text { text, .. } => json!({
+                    "index": i,
+                    "tag": tag_str,
+                    "type": "text",
+                    "text": text,
+                }),
+                RtxEntry::Audio {
+                    label,
+                    header,
+                    pcm_data,
+                    ..
+                } => json!({
+                    "index": i,
+                    "tag": tag_str,
+                    "type": "audio",
+                    "label": label,
+                    "audio_type": format!("{:?}", header.audio_type),
+                    "sample_rate": header.sample_rate,
+                    "duration_secs": header.duration_secs(),
+                    "pcm_bytes": pcm_data.len(),
+                    "wav_file": format!("{tag_str}.wav"),
+                }),
+            }
+        })
+        .collect();
+
+    json!({
+        "entry_count": rtx_file.entries.len(),
+        "audio_count": rtx_file.audio_count(),
+        "text_count": rtx_file.text_count(),
+        "entries": metadata_entries,
+    })
+}
+
 /// # Safety
 ///
 /// `data` must point to readable bytes of length `len`.
@@ -369,4 +454,239 @@ pub unsafe extern "C" fn rg_texbsi_image_count(texbsi_data: *const u8, texbsi_le
             -1
         }
     }
+}
+
+/// # Safety
+/// `data` must point to readable bytes of length `len`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn rg_sfx_effect_count(data: *const u8, len: i32) -> i32 {
+    let result = (|| -> crate::Result<i32> {
+        let slice = unsafe { read_bytes(data, len, "data") }?;
+        let parsed = sfx::parse_sfx_file(slice)?;
+        usize_to_i32(parsed.effects.len(), "effect_count")
+    })();
+
+    match result {
+        Ok(count) => {
+            clear_last_error();
+            count
+        }
+        Err(err) => {
+            set_last_error(err);
+            -1
+        }
+    }
+}
+
+/// # Safety
+/// `data` must point to readable bytes of length `len`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn rg_rtx_entry_count(data: *const u8, len: i32) -> i32 {
+    let result = (|| -> crate::Result<i32> {
+        let slice = unsafe { read_bytes(data, len, "data") }?;
+        let parsed = rtx::parse_rtx_file(slice)?;
+        usize_to_i32(parsed.entries.len(), "entry_count")
+    })();
+
+    match result {
+        Ok(count) => {
+            clear_last_error();
+            count
+        }
+        Err(err) => {
+            set_last_error(err);
+            -1
+        }
+    }
+}
+
+/// # Safety
+/// `data` must point to readable bytes of length `len`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn rg_convert_sfx_to_wav(
+    data: *const u8,
+    len: i32,
+    effect_index: i32,
+) -> *mut ByteBuffer {
+    let result = (|| -> crate::Result<Vec<u8>> {
+        let slice = unsafe { read_bytes(data, len, "data") }?;
+        let parsed = sfx::parse_sfx_file(slice)?;
+        let effect_idx = i32_to_usize(effect_index, "effect_index")?;
+        let effect = parsed.effects.get(effect_idx).ok_or_else(|| {
+            crate::error::Error::Parse(format!("effect_index out of range: {effect_index}"))
+        })?;
+
+        pcm_to_wav_bytes(effect.audio_type, effect.sample_rate, &effect.pcm_data)
+    })();
+
+    into_ffi_result(result)
+}
+
+/// # Safety
+/// `data` must point to readable bytes of length `len`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn rg_convert_rtx_entry_to_wav(
+    data: *const u8,
+    len: i32,
+    entry_index: i32,
+) -> *mut ByteBuffer {
+    let result = (|| -> crate::Result<Vec<u8>> {
+        let slice = unsafe { read_bytes(data, len, "data") }?;
+        let parsed = rtx::parse_rtx_file(slice)?;
+        let entry_idx = i32_to_usize(entry_index, "entry_index")?;
+        let entry = parsed.entries.get(entry_idx).ok_or_else(|| {
+            crate::error::Error::Parse(format!("entry_index out of range: {entry_index}"))
+        })?;
+
+        match entry {
+            RtxEntry::Audio {
+                header, pcm_data, ..
+            } => pcm_to_wav_bytes(header.audio_type, header.sample_rate, pcm_data),
+            RtxEntry::Text { .. } => Err(crate::error::Error::Parse(
+                "entry is text, not audio".to_string(),
+            )),
+        }
+    })();
+
+    into_ffi_result(result)
+}
+
+/// # Safety
+/// `data` must point to readable bytes of length `len`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn rg_rtx_metadata(data: *const u8, len: i32) -> *mut ByteBuffer {
+    let result = (|| -> crate::Result<Vec<u8>> {
+        let slice = unsafe { read_bytes(data, len, "data") }?;
+        let parsed = rtx::parse_rtx_file(slice)?;
+        let metadata = rtx_index_json(&parsed);
+        Ok(serde_json::to_vec(&metadata)?)
+    })();
+
+    into_ffi_result(result)
+}
+
+/// # Safety
+/// `data` must point to readable bytes of length `len`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn rg_parse_palette(data: *const u8, len: i32) -> *mut ByteBuffer {
+    let result = (|| -> crate::Result<Vec<u8>> {
+        let slice = unsafe { read_bytes(data, len, "data") }?;
+        let palette = Palette::parse(slice)?;
+        let colors = palette.colors.into_iter().collect::<Vec<[u8; 3]>>();
+        Ok(serde_json::to_vec(&json!({ "colors": colors }))?)
+    })();
+
+    into_ffi_result(result)
+}
+
+/// # Safety
+/// `data` must point to readable bytes of length `len`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn rg_convert_pvo_to_json(data: *const u8, len: i32) -> *mut ByteBuffer {
+    let result = (|| -> crate::Result<Vec<u8>> {
+        let slice = unsafe { read_bytes(data, len, "data") }?;
+        let parsed = pvo::parse_pvo_file(slice)?;
+
+        let nodes = parsed
+            .octr_nodes
+            .iter()
+            .enumerate()
+            .map(|(i, node)| {
+                json!({
+                    "index": i,
+                    "byte_offset": node.byte_offset,
+                    "child_mask": format!("0x{:02X}", node.child_mask),
+                    "child_count": node.child_count(),
+                    "leaf_ref": if node.is_interior() {
+                        "none".to_string()
+                    } else {
+                        format!("0x{:08X}", node.leaf_ref)
+                    },
+                    "child_refs": node.child_refs.iter()
+                        .map(|(octant, offset)| json!({
+                            "octant": octant,
+                            "offset": format!("0x{offset:08X}"),
+                        }))
+                        .collect::<Vec<_>>(),
+                })
+            })
+            .collect::<Vec<_>>();
+
+        let leaves = parsed
+            .plst_leaves
+            .iter()
+            .map(|leaf| {
+                json!({
+                    "byte_offset": leaf.byte_offset,
+                    "entries": leaf.entries.iter().map(|e| json!({
+                        "count": e.count,
+                        "mlst_start": e.mlst_start,
+                    })).collect::<Vec<_>>(),
+                })
+            })
+            .collect::<Vec<_>>();
+
+        let output = json!({
+            "header": {
+                "depth": parsed.header.depth,
+                "total_nodes": parsed.header.total_nodes,
+                "leaf_nodes": parsed.header.leaf_nodes,
+                "interior_nodes": parsed.header.interior_nodes(),
+                "mlst_polygon_count": parsed.header.mlst_polygon_count,
+                "cell_size": parsed.header.cell_size,
+                "center_x": parsed.header.center_x,
+                "center_y": parsed.header.center_y,
+                "center_z": parsed.header.center_z,
+            },
+            "octr_nodes": nodes,
+            "plst_leaves": leaves,
+            "mlst_indices": parsed.mlst_indices,
+        });
+
+        Ok(serde_json::to_vec(&output)?)
+    })();
+
+    into_ffi_result(result)
+}
+
+/// # Safety
+/// `data` must point to readable bytes of length `len`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn rg_convert_cht_to_json(data: *const u8, len: i32) -> *mut ByteBuffer {
+    let result = (|| -> crate::Result<Vec<u8>> {
+        let slice = unsafe { read_bytes(data, len, "data") }?;
+        let parsed = cht::parse_cht_file(slice)?;
+
+        let cheats: serde_json::Map<String, serde_json::Value> = parsed
+            .named_cheats()
+            .iter()
+            .map(|e| {
+                let name = e.name.unwrap_or("unknown").to_string();
+                let value = if e.value > 1 {
+                    json!(e.value)
+                } else {
+                    json!(e.is_on())
+                };
+                (name, value)
+            })
+            .collect();
+
+        Ok(serde_json::to_vec(&json!(cheats))?)
+    })();
+
+    into_ffi_result(result)
+}
+
+/// # Safety
+/// `data` must point to readable bytes of length `len`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn rg_convert_fnt_to_ttf(data: *const u8, len: i32) -> *mut ByteBuffer {
+    let result = (|| -> crate::Result<Vec<u8>> {
+        let slice = unsafe { read_bytes(data, len, "data") }?;
+        let parsed = fnt::parse_fnt(slice)?;
+        let ttf = fnt_ttf::build_ttf_from_fnt(&parsed, "RedguardFnt")?;
+        Ok(ttf)
+    })();
+
+    into_ffi_result(result)
 }
