@@ -1,7 +1,9 @@
 mod buffer;
 pub mod scene;
 
-use self::buffer::{clear_last_error, into_ffi_result, last_error_message, set_last_error};
+use self::buffer::{
+    clear_last_error, into_ffi_result, last_error_message, run_on_large_stack, set_last_error,
+};
 use crate::gltf::{
     TextureCache, convert_models_to_gltf, convert_positioned_models_to_gltf,
     convert_wld_scene_to_gltf, to_glb,
@@ -111,14 +113,15 @@ unsafe fn build_registry_from_raw(
     Ok(Registry::from_data(entries))
 }
 
-unsafe fn texture_cache_from_raw(
+#[allow(clippy::type_complexity)]
+unsafe fn extract_texbsi_data(
     palette_data: *const u8,
     palette_len: i32,
     texbsi_ids: *const u16,
     texbsi_datas: *const *const u8,
     texbsi_lens: *const i32,
     texbsi_count: i32,
-) -> crate::Result<TextureCache> {
+) -> crate::Result<(Option<Palette>, HashMap<u16, Vec<u8>>)> {
     let palette = if palette_data.is_null() {
         None
     } else {
@@ -128,7 +131,7 @@ unsafe fn texture_cache_from_raw(
 
     let count = i32_to_usize(texbsi_count, "texbsi_count")?;
     if count == 0 {
-        return Ok(TextureCache::from_data(HashMap::new(), palette));
+        return Ok((palette, HashMap::new()));
     }
 
     let ids = unsafe { read_array(texbsi_ids, count, "texbsi_ids") }?;
@@ -141,7 +144,7 @@ unsafe fn texture_cache_from_raw(
         texbsi_map.insert(ids[idx], data.to_vec());
     }
 
-    Ok(TextureCache::from_data(texbsi_map, palette))
+    Ok((palette, texbsi_map))
 }
 
 fn extract_palette(cache: &Option<&mut TextureCache>) -> Option<Palette> {
@@ -194,16 +197,20 @@ pub unsafe extern "C" fn rg_texture_cache_create(
     texbsi_lens: *const i32,
     texbsi_count: i32,
 ) -> *mut TextureCache {
-    match unsafe {
-        texture_cache_from_raw(
-            palette_data,
-            palette_len,
-            texbsi_ids,
-            texbsi_datas,
-            texbsi_lens,
-            texbsi_count,
-        )
-    } {
+    let result = (|| -> crate::Result<TextureCache> {
+        let (palette, texbsi_map) = unsafe {
+            extract_texbsi_data(
+                palette_data,
+                palette_len,
+                texbsi_ids,
+                texbsi_datas,
+                texbsi_lens,
+                texbsi_count,
+            )
+        }?;
+        run_on_large_stack(move || Ok(TextureCache::from_data(texbsi_map, palette)))
+    })();
+    match result {
         Ok(cache) => {
             clear_last_error();
             Box::into_raw(Box::new(cache))
@@ -239,16 +246,18 @@ pub unsafe extern "C" fn rg_convert_model_to_glb(
 ) -> *mut ByteBuffer {
     let result = (|| -> crate::Result<Vec<u8>> {
         let model_bytes = unsafe { read_bytes(model_data, model_len, "model_data") }?;
-        let model = model3d::parse_3d_file(model_bytes)?;
         let texture_cache = unsafe { texture_cache.as_mut() };
-        let palette = extract_palette(&texture_cache);
-        let (root, buffer) = convert_models_to_gltf(
-            std::slice::from_ref(&model),
-            palette.as_ref(),
-            texture_cache,
-            false,
-        )?;
-        to_glb(&root, &buffer)
+        run_on_large_stack(move || {
+            let model = model3d::parse_3d_file(model_bytes)?;
+            let palette = extract_palette(&texture_cache);
+            let (root, buffer) = convert_models_to_gltf(
+                std::slice::from_ref(&model),
+                palette.as_ref(),
+                texture_cache,
+                false,
+            )?;
+            to_glb(&root, &buffer)
+        })
     })();
 
     into_ffi_result(result)
@@ -267,12 +276,14 @@ pub unsafe extern "C" fn rg_convert_rob_to_glb(
 ) -> *mut ByteBuffer {
     let result = (|| -> crate::Result<Vec<u8>> {
         let rob_bytes = unsafe { read_bytes(rob_data, rob_len, "rob_data") }?;
-        let (_, models) = rob::parse_rob_with_models(rob_bytes)?;
         let texture_cache = unsafe { texture_cache.as_mut() };
-        let palette = extract_palette(&texture_cache);
-        let (root, buffer) =
-            convert_models_to_gltf(&models, palette.as_ref(), texture_cache, false)?;
-        to_glb(&root, &buffer)
+        run_on_large_stack(move || {
+            let (_, models) = rob::parse_rob_with_models(rob_bytes)?;
+            let palette = extract_palette(&texture_cache);
+            let (root, buffer) =
+                convert_models_to_gltf(&models, palette.as_ref(), texture_cache, false)?;
+            to_glb(&root, &buffer)
+        })
     })();
 
     into_ffi_result(result)
@@ -306,17 +317,19 @@ pub unsafe extern "C" fn rg_convert_rgm_to_glb(
                 model_count,
             )
         }?;
-        let (_, positioned_models, lights) = rgm::parse_rgm_with_models(rgm_bytes, &registry)?;
         let texture_cache = unsafe { texture_cache.as_mut() };
-        let palette = extract_palette(&texture_cache);
-        let (root, buffer) = convert_positioned_models_to_gltf(
-            &positioned_models,
-            &lights,
-            palette.as_ref(),
-            texture_cache,
-            false,
-        )?;
-        to_glb(&root, &buffer)
+        run_on_large_stack(move || {
+            let (_, positioned_models, lights) = rgm::parse_rgm_with_models(rgm_bytes, &registry)?;
+            let palette = extract_palette(&texture_cache);
+            let (root, buffer) = convert_positioned_models_to_gltf(
+                &positioned_models,
+                &lights,
+                palette.as_ref(),
+                texture_cache,
+                false,
+            )?;
+            to_glb(&root, &buffer)
+        })
     })();
 
     into_ffi_result(result)
@@ -330,9 +343,11 @@ pub unsafe extern "C" fn rg_convert_rgm_to_glb(
 pub unsafe extern "C" fn rg_get_rgm_metadata(rgm_data: *const u8, rgm_len: i32) -> *mut ByteBuffer {
     let result = (|| -> crate::Result<Vec<u8>> {
         let rgm_bytes = unsafe { read_bytes(rgm_data, rgm_len, "rgm_data") }?;
-        let parsed = rgm::parse_rgm_file(rgm_bytes)?;
-        let metadata = rgm::export_rgm_metadata_json(&parsed);
-        Ok(serde_json::to_vec(&metadata)?)
+        run_on_large_stack(move || {
+            let parsed = rgm::parse_rgm_file(rgm_bytes)?;
+            let metadata = rgm::export_rgm_metadata_json(&parsed);
+            Ok(serde_json::to_vec(&metadata)?)
+        })
     })();
 
     into_ffi_result(result)
@@ -360,10 +375,8 @@ pub unsafe extern "C" fn rg_convert_wld_to_glb(
 ) -> *mut ByteBuffer {
     let result = (|| -> crate::Result<Vec<u8>> {
         let wld_bytes = unsafe { read_bytes(wld_data, wld_len, "wld_data") }?;
-        let wld_file = wld::parse_wld_file(wld_bytes)?;
-
-        let positioned_models = if rgm_data.is_null() {
-            Vec::new()
+        let rgm_context = if rgm_data.is_null() {
+            None
         } else {
             let rgm_bytes = unsafe { read_bytes(rgm_data, rgm_len, "rgm_data") }?;
             let registry = unsafe {
@@ -375,23 +388,33 @@ pub unsafe extern "C" fn rg_convert_wld_to_glb(
                     model_count,
                 )
             }?;
-            let (_, models, _) = rgm::parse_rgm_with_models(rgm_bytes, &registry)?;
-            models
+            Some((rgm_bytes, registry))
         };
-
-        let texbsi_id = wld_texbsi_id(&wld_file);
         let texture_cache = unsafe { texture_cache.as_mut() };
-        let palette = extract_palette(&texture_cache);
-        let (root, buffer) = convert_wld_scene_to_gltf(
-            &wld_file,
-            texbsi_id,
-            &positioned_models,
-            palette.as_ref(),
-            texture_cache,
-            false,
-        )?;
+        run_on_large_stack(move || {
+            let wld_file = wld::parse_wld_file(wld_bytes)?;
 
-        to_glb(&root, &buffer)
+            let positioned_models = match rgm_context {
+                Some((rgm_bytes, ref registry)) => {
+                    let (_, models, _) = rgm::parse_rgm_with_models(rgm_bytes, registry)?;
+                    models
+                }
+                None => Vec::new(),
+            };
+
+            let texbsi_id = wld_texbsi_id(&wld_file);
+            let palette = extract_palette(&texture_cache);
+            let (root, buffer) = convert_wld_scene_to_gltf(
+                &wld_file,
+                texbsi_id,
+                &positioned_models,
+                palette.as_ref(),
+                texture_cache,
+                false,
+            )?;
+
+            to_glb(&root, &buffer)
+        })
     })();
 
     into_ffi_result(result)

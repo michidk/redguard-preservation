@@ -309,8 +309,10 @@ fn rtx_index_json(rtx_file: &rtx::RtxFile) -> serde_json::Value {
 pub unsafe extern "C" fn rg_parse_model_data(data: *const u8, len: i32) -> *mut ByteBuffer {
     let result = (|| -> crate::Result<Vec<u8>> {
         let slice = unsafe { read_bytes(data, len, "data") }?;
-        let model = model3d::parse_3d_file(slice)?;
-        serialize_model_3d(&model)
+        run_on_large_stack(move || {
+            let model = model3d::parse_3d_file(slice)?;
+            serialize_model_3d(&model)
+        })
     })();
 
     into_ffi_result(result)
@@ -324,30 +326,32 @@ pub unsafe extern "C" fn rg_parse_model_data(data: *const u8, len: i32) -> *mut 
 pub unsafe extern "C" fn rg_parse_rob_data(data: *const u8, len: i32) -> *mut ByteBuffer {
     let result = (|| -> crate::Result<Vec<u8>> {
         let slice = unsafe { read_bytes(data, len, "data") }?;
-        let rob_file = rob::parse_rob_file(slice)?;
+        run_on_large_stack(move || {
+            let rob_file = rob::parse_rob_file(slice)?;
 
-        let mut out = Vec::new();
-        out.extend_from_slice(
-            &usize_to_i32(rob_file.segments.len(), "segment_count")?.to_le_bytes(),
-        );
+            let mut out = Vec::new();
+            out.extend_from_slice(
+                &usize_to_i32(rob_file.segments.len(), "segment_count")?.to_le_bytes(),
+            );
 
-        for segment in &rob_file.segments {
-            out.extend_from_slice(&segment.segment_name);
+            for segment in &rob_file.segments {
+                out.extend_from_slice(&segment.segment_name);
 
-            if segment.has_embedded_3d_data() {
-                out.push(1);
-                let model = segment.parse_embedded_3d_data()?;
-                let serialized = serialize_model_3d(&model)?;
-                out.extend_from_slice(
-                    &usize_to_i32(serialized.len(), "model_data_size")?.to_le_bytes(),
-                );
-                out.extend_from_slice(&serialized);
-            } else {
-                out.push(0);
+                if segment.has_embedded_3d_data() {
+                    out.push(1);
+                    let model = segment.parse_embedded_3d_data()?;
+                    let serialized = serialize_model_3d(&model)?;
+                    out.extend_from_slice(
+                        &usize_to_i32(serialized.len(), "model_data_size")?.to_le_bytes(),
+                    );
+                    out.extend_from_slice(&serialized);
+                } else {
+                    out.push(0);
+                }
             }
-        }
 
-        Ok(out)
+            Ok(out)
+        })
     })();
 
     into_ffi_result(result)
@@ -368,21 +372,23 @@ pub unsafe extern "C" fn rg_decode_texture(
     let result = (|| -> crate::Result<Vec<u8>> {
         let texbsi_slice = unsafe { read_bytes(texbsi_data, texbsi_len, "texbsi_data") }?;
         let palette_slice = unsafe { read_bytes(palette_data, palette_len, "palette_data") }?;
-        let bsi_file = bsi::parse_bsi_file(texbsi_slice)?;
-        let palette = Palette::parse(palette_slice)?;
-        let image_idx = i32_to_usize(image_index, "image_index")?;
-        let image = bsi_file.images.get(image_idx).ok_or_else(|| {
-            crate::error::Error::Parse(format!("image_index out of range: {image_index}"))
-        })?;
+        run_on_large_stack(move || {
+            let bsi_file = bsi::parse_bsi_file(texbsi_slice)?;
+            let palette = Palette::parse(palette_slice)?;
+            let image_idx = i32_to_usize(image_index, "image_index")?;
+            let image = bsi_file.images.get(image_idx).ok_or_else(|| {
+                crate::error::Error::Parse(format!("image_index out of range: {image_index}"))
+            })?;
 
-        let rgba = image.decode_rgba(Some(&palette));
-        let mut out = Vec::new();
-        out.extend_from_slice(&i32::from(image.width).to_le_bytes());
-        out.extend_from_slice(&i32::from(image.height).to_le_bytes());
-        out.extend_from_slice(&i32::from(image.frame_count).to_le_bytes());
-        out.extend_from_slice(&usize_to_i32(rgba.len(), "rgba_size")?.to_le_bytes());
-        out.extend_from_slice(&rgba);
-        Ok(out)
+            let rgba = image.decode_rgba(Some(&palette));
+            let mut out = Vec::new();
+            out.extend_from_slice(&i32::from(image.width).to_le_bytes());
+            out.extend_from_slice(&i32::from(image.height).to_le_bytes());
+            out.extend_from_slice(&i32::from(image.frame_count).to_le_bytes());
+            out.extend_from_slice(&usize_to_i32(rgba.len(), "rgba_size")?.to_le_bytes());
+            out.extend_from_slice(&rgba);
+            Ok(out)
+        })
     })();
 
     into_ffi_result(result)
@@ -403,31 +409,35 @@ pub unsafe extern "C" fn rg_decode_texture_all_frames(
     let result = (|| -> crate::Result<Vec<u8>> {
         let texbsi_slice = unsafe { read_bytes(texbsi_data, texbsi_len, "texbsi_data") }?;
         let palette_slice = unsafe { read_bytes(palette_data, palette_len, "palette_data") }?;
-        let bsi_file = bsi::parse_bsi_file(texbsi_slice)?;
-        let palette = Palette::parse(palette_slice)?;
-        let image_idx = i32_to_usize(image_index, "image_index")?;
-        let image = bsi_file.images.get(image_idx).ok_or_else(|| {
-            crate::error::Error::Parse(format!("image_index out of range: {image_index}"))
-        })?;
+        run_on_large_stack(move || {
+            let bsi_file = bsi::parse_bsi_file(texbsi_slice)?;
+            let palette = Palette::parse(palette_slice)?;
+            let image_idx = i32_to_usize(image_index, "image_index")?;
+            let image = bsi_file.images.get(image_idx).ok_or_else(|| {
+                crate::error::Error::Parse(format!("image_index out of range: {image_index}"))
+            })?;
 
-        let mut out = Vec::new();
-        out.extend_from_slice(&i32::from(image.width).to_le_bytes());
-        out.extend_from_slice(&i32::from(image.height).to_le_bytes());
-        out.extend_from_slice(&i32::from(image.frame_count).to_le_bytes());
+            let mut out = Vec::new();
+            out.extend_from_slice(&i32::from(image.width).to_le_bytes());
+            out.extend_from_slice(&i32::from(image.height).to_le_bytes());
+            out.extend_from_slice(&i32::from(image.frame_count).to_le_bytes());
 
-        for frame_idx in 0..usize::from(image.frame_count) {
-            match image.decode_frame_rgba(frame_idx, Some(&palette)) {
-                Some(rgba) => {
-                    out.extend_from_slice(&usize_to_i32(rgba.len(), "rgba_size")?.to_le_bytes());
-                    out.extend_from_slice(&rgba);
-                }
-                None => {
-                    out.extend_from_slice(&0_i32.to_le_bytes());
+            for frame_idx in 0..usize::from(image.frame_count) {
+                match image.decode_frame_rgba(frame_idx, Some(&palette)) {
+                    Some(rgba) => {
+                        out.extend_from_slice(
+                            &usize_to_i32(rgba.len(), "rgba_size")?.to_le_bytes(),
+                        );
+                        out.extend_from_slice(&rgba);
+                    }
+                    None => {
+                        out.extend_from_slice(&0_i32.to_le_bytes());
+                    }
                 }
             }
-        }
 
-        Ok(out)
+            Ok(out)
+        })
     })();
 
     into_ffi_result(result)
@@ -440,8 +450,10 @@ pub unsafe extern "C" fn rg_decode_texture_all_frames(
 pub unsafe extern "C" fn rg_texbsi_image_count(texbsi_data: *const u8, texbsi_len: i32) -> i32 {
     let result = (|| -> crate::Result<i32> {
         let texbsi_slice = unsafe { read_bytes(texbsi_data, texbsi_len, "texbsi_data") }?;
-        let bsi_file = bsi::parse_bsi_file(texbsi_slice)?;
-        usize_to_i32(bsi_file.images.len(), "image_count")
+        run_on_large_stack(move || {
+            let bsi_file = bsi::parse_bsi_file(texbsi_slice)?;
+            usize_to_i32(bsi_file.images.len(), "image_count")
+        })
     })();
 
     match result {
@@ -462,8 +474,10 @@ pub unsafe extern "C" fn rg_texbsi_image_count(texbsi_data: *const u8, texbsi_le
 pub unsafe extern "C" fn rg_sfx_effect_count(data: *const u8, len: i32) -> i32 {
     let result = (|| -> crate::Result<i32> {
         let slice = unsafe { read_bytes(data, len, "data") }?;
-        let parsed = sfx::parse_sfx_file(slice)?;
-        usize_to_i32(parsed.effects.len(), "effect_count")
+        run_on_large_stack(move || {
+            let parsed = sfx::parse_sfx_file(slice)?;
+            usize_to_i32(parsed.effects.len(), "effect_count")
+        })
     })();
 
     match result {
@@ -484,8 +498,10 @@ pub unsafe extern "C" fn rg_sfx_effect_count(data: *const u8, len: i32) -> i32 {
 pub unsafe extern "C" fn rg_rtx_entry_count(data: *const u8, len: i32) -> i32 {
     let result = (|| -> crate::Result<i32> {
         let slice = unsafe { read_bytes(data, len, "data") }?;
-        let parsed = rtx::parse_rtx_file(slice)?;
-        usize_to_i32(parsed.entries.len(), "entry_count")
+        run_on_large_stack(move || {
+            let parsed = rtx::parse_rtx_file(slice)?;
+            usize_to_i32(parsed.entries.len(), "entry_count")
+        })
     })();
 
     match result {
@@ -510,13 +526,15 @@ pub unsafe extern "C" fn rg_convert_sfx_to_wav(
 ) -> *mut ByteBuffer {
     let result = (|| -> crate::Result<Vec<u8>> {
         let slice = unsafe { read_bytes(data, len, "data") }?;
-        let parsed = sfx::parse_sfx_file(slice)?;
-        let effect_idx = i32_to_usize(effect_index, "effect_index")?;
-        let effect = parsed.effects.get(effect_idx).ok_or_else(|| {
-            crate::error::Error::Parse(format!("effect_index out of range: {effect_index}"))
-        })?;
+        run_on_large_stack(move || {
+            let parsed = sfx::parse_sfx_file(slice)?;
+            let effect_idx = i32_to_usize(effect_index, "effect_index")?;
+            let effect = parsed.effects.get(effect_idx).ok_or_else(|| {
+                crate::error::Error::Parse(format!("effect_index out of range: {effect_index}"))
+            })?;
 
-        pcm_to_wav_bytes(effect.audio_type, effect.sample_rate, &effect.pcm_data)
+            pcm_to_wav_bytes(effect.audio_type, effect.sample_rate, &effect.pcm_data)
+        })
     })();
 
     into_ffi_result(result)
@@ -532,20 +550,22 @@ pub unsafe extern "C" fn rg_convert_rtx_entry_to_wav(
 ) -> *mut ByteBuffer {
     let result = (|| -> crate::Result<Vec<u8>> {
         let slice = unsafe { read_bytes(data, len, "data") }?;
-        let parsed = rtx::parse_rtx_file(slice)?;
-        let entry_idx = i32_to_usize(entry_index, "entry_index")?;
-        let entry = parsed.entries.get(entry_idx).ok_or_else(|| {
-            crate::error::Error::Parse(format!("entry_index out of range: {entry_index}"))
-        })?;
+        run_on_large_stack(move || {
+            let parsed = rtx::parse_rtx_file(slice)?;
+            let entry_idx = i32_to_usize(entry_index, "entry_index")?;
+            let entry = parsed.entries.get(entry_idx).ok_or_else(|| {
+                crate::error::Error::Parse(format!("entry_index out of range: {entry_index}"))
+            })?;
 
-        match entry {
-            RtxEntry::Audio {
-                header, pcm_data, ..
-            } => pcm_to_wav_bytes(header.audio_type, header.sample_rate, pcm_data),
-            RtxEntry::Text { .. } => Err(crate::error::Error::Parse(
-                "entry is text, not audio".to_string(),
-            )),
-        }
+            match entry {
+                RtxEntry::Audio {
+                    header, pcm_data, ..
+                } => pcm_to_wav_bytes(header.audio_type, header.sample_rate, pcm_data),
+                RtxEntry::Text { .. } => Err(crate::error::Error::Parse(
+                    "entry is text, not audio".to_string(),
+                )),
+            }
+        })
     })();
 
     into_ffi_result(result)
@@ -557,9 +577,11 @@ pub unsafe extern "C" fn rg_convert_rtx_entry_to_wav(
 pub unsafe extern "C" fn rg_rtx_metadata(data: *const u8, len: i32) -> *mut ByteBuffer {
     let result = (|| -> crate::Result<Vec<u8>> {
         let slice = unsafe { read_bytes(data, len, "data") }?;
-        let parsed = rtx::parse_rtx_file(slice)?;
-        let metadata = rtx_index_json(&parsed);
-        Ok(serde_json::to_vec(&metadata)?)
+        run_on_large_stack(move || {
+            let parsed = rtx::parse_rtx_file(slice)?;
+            let metadata = rtx_index_json(&parsed);
+            Ok(serde_json::to_vec(&metadata)?)
+        })
     })();
 
     into_ffi_result(result)
@@ -571,9 +593,11 @@ pub unsafe extern "C" fn rg_rtx_metadata(data: *const u8, len: i32) -> *mut Byte
 pub unsafe extern "C" fn rg_parse_palette(data: *const u8, len: i32) -> *mut ByteBuffer {
     let result = (|| -> crate::Result<Vec<u8>> {
         let slice = unsafe { read_bytes(data, len, "data") }?;
-        let palette = Palette::parse(slice)?;
-        let colors = palette.colors.into_iter().collect::<Vec<[u8; 3]>>();
-        Ok(serde_json::to_vec(&json!({ "colors": colors }))?)
+        run_on_large_stack(move || {
+            let palette = Palette::parse(slice)?;
+            let colors = palette.colors.into_iter().collect::<Vec<[u8; 3]>>();
+            Ok(serde_json::to_vec(&json!({ "colors": colors }))?)
+        })
     })();
 
     into_ffi_result(result)
@@ -585,65 +609,67 @@ pub unsafe extern "C" fn rg_parse_palette(data: *const u8, len: i32) -> *mut Byt
 pub unsafe extern "C" fn rg_convert_pvo_to_json(data: *const u8, len: i32) -> *mut ByteBuffer {
     let result = (|| -> crate::Result<Vec<u8>> {
         let slice = unsafe { read_bytes(data, len, "data") }?;
-        let parsed = pvo::parse_pvo_file(slice)?;
+        run_on_large_stack(move || {
+            let parsed = pvo::parse_pvo_file(slice)?;
 
-        let nodes = parsed
-            .octr_nodes
-            .iter()
-            .enumerate()
-            .map(|(i, node)| {
-                json!({
-                    "index": i,
-                    "byte_offset": node.byte_offset,
-                    "child_mask": format!("0x{:02X}", node.child_mask),
-                    "child_count": node.child_count(),
-                    "leaf_ref": if node.is_interior() {
-                        "none".to_string()
-                    } else {
-                        format!("0x{:08X}", node.leaf_ref)
-                    },
-                    "child_refs": node.child_refs.iter()
-                        .map(|(octant, offset)| json!({
-                            "octant": octant,
-                            "offset": format!("0x{offset:08X}"),
-                        }))
-                        .collect::<Vec<_>>(),
+            let nodes = parsed
+                .octr_nodes
+                .iter()
+                .enumerate()
+                .map(|(i, node)| {
+                    json!({
+                        "index": i,
+                        "byte_offset": node.byte_offset,
+                        "child_mask": format!("0x{:02X}", node.child_mask),
+                        "child_count": node.child_count(),
+                        "leaf_ref": if node.is_interior() {
+                            "none".to_string()
+                        } else {
+                            format!("0x{:08X}", node.leaf_ref)
+                        },
+                        "child_refs": node.child_refs.iter()
+                            .map(|(octant, offset)| json!({
+                                "octant": octant,
+                                "offset": format!("0x{offset:08X}"),
+                            }))
+                            .collect::<Vec<_>>(),
+                    })
                 })
-            })
-            .collect::<Vec<_>>();
+                .collect::<Vec<_>>();
 
-        let leaves = parsed
-            .plst_leaves
-            .iter()
-            .map(|leaf| {
-                json!({
-                    "byte_offset": leaf.byte_offset,
-                    "entries": leaf.entries.iter().map(|e| json!({
-                        "count": e.count,
-                        "mlst_start": e.mlst_start,
-                    })).collect::<Vec<_>>(),
+            let leaves = parsed
+                .plst_leaves
+                .iter()
+                .map(|leaf| {
+                    json!({
+                        "byte_offset": leaf.byte_offset,
+                        "entries": leaf.entries.iter().map(|e| json!({
+                            "count": e.count,
+                            "mlst_start": e.mlst_start,
+                        })).collect::<Vec<_>>(),
+                    })
                 })
-            })
-            .collect::<Vec<_>>();
+                .collect::<Vec<_>>();
 
-        let output = json!({
-            "header": {
-                "depth": parsed.header.depth,
-                "total_nodes": parsed.header.total_nodes,
-                "leaf_nodes": parsed.header.leaf_nodes,
-                "interior_nodes": parsed.header.interior_nodes(),
-                "mlst_polygon_count": parsed.header.mlst_polygon_count,
-                "cell_size": parsed.header.cell_size,
-                "center_x": parsed.header.center_x,
-                "center_y": parsed.header.center_y,
-                "center_z": parsed.header.center_z,
-            },
-            "octr_nodes": nodes,
-            "plst_leaves": leaves,
-            "mlst_indices": parsed.mlst_indices,
-        });
+            let output = json!({
+                "header": {
+                    "depth": parsed.header.depth,
+                    "total_nodes": parsed.header.total_nodes,
+                    "leaf_nodes": parsed.header.leaf_nodes,
+                    "interior_nodes": parsed.header.interior_nodes(),
+                    "mlst_polygon_count": parsed.header.mlst_polygon_count,
+                    "cell_size": parsed.header.cell_size,
+                    "center_x": parsed.header.center_x,
+                    "center_y": parsed.header.center_y,
+                    "center_z": parsed.header.center_z,
+                },
+                "octr_nodes": nodes,
+                "plst_leaves": leaves,
+                "mlst_indices": parsed.mlst_indices,
+            });
 
-        Ok(serde_json::to_vec(&output)?)
+            Ok(serde_json::to_vec(&output)?)
+        })
     })();
 
     into_ffi_result(result)
@@ -655,23 +681,25 @@ pub unsafe extern "C" fn rg_convert_pvo_to_json(data: *const u8, len: i32) -> *m
 pub unsafe extern "C" fn rg_convert_cht_to_json(data: *const u8, len: i32) -> *mut ByteBuffer {
     let result = (|| -> crate::Result<Vec<u8>> {
         let slice = unsafe { read_bytes(data, len, "data") }?;
-        let parsed = cht::parse_cht_file(slice)?;
+        run_on_large_stack(move || {
+            let parsed = cht::parse_cht_file(slice)?;
 
-        let cheats: serde_json::Map<String, serde_json::Value> = parsed
-            .named_cheats()
-            .iter()
-            .map(|e| {
-                let name = e.name.unwrap_or("unknown").to_string();
-                let value = if e.value > 1 {
-                    json!(e.value)
-                } else {
-                    json!(e.is_on())
-                };
-                (name, value)
-            })
-            .collect();
+            let cheats: serde_json::Map<String, serde_json::Value> = parsed
+                .named_cheats()
+                .iter()
+                .map(|e| {
+                    let name = e.name.unwrap_or("unknown").to_string();
+                    let value = if e.value > 1 {
+                        json!(e.value)
+                    } else {
+                        json!(e.is_on())
+                    };
+                    (name, value)
+                })
+                .collect();
 
-        Ok(serde_json::to_vec(&json!(cheats))?)
+            Ok(serde_json::to_vec(&json!(cheats))?)
+        })
     })();
 
     into_ffi_result(result)
@@ -683,9 +711,11 @@ pub unsafe extern "C" fn rg_convert_cht_to_json(data: *const u8, len: i32) -> *m
 pub unsafe extern "C" fn rg_convert_fnt_to_ttf(data: *const u8, len: i32) -> *mut ByteBuffer {
     let result = (|| -> crate::Result<Vec<u8>> {
         let slice = unsafe { read_bytes(data, len, "data") }?;
-        let parsed = fnt::parse_fnt(slice)?;
-        let ttf = fnt_ttf::build_ttf_from_fnt(&parsed, "RedguardFnt")?;
-        Ok(ttf)
+        run_on_large_stack(move || {
+            let parsed = fnt::parse_fnt(slice)?;
+            let ttf = fnt_ttf::build_ttf_from_fnt(&parsed, "RedguardFnt")?;
+            Ok(ttf)
+        })
     })();
 
     into_ffi_result(result)

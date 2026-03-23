@@ -94,3 +94,42 @@ pub fn into_ffi_result(result: crate::Result<Vec<u8>>) -> *mut ByteBuffer {
         }
     }
 }
+
+/// Runs the given closure on a dedicated thread with an 8 MiB stack.
+///
+/// FFI callers (e.g. Unity/C# via P/Invoke) often run Rust code on threads
+/// whose stacks are much smaller than Rust's default 8 MiB (Unity worker
+/// threads typically have ~1 MiB).  Heavy parsing and GLTF-conversion call
+/// chains can overflow that.  Spawning a scoped thread guarantees enough
+/// stack space while still allowing the closure to borrow caller-owned data.
+///
+/// As a bonus the scoped-thread join catches any Rust panics, converting
+/// them into an [`Error::Conversion`] instead of unwinding across the
+/// `extern "C"` boundary (which is undefined behaviour).
+pub fn run_on_large_stack<F, T>(f: F) -> crate::Result<T>
+where
+    F: FnOnce() -> crate::Result<T> + Send,
+    T: Send,
+{
+    const STACK_SIZE: usize = 8 * 1024 * 1024; // 8 MiB
+
+    std::thread::scope(|scope| {
+        std::thread::Builder::new()
+            .stack_size(STACK_SIZE)
+            .spawn_scoped(scope, f)
+            .map_err(|e| {
+                crate::error::Error::Conversion(format!("failed to spawn worker thread: {e}"))
+            })?
+            .join()
+            .unwrap_or_else(|payload| {
+                let msg = payload
+                    .downcast_ref::<&str>()
+                    .copied()
+                    .or_else(|| payload.downcast_ref::<String>().map(String::as_str))
+                    .unwrap_or("unknown panic");
+                Err(crate::error::Error::Conversion(format!(
+                    "worker thread panicked: {msg}"
+                )))
+            })
+    })
+}
