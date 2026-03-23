@@ -701,7 +701,7 @@ dependencies = [
 
 [[package]]
 name = "redguard-preservation"
-version = "0.2.11"
+version = "0.2.12"
 dependencies = [
  "clap",
  "clap-verbosity-flag",
