@@ -1,14 +1,11 @@
 use super::buffer::*;
-use super::{build_path_texture_cache, i32_to_usize, read_c_str, texture_cache_from_assets_dir};
-use crate::gltf::{MaterialKey, TextureCache, UV_FIXED_POINT_SCALE, build_wld_unrolled_primitives};
-use crate::import::FileType;
+use super::{i32_to_usize, read_c_str, texture_cache_from_assets_dir};
+use crate::gltf::{MaterialKey, UV_FIXED_POINT_SCALE, build_wld_unrolled_primitives};
 use crate::import::rtx::RtxEntry;
-use crate::import::{
-    cht, fnt, fnt_ttf, gxa, palette::Palette, pvo, rgm, rob, rtx, sfx, wld, world_ini,
-};
+use crate::import::{fnt, fnt_ttf, gxa, rgm, rob, rtx, sfx, wld};
 use crate::model3d::{self, Model3DFile, TextureData};
 use hound::{SampleFormat, WavSpec, WavWriter};
-use serde_json::json;
+
 use std::collections::BTreeMap;
 use std::io::Cursor;
 use std::os::raw::c_char;
@@ -75,10 +72,7 @@ fn usize_to_u32(value: usize, name: &str) -> crate::Result<u32> {
         .map_err(|_| crate::error::Error::Parse(format!("{name} exceeds u32::MAX: {value}")))
 }
 
-fn serialize_model_3d(
-    model: &Model3DFile,
-    mut texture_cache: Option<&mut TextureCache>,
-) -> crate::Result<Vec<u8>> {
+fn serialize_model_3d(model: &Model3DFile) -> crate::Result<Vec<u8>> {
     let mut submeshes: BTreeMap<SubmeshKey, SubmeshData> = BTreeMap::new();
     let mut cumulative_fv_base: usize = 0;
 
@@ -154,22 +148,10 @@ fn serialize_model_3d(
         .filter(|(_, submesh)| !submesh.indices.is_empty())
         .collect();
 
-    for (key, submesh) in &mut populated_submeshes {
-        let (u_scale, v_scale) = match key {
-            SubmeshKey::Textured(texture_id, image_id) => texture_cache
-                .as_mut()
-                .and_then(|c| c.get_image_dimensions(*texture_id, *image_id))
-                .map_or((UV_FIXED_POINT_SCALE, UV_FIXED_POINT_SCALE), |(w, h)| {
-                    (
-                        f32::from(w.max(1)) * UV_FIXED_POINT_SCALE,
-                        f32::from(h.max(1)) * UV_FIXED_POINT_SCALE,
-                    )
-                }),
-            _ => (UV_FIXED_POINT_SCALE, UV_FIXED_POINT_SCALE),
-        };
+    for (_, submesh) in &mut populated_submeshes {
         for uv in &mut submesh.uvs {
-            uv[0] /= u_scale;
-            uv[1] /= v_scale;
+            uv[0] /= UV_FIXED_POINT_SCALE;
+            uv[1] /= UV_FIXED_POINT_SCALE;
         }
     }
 
@@ -286,82 +268,18 @@ fn pcm_to_wav_bytes(
     Ok(cursor.into_inner())
 }
 
-fn rtx_index_json(rtx_file: &rtx::RtxFile) -> serde_json::Value {
-    let metadata_entries: Vec<serde_json::Value> = rtx_file
-        .entries
-        .iter()
-        .enumerate()
-        .map(|(i, entry)| {
-            let tag_str = entry.tag_str();
-
-            match entry {
-                RtxEntry::Text { text, .. } => json!({
-                    "index": i,
-                    "tag": tag_str,
-                    "type": "text",
-                    "text": text,
-                }),
-                RtxEntry::Audio {
-                    label,
-                    header,
-                    pcm_data,
-                    ..
-                } => json!({
-                    "index": i,
-                    "tag": tag_str,
-                    "type": "audio",
-                    "label": label,
-                    "audio_type": format!("{:?}", header.audio_type),
-                    "sample_rate": header.sample_rate,
-                    "duration_secs": header.duration_secs(),
-                    "pcm_bytes": pcm_data.len(),
-                    "wav_file": format!("{tag_str}.wav"),
-                }),
-            }
-        })
-        .collect();
-
-    json!({
-        "entry_count": rtx_file.entries.len(),
-        "audio_count": rtx_file.audio_count(),
-        "text_count": rtx_file.text_count(),
-        "entries": metadata_entries,
-    })
-}
-
 /// # Safety
 ///
-/// `file_path` and `assets_dir` must be valid null-terminated UTF-8 strings.
+/// `file_path` must be a valid null-terminated UTF-8 string.
 /// The returned pointer must be released with `rg_free_buffer`.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn rg_parse_model_data(
-    file_path: *const c_char,
-    assets_dir: *const c_char,
-) -> *mut ByteBuffer {
+pub unsafe extern "C" fn rg_parse_model_data(file_path: *const c_char) -> *mut ByteBuffer {
     let result = (|| -> crate::Result<Vec<u8>> {
         let file_path = unsafe { read_c_str(file_path, "file_path") }?;
-        let assets_dir = unsafe { read_c_str(assets_dir, "assets_dir") }?;
-        let file_path = PathBuf::from(file_path);
-        let assets_dir = PathBuf::from(assets_dir);
-
-        let file_type = FileType::from_path(&file_path).ok_or_else(|| {
-            crate::error::Error::Parse(format!(
-                "unsupported model path extension: {}",
-                file_path.display()
-            ))
-        })?;
-        if !matches!(file_type, FileType::Model3d | FileType::Model3dc) {
-            return Err(crate::error::Error::Parse(format!(
-                "rg_parse_model_data supports .3d/.3dc, got: {}",
-                file_path.display()
-            )));
-        }
-
-        let model_bytes = std::fs::read(&file_path)?;
-        let (_, mut texture_cache) = build_path_texture_cache(&assets_dir, &file_path, file_type);
+        let model_bytes = std::fs::read(file_path)?;
         run_on_large_stack(move || {
             let model = model3d::parse_3d_file(&model_bytes)?;
-            serialize_model_3d(&model, texture_cache.as_mut())
+            serialize_model_3d(&model)
         })
     })();
 
@@ -370,22 +288,13 @@ pub unsafe extern "C" fn rg_parse_model_data(
 
 /// # Safety
 ///
-/// `file_path` and `assets_dir` must be valid null-terminated UTF-8 strings.
+/// `file_path` must be a valid null-terminated UTF-8 string.
 /// The returned pointer must be released with `rg_free_buffer`.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn rg_parse_rob_data(
-    file_path: *const c_char,
-    assets_dir: *const c_char,
-) -> *mut ByteBuffer {
+pub unsafe extern "C" fn rg_parse_rob_data(file_path: *const c_char) -> *mut ByteBuffer {
     let result = (|| -> crate::Result<Vec<u8>> {
         let file_path = unsafe { read_c_str(file_path, "file_path") }?;
-        let assets_dir = unsafe { read_c_str(assets_dir, "assets_dir") }?;
-        let file_path = PathBuf::from(file_path);
-        let assets_dir = PathBuf::from(assets_dir);
-
-        let rob_bytes = std::fs::read(&file_path)?;
-        let (_, mut texture_cache) =
-            build_path_texture_cache(&assets_dir, &file_path, FileType::Rob);
+        let rob_bytes = std::fs::read(file_path)?;
         run_on_large_stack(move || {
             let rob_file = rob::parse_rob_file(&rob_bytes)?;
 
@@ -400,7 +309,7 @@ pub unsafe extern "C" fn rg_parse_rob_data(
                 if segment.has_embedded_3d_data() {
                     out.push(1);
                     let model = segment.parse_embedded_3d_data()?;
-                    let serialized = serialize_model_3d(&model, texture_cache.as_mut())?;
+                    let serialized = serialize_model_3d(&model)?;
                     out.extend_from_slice(
                         &usize_to_i32(serialized.len(), "model_data_size")?.to_le_bytes(),
                     );
@@ -649,144 +558,6 @@ pub unsafe extern "C" fn rg_convert_rtx_entry_to_wav(
 /// # Safety
 /// `file_path` must be a valid null-terminated UTF-8 string.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn rg_rtx_metadata(file_path: *const c_char) -> *mut ByteBuffer {
-    let result = (|| -> crate::Result<Vec<u8>> {
-        let file_path = unsafe { read_c_str(file_path, "file_path") }?;
-        let rtx_bytes = std::fs::read(file_path)?;
-        run_on_large_stack(move || {
-            let parsed = rtx::parse_rtx_file(&rtx_bytes)?;
-            let metadata = rtx_index_json(&parsed);
-            Ok(serde_json::to_vec(&metadata)?)
-        })
-    })();
-
-    into_ffi_result(result)
-}
-
-/// # Safety
-/// `file_path` must be a valid null-terminated UTF-8 string.
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn rg_parse_palette(file_path: *const c_char) -> *mut ByteBuffer {
-    let result = (|| -> crate::Result<Vec<u8>> {
-        let file_path = unsafe { read_c_str(file_path, "file_path") }?;
-        let col_bytes = std::fs::read(file_path)?;
-        run_on_large_stack(move || {
-            let palette = Palette::parse(&col_bytes)?;
-            let colors = palette.colors.into_iter().collect::<Vec<[u8; 3]>>();
-            Ok(serde_json::to_vec(&json!({ "colors": colors }))?)
-        })
-    })();
-
-    into_ffi_result(result)
-}
-
-/// # Safety
-/// `file_path` must be a valid null-terminated UTF-8 string.
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn rg_convert_pvo_to_json(file_path: *const c_char) -> *mut ByteBuffer {
-    let result = (|| -> crate::Result<Vec<u8>> {
-        let file_path = unsafe { read_c_str(file_path, "file_path") }?;
-        let pvo_bytes = std::fs::read(file_path)?;
-        run_on_large_stack(move || {
-            let parsed = pvo::parse_pvo_file(&pvo_bytes)?;
-
-            let nodes = parsed
-                .octr_nodes
-                .iter()
-                .enumerate()
-                .map(|(i, node)| {
-                    json!({
-                        "index": i,
-                        "byte_offset": node.byte_offset,
-                        "child_mask": format!("0x{:02X}", node.child_mask),
-                        "child_count": node.child_count(),
-                        "leaf_ref": if node.is_interior() {
-                            "none".to_string()
-                        } else {
-                            format!("0x{:08X}", node.leaf_ref)
-                        },
-                        "child_refs": node.child_refs.iter()
-                            .map(|(octant, offset)| json!({
-                                "octant": octant,
-                                "offset": format!("0x{offset:08X}"),
-                            }))
-                            .collect::<Vec<_>>(),
-                    })
-                })
-                .collect::<Vec<_>>();
-
-            let leaves = parsed
-                .plst_leaves
-                .iter()
-                .map(|leaf| {
-                    json!({
-                        "byte_offset": leaf.byte_offset,
-                        "entries": leaf.entries.iter().map(|e| json!({
-                            "count": e.count,
-                            "mlst_start": e.mlst_start,
-                        })).collect::<Vec<_>>(),
-                    })
-                })
-                .collect::<Vec<_>>();
-
-            let output = json!({
-                "header": {
-                    "depth": parsed.header.depth,
-                    "total_nodes": parsed.header.total_nodes,
-                    "leaf_nodes": parsed.header.leaf_nodes,
-                    "interior_nodes": parsed.header.interior_nodes(),
-                    "mlst_polygon_count": parsed.header.mlst_polygon_count,
-                    "cell_size": parsed.header.cell_size,
-                    "center_x": parsed.header.center_x,
-                    "center_y": parsed.header.center_y,
-                    "center_z": parsed.header.center_z,
-                },
-                "octr_nodes": nodes,
-                "plst_leaves": leaves,
-                "mlst_indices": parsed.mlst_indices,
-            });
-
-            Ok(serde_json::to_vec(&output)?)
-        })
-    })();
-
-    into_ffi_result(result)
-}
-
-/// # Safety
-/// `file_path` must be a valid null-terminated UTF-8 string.
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn rg_convert_cht_to_json(file_path: *const c_char) -> *mut ByteBuffer {
-    let result = (|| -> crate::Result<Vec<u8>> {
-        let file_path = unsafe { read_c_str(file_path, "file_path") }?;
-        let cht_bytes = std::fs::read(file_path)?;
-        run_on_large_stack(move || {
-            let parsed = cht::parse_cht_file(&cht_bytes)?;
-
-            let cheats: serde_json::Map<String, serde_json::Value> = parsed
-                .named_cheats()
-                .iter()
-                .map(|e| {
-                    let name = e.name.unwrap_or("unknown").to_string();
-                    let value = if e.value > 1 {
-                        json!(e.value)
-                    } else {
-                        json!(e.is_on())
-                    };
-                    (name, value)
-                })
-                .collect();
-
-            Ok(serde_json::to_vec(&json!(cheats))?)
-        })
-    })();
-
-    into_ffi_result(result)
-}
-
-/// # Safety
-/// `file_path` must be a valid null-terminated UTF-8 string.
-#[unsafe(no_mangle)]
 pub unsafe extern "C" fn rg_convert_fnt_to_ttf(file_path: *const c_char) -> *mut ByteBuffer {
     let result = (|| -> crate::Result<Vec<u8>> {
         let file_path = unsafe { read_c_str(file_path, "file_path") }?;
@@ -804,32 +575,25 @@ pub unsafe extern "C" fn rg_convert_fnt_to_ttf(file_path: *const c_char) -> *mut
 /// # Safety
 /// `file_path` must be a valid null-terminated UTF-8 string.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn rg_parse_ini(file_path: *const c_char) -> *mut ByteBuffer {
-    let result = (|| -> crate::Result<Vec<u8>> {
+pub unsafe extern "C" fn rg_gxa_frame_count(file_path: *const c_char) -> i32 {
+    let result = (|| -> crate::Result<i32> {
         let file_path = unsafe { read_c_str(file_path, "file_path") }?;
-        let ini_bytes = std::fs::read(file_path)?;
-        run_on_large_stack(move || {
-            let text = String::from_utf8_lossy(&ini_bytes);
-            let parsed = world_ini::WorldIni::parse(&text);
-            let worlds = parsed
-                .entries
-                .iter()
-                .map(|entry| {
-                    serde_json::json!({
-                        "index": entry.index,
-                        "map": entry.map,
-                        "world": entry.world,
-                        "palette": entry.palette,
-                    })
-                })
-                .collect::<Vec<_>>();
-            Ok(serde_json::to_vec(
-                &serde_json::json!({ "worlds": worlds }),
-            )?)
+        let gxa_bytes = std::fs::read(file_path)?;
+        let gxa_file = gxa::parse_gxa_file(&gxa_bytes)?;
+        i32::try_from(gxa_file.frames.len()).map_err(|_| {
+            crate::error::Error::Parse(format!(
+                "frame count exceeds i32::MAX: {}",
+                gxa_file.frames.len()
+            ))
         })
     })();
-
-    into_ffi_result(result)
+    match result {
+        Ok(count) => count,
+        Err(err) => {
+            set_last_error(err);
+            -1
+        }
+    }
 }
 
 /// # Safety
@@ -1005,6 +769,92 @@ pub unsafe extern "C" fn rg_parse_rgm_placements(file_path: *const c_char) -> *m
             let (placements, lights) = rgm::extract_rgm_placements(&rgm_bytes)?;
             serialize_rgm_placements(&placements, &lights)
         })
+    })();
+
+    into_ffi_result(result)
+}
+
+fn scan_rgm_sections<'a>(data: &'a [u8], target_tag: &[u8; 4]) -> Vec<&'a [u8]> {
+    let mut results = Vec::new();
+    let mut offset = 0;
+    while offset + 8 <= data.len() {
+        let tag = &data[offset..offset + 4];
+        let length = u32::from_le_bytes(data[offset + 4..offset + 8].try_into().unwrap_or_default())
+            as usize;
+        let payload_start = offset + 8;
+        let payload_end = (payload_start + length).min(data.len());
+        if tag == target_tag {
+            results.push(&data[payload_start..payload_end]);
+        }
+        offset = payload_end;
+        if tag == b"END " {
+            break;
+        }
+    }
+    results
+}
+
+fn read_section_tag(tag_ptr: *const c_char) -> crate::Result<[u8; 4]> {
+    let tag_str = unsafe { read_c_str(tag_ptr, "section_tag") }?;
+    let bytes = tag_str.as_bytes();
+    if bytes.len() != 4 {
+        return Err(crate::error::Error::Parse(format!(
+            "section_tag must be exactly 4 bytes, got {}",
+            bytes.len()
+        )));
+    }
+    Ok([bytes[0], bytes[1], bytes[2], bytes[3]])
+}
+
+/// # Safety
+/// `file_path` and `section_tag` must be valid null-terminated UTF-8 strings.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn rg_rgm_section_count(
+    file_path: *const c_char,
+    section_tag: *const c_char,
+) -> i32 {
+    let result = (|| -> crate::Result<i32> {
+        let file_path = unsafe { read_c_str(file_path, "file_path") }?;
+        let tag = read_section_tag(section_tag)?;
+        let data = std::fs::read(file_path)?;
+        let count = scan_rgm_sections(&data, &tag).len();
+        i32::try_from(count).map_err(|_| {
+            crate::error::Error::Parse(format!("section count exceeds i32::MAX: {count}"))
+        })
+    })();
+    match result {
+        Ok(count) => count,
+        Err(err) => {
+            set_last_error(err);
+            -1
+        }
+    }
+}
+
+/// # Safety
+/// `file_path` and `section_tag` must be valid null-terminated UTF-8 strings.
+/// The returned pointer must be released with `rg_free_buffer`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn rg_get_rgm_section(
+    file_path: *const c_char,
+    section_tag: *const c_char,
+    section_index: i32,
+) -> *mut ByteBuffer {
+    let result = (|| -> crate::Result<Vec<u8>> {
+        let file_path = unsafe { read_c_str(file_path, "file_path") }?;
+        let tag = read_section_tag(section_tag)?;
+        let idx = i32_to_usize(section_index, "section_index")?;
+        let data = std::fs::read(file_path)?;
+        let sections = scan_rgm_sections(&data, &tag);
+        let payload = sections.get(idx).ok_or_else(|| {
+            crate::error::Error::Parse(format!(
+                "section '{}' index {} out of range (found {})",
+                String::from_utf8_lossy(&tag),
+                idx,
+                sections.len()
+            ))
+        })?;
+        Ok(payload.to_vec())
     })();
 
     into_ffi_result(result)

@@ -171,21 +171,24 @@ ByteBuffer* rg_convert_wld_from_path(const char* file_path, const char* assets_d
 
 `assets_dir` should be the game root containing `3dart/`, `fxart/`, `maps/`, and `WORLD.INI`. WLD conversion auto-discovers the companion RGM file.
 
-### RGM Metadata
+### RGM Section Access
+
+Extract raw section bytes from RGM files for direct use by AnimStore, ScriptStore, and ScriptedObject:
 
 ```c
-ByteBuffer* rg_get_rgm_metadata(const char* file_path);
+int32_t rg_rgm_section_count(const char* file_path, const char* section_tag);
+ByteBuffer* rg_get_rgm_section(const char* file_path, const char* section_tag, int32_t section_index);
 ```
 
-Returns JSON bytes for scripts/animations and MPOB runtime object records.
+`section_tag` is a 4-character string (e.g. `"RAHD"`, `"RAAN"`, `"RAGR"`, `"RAST"`, `"RASB"`, `"RASC"`, `"RAVA"`, `"RAAT"`, `"RANM"`, `"RALC"`, `"RAEX"`, `"RAVC"`, `"RAHK"`). Returns the raw section payload bytes.
 
 ### Scene Data Functions
 
 Return pre-transformed mesh data for direct engine consumption (RGMD binary format). Vertices are scaled and flipped to match the GLTF coordinate convention (`-x/20, -y/20, z/20`), faces are fan-triangulated, and geometry is grouped by submesh/material:
 
 ```c
-ByteBuffer* rg_parse_model_data(const char* file_path, const char* assets_dir);
-ByteBuffer* rg_parse_rob_data(const char* file_path, const char* assets_dir);
+ByteBuffer* rg_parse_model_data(const char* file_path);
+ByteBuffer* rg_parse_rob_data(const char* file_path);
 ByteBuffer* rg_parse_wld_terrain_data(const char* file_path);
 ByteBuffer* rg_parse_rgm_placements(const char* file_path);
 ```
@@ -196,6 +199,7 @@ ByteBuffer* rg_parse_rgm_placements(const char* file_path);
 ByteBuffer* rg_decode_texture(const char* assets_dir, uint16_t texture_id, uint8_t image_id);
 ByteBuffer* rg_decode_texture_all_frames(const char* assets_dir, uint16_t texture_id, uint8_t image_id);
 int32_t rg_texbsi_image_count(const char* assets_dir, uint16_t texture_id);
+int32_t rg_gxa_frame_count(const char* file_path);
 ByteBuffer* rg_decode_gxa(const char* file_path, int32_t frame);
 ```
 
@@ -210,17 +214,12 @@ ByteBuffer* rg_convert_sfx_to_wav(const char* file_path, int32_t effect_index);
 int32_t rg_sfx_effect_count(const char* file_path);
 ByteBuffer* rg_convert_rtx_entry_to_wav(const char* file_path, int32_t entry_index);
 int32_t rg_rtx_entry_count(const char* file_path);
-ByteBuffer* rg_rtx_metadata(const char* file_path);
 ```
 
-### Data / Config Functions
+### Other Functions
 
 ```c
-ByteBuffer* rg_parse_palette(const char* file_path);
-ByteBuffer* rg_convert_pvo_to_json(const char* file_path);
-ByteBuffer* rg_convert_cht_to_json(const char* file_path);
 ByteBuffer* rg_convert_fnt_to_ttf(const char* file_path);
-ByteBuffer* rg_parse_ini(const char* file_path);
 ```
 
 ## Development Checks

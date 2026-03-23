@@ -246,24 +246,6 @@ pub unsafe extern "C" fn rg_convert_rgm_from_path(
 
 /// # Safety
 ///
-/// `file_path` must be a valid null-terminated UTF-8 string.
-/// The returned buffer must be freed with `rg_free_buffer`.
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn rg_get_rgm_metadata(file_path: *const c_char) -> *mut ByteBuffer {
-    let result = (|| -> crate::Result<Vec<u8>> {
-        let file_path = unsafe { read_c_str(file_path, "file_path") }?;
-        let rgm_bytes = std::fs::read(file_path)?;
-        run_on_large_stack(move || {
-            let metadata = rgm::export_rgm_runtime_metadata_json(&rgm_bytes)?;
-            Ok(serde_json::to_vec(&metadata)?)
-        })
-    })();
-
-    into_ffi_result(result)
-}
-
-/// # Safety
-///
 /// `file_path` and `assets_dir` must be valid null-terminated UTF-8 strings.
 /// The returned buffer must be freed with `rg_free_buffer`.
 #[unsafe(no_mangle)]
