@@ -1,16 +1,17 @@
-mod cht;
-mod col;
-mod fnt;
-mod gxa;
-mod pvo;
-mod rtx;
-mod sfx;
-mod texbsi;
-mod wld;
+pub(crate) mod cht;
+pub(crate) mod col;
+pub(crate) mod fnt;
+pub(crate) mod gxa;
+pub(crate) mod pvo;
+pub(crate) mod rtx;
+pub(crate) mod sfx;
+pub(crate) mod texbsi;
+pub(crate) mod wld;
 
 use super::utils::{
     auto_resolve_palette, parse_file, resolve_asset_root_from_input, resolve_filetype,
 };
+use crate::cli::filetype::FileTypeCliExt;
 use crate::opts::{ConvertArgs, FontOutputMode};
 use color_eyre::Result;
 use color_eyre::eyre::WrapErr;
@@ -29,53 +30,6 @@ fn resolve_asset_root(args: &ConvertArgs) -> PathBuf {
         .or_else(|| args.asset_path.clone())
         .or_else(|| args.asset_dir.clone())
         .unwrap_or_else(|| resolve_asset_root_from_input(&args.file))
-}
-
-fn default_output_for(file: &Path, filetype: FileType) -> PathBuf {
-    let mut path = file.to_path_buf();
-    match filetype {
-        FileType::Fnt | FileType::Col | FileType::Wld => {
-            path.set_extension("png");
-        }
-        FileType::Gxa => {
-            path.set_extension("");
-            let stem = path
-                .file_stem()
-                .unwrap_or_default()
-                .to_string_lossy()
-                .to_string();
-            path.set_file_name(format!("{stem}_gxa"));
-        }
-        FileType::Cht | FileType::Pvo => {
-            path.set_extension("json");
-        }
-        FileType::Sfx | FileType::Rtx => {
-            path.set_extension("");
-            let stem = path
-                .file_stem()
-                .unwrap_or_default()
-                .to_string_lossy()
-                .to_string();
-            path.set_file_name(format!("{stem}_wav"));
-        }
-        FileType::Bsi => {
-            let stem = path
-                .file_stem()
-                .unwrap_or_default()
-                .to_string_lossy()
-                .to_string();
-            let ext = path
-                .extension()
-                .unwrap_or_default()
-                .to_string_lossy()
-                .to_string();
-            path.set_file_name(format!("{stem}_{ext}"));
-        }
-        FileType::Model3d | FileType::Model3dc | FileType::Rob | FileType::Rgm => {
-            path.set_extension("glb");
-        }
-    }
-    path
 }
 
 fn default_fnt_output_for_mode(file: &Path, mode: FontOutputMode) -> PathBuf {
@@ -110,32 +64,13 @@ fn resolve_output_path(args: &ConvertArgs, filetype: FileType) -> PathBuf {
         return args
             .output
             .clone()
-            .unwrap_or_else(|| default_output_for(&args.file, filetype));
+            .unwrap_or_else(|| filetype.default_output_path(&args.file));
     }
 
     match (args.output.clone(), args.font_output) {
         (Some(path), _) => path,
         (None, Some(mode)) => default_fnt_output_for_mode(&args.file, mode),
-        (None, None) => default_output_for(&args.file, filetype),
-    }
-}
-
-fn dispatch_direct_conversion(
-    args: &ConvertArgs,
-    output_path: &Path,
-    filetype: FileType,
-) -> Option<Result<()>> {
-    match filetype {
-        FileType::Cht => Some(cht::handle_cht_convert(args, output_path)),
-        FileType::Col => Some(col::handle_col_convert(args, output_path)),
-        FileType::Pvo => Some(pvo::handle_pvo_convert(args, output_path)),
-        FileType::Fnt => Some(fnt::handle_fnt_convert(args, output_path)),
-        FileType::Gxa => Some(gxa::handle_gxa_convert(args, output_path)),
-        FileType::Wld => Some(wld::handle_wld_convert(args, output_path)),
-        FileType::Sfx => Some(sfx::handle_sfx_convert(args, output_path)),
-        FileType::Rtx => Some(rtx::handle_rtx_convert(args, output_path)),
-        FileType::Bsi => Some(texbsi::handle_texbsi_convert(args, output_path)),
-        FileType::Rgm | FileType::Model3d | FileType::Model3dc | FileType::Rob => None,
+        (None, None) => filetype.default_output_path(&args.file),
     }
 }
 
@@ -262,7 +197,7 @@ pub fn handle_convert_command(args: ConvertArgs) -> Result<()> {
     info!("Converting file: {}", args.file.display());
     info!("Requested output path: {}", output_path.display());
 
-    if let Some(result) = dispatch_direct_conversion(&args, &output_path, filetype) {
+    if let Some(result) = filetype.handle_direct_convert(&args, &output_path) {
         return result;
     }
 

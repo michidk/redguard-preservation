@@ -145,7 +145,7 @@ fn handle_wld_png_convert(args: &ConvertArgs, output_path: &Path) -> Result<()> 
     Ok(())
 }
 
-pub(super) fn handle_wld_convert(args: &ConvertArgs, output_path: &Path) -> Result<()> {
+pub(crate) fn handle_wld_convert(args: &ConvertArgs, output_path: &Path) -> Result<()> {
     let out_ext = output_path
         .extension()
         .and_then(|e| e.to_str())

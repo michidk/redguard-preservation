@@ -6,7 +6,7 @@ use rayon::prelude::*;
 use rgpre::import::sfx;
 use std::path::Path;
 
-pub(super) fn handle_sfx_convert(args: &ConvertArgs, output_path: &Path) -> Result<()> {
+pub(crate) fn handle_sfx_convert(args: &ConvertArgs, output_path: &Path) -> Result<()> {
     let file_content = std::fs::read(&args.file)?;
     let sfx_file =
         sfx::parse_sfx_file(&file_content).map_err(|e| color_eyre::eyre::eyre!("{e}"))?;

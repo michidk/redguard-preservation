@@ -6,7 +6,7 @@ use rgpre::import::pvo;
 use serde_json::json;
 use std::path::Path;
 
-pub(super) fn handle_pvo_convert(args: &ConvertArgs, output_path: &Path) -> Result<()> {
+pub(crate) fn handle_pvo_convert(args: &ConvertArgs, output_path: &Path) -> Result<()> {
     let file_content = std::fs::read(&args.file)?;
     let parsed = pvo::parse_pvo_file(&file_content)?;
 

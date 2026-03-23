@@ -6,7 +6,7 @@ use rgpre::import::cht;
 use serde_json::json;
 use std::path::Path;
 
-pub(super) fn handle_cht_convert(args: &ConvertArgs, output_path: &Path) -> Result<()> {
+pub(crate) fn handle_cht_convert(args: &ConvertArgs, output_path: &Path) -> Result<()> {
     let file_content = std::fs::read(&args.file)?;
     let parsed = cht::parse_cht_file(&file_content).map_err(|e| color_eyre::eyre::eyre!("{e}"))?;
 

@@ -4,7 +4,7 @@ use log::{info, warn};
 use rgpre::import::fnt_export;
 use std::path::Path;
 
-pub(super) fn handle_fnt_convert(args: &ConvertArgs, output_path: &Path) -> Result<()> {
+pub(crate) fn handle_fnt_convert(args: &ConvertArgs, output_path: &Path) -> Result<()> {
     let out_ext = output_path
         .extension()
         .and_then(|e| e.to_str())

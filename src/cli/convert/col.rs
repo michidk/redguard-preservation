@@ -4,7 +4,7 @@ use log::info;
 use rgpre::import::{palette::Palette, palette_export};
 use std::path::Path;
 
-pub(super) fn handle_col_convert(args: &ConvertArgs, output_path: &Path) -> Result<()> {
+pub(crate) fn handle_col_convert(args: &ConvertArgs, output_path: &Path) -> Result<()> {
     let file_content = std::fs::read(&args.file)?;
     let palette = Palette::parse(&file_content).map_err(|e| color_eyre::eyre::eyre!("{e}"))?;
 

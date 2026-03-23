@@ -16,7 +16,7 @@ fn save_rgba_png(path: &Path, width: u32, height: u32, rgba: &[u8]) -> Result<()
     Ok(())
 }
 
-pub(super) fn handle_texbsi_convert(args: &ConvertArgs, output_path: &Path) -> Result<()> {
+pub(crate) fn handle_texbsi_convert(args: &ConvertArgs, output_path: &Path) -> Result<()> {
     let file_content = std::fs::read(&args.file)?;
     let bsi_file =
         bsi::parse_bsi_file(&file_content).map_err(|e| color_eyre::eyre::eyre!("{e}"))?;

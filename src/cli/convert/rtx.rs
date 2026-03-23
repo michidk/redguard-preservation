@@ -7,7 +7,7 @@ use rgpre::import::rtx::{self, RtxEntry};
 use serde_json::json;
 use std::path::Path;
 
-pub(super) fn handle_rtx_convert(args: &ConvertArgs, output_path: &Path) -> Result<()> {
+pub(crate) fn handle_rtx_convert(args: &ConvertArgs, output_path: &Path) -> Result<()> {
     let file_content = std::fs::read(&args.file)?;
     let rtx_file =
         rtx::parse_rtx_file(&file_content).map_err(|e| color_eyre::eyre::eyre!("{e}"))?;
