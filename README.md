@@ -32,6 +32,7 @@ The [`docs/`](docs/README.md) directory is organized into three sections:
 - `src/` - Rust source
 - `src/import/` - format importers/parsers
 - `src/gltf/` - GLTF/GLB conversion (builder, primitives, terrain, texture cache)
+- `src/ffi/` - C-compatible FFI layer for native plugin use (Unity, etc.)
 - `src/cli/` - CLI command handlers (`cli/convert/` for per-format converters)
 - `src/error.rs` - shared error types
 - `docs/` - format specifications and engine notes
@@ -123,6 +124,101 @@ Scan a directory:
 ```bash
 rgpre scan 3dart
 ```
+
+## Native Plugin (FFI)
+
+The library builds as a C-compatible shared library (`cdylib`) alongside the CLI binary. This lets game engines like Unity load it as a native plugin and call the conversion functions directly at runtime.
+
+**Build output:** `librgpre.so` (Linux), `rgpre.dll` (Windows), `librgpre.dylib` (macOS)
+
+### Architecture
+
+```
+Unity C# (or any FFI consumer)
+  |
+  |  File.ReadAllBytes()
+  v
+byte[] --P/Invoke--> Rust native plugin --> ByteBuffer*
+                      (parsing + conversion)     |
+  <--- copy bytes <------------------------------+
+  |
+  v
+  rg_free_buffer(buf)
+```
+
+The caller provides raw file bytes. Rust parses and converts them in memory. Results are returned as `ByteBuffer` pointers that the caller must free with `rg_free_buffer`.
+
+### Memory Management
+
+```c
+// All buffers returned by rg_* functions must be freed by the caller:
+void rg_free_buffer(ByteBuffer* buffer);
+
+// On error, functions return NULL. Retrieve the error message with:
+ByteBuffer* rg_last_error(void);  // NULL if no error; caller must free
+```
+
+### Texture Cache (Reusable Handle)
+
+For textured conversions, create a texture cache once and reuse it:
+
+```c
+// Create from palette (.COL) + TEXBSI files
+TextureCache* rg_texture_cache_create(
+    const uint8_t* palette_data, int32_t palette_len,      // nullable
+    const uint16_t* texbsi_ids, const uint8_t** texbsi_datas,
+    const int32_t* texbsi_lens, int32_t texbsi_count
+);
+void rg_texture_cache_free(TextureCache* cache);
+```
+
+### GLB Export Functions
+
+Produce standard glTF Binary files from game assets:
+
+| Function | Input | Output |
+|----------|-------|--------|
+| `rg_convert_model_to_glb` | 3D/3DC bytes + texture cache | GLB bytes |
+| `rg_convert_rob_to_glb` | ROB bytes + texture cache | GLB bytes |
+| `rg_convert_rgm_to_glb` | RGM bytes + texture cache + model files | GLB bytes |
+| `rg_convert_wld_to_glb` | WLD bytes + texture cache + optional RGM + models | GLB bytes |
+| `rg_get_rgm_metadata` | RGM bytes | JSON bytes (scripts, animations, object IDs) |
+
+### Scene Data Functions
+
+Return pre-transformed mesh data for direct engine consumption (RGMD binary format). Vertices are scaled and flipped to match the GLTF coordinate convention (`-x/20, -y/20, z/20`), faces are fan-triangulated, and geometry is grouped by submesh/material:
+
+| Function | Input | Output |
+|----------|-------|--------|
+| `rg_parse_model_data` | 3D/3DC bytes | RGMD binary (triangulated submeshes) |
+| `rg_parse_rob_data` | ROB bytes | Segment names + RGMD per segment |
+
+### Texture Functions
+
+| Function | Input | Output |
+|----------|-------|--------|
+| `rg_decode_texture` | TEXBSI bytes + palette bytes + image index | RGBA pixels (width, height, frame_count, pixel data) |
+| `rg_decode_texture_all_frames` | TEXBSI bytes + palette bytes + image index | RGBA pixels for all animation frames |
+| `rg_texbsi_image_count` | TEXBSI bytes | Image count (`i32`, -1 on error) |
+
+### Audio Functions
+
+| Function | Input | Output |
+|----------|-------|--------|
+| `rg_convert_sfx_to_wav` | SFX bytes + effect index | WAV bytes |
+| `rg_sfx_effect_count` | SFX bytes | Effect count (`i32`, -1 on error) |
+| `rg_convert_rtx_entry_to_wav` | RTX bytes + entry index | WAV bytes (audio entries only) |
+| `rg_rtx_entry_count` | RTX bytes | Entry count (`i32`, -1 on error) |
+| `rg_rtx_metadata` | RTX bytes | JSON bytes (entry index with tags, types, durations) |
+
+### Data / Config Functions
+
+| Function | Input | Output |
+|----------|-------|--------|
+| `rg_parse_palette` | COL bytes | JSON bytes (`{"colors": [[r,g,b], ...]}`) |
+| `rg_convert_pvo_to_json` | PVO bytes | JSON bytes (octree nodes, leaves, polygon indices) |
+| `rg_convert_cht_to_json` | CHT bytes | JSON bytes (cheat name → value map) |
+| `rg_convert_fnt_to_ttf` | FNT bytes | TTF font bytes |
 
 ## Development Checks
 
