@@ -1121,6 +1121,8 @@ pub struct Placement {
     pub source_id: String,
     pub transform: [f32; 16],
     pub object_type: PlacementType,
+    pub texture_id: u16,
+    pub image_id: u8,
 }
 
 pub(super) fn extract_placements(
@@ -1141,15 +1143,17 @@ pub(super) fn extract_placements(
         match section {
             RgmSection::Mps(_, mps_records) => {
                 for (idx, record) in mps_records.iter().enumerate() {
-                    let model_name = record.model_name();
-                    if model_name.is_empty() {
+                    let file_name = record.model_name();
+                    if file_name.is_empty() {
                         continue;
                     }
                     placements.push(Placement {
-                        model_name: format!("S{idx:03}_{model_name}"),
-                        source_id: model_name,
+                        model_name: file_name.clone(),
+                        source_id: format!("S{idx:03}_{file_name}"),
                         transform: mps_transform(record),
                         object_type: PlacementType::Mesh,
+                        texture_id: 0,
+                        image_id: 0,
                     });
                 }
             }
@@ -1158,19 +1162,14 @@ pub(super) fn extract_placements(
                     let script_name = record.script_name();
                     let resolved_name =
                         resolve_mpob_model_name(record, &script_name, raan_data, &rahd_index);
-                    if resolved_name.is_empty() {
-                        continue;
-                    }
                     let texture_override = rahd_texture_overrides.get(&script_name).copied();
-                    let source_id = texture_override.map_or_else(
-                        || resolved_name.clone(),
-                        |tex_id| format!("{resolved_name}:tex{tex_id}"),
-                    );
                     placements.push(Placement {
-                        model_name: format!("B_{idx:03}_{script_name}"),
-                        source_id,
+                        model_name: resolved_name,
+                        source_id: format!("B_{idx:03}_{script_name}"),
                         transform: mpob_transform(record),
                         object_type: PlacementType::Mesh,
+                        texture_id: texture_override.unwrap_or(0),
+                        image_id: 0,
                     });
                 }
             }
@@ -1185,14 +1184,16 @@ pub(super) fn extract_placements(
                 let records = parse_mpsf_records(mpf_data);
                 for (idx, record) in records.iter().enumerate() {
                     placements.push(Placement {
-                        model_name: format!("F{idx:03}_{}/{}", record.texture_id, record.image_id),
-                        source_id: String::new(),
+                        model_name: String::new(),
+                        source_id: format!("F{idx:03}"),
                         transform: translation_matrix(decode_position(
                             record.pos_x,
                             record.pos_y,
                             record.pos_z,
                         )),
                         object_type: PlacementType::FlatSprite,
+                        texture_id: record.texture_id,
+                        image_id: record.image_id,
                     });
                 }
             }
@@ -1225,20 +1226,24 @@ fn append_rope_placements(records: &[MprpRecord], placements: &mut Vec<Placement
             for j in 0..link_count {
                 pos[1] -= ROPE_LINK_Y_STEP;
                 placements.push(Placement {
-                    model_name: format!("R{i:03}_{j:03}_{}", record.rope_model),
-                    source_id: record.rope_model.clone(),
+                    model_name: record.rope_model.clone(),
+                    source_id: format!("R{i:03}_{j:03}_{}", record.rope_model),
                     transform: translation_matrix(pos),
                     object_type: PlacementType::RopeLink,
+                    texture_id: 0,
+                    image_id: 0,
                 });
             }
         }
         if !record.static_model.is_empty() {
             pos[1] -= ROPE_LINK_Y_STEP;
             placements.push(Placement {
-                model_name: format!("R{i:03}_{link_count:03}_{}", record.static_model),
-                source_id: record.static_model.clone(),
+                model_name: record.static_model.clone(),
+                source_id: format!("R{i:03}_{link_count:03}_{}", record.static_model),
                 transform: translation_matrix(pos),
                 object_type: PlacementType::Mesh,
+                texture_id: 0,
+                image_id: 0,
             });
         }
     }

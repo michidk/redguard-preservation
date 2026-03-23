@@ -815,7 +815,8 @@ fn serialize_rgm_placements(
             out.extend_from_slice(&val.to_le_bytes());
         }
         out.push(p.object_type as u8);
-        out.extend_from_slice(&[0u8; 3]);
+        out.extend_from_slice(&p.texture_id.to_le_bytes());
+        out.push(p.image_id);
     }
 
     for light in lights {
