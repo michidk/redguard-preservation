@@ -376,7 +376,7 @@ pub unsafe extern "C" fn rg_decode_texture(
         };
         run_on_large_stack(move || {
             let (rgba, width, height, frame_count) = cache
-                .get_image_rgba_by_array_index(texture_id, usize::from(image_id))
+                .get_image_rgba_with_frame_count(texture_id, image_id)
                 .ok_or_else(|| {
                     crate::error::Error::Parse(format!(
                         "texture not found: TEXBSI.{texture_id:03} image {image_id}"
@@ -413,7 +413,7 @@ pub unsafe extern "C" fn rg_decode_texture_all_frames(
         };
         run_on_large_stack(move || {
             let info = cache
-                .get_all_frames_by_array_index(texture_id, usize::from(image_id))
+                .get_all_frames_by_image_id(texture_id, image_id)
                 .ok_or_else(|| {
                     crate::error::Error::Parse(format!(
                         "texture not found: TEXBSI.{texture_id:03} image {image_id}"

@@ -13,6 +13,7 @@ pub struct AllFramesInfo {
     pub frame_count: u16,
     pub frames: Vec<Option<Vec<u8>>>,
 }
+
 pub struct TextureCache {
     palette: Option<Palette>,
     bsi_files: HashMap<u16, BsiFile>,
@@ -216,26 +217,47 @@ impl TextureCache {
         Some((rgba, image.width, image.height))
     }
 
-    pub fn get_image_rgba_by_array_index(
+    pub fn get_image_rgba_with_frame_count(
         &mut self,
         texture_id: u16,
-        image_index: usize,
+        image_id: u8,
     ) -> Option<(Vec<u8>, u16, u16, u16)> {
-        self.ensure_bsi_loaded(texture_id, 0);
+        if !self.ensure_bsi_loaded(texture_id, image_id) {
+            return None;
+        }
+
         let bsi = self.bsi_files.get(&texture_id)?;
-        let image = bsi.images.get(image_index)?;
+        let Some(image) = bsi
+            .images
+            .iter()
+            .find(|entry| entry.image_index == u16::from(image_id))
+        else {
+            self.warn_missing_once(texture_id, image_id, "image id not present in TEXBSI file");
+            return None;
+        };
         let rgba = image.decode_rgba(self.palette.as_ref());
         Some((rgba, image.width, image.height, image.frame_count))
     }
 
-    pub fn get_all_frames_by_array_index(
+    pub fn get_all_frames_by_image_id(
         &mut self,
         texture_id: u16,
-        image_index: usize,
+        image_id: u8,
     ) -> Option<AllFramesInfo> {
-        self.ensure_bsi_loaded(texture_id, 0);
+        if !self.ensure_bsi_loaded(texture_id, image_id) {
+            return None;
+        }
+
         let bsi = self.bsi_files.get(&texture_id)?;
-        let image = bsi.images.get(image_index)?;
+        let Some(image) = bsi
+            .images
+            .iter()
+            .find(|entry| entry.image_index == u16::from(image_id))
+        else {
+            self.warn_missing_once(texture_id, image_id, "image id not present in TEXBSI file");
+            return None;
+        };
+
         let mut frames = Vec::with_capacity(usize::from(image.frame_count));
         for frame_idx in 0..usize::from(image.frame_count) {
             frames.push(image.decode_frame_rgba(frame_idx, self.palette.as_ref()));
