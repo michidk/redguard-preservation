@@ -137,90 +137,91 @@ The library builds as a C-compatible shared library (`cdylib`) alongside the CLI
 ```
 Unity C# (or any FFI consumer)
   |
-  |  File.ReadAllBytes()
+  |  file path + scalar parameters
   v
-byte[] --P/Invoke--> Rust native plugin --> ByteBuffer*
-                      (parsing + conversion)     |
-  <--- copy bytes <------------------------------+
+char*  --P/Invoke--> Rust native plugin --> ByteBuffer*
+                      (file I/O + parsing)      |
+  <--- copy bytes <-----------------------------+
   |
   v
   rg_free_buffer(buf)
 ```
 
-Results are returned as `ByteBuffer` pointers that the caller must free with `rg_free_buffer`. On error, functions return NULL and the message is available via `rg_last_error()`.
+All asset inputs are file paths (`const char*`) plus scalar arguments (`i32`, `u16`, `u8`). No asset byte arrays cross the FFI boundary. Results are returned as `ByteBuffer*` pointers that the caller must free with `rg_free_buffer`. On error, buffer-returning functions return `NULL`, count functions return `-1`, and the message is available via `rg_last_error()`.
 
-### GLB Export (Path-Based)
+### Memory and Errors
 
-Pass file paths and the game's asset root directory. The DLL handles all I/O, dependency resolution (models, textures, palette via `WORLD.INI`), and conversion internally:
+```c
+typedef struct ByteBuffer {
+    uint8_t* data;
+    int32_t len;
+} ByteBuffer;
 
-| Function | Input | Output |
-|----------|-------|--------|
-| `rg_convert_model_from_path` | file path + assets directory | GLB bytes |
-| `rg_convert_rgm_from_path` | file path + assets directory | GLB bytes |
-| `rg_convert_wld_from_path` | file path + assets directory | GLB bytes |
+void rg_free_buffer(ByteBuffer* buffer);
+ByteBuffer* rg_last_error(void);
+```
 
-The assets directory should be the game's root directory containing `3dart/`, `fxart/`, `maps/` etc. WLD conversion auto-discovers the companion RGM file.
+### GLB Export
+
+```c
+ByteBuffer* rg_convert_model_from_path(const char* file_path, const char* assets_dir);
+ByteBuffer* rg_convert_rgm_from_path(const char* file_path, const char* assets_dir);
+ByteBuffer* rg_convert_wld_from_path(const char* file_path, const char* assets_dir);
+```
+
+`assets_dir` should be the game root containing `3dart/`, `fxart/`, `maps/`, and `WORLD.INI`. WLD conversion auto-discovers the companion RGM file.
 
 ### RGM Metadata
 
-| Function | Input | Output |
-|----------|-------|--------|
-| `rg_get_rgm_metadata` | RGM bytes | JSON bytes (scripts/animations + MPOB runtime object records) |
+```c
+ByteBuffer* rg_get_rgm_metadata(const char* file_path);
+```
+
+Returns JSON bytes for scripts/animations and MPOB runtime object records.
 
 ### Scene Data Functions
 
 Return pre-transformed mesh data for direct engine consumption (RGMD binary format). Vertices are scaled and flipped to match the GLTF coordinate convention (`-x/20, -y/20, z/20`), faces are fan-triangulated, and geometry is grouped by submesh/material:
 
-| Function | Input | Output |
-|----------|-------|--------|
-| `rg_parse_model_data` | 3D/3DC bytes + texture cache | RGMD binary (triangulated submeshes) |
-| `rg_parse_rob_data` | ROB bytes + texture cache | Segment names + RGMD per segment |
-| `rg_parse_wld_terrain_data` | WLD bytes | RGMD binary (terrain mesh) |
-| `rg_parse_rgm_placements` | RGM bytes | RGPL binary (transforms, names, lights) |
-
-### Texture Cache (for Scene Data / Texture Functions)
-
-Scene data and texture functions that need texture lookups accept a `TextureCache*` handle:
-
 ```c
-TextureCache* rg_texture_cache_create(
-    const uint8_t* palette_data, int32_t palette_len,
-    const uint16_t* texbsi_ids, const uint8_t** texbsi_datas,
-    const int32_t* texbsi_lens, int32_t texbsi_count
-);
-void rg_texture_cache_free(TextureCache* cache);
+ByteBuffer* rg_parse_model_data(const char* file_path, const char* assets_dir);
+ByteBuffer* rg_parse_rob_data(const char* file_path, const char* assets_dir);
+ByteBuffer* rg_parse_wld_terrain_data(const char* file_path);
+ByteBuffer* rg_parse_rgm_placements(const char* file_path);
 ```
 
 ### Texture Functions
 
-| Function | Input | Output |
-|----------|-------|--------|
-| `rg_decode_texture` | texture cache + texture ID + image ID | RGBA pixels (width, height, frame_count, pixel data) |
-| `rg_decode_texture_all_frames` | texture cache + texture ID + image ID | RGBA pixels for all animation frames |
-| `rg_texbsi_image_count` | texture cache + texture ID | Image count (`i32`, -1 on error) |
-| `rg_decode_gxa` | GXA bytes + frame index | RGBA pixels (width, height, frame_count, pixel data) |
+```c
+ByteBuffer* rg_decode_texture(const char* assets_dir, uint16_t texture_id, uint8_t image_id);
+ByteBuffer* rg_decode_texture_all_frames(const char* assets_dir, uint16_t texture_id, uint8_t image_id);
+int32_t rg_texbsi_image_count(const char* assets_dir, uint16_t texture_id);
+ByteBuffer* rg_decode_gxa(const char* file_path, int32_t frame);
+```
+
+Texture functions resolve palette data from `WORLD.INI` in `assets_dir` and load texture banks on demand.
 
 `image_id` is the TEXBSI image identifier from model/placement data, not an array index into TEXBSI entries.
 
 ### Audio Functions
 
-| Function | Input | Output |
-|----------|-------|--------|
-| `rg_convert_sfx_to_wav` | SFX bytes + effect index | WAV bytes |
-| `rg_sfx_effect_count` | SFX bytes | Effect count (`i32`, -1 on error) |
-| `rg_convert_rtx_entry_to_wav` | RTX bytes + entry index | WAV bytes (audio entries only) |
-| `rg_rtx_entry_count` | RTX bytes | Entry count (`i32`, -1 on error) |
-| `rg_rtx_metadata` | RTX bytes | JSON bytes (entry index with tags, types, durations) |
+```c
+ByteBuffer* rg_convert_sfx_to_wav(const char* file_path, int32_t effect_index);
+int32_t rg_sfx_effect_count(const char* file_path);
+ByteBuffer* rg_convert_rtx_entry_to_wav(const char* file_path, int32_t entry_index);
+int32_t rg_rtx_entry_count(const char* file_path);
+ByteBuffer* rg_rtx_metadata(const char* file_path);
+```
 
 ### Data / Config Functions
 
-| Function | Input | Output |
-|----------|-------|--------|
-| `rg_parse_palette` | COL bytes | JSON bytes (`{"colors": [[r,g,b], ...]}`) |
-| `rg_convert_pvo_to_json` | PVO bytes | JSON bytes (octree nodes, leaves, polygon indices) |
-| `rg_convert_cht_to_json` | CHT bytes | JSON bytes (cheat name → value map) |
-| `rg_convert_fnt_to_ttf` | FNT bytes | TTF font bytes |
-| `rg_parse_ini` | INI bytes (WORLD.INI) | JSON bytes (`{"worlds": [...]}`) |
+```c
+ByteBuffer* rg_parse_palette(const char* file_path);
+ByteBuffer* rg_convert_pvo_to_json(const char* file_path);
+ByteBuffer* rg_convert_cht_to_json(const char* file_path);
+ByteBuffer* rg_convert_fnt_to_ttf(const char* file_path);
+ByteBuffer* rg_parse_ini(const char* file_path);
+```
 
 ## Development Checks
 

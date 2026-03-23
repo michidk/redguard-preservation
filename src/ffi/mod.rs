@@ -1,16 +1,13 @@
 mod buffer;
 pub mod scene;
 
-use self::buffer::{
-    clear_last_error, into_ffi_result, last_error_message, run_on_large_stack, set_last_error,
-};
+use self::buffer::{into_ffi_result, last_error_message, run_on_large_stack};
 use crate::gltf::{
     TextureCache, convert_models_to_gltf, convert_positioned_models_to_gltf,
     convert_wld_scene_to_gltf, to_glb,
 };
 use crate::import::{FileType, palette::Palette, registry, rgm, rob, wld, world_ini::WorldIni};
 use crate::model3d;
-use std::collections::HashMap;
 use std::ffi::CStr;
 use std::os::raw::c_char;
 use std::path::{Path, PathBuf};
@@ -23,38 +20,7 @@ pub(crate) fn i32_to_usize(value: i32, name: &str) -> crate::Result<usize> {
         .map_err(|_| crate::error::Error::Parse(format!("{name} must be >= 0, got {value}")))
 }
 
-pub(crate) unsafe fn read_bytes<'a>(
-    data: *const u8,
-    len: i32,
-    name: &str,
-) -> crate::Result<&'a [u8]> {
-    let len = i32_to_usize(len, name)?;
-    if len == 0 {
-        return Ok(&[]);
-    }
-    if data.is_null() {
-        return Err(crate::error::Error::Parse(format!(
-            "{name} pointer is null but length is {len}"
-        )));
-    }
-    let bytes = unsafe { std::slice::from_raw_parts(data, len) };
-    Ok(bytes)
-}
-
-unsafe fn read_array<'a, T>(data: *const T, count: usize, name: &str) -> crate::Result<&'a [T]> {
-    if count == 0 {
-        return Ok(&[]);
-    }
-    if data.is_null() {
-        return Err(crate::error::Error::Parse(format!(
-            "{name} pointer is null but count is {count}"
-        )));
-    }
-    let items = unsafe { std::slice::from_raw_parts(data, count) };
-    Ok(items)
-}
-
-unsafe fn read_c_str(ptr: *const c_char, name: &str) -> crate::Result<String> {
+pub(crate) unsafe fn read_c_str(ptr: *const c_char, name: &str) -> crate::Result<String> {
     if ptr.is_null() {
         return Err(crate::error::Error::Parse(format!("{name} is null")));
     }
@@ -66,7 +32,7 @@ unsafe fn read_c_str(ptr: *const c_char, name: &str) -> crate::Result<String> {
 
 const WORLD_INI_NAMES: [&str; 2] = ["WORLD.INI", "world.ini"];
 
-fn find_world_ini(asset_root: &Path) -> Option<PathBuf> {
+pub(crate) fn find_world_ini(asset_root: &Path) -> Option<PathBuf> {
     for name in &WORLD_INI_NAMES {
         let path = asset_root.join(name);
         if path.is_file() {
@@ -76,7 +42,7 @@ fn find_world_ini(asset_root: &Path) -> Option<PathBuf> {
     None
 }
 
-fn find_palette_on_disk(asset_root: &Path, ini_palette_path: &str) -> Option<PathBuf> {
+pub(crate) fn find_palette_on_disk(asset_root: &Path, ini_palette_path: &str) -> Option<PathBuf> {
     let filename = ini_palette_path
         .trim()
         .rsplit(['\\', '/'])
@@ -107,7 +73,7 @@ fn find_palette_on_disk(asset_root: &Path, ini_palette_path: &str) -> Option<Pat
     None
 }
 
-fn auto_resolve_palette(
+pub(crate) fn auto_resolve_palette(
     asset_root: &Path,
     input_file: &Path,
     file_type: FileType,
@@ -132,7 +98,7 @@ fn auto_resolve_palette(
     Palette::parse(&bytes).ok()
 }
 
-fn build_path_texture_cache(
+pub(crate) fn build_path_texture_cache(
     asset_root: &Path,
     file_path: &Path,
     file_type: FileType,
@@ -150,38 +116,15 @@ fn build_path_texture_cache(
     }
 }
 
-#[allow(clippy::type_complexity)]
-unsafe fn extract_texbsi_data(
-    palette_data: *const u8,
-    palette_len: i32,
-    texbsi_ids: *const u16,
-    texbsi_datas: *const *const u8,
-    texbsi_lens: *const i32,
-    texbsi_count: i32,
-) -> crate::Result<(Option<Palette>, HashMap<u16, Vec<u8>>)> {
-    let palette = if palette_data.is_null() {
-        None
-    } else {
-        let bytes = unsafe { read_bytes(palette_data, palette_len, "palette_data") }?;
-        Some(Palette::parse(bytes)?)
-    };
-
-    let count = i32_to_usize(texbsi_count, "texbsi_count")?;
-    if count == 0 {
-        return Ok((palette, HashMap::new()));
-    }
-
-    let ids = unsafe { read_array(texbsi_ids, count, "texbsi_ids") }?;
-    let datas = unsafe { read_array(texbsi_datas, count, "texbsi_datas") }?;
-    let lens = unsafe { read_array(texbsi_lens, count, "texbsi_lens") }?;
-
-    let mut texbsi_map = HashMap::with_capacity(count);
-    for idx in 0..count {
-        let data = unsafe { read_bytes(datas[idx], lens[idx], &format!("texbsi_datas[{idx}]")) }?;
-        texbsi_map.insert(ids[idx], data.to_vec());
-    }
-
-    Ok((palette, texbsi_map))
+pub(crate) fn texture_cache_from_assets_dir(assets_dir: &Path) -> Option<TextureCache> {
+    let ini_path = find_world_ini(assets_dir)?;
+    let content = std::fs::read_to_string(ini_path).ok()?;
+    let world_ini = WorldIni::parse(&content);
+    let entry = world_ini.entries.first()?;
+    let palette_path = find_palette_on_disk(assets_dir, &entry.palette)?;
+    let palette_bytes = std::fs::read(palette_path).ok()?;
+    let palette = Palette::parse(&palette_bytes).ok()?;
+    Some(TextureCache::new(assets_dir.to_path_buf(), Some(palette)))
 }
 
 fn wld_texbsi_id(wld_file: &wld::WldFile) -> u16 {
@@ -212,55 +155,6 @@ pub unsafe extern "C" fn rg_last_error() -> *mut ByteBuffer {
         Some(err) => Box::into_raw(Box::new(ByteBuffer::from_vec(err.into_bytes()))),
         None => ptr::null_mut(),
     }
-}
-
-/// # Safety
-///
-/// All pointer/length arguments must describe readable memory for the given lengths.
-/// The returned pointer must be freed with `rg_texture_cache_free`.
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn rg_texture_cache_create(
-    palette_data: *const u8,
-    palette_len: i32,
-    texbsi_ids: *const u16,
-    texbsi_datas: *const *const u8,
-    texbsi_lens: *const i32,
-    texbsi_count: i32,
-) -> *mut TextureCache {
-    let result = (|| -> crate::Result<TextureCache> {
-        let (palette, texbsi_map) = unsafe {
-            extract_texbsi_data(
-                palette_data,
-                palette_len,
-                texbsi_ids,
-                texbsi_datas,
-                texbsi_lens,
-                texbsi_count,
-            )
-        }?;
-        run_on_large_stack(move || Ok(TextureCache::from_data(texbsi_map, palette)))
-    })();
-    match result {
-        Ok(cache) => {
-            clear_last_error();
-            Box::into_raw(Box::new(cache))
-        }
-        Err(err) => {
-            set_last_error(err);
-            ptr::null_mut()
-        }
-    }
-}
-
-/// # Safety
-///
-/// `cache` must be null or a pointer returned by `rg_texture_cache_create`.
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn rg_texture_cache_free(cache: *mut TextureCache) {
-    if cache.is_null() {
-        return;
-    }
-    let _ = unsafe { Box::from_raw(cache) };
 }
 
 /// # Safety
@@ -353,14 +247,15 @@ pub unsafe extern "C" fn rg_convert_rgm_from_path(
 
 /// # Safety
 ///
-/// `rgm_data` must point to readable bytes of length `rgm_len`.
+/// `file_path` must be a valid null-terminated UTF-8 string.
 /// The returned buffer must be freed with `rg_free_buffer`.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn rg_get_rgm_metadata(rgm_data: *const u8, rgm_len: i32) -> *mut ByteBuffer {
+pub unsafe extern "C" fn rg_get_rgm_metadata(file_path: *const c_char) -> *mut ByteBuffer {
     let result = (|| -> crate::Result<Vec<u8>> {
-        let rgm_bytes = unsafe { read_bytes(rgm_data, rgm_len, "rgm_data") }?;
+        let file_path = unsafe { read_c_str(file_path, "file_path") }?;
+        let rgm_bytes = std::fs::read(file_path)?;
         run_on_large_stack(move || {
-            let metadata = rgm::export_rgm_runtime_metadata_json(rgm_bytes)?;
+            let metadata = rgm::export_rgm_runtime_metadata_json(&rgm_bytes)?;
             Ok(serde_json::to_vec(&metadata)?)
         })
     })();
