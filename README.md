@@ -204,6 +204,8 @@ Return pre-transformed mesh data for direct engine consumption (RGMD binary form
 | `rg_texbsi_image_count` | texture cache + texture ID | Image count (`i32`, -1 on error) |
 | `rg_decode_gxa` | GXA bytes + frame index | RGBA pixels (currently returns not implemented error) |
 
+`image_id` is the TEXBSI image identifier from model/placement data, not an array index into TEXBSI entries.
+
 ### Audio Functions
 
 | Function | Input | Output |
