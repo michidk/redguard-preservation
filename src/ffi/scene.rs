@@ -12,6 +12,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::io::Cursor;
 
 const ENGINE_UNIT_SCALE: f32 = 20.0;
+const UV_FIXED_POINT_SCALE: f32 = 16.0;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 enum SubmeshKey {
@@ -132,7 +133,10 @@ fn serialize_model_3d(model: &Model3DFile) -> crate::Result<Vec<u8>> {
                     resolve_vertex_normal(model, idx, cumulative_fv_base + fv_idx, face_normal);
                 submesh.normals.push(normal);
 
-                submesh.uvs.push([f32::from(fv.u), f32::from(fv.v)]);
+                submesh.uvs.push([
+                    f32::from(fv.u) / UV_FIXED_POINT_SCALE,
+                    f32::from(fv.v) / UV_FIXED_POINT_SCALE,
+                ]);
                 submesh.indices.push(usize_to_u32(
                     submesh.positions.len() - 1,
                     "submesh_vertex_index",
