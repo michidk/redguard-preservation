@@ -1,7 +1,8 @@
 use super::buffer::*;
 use super::{i32_to_usize, read_bytes};
+use crate::gltf::{MaterialKey, build_wld_unrolled_primitives};
 use crate::import::rtx::RtxEntry;
-use crate::import::{bsi, cht, fnt, fnt_ttf, palette::Palette, pvo, rob, rtx, sfx};
+use crate::import::{bsi, cht, fnt, fnt_ttf, palette::Palette, pvo, rgm, rob, rtx, sfx, wld};
 use crate::model3d::{self, Model3DFile, TextureData};
 use hound::{SampleFormat, WavSpec, WavWriter};
 use serde_json::json;
@@ -715,6 +716,151 @@ pub unsafe extern "C" fn rg_convert_fnt_to_ttf(data: *const u8, len: i32) -> *mu
             let parsed = fnt::parse_fnt(slice)?;
             let ttf = fnt_ttf::build_ttf_from_fnt(&parsed, "RedguardFnt")?;
             Ok(ttf)
+        })
+    })();
+
+    into_ffi_result(result)
+}
+
+fn serialize_terrain_primitives(
+    primitives: Vec<crate::gltf::UnrolledPrimitive>,
+) -> crate::Result<Vec<u8>> {
+    let total_vertex_count: usize = primitives.iter().map(|p| p.positions.len()).sum();
+    let total_index_count: usize = primitives.iter().map(|p| p.indices.len()).sum();
+
+    let mut out = Vec::new();
+    out.extend_from_slice(b"RGMD");
+    out.extend_from_slice(&[0u8; 4]);
+    out.extend_from_slice(&usize_to_i32(primitives.len(), "submesh_count")?.to_le_bytes());
+    out.extend_from_slice(&0_i32.to_le_bytes());
+    out.extend_from_slice(&usize_to_i32(total_vertex_count, "total_vertex_count")?.to_le_bytes());
+    out.extend_from_slice(&usize_to_i32(total_index_count, "total_index_count")?.to_le_bytes());
+    out.extend_from_slice(&0.0_f32.to_le_bytes());
+
+    for primitive in &primitives {
+        match primitive.material_key {
+            MaterialKey::Textured(texture_id, image_id) => {
+                out.push(1);
+                out.extend_from_slice(&texture_id.to_le_bytes());
+                out.push(image_id);
+            }
+            MaterialKey::SolidColor(rgb) => {
+                out.push(0);
+                out.push(rgb[0]);
+                out.extend_from_slice(&0u16.to_le_bytes());
+                out.push(0);
+            }
+            _ => {
+                out.push(0);
+                out.push(0);
+                out.extend_from_slice(&0u16.to_le_bytes());
+                out.push(0);
+            }
+        }
+        out.extend_from_slice(&[0, 0]);
+        out.push(1);
+        out.extend_from_slice(
+            &usize_to_i32(primitive.positions.len(), "submesh_vertex_count")?.to_le_bytes(),
+        );
+        out.extend_from_slice(
+            &usize_to_i32(primitive.indices.len(), "submesh_index_count")?.to_le_bytes(),
+        );
+
+        for ((position, normal), uv) in primitive
+            .positions
+            .iter()
+            .zip(primitive.normals.iter())
+            .zip(primitive.uvs.iter())
+        {
+            out.extend_from_slice(&position[0].to_le_bytes());
+            out.extend_from_slice(&position[1].to_le_bytes());
+            out.extend_from_slice(&position[2].to_le_bytes());
+            out.extend_from_slice(&normal[0].to_le_bytes());
+            out.extend_from_slice(&normal[1].to_le_bytes());
+            out.extend_from_slice(&normal[2].to_le_bytes());
+            out.extend_from_slice(&uv[0].to_le_bytes());
+            out.extend_from_slice(&uv[1].to_le_bytes());
+        }
+
+        for index in &primitive.indices {
+            out.extend_from_slice(&index.to_le_bytes());
+        }
+    }
+
+    Ok(out)
+}
+
+const RGPL_NAME_LEN: usize = 32;
+
+fn write_fixed_string(out: &mut Vec<u8>, s: &str, max_len: usize) {
+    let bytes = s.as_bytes();
+    let write_len = bytes.len().min(max_len - 1);
+    out.extend_from_slice(&bytes[..write_len]);
+    out.extend(std::iter::repeat_n(0u8, max_len - write_len));
+}
+
+fn serialize_rgm_placements(
+    placements: &[rgm::Placement],
+    lights: &[rgm::PositionedLight],
+) -> crate::Result<Vec<u8>> {
+    let mut out = Vec::new();
+    out.extend_from_slice(b"RGPL");
+    out.extend_from_slice(&usize_to_i32(placements.len(), "placement_count")?.to_le_bytes());
+    out.extend_from_slice(&usize_to_i32(lights.len(), "light_count")?.to_le_bytes());
+
+    for p in placements {
+        write_fixed_string(&mut out, &p.model_name, RGPL_NAME_LEN);
+        write_fixed_string(&mut out, &p.source_id, RGPL_NAME_LEN);
+        for val in &p.transform {
+            out.extend_from_slice(&val.to_le_bytes());
+        }
+        out.push(p.object_type as u8);
+        out.extend_from_slice(&[0u8; 3]);
+    }
+
+    for light in lights {
+        write_fixed_string(&mut out, &light.name, RGPL_NAME_LEN);
+        for val in &light.color {
+            out.extend_from_slice(&val.to_le_bytes());
+        }
+        for val in &light.position {
+            out.extend_from_slice(&val.to_le_bytes());
+        }
+        out.extend_from_slice(&light.range.to_le_bytes());
+    }
+
+    Ok(out)
+}
+
+/// # Safety
+/// `data` must point to readable bytes of length `len`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn rg_parse_wld_terrain_data(data: *const u8, len: i32) -> *mut ByteBuffer {
+    let result = (|| -> crate::Result<Vec<u8>> {
+        let slice = unsafe { read_bytes(data, len, "data") }?;
+        run_on_large_stack(move || {
+            let wld_file = wld::parse_wld_file(slice)?;
+            let texbsi_id = u16::from_le_bytes([
+                wld_file.sections[0].header[6],
+                wld_file.sections[0].header[7],
+            ]);
+            let primitives = build_wld_unrolled_primitives(&wld_file, texbsi_id)?;
+            serialize_terrain_primitives(primitives)
+        })
+    })();
+
+    into_ffi_result(result)
+}
+
+/// # Safety
+/// `data` must point to readable bytes of length `len`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn rg_parse_rgm_placements(data: *const u8, len: i32) -> *mut ByteBuffer {
+    let result = (|| -> crate::Result<Vec<u8>> {
+        let slice = unsafe { read_bytes(data, len, "data") }?;
+        run_on_large_stack(move || {
+            let (placements, lights) = rgm::extract_rgm_placements(slice)?;
+            serialize_rgm_placements(&placements, &lights)
         })
     })();
 

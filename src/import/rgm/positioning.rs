@@ -1106,3 +1106,140 @@ fn load_model_from_registry(
         None
     }
 }
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(u8)]
+pub enum PlacementType {
+    Mesh = 0,
+    FlatSprite = 1,
+    RopeLink = 2,
+}
+
+#[derive(Debug, Clone)]
+pub struct Placement {
+    pub model_name: String,
+    pub source_id: String,
+    pub transform: [f32; 16],
+    pub object_type: PlacementType,
+}
+
+pub(super) fn extract_placements(
+    input: &[u8],
+    rgm_file: &RgmFile,
+) -> (Vec<Placement>, Vec<PositionedLight>) {
+    let mut placements = Vec::new();
+    let mut lights = Vec::new();
+
+    let rahd_data = first_section_payload(input, *b"RAHD");
+    let raan_data = first_section_payload(input, *b"RAAN");
+    let rahd_index = rahd_data.map(parse_rahd_raan_index).unwrap_or_default();
+    let rahd_texture_overrides = rahd_data
+        .map(parse_rahd_texture_overrides)
+        .unwrap_or_default();
+
+    for section in &rgm_file.sections {
+        match section {
+            RgmSection::Mps(_, mps_records) => {
+                for (idx, record) in mps_records.iter().enumerate() {
+                    let model_name = record.model_name();
+                    if model_name.is_empty() {
+                        continue;
+                    }
+                    placements.push(Placement {
+                        model_name: format!("S{idx:03}_{model_name}"),
+                        source_id: model_name,
+                        transform: mps_transform(record),
+                        object_type: PlacementType::Mesh,
+                    });
+                }
+            }
+            RgmSection::MpobParsed(_, mpob_records) => {
+                for (idx, record) in mpob_records.iter().enumerate() {
+                    let script_name = record.script_name();
+                    let resolved_name =
+                        resolve_mpob_model_name(record, &script_name, raan_data, &rahd_index);
+                    if resolved_name.is_empty() {
+                        continue;
+                    }
+                    let texture_override = rahd_texture_overrides.get(&script_name).copied();
+                    let source_id = texture_override.map_or_else(
+                        || resolved_name.clone(),
+                        |tex_id| format!("{resolved_name}:tex{tex_id}"),
+                    );
+                    placements.push(Placement {
+                        model_name: format!("B_{idx:03}_{script_name}"),
+                        source_id,
+                        transform: mpob_transform(record),
+                        object_type: PlacementType::Mesh,
+                    });
+                }
+            }
+            RgmSection::MprpParsed(_, records) => {
+                append_rope_placements(records, &mut placements);
+            }
+            RgmSection::Mprp(_, mprp_data) => {
+                let records = parse_mprp_records(mprp_data);
+                append_rope_placements(&records, &mut placements);
+            }
+            RgmSection::Mpf(_, mpf_data) => {
+                let records = parse_mpsf_records(mpf_data);
+                for (idx, record) in records.iter().enumerate() {
+                    placements.push(Placement {
+                        model_name: format!("F{idx:03}_{}/{}", record.texture_id, record.image_id),
+                        source_id: String::new(),
+                        transform: translation_matrix(decode_position(
+                            record.pos_x,
+                            record.pos_y,
+                            record.pos_z,
+                        )),
+                        object_type: PlacementType::FlatSprite,
+                    });
+                }
+            }
+            RgmSection::MplParsed(_, records) => {
+                for (idx, record) in records.iter().enumerate() {
+                    lights.push(PositionedLight {
+                        color: [
+                            decode_mpsl_color(record.color_r),
+                            decode_mpsl_color(record.color_g),
+                            decode_mpsl_color(record.color_b),
+                        ],
+                        position: decode_position(record.pos_x, record.pos_y, record.pos_z),
+                        range: decode_mpsl_range(record.param0, record.param1),
+                        name: format!("L{idx:03}"),
+                    });
+                }
+            }
+            _ => {}
+        }
+    }
+
+    (placements, lights)
+}
+
+fn append_rope_placements(records: &[MprpRecord], placements: &mut Vec<Placement>) {
+    for (i, record) in records.iter().enumerate() {
+        let mut pos = decode_position(record.pos_x, record.pos_y, record.pos_z);
+        let link_count = usize::try_from(record.length.max(0)).unwrap_or_default();
+        if !record.rope_model.is_empty() {
+            for j in 0..link_count {
+                pos[1] -= ROPE_LINK_Y_STEP;
+                placements.push(Placement {
+                    model_name: format!("R{i:03}_{j:03}_{}", record.rope_model),
+                    source_id: record.rope_model.clone(),
+                    transform: translation_matrix(pos),
+                    object_type: PlacementType::RopeLink,
+                });
+            }
+        }
+        if !record.static_model.is_empty() {
+            pos[1] -= ROPE_LINK_Y_STEP;
+            placements.push(Placement {
+                model_name: format!("R{i:03}_{link_count:03}_{}", record.static_model),
+                source_id: record.static_model.clone(),
+                transform: translation_matrix(pos),
+                object_type: PlacementType::Mesh,
+            });
+        }
+    }
+}

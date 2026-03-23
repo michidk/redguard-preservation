@@ -7,6 +7,7 @@ mod shared;
 
 use crate::{Result, error::Error, import::registry::Registry, model3d::Model3DFile};
 use log::warn;
+pub use positioning::{Placement, PlacementType};
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, Copy)]
@@ -224,6 +225,12 @@ pub fn parse_rgm_with_models(
 #[must_use]
 pub fn export_rgm_metadata_json(rgm: &RgmFile) -> serde_json::Value {
     metadata::export_rgm_metadata_json_impl(rgm)
+}
+
+#[allow(clippy::missing_errors_doc)] // Public wrapper extracts placements without loading models.
+pub fn extract_rgm_placements(input: &[u8]) -> Result<(Vec<Placement>, Vec<PositionedLight>)> {
+    let rgm_file = parse_rgm_file(input)?;
+    Ok(positioning::extract_placements(input, &rgm_file))
 }
 
 #[allow(clippy::missing_errors_doc)] // Public wrapper delegates parse errors into crate error type.

@@ -4,8 +4,9 @@ mod terrain;
 mod texture_cache;
 
 use builder::GltfBuilder;
-use primitives::{MaterialKey, UnrolledPrimitive, build_unrolled_primitives};
-use terrain::build_wld_unrolled_primitives;
+use primitives::build_unrolled_primitives;
+pub(crate) use primitives::{MaterialKey, UnrolledPrimitive};
+pub(crate) use terrain::build_wld_unrolled_primitives;
 pub use texture_cache::TextureCache;
 
 use crate::{

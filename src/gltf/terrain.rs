@@ -237,7 +237,7 @@ pub(super) fn push_terrain_vertex(
     primitive.max[2] = primitive.max[2].max(pos[2]);
 }
 
-pub(super) fn build_wld_unrolled_primitives(
+pub(crate) fn build_wld_unrolled_primitives(
     wld_file: &WldFile,
     texbsi_id: u16,
 ) -> Result<Vec<UnrolledPrimitive>> {

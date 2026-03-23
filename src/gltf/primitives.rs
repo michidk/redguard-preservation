@@ -7,7 +7,7 @@ use std::collections::BTreeMap;
 use super::ENGINE_UNIT_SCALE;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub(super) enum MaterialKey {
+pub(crate) enum MaterialKey {
     SolidColor([u8; 3]),
     PaletteTexture([u8; 3]),
     Textured(u16, u8),
@@ -15,24 +15,24 @@ pub(super) enum MaterialKey {
 }
 
 #[derive(Clone)]
-pub(super) struct UnrolledPrimitive {
-    pub(super) material_key: MaterialKey,
-    pub(super) scale_uv_by_texture_dimensions: bool,
-    pub(super) positions: Vec<[f32; 3]>,
-    pub(super) normals: Vec<[f32; 3]>,
-    pub(super) uvs: Vec<[f32; 2]>,
-    pub(super) indices: Vec<u32>,
-    pub(super) min: [f32; 3],
-    pub(super) max: [f32; 3],
+pub(crate) struct UnrolledPrimitive {
+    pub(crate) material_key: MaterialKey,
+    pub(crate) scale_uv_by_texture_dimensions: bool,
+    pub(crate) positions: Vec<[f32; 3]>,
+    pub(crate) normals: Vec<[f32; 3]>,
+    pub(crate) uvs: Vec<[f32; 2]>,
+    pub(crate) indices: Vec<u32>,
+    pub(crate) min: [f32; 3],
+    pub(crate) max: [f32; 3],
 }
 
 #[must_use]
-pub(super) const fn sanitize_f32(value: f32) -> f32 {
+pub(crate) const fn sanitize_f32(value: f32) -> f32 {
     if value.is_nan() { 0.0 } else { value }
 }
 
 #[must_use]
-pub(super) fn material_for_face(
+pub(crate) fn material_for_face(
     texture_data: &TextureData,
     palette: Option<&Palette>,
     texture_cache_available: bool,
@@ -68,7 +68,7 @@ pub(super) fn material_for_face(
 }
 
 #[must_use]
-pub(super) fn resolve_vertex_normal(
+pub(crate) fn resolve_vertex_normal(
     model: &Model3DFile,
     vertex_index: usize,
     cumulative_fv_index: usize,
@@ -100,7 +100,7 @@ pub(super) fn resolve_vertex_normal(
 #[allow(clippy::cast_possible_truncation)]
 // GLTF indices are u32; generated vertex/index counts remain far below u32::MAX.
 #[must_use]
-pub(super) fn build_unrolled_primitives(
+pub(crate) fn build_unrolled_primitives(
     model: &Model3DFile,
     palette: Option<&Palette>,
     texture_cache_available: bool,
