@@ -7,7 +7,12 @@ use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 use walkdir::WalkDir;
 
-/// Texture and palette cache used during GLTF material/image generation.
+pub struct AllFramesInfo {
+    pub width: u16,
+    pub height: u16,
+    pub frame_count: u16,
+    pub frames: Vec<Option<Vec<u8>>>,
+}
 pub struct TextureCache {
     palette: Option<Palette>,
     bsi_files: HashMap<u16, BsiFile>,
@@ -209,6 +214,38 @@ impl TextureCache {
         };
         let rgba = image.decode_rgba(self.palette.as_ref());
         Some((rgba, image.width, image.height))
+    }
+
+    pub fn get_image_rgba_by_array_index(
+        &mut self,
+        texture_id: u16,
+        image_index: usize,
+    ) -> Option<(Vec<u8>, u16, u16, u16)> {
+        self.ensure_bsi_loaded(texture_id, 0);
+        let bsi = self.bsi_files.get(&texture_id)?;
+        let image = bsi.images.get(image_index)?;
+        let rgba = image.decode_rgba(self.palette.as_ref());
+        Some((rgba, image.width, image.height, image.frame_count))
+    }
+
+    pub fn get_all_frames_by_array_index(
+        &mut self,
+        texture_id: u16,
+        image_index: usize,
+    ) -> Option<AllFramesInfo> {
+        self.ensure_bsi_loaded(texture_id, 0);
+        let bsi = self.bsi_files.get(&texture_id)?;
+        let image = bsi.images.get(image_index)?;
+        let mut frames = Vec::with_capacity(usize::from(image.frame_count));
+        for frame_idx in 0..usize::from(image.frame_count) {
+            frames.push(image.decode_frame_rgba(frame_idx, self.palette.as_ref()));
+        }
+        Some(AllFramesInfo {
+            width: image.width,
+            height: image.height,
+            frame_count: image.frame_count,
+            frames,
+        })
     }
 
     /// Returns dimensions for a texture/image pair without decoding PNG bytes.

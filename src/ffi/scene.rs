@@ -375,8 +375,9 @@ pub unsafe extern "C" fn rg_decode_texture(
                 .ok_or_else(|| crate::error::Error::Parse("texture_cache is null".to_string()))?
         };
         run_on_large_stack(move || {
-            let (rgba, width, height) =
-                cache.get_image_rgba(texture_id, image_id).ok_or_else(|| {
+            let (rgba, width, height, frame_count) = cache
+                .get_image_rgba_by_array_index(texture_id, usize::from(image_id))
+                .ok_or_else(|| {
                     crate::error::Error::Parse(format!(
                         "texture not found: TEXBSI.{texture_id:03} image {image_id}"
                     ))
@@ -384,7 +385,7 @@ pub unsafe extern "C" fn rg_decode_texture(
             let mut out = Vec::new();
             out.extend_from_slice(&i32::from(width).to_le_bytes());
             out.extend_from_slice(&i32::from(height).to_le_bytes());
-            out.extend_from_slice(&1_i32.to_le_bytes());
+            out.extend_from_slice(&i32::from(frame_count).to_le_bytes());
             out.extend_from_slice(&usize_to_i32(rgba.len(), "rgba_size")?.to_le_bytes());
             out.extend_from_slice(&rgba);
             Ok(out)
@@ -411,18 +412,30 @@ pub unsafe extern "C" fn rg_decode_texture_all_frames(
                 .ok_or_else(|| crate::error::Error::Parse("texture_cache is null".to_string()))?
         };
         run_on_large_stack(move || {
-            let (rgba, width, height) =
-                cache.get_image_rgba(texture_id, image_id).ok_or_else(|| {
+            let info = cache
+                .get_all_frames_by_array_index(texture_id, usize::from(image_id))
+                .ok_or_else(|| {
                     crate::error::Error::Parse(format!(
                         "texture not found: TEXBSI.{texture_id:03} image {image_id}"
                     ))
                 })?;
             let mut out = Vec::new();
-            out.extend_from_slice(&i32::from(width).to_le_bytes());
-            out.extend_from_slice(&i32::from(height).to_le_bytes());
-            out.extend_from_slice(&1_i32.to_le_bytes());
-            out.extend_from_slice(&usize_to_i32(rgba.len(), "rgba_size")?.to_le_bytes());
-            out.extend_from_slice(&rgba);
+            out.extend_from_slice(&i32::from(info.width).to_le_bytes());
+            out.extend_from_slice(&i32::from(info.height).to_le_bytes());
+            out.extend_from_slice(&i32::from(info.frame_count).to_le_bytes());
+            for frame in &info.frames {
+                match frame {
+                    Some(rgba) => {
+                        out.extend_from_slice(
+                            &usize_to_i32(rgba.len(), "rgba_size")?.to_le_bytes(),
+                        );
+                        out.extend_from_slice(rgba);
+                    }
+                    None => {
+                        out.extend_from_slice(&0_i32.to_le_bytes());
+                    }
+                }
+            }
             Ok(out)
         })
     })();
