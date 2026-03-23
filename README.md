@@ -217,6 +217,25 @@ Return pre-transformed mesh data for direct engine consumption (RGMD binary form
 | `rg_rtx_entry_count` | RTX bytes | Entry count (`i32`, -1 on error) |
 | `rg_rtx_metadata` | RTX bytes | JSON bytes (entry index with tags, types, durations) |
 
+### Dependency Discovery Functions
+
+Query which external assets a file references before loading them for conversion:
+
+| Function | Input | Output |
+|----------|-------|--------|
+| `rg_rgm_dependencies` | RGM bytes | JSON bytes (`{"model_names": [...], "texbsi_ids": [...]}`) |
+| `rg_model_dependencies` | 3D/3DC bytes | JSON bytes (`{"texbsi_ids": [...]}`) |
+| `rg_rob_dependencies` | ROB bytes | JSON bytes (`{"texbsi_ids": [...]}`) |
+| `rg_wld_dependencies` | WLD bytes | JSON bytes (`{"texbsi_ids": [...]}`) |
+
+Typical two-phase workflow for RGM/WLD conversion:
+
+1. `rg_rgm_dependencies` → learn which model files and TEXBSI banks are needed
+2. `rg_model_dependencies` / `rg_rob_dependencies` on each loaded model → discover additional TEXBSI IDs from face data
+3. Load all required TEXBSI + palette files, create texture cache, call conversion
+
+For WLD with a companion RGM, call `rg_wld_dependencies` and `rg_rgm_dependencies` separately and union the TEXBSI IDs.
+
 ### Data / Config Functions
 
 | Function | Input | Output |
