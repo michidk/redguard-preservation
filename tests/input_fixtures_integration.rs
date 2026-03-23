@@ -1,4 +1,4 @@
-use rgpre::import::{FileType, bsi, fnt, model3d, palette::Palette, pvo, rgm, rob, wld};
+use rgpre::import::{FileType, bsi, fnt, gxa, model3d, palette::Palette, pvo, rgm, rob, wld};
 use std::path::{Path, PathBuf};
 
 fn with_large_stack<T: Send + 'static>(f: impl FnOnce() -> T + Send + 'static) -> T {
@@ -22,6 +22,44 @@ fn fixture_bytes(name: &str) -> Vec<u8> {
     std::fs::read(&path).unwrap_or_else(|e| panic!("failed to read '{}': {e}", path.display()))
 }
 
+fn minimal_gxa_bytes() -> Vec<u8> {
+    let mut bytes = Vec::new();
+
+    let mut bmhd = vec![0u8; 34];
+    bmhd[..4].copy_from_slice(b"TEST");
+    bmhd[32..34].copy_from_slice(&1i16.to_le_bytes());
+
+    let mut bpal = vec![0u8; 256 * 3];
+    for i in 0..256usize {
+        let o = i * 3;
+        bpal[o] = u8::try_from(i).unwrap_or_default();
+        bpal[o + 1] = u8::try_from(255usize.saturating_sub(i)).unwrap_or_default();
+        bpal[o + 2] = 128;
+    }
+
+    let mut bbmp = Vec::new();
+    bbmp.extend_from_slice(&0i16.to_le_bytes());
+    bbmp.extend_from_slice(&2i16.to_le_bytes());
+    bbmp.extend_from_slice(&2i16.to_le_bytes());
+    bbmp.extend_from_slice(&[0u8; 12]);
+    bbmp.extend_from_slice(&[0u8, 1u8, 2u8, 3u8]);
+
+    bytes.extend_from_slice(b"BMHD");
+    bytes.extend_from_slice(&(u32::try_from(bmhd.len()).unwrap_or_default()).to_be_bytes());
+    bytes.extend_from_slice(&bmhd);
+
+    bytes.extend_from_slice(b"BPAL");
+    bytes.extend_from_slice(&(u32::try_from(bpal.len()).unwrap_or_default()).to_be_bytes());
+    bytes.extend_from_slice(&bpal);
+
+    bytes.extend_from_slice(b"BBMP");
+    bytes.extend_from_slice(&(u32::try_from(bbmp.len()).unwrap_or_default()).to_be_bytes());
+    bytes.extend_from_slice(&bbmp);
+
+    bytes.extend_from_slice(b"END ");
+    bytes
+}
+
 #[test]
 fn filetype_resolution_covers_all_variants() {
     let cases = [
@@ -34,6 +72,7 @@ fn filetype_resolution_covers_all_variants() {
         ("octree.pvo", "pvo", FileType::Pvo),
         ("world.wld", "wld", FileType::Wld),
         ("font.fnt", "fnt", FileType::Fnt),
+        ("startup.gxa", "gxa", FileType::Gxa),
     ];
 
     for (path, token, expected) in cases {
@@ -65,6 +104,7 @@ fn integration_covers_each_filetype_variant() {
     let pvo_data = fixture_bytes("world.pvo");
     let wld_data = fixture_bytes("world.wld");
     let fnt_data = fixture_bytes("font.fnt");
+    let gxa_data = minimal_gxa_bytes();
 
     for filetype in [
         FileType::Bsi,
@@ -76,6 +116,7 @@ fn integration_covers_each_filetype_variant() {
         FileType::Pvo,
         FileType::Wld,
         FileType::Fnt,
+        FileType::Gxa,
     ] {
         match filetype {
             FileType::Bsi => {
@@ -138,6 +179,11 @@ fn integration_covers_each_filetype_variant() {
                 let file = fnt::parse_fnt(&fnt_data)
                     .unwrap_or_else(|e| panic!("failed to parse FNT fixture: {e}"));
                 assert!(!file.glyphs.is_empty(), "expected FNT glyphs");
+            }
+            FileType::Gxa => {
+                let file = gxa::parse_gxa_file(&gxa_data)
+                    .unwrap_or_else(|e| panic!("failed to parse GXA fixture: {e}"));
+                assert_eq!(file.frames.len(), 1, "expected one GXA frame");
             }
             FileType::Sfx => {
                 // No fixture for SFX; covered by unit tests in src/import/sfx.rs

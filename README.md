@@ -16,6 +16,7 @@ Preserving *The Elder Scrolls Adventures: Redguard* (1998) — reverse-engineere
 | Sound effects bank | `.sfx` | extracted `.wav` files (directory output) |
 | Dialogue audio | `.rtx` | extracted `.wav` files + `index.json` metadata (directory output) |
 | Texture bank | `TEXBSI.###` | extracted `.png` files + metadata `.json` (directory output) |
+| GXA bitmap archive | `.gxa` | extracted `.png` frames + metadata `.json` (directory output) |
 
 The `scan` command recursively detects known Redguard files in a directory tree.
 
@@ -202,7 +203,7 @@ Return pre-transformed mesh data for direct engine consumption (RGMD binary form
 | `rg_decode_texture` | texture cache + texture ID + image ID | RGBA pixels (width, height, frame_count, pixel data) |
 | `rg_decode_texture_all_frames` | texture cache + texture ID + image ID | RGBA pixels for all animation frames |
 | `rg_texbsi_image_count` | texture cache + texture ID | Image count (`i32`, -1 on error) |
-| `rg_decode_gxa` | GXA bytes + frame index | RGBA pixels (currently returns not implemented error) |
+| `rg_decode_gxa` | GXA bytes + frame index | RGBA pixels (width, height, frame_count, pixel data) |
 
 `image_id` is the TEXBSI image identifier from model/placement data, not an array index into TEXBSI entries.
 

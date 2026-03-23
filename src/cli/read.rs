@@ -5,7 +5,7 @@ use crate::opts::ReadArgs;
 use color_eyre::Result;
 use log::info;
 use rgpre::import::{
-    FileType, bsi, cht, fnt, model3d, palette::Palette, pvo, rgm, rob, rtx, sfx, wld,
+    FileType, bsi, cht, fnt, gxa, model3d, palette::Palette, pvo, rgm, rob, rtx, sfx, wld,
 };
 use std::collections::BTreeMap;
 
@@ -341,6 +341,21 @@ fn print_rtx(file_content: &[u8]) -> Result<()> {
     Ok(())
 }
 
+fn print_gxa(file_content: &[u8]) -> Result<()> {
+    let file = gxa::parse_gxa_file(file_content).map_err(|e| color_eyre::eyre::eyre!("{e}"))?;
+    info!("Successfully parsed GXA file");
+    if file.title.is_empty() {
+        info!("Title: <empty>");
+    } else {
+        info!("Title: {}", file.title);
+    }
+    info!("Frame count: {}", file.frames.len());
+    if let Some(first) = file.frames.first() {
+        info!("First frame: {}x{}", first.width, first.height);
+    }
+    Ok(())
+}
+
 #[allow(clippy::needless_pass_by_value)]
 // CLI handlers take owned args by clap design for consistent command dispatch.
 pub fn handle_read_command(args: ReadArgs) -> Result<()> {
@@ -364,5 +379,6 @@ pub fn handle_read_command(args: ReadArgs) -> Result<()> {
         FileType::Col => print_col(&file_content),
         FileType::Sfx => print_sfx(&file_content),
         FileType::Rtx => print_rtx(&file_content),
+        FileType::Gxa => print_gxa(&file_content),
     }
 }

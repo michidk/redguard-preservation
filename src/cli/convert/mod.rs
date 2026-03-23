@@ -1,6 +1,7 @@
 mod cht;
 mod col;
 mod fnt;
+mod gxa;
 mod pvo;
 mod rtx;
 mod sfx;
@@ -35,6 +36,15 @@ fn default_output_for(file: &Path, filetype: FileType) -> PathBuf {
     match filetype {
         FileType::Fnt | FileType::Col | FileType::Wld => {
             path.set_extension("png");
+        }
+        FileType::Gxa => {
+            path.set_extension("");
+            let stem = path
+                .file_stem()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .to_string();
+            path.set_file_name(format!("{stem}_gxa"));
         }
         FileType::Cht | FileType::Pvo => {
             path.set_extension("json");
@@ -120,6 +130,7 @@ fn dispatch_direct_conversion(
         FileType::Col => Some(col::handle_col_convert(args, output_path)),
         FileType::Pvo => Some(pvo::handle_pvo_convert(args, output_path)),
         FileType::Fnt => Some(fnt::handle_fnt_convert(args, output_path)),
+        FileType::Gxa => Some(gxa::handle_gxa_convert(args, output_path)),
         FileType::Wld => Some(wld::handle_wld_convert(args, output_path)),
         FileType::Sfx => Some(sfx::handle_sfx_convert(args, output_path)),
         FileType::Rtx => Some(rtx::handle_rtx_convert(args, output_path)),

@@ -10,6 +10,7 @@ Binary, little-endian file formats.
 | TEXBSI | .### | yes | `.png` files (directory extract) + metadata `.json` | [TEXBSI.md](TEXBSI.md) | Texture container (`TEXBSI.###`); indexed-color images with optional palettes and animation. |
 | Palette | .col | yes | swatch `.png` + palette `.json` | [COL.md](COL.md) | 256-color palette files; 776 bytes (8-byte header + 256×RGB). |
 | Font | .fnt | yes | `.png` + BMFont `.fnt` + glyph `.json`, or `.ttf` | [FNT.md](FNT.md) | Font graphics files—56-byte header + optional palette data. |
+| GXA Bitmap | .gxa | yes | `.png` files (directory extract) + metadata `.json` | [GXA.md](GXA.md) | Indexed-color bitmap archive used for UI, loading flashes, and sky panoramas. |
 | Model | .3d | yes | `.glb` | [3D](models/3d.md) | Static 3D models. |
 | Animated Model | .3dc | yes | `.glb` | [3DC](models/3dc.md) | Animated 3D models (multi-frame). |
 | ROB Archive | .rob | yes | `.glb` | [ROB.md](ROB.md) | Contains world/dungeon model data; used within maps. |

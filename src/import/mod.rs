@@ -8,6 +8,8 @@ pub mod fnt;
 pub mod fnt_export;
 /// FNT to TrueType font conversion.
 pub mod fnt_ttf;
+/// Parser for GXA bitmap archives.
+pub mod gxa;
 /// Parser for 3D and 3DC model files.
 pub mod model3d;
 /// Parser for COL palette files.
@@ -46,11 +48,12 @@ pub enum FileType {
     Pvo,      // .pvo
     Wld,      // .wld
     Fnt,      // .fnt
+    Gxa,      // .gxa
     Sfx,      // .sfx
     Rtx,      // .rtx
 }
 
-const ALL_FILE_TYPES: [FileType; 12] = [
+const ALL_FILE_TYPES: [FileType; 13] = [
     FileType::Bsi,
     FileType::Cht,
     FileType::Col,
@@ -61,6 +64,7 @@ const ALL_FILE_TYPES: [FileType; 12] = [
     FileType::Pvo,
     FileType::Wld,
     FileType::Fnt,
+    FileType::Gxa,
     FileType::Sfx,
     FileType::Rtx,
 ];
@@ -84,6 +88,7 @@ impl FileType {
             Self::Pvo => "PVO Data",
             Self::Wld => "World Geometry",
             Self::Fnt => "Font",
+            Self::Gxa => "GXA Bitmap",
             Self::Sfx => "Sound Effects",
             Self::Rtx => "Dialogue Audio",
         }
@@ -102,6 +107,7 @@ impl FileType {
             Self::Pvo => &[".pvo"],
             Self::Wld => &[".wld"],
             Self::Fnt => &[".fnt"],
+            Self::Gxa => &[".gxa"],
             Self::Sfx => &[".sfx"],
             Self::Rtx => &[".rtx"],
         }

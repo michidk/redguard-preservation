@@ -2,7 +2,9 @@ use super::buffer::*;
 use super::{i32_to_usize, read_bytes};
 use crate::gltf::{MaterialKey, TextureCache, build_wld_unrolled_primitives};
 use crate::import::rtx::RtxEntry;
-use crate::import::{cht, fnt, fnt_ttf, palette::Palette, pvo, rgm, rob, rtx, sfx, wld, world_ini};
+use crate::import::{
+    cht, fnt, fnt_ttf, gxa, palette::Palette, pvo, rgm, rob, rtx, sfx, wld, world_ini,
+};
 use crate::model3d::{self, Model3DFile, TextureData};
 use hound::{SampleFormat, WavSpec, WavWriter};
 use serde_json::json;
@@ -762,12 +764,27 @@ pub unsafe extern "C" fn rg_parse_ini(data: *const u8, len: i32) -> *mut ByteBuf
 /// # Safety
 /// `data` must point to readable bytes of length `len`.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn rg_decode_gxa(data: *const u8, len: i32, _frame: i32) -> *mut ByteBuffer {
+pub unsafe extern "C" fn rg_decode_gxa(data: *const u8, len: i32, frame: i32) -> *mut ByteBuffer {
     let result = (|| -> crate::Result<Vec<u8>> {
-        let _ = unsafe { read_bytes(data, len, "data") }?;
-        Err(crate::error::Error::Conversion(
-            "GXA decode is not implemented yet".to_string(),
-        ))
+        let slice = unsafe { read_bytes(data, len, "data") }?;
+        run_on_large_stack(move || {
+            let gxa_file = gxa::parse_gxa_file(slice)?;
+            let frame_idx = i32_to_usize(frame, "frame")?;
+            let selected = gxa_file.frames.get(frame_idx).ok_or_else(|| {
+                crate::error::Error::Parse(format!(
+                    "frame out of range: {frame} (frame_count={})",
+                    gxa_file.frames.len()
+                ))
+            })?;
+
+            let mut out = Vec::new();
+            out.extend_from_slice(&i32::from(selected.width).to_le_bytes());
+            out.extend_from_slice(&i32::from(selected.height).to_le_bytes());
+            out.extend_from_slice(&1_i32.to_le_bytes());
+            out.extend_from_slice(&usize_to_i32(selected.rgba.len(), "rgba_size")?.to_le_bytes());
+            out.extend_from_slice(&selected.rgba);
+            Ok(out)
+        })
     })();
 
     into_ffi_result(result)
