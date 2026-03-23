@@ -964,9 +964,7 @@ pub unsafe extern "C" fn rg_rgm_dependencies(data: *const u8, len: i32) -> *mut 
             let mut texbsi_ids = BTreeSet::new();
 
             for p in &placements {
-                if !p.model_name.is_empty()
-                    && p.object_type != rgm::PlacementType::FlatSprite
-                {
+                if !p.model_name.is_empty() && p.object_type != rgm::PlacementType::FlatSprite {
                     model_names.insert(p.model_name.to_ascii_uppercase());
                 }
                 if p.texture_id >= 2 {
