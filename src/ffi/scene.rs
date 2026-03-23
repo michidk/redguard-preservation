@@ -1,8 +1,8 @@
 use super::buffer::*;
 use super::{i32_to_usize, read_bytes};
-use crate::gltf::{MaterialKey, build_wld_unrolled_primitives};
+use crate::gltf::{MaterialKey, TextureCache, build_wld_unrolled_primitives};
 use crate::import::rtx::RtxEntry;
-use crate::import::{bsi, cht, fnt, fnt_ttf, palette::Palette, pvo, rgm, rob, rtx, sfx, wld};
+use crate::import::{cht, fnt, fnt_ttf, palette::Palette, pvo, rgm, rob, rtx, sfx, wld};
 use crate::model3d::{self, Model3DFile, TextureData};
 use hound::{SampleFormat, WavSpec, WavWriter};
 use serde_json::json;
@@ -360,32 +360,31 @@ pub unsafe extern "C" fn rg_parse_rob_data(data: *const u8, len: i32) -> *mut By
 
 /// # Safety
 ///
-/// `texbsi_data` and `palette_data` must point to readable bytes for their lengths.
+/// `texture_cache` must be a valid pointer from `rg_texture_cache_create`.
 /// The returned pointer must be released with `rg_free_buffer`.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn rg_decode_texture(
-    texbsi_data: *const u8,
-    texbsi_len: i32,
-    palette_data: *const u8,
-    palette_len: i32,
-    image_index: i32,
+    texture_cache: *mut TextureCache,
+    texture_id: u16,
+    image_id: u8,
 ) -> *mut ByteBuffer {
     let result = (|| -> crate::Result<Vec<u8>> {
-        let texbsi_slice = unsafe { read_bytes(texbsi_data, texbsi_len, "texbsi_data") }?;
-        let palette_slice = unsafe { read_bytes(palette_data, palette_len, "palette_data") }?;
+        let cache = unsafe {
+            texture_cache
+                .as_mut()
+                .ok_or_else(|| crate::error::Error::Parse("texture_cache is null".to_string()))?
+        };
         run_on_large_stack(move || {
-            let bsi_file = bsi::parse_bsi_file(texbsi_slice)?;
-            let palette = Palette::parse(palette_slice)?;
-            let image_idx = i32_to_usize(image_index, "image_index")?;
-            let image = bsi_file.images.get(image_idx).ok_or_else(|| {
-                crate::error::Error::Parse(format!("image_index out of range: {image_index}"))
-            })?;
-
-            let rgba = image.decode_rgba(Some(&palette));
+            let (rgba, width, height) =
+                cache.get_image_rgba(texture_id, image_id).ok_or_else(|| {
+                    crate::error::Error::Parse(format!(
+                        "texture not found: TEXBSI.{texture_id:03} image {image_id}"
+                    ))
+                })?;
             let mut out = Vec::new();
-            out.extend_from_slice(&i32::from(image.width).to_le_bytes());
-            out.extend_from_slice(&i32::from(image.height).to_le_bytes());
-            out.extend_from_slice(&i32::from(image.frame_count).to_le_bytes());
+            out.extend_from_slice(&i32::from(width).to_le_bytes());
+            out.extend_from_slice(&i32::from(height).to_le_bytes());
+            out.extend_from_slice(&1_i32.to_le_bytes());
             out.extend_from_slice(&usize_to_i32(rgba.len(), "rgba_size")?.to_le_bytes());
             out.extend_from_slice(&rgba);
             Ok(out)
@@ -397,46 +396,33 @@ pub unsafe extern "C" fn rg_decode_texture(
 
 /// # Safety
 ///
-/// `texbsi_data` and `palette_data` must point to readable bytes for their lengths.
+/// `texture_cache` must be a valid pointer from `rg_texture_cache_create`.
 /// The returned pointer must be released with `rg_free_buffer`.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn rg_decode_texture_all_frames(
-    texbsi_data: *const u8,
-    texbsi_len: i32,
-    palette_data: *const u8,
-    palette_len: i32,
-    image_index: i32,
+    texture_cache: *mut TextureCache,
+    texture_id: u16,
+    image_id: u8,
 ) -> *mut ByteBuffer {
     let result = (|| -> crate::Result<Vec<u8>> {
-        let texbsi_slice = unsafe { read_bytes(texbsi_data, texbsi_len, "texbsi_data") }?;
-        let palette_slice = unsafe { read_bytes(palette_data, palette_len, "palette_data") }?;
+        let cache = unsafe {
+            texture_cache
+                .as_mut()
+                .ok_or_else(|| crate::error::Error::Parse("texture_cache is null".to_string()))?
+        };
         run_on_large_stack(move || {
-            let bsi_file = bsi::parse_bsi_file(texbsi_slice)?;
-            let palette = Palette::parse(palette_slice)?;
-            let image_idx = i32_to_usize(image_index, "image_index")?;
-            let image = bsi_file.images.get(image_idx).ok_or_else(|| {
-                crate::error::Error::Parse(format!("image_index out of range: {image_index}"))
-            })?;
-
+            let (rgba, width, height) =
+                cache.get_image_rgba(texture_id, image_id).ok_or_else(|| {
+                    crate::error::Error::Parse(format!(
+                        "texture not found: TEXBSI.{texture_id:03} image {image_id}"
+                    ))
+                })?;
             let mut out = Vec::new();
-            out.extend_from_slice(&i32::from(image.width).to_le_bytes());
-            out.extend_from_slice(&i32::from(image.height).to_le_bytes());
-            out.extend_from_slice(&i32::from(image.frame_count).to_le_bytes());
-
-            for frame_idx in 0..usize::from(image.frame_count) {
-                match image.decode_frame_rgba(frame_idx, Some(&palette)) {
-                    Some(rgba) => {
-                        out.extend_from_slice(
-                            &usize_to_i32(rgba.len(), "rgba_size")?.to_le_bytes(),
-                        );
-                        out.extend_from_slice(&rgba);
-                    }
-                    None => {
-                        out.extend_from_slice(&0_i32.to_le_bytes());
-                    }
-                }
-            }
-
+            out.extend_from_slice(&i32::from(width).to_le_bytes());
+            out.extend_from_slice(&i32::from(height).to_le_bytes());
+            out.extend_from_slice(&1_i32.to_le_bytes());
+            out.extend_from_slice(&usize_to_i32(rgba.len(), "rgba_size")?.to_le_bytes());
+            out.extend_from_slice(&rgba);
             Ok(out)
         })
     })();
@@ -446,14 +432,22 @@ pub unsafe extern "C" fn rg_decode_texture_all_frames(
 
 /// # Safety
 ///
-/// `texbsi_data` must point to readable bytes of length `texbsi_len`.
+/// `texture_cache` must be a valid pointer from `rg_texture_cache_create`.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn rg_texbsi_image_count(texbsi_data: *const u8, texbsi_len: i32) -> i32 {
+pub unsafe extern "C" fn rg_texbsi_image_count(
+    texture_cache: *mut TextureCache,
+    texture_id: u16,
+) -> i32 {
     let result = (|| -> crate::Result<i32> {
-        let texbsi_slice = unsafe { read_bytes(texbsi_data, texbsi_len, "texbsi_data") }?;
+        let cache = unsafe {
+            texture_cache
+                .as_mut()
+                .ok_or_else(|| crate::error::Error::Parse("texture_cache is null".to_string()))?
+        };
         run_on_large_stack(move || {
-            let bsi_file = bsi::parse_bsi_file(texbsi_slice)?;
-            usize_to_i32(bsi_file.images.len(), "image_count")
+            cache.ensure_bsi_available(texture_id);
+            let count = cache.image_count(texture_id).unwrap_or(0);
+            usize_to_i32(count, "image_count")
         })
     })();
 

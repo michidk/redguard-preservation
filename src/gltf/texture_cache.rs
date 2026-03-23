@@ -184,7 +184,15 @@ impl TextureCache {
         true
     }
 
-    /// Returns RGBA pixels and dimensions for a texture/image pair.
+    pub fn ensure_bsi_available(&mut self, texture_id: u16) {
+        self.ensure_bsi_loaded(texture_id, 0);
+    }
+
+    #[must_use]
+    pub fn image_count(&self, texture_id: u16) -> Option<usize> {
+        self.bsi_files.get(&texture_id).map(|bsi| bsi.images.len())
+    }
+
     pub fn get_image_rgba(&mut self, texture_id: u16, image_id: u8) -> Option<(Vec<u8>, u16, u16)> {
         if !self.ensure_bsi_loaded(texture_id, image_id) {
             return None;

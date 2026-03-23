@@ -199,9 +199,9 @@ Return pre-transformed mesh data for direct engine consumption (RGMD binary form
 
 | Function | Input | Output |
 |----------|-------|--------|
-| `rg_decode_texture` | TEXBSI bytes + palette bytes + image index | RGBA pixels (width, height, frame_count, pixel data) |
-| `rg_decode_texture_all_frames` | TEXBSI bytes + palette bytes + image index | RGBA pixels for all animation frames |
-| `rg_texbsi_image_count` | TEXBSI bytes | Image count (`i32`, -1 on error) |
+| `rg_decode_texture` | texture cache + texture ID + image ID | RGBA pixels (width, height, frame_count, pixel data) |
+| `rg_decode_texture_all_frames` | texture cache + texture ID + image ID | RGBA pixels for all animation frames |
+| `rg_texbsi_image_count` | texture cache + texture ID | Image count (`i32`, -1 on error) |
 
 ### Audio Functions
 
