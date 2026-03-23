@@ -192,6 +192,8 @@ Return pre-transformed mesh data for direct engine consumption (RGMD binary form
 |----------|-------|--------|
 | `rg_parse_model_data` | 3D/3DC bytes | RGMD binary (triangulated submeshes) |
 | `rg_parse_rob_data` | ROB bytes | Segment names + RGMD per segment |
+| `rg_parse_wld_terrain_data` | WLD bytes | RGMD binary (terrain mesh) |
+| `rg_parse_rgm_placements` | RGM bytes | RGPL binary (transforms, names, lights) |
 
 ### Texture Functions
 
