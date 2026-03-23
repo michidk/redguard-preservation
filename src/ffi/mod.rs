@@ -78,10 +78,6 @@ pub(crate) fn auto_resolve_palette(
     input_file: &Path,
     file_type: FileType,
 ) -> Option<Palette> {
-    if !matches!(file_type, FileType::Rgm | FileType::Wld) {
-        return None;
-    }
-
     let ini_path = find_world_ini(asset_root)?;
     let content = std::fs::read_to_string(ini_path).ok()?;
     let world_ini = WorldIni::parse(&content);
@@ -90,9 +86,12 @@ pub(crate) fn auto_resolve_palette(
     let matches = match file_type {
         FileType::Rgm => world_ini.find_by_map_stem(file_stem),
         FileType::Wld => world_ini.find_by_world_stem(file_stem),
-        _ => return None,
+        _ => Vec::new(),
     };
-    let entry = matches.first()?;
+    let entry = matches
+        .first()
+        .copied()
+        .or_else(|| world_ini.entries.first())?;
     let palette_path = find_palette_on_disk(asset_root, &entry.palette)?;
     let bytes = std::fs::read(palette_path).ok()?;
     Palette::parse(&bytes).ok()
