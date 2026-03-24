@@ -8,10 +8,12 @@ use crate::gltf::{
 };
 use crate::import::{FileType, palette::Palette, registry, rgm, rob, wld, world_ini::WorldIni};
 use crate::model3d;
+use std::collections::HashMap;
 use std::ffi::CStr;
 use std::os::raw::c_char;
 use std::path::{Path, PathBuf};
 use std::ptr;
+use std::sync::{Mutex, OnceLock};
 
 pub use self::buffer::ByteBuffer;
 
@@ -115,7 +117,7 @@ pub(crate) fn build_path_texture_cache(
     }
 }
 
-pub(crate) fn texture_cache_from_assets_dir(assets_dir: &Path) -> Option<TextureCache> {
+fn texture_cache_from_assets_dir(assets_dir: &Path) -> Option<TextureCache> {
     let ini_path = find_world_ini(assets_dir)?;
     let content = std::fs::read_to_string(ini_path).ok()?;
     let world_ini = WorldIni::parse(&content);
@@ -124,6 +126,38 @@ pub(crate) fn texture_cache_from_assets_dir(assets_dir: &Path) -> Option<Texture
     let palette_bytes = std::fs::read(palette_path).ok()?;
     let palette = Palette::parse(&palette_bytes).ok()?;
     Some(TextureCache::new(assets_dir.to_path_buf(), Some(palette)))
+}
+
+fn global_texture_cache() -> &'static Mutex<HashMap<PathBuf, TextureCache>> {
+    static CACHE: OnceLock<Mutex<HashMap<PathBuf, TextureCache>>> = OnceLock::new();
+    CACHE.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+/// Runs `f` with a cached [`TextureCache`] for `assets_dir`.
+///
+/// On first call for a given `assets_dir`, parses `WORLD.INI`, loads the
+/// palette, and walks the directory for `TEXBSI.*` files. Subsequent calls
+/// reuse the cached instance (which also retains previously-parsed TEXBSI
+/// banks).
+pub(crate) fn with_texture_cache<F, T>(assets_dir: &Path, f: F) -> crate::Result<T>
+where
+    F: FnOnce(&mut TextureCache) -> crate::Result<T>,
+{
+    let mut map = global_texture_cache()
+        .lock()
+        .map_err(|e| crate::error::Error::Parse(format!("texture cache lock poisoned: {e}")))?;
+
+    if !map.contains_key(assets_dir) {
+        let cache = texture_cache_from_assets_dir(assets_dir).ok_or_else(|| {
+            crate::error::Error::Parse(format!(
+                "failed to auto-resolve palette from WORLD.INI in assets_dir: {}",
+                assets_dir.display()
+            ))
+        })?;
+        map.insert(assets_dir.to_path_buf(), cache);
+    }
+
+    f(map.get_mut(assets_dir).unwrap())
 }
 
 fn wld_texbsi_id(wld_file: &wld::WldFile) -> u16 {

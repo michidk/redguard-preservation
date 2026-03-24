@@ -1,5 +1,5 @@
 use super::buffer::*;
-use super::{i32_to_usize, read_c_str, texture_cache_from_assets_dir};
+use super::{i32_to_usize, read_c_str, with_texture_cache};
 use crate::gltf::{MaterialKey, UV_FIXED_POINT_SCALE, build_wld_unrolled_primitives};
 use crate::import::rtx::RtxEntry;
 use crate::import::{fnt, fnt_ttf, gxa, rgm, rob, rtx, sfx, wld};
@@ -339,27 +339,23 @@ pub unsafe extern "C" fn rg_decode_texture(
     let result = (|| -> crate::Result<Vec<u8>> {
         let assets_dir = unsafe { read_c_str(assets_dir, "assets_dir") }?;
         let assets_dir = PathBuf::from(assets_dir);
-        let mut cache = texture_cache_from_assets_dir(&assets_dir).ok_or_else(|| {
-            crate::error::Error::Parse(format!(
-                "failed to auto-resolve palette from WORLD.INI in assets_dir: {}",
-                assets_dir.display()
-            ))
-        })?;
         run_on_large_stack(move || {
-            let (rgba, width, height, frame_count) = cache
-                .get_image_rgba_with_frame_count(texture_id, image_id)
-                .ok_or_else(|| {
-                    crate::error::Error::Parse(format!(
-                        "texture not found: TEXBSI.{texture_id:03} image {image_id}"
-                    ))
-                })?;
-            let mut out = Vec::new();
-            out.extend_from_slice(&i32::from(width).to_le_bytes());
-            out.extend_from_slice(&i32::from(height).to_le_bytes());
-            out.extend_from_slice(&i32::from(frame_count).to_le_bytes());
-            out.extend_from_slice(&usize_to_i32(rgba.len(), "rgba_size")?.to_le_bytes());
-            out.extend_from_slice(&rgba);
-            Ok(out)
+            with_texture_cache(&assets_dir, |cache| {
+                let (rgba, width, height, frame_count) = cache
+                    .get_image_rgba_with_frame_count(texture_id, image_id)
+                    .ok_or_else(|| {
+                        crate::error::Error::Parse(format!(
+                            "texture not found: TEXBSI.{texture_id:03} image {image_id}"
+                        ))
+                    })?;
+                let mut out = Vec::new();
+                out.extend_from_slice(&i32::from(width).to_le_bytes());
+                out.extend_from_slice(&i32::from(height).to_le_bytes());
+                out.extend_from_slice(&i32::from(frame_count).to_le_bytes());
+                out.extend_from_slice(&usize_to_i32(rgba.len(), "rgba_size")?.to_le_bytes());
+                out.extend_from_slice(&rgba);
+                Ok(out)
+            })
         })
     })();
 
@@ -379,38 +375,34 @@ pub unsafe extern "C" fn rg_decode_texture_all_frames(
     let result = (|| -> crate::Result<Vec<u8>> {
         let assets_dir = unsafe { read_c_str(assets_dir, "assets_dir") }?;
         let assets_dir = PathBuf::from(assets_dir);
-        let mut cache = texture_cache_from_assets_dir(&assets_dir).ok_or_else(|| {
-            crate::error::Error::Parse(format!(
-                "failed to auto-resolve palette from WORLD.INI in assets_dir: {}",
-                assets_dir.display()
-            ))
-        })?;
         run_on_large_stack(move || {
-            let info = cache
-                .get_all_frames_by_image_id(texture_id, image_id)
-                .ok_or_else(|| {
-                    crate::error::Error::Parse(format!(
-                        "texture not found: TEXBSI.{texture_id:03} image {image_id}"
-                    ))
-                })?;
-            let mut out = Vec::new();
-            out.extend_from_slice(&i32::from(info.width).to_le_bytes());
-            out.extend_from_slice(&i32::from(info.height).to_le_bytes());
-            out.extend_from_slice(&i32::from(info.frame_count).to_le_bytes());
-            for frame in &info.frames {
-                match frame {
-                    Some(rgba) => {
-                        out.extend_from_slice(
-                            &usize_to_i32(rgba.len(), "rgba_size")?.to_le_bytes(),
-                        );
-                        out.extend_from_slice(rgba);
-                    }
-                    None => {
-                        out.extend_from_slice(&0_i32.to_le_bytes());
+            with_texture_cache(&assets_dir, |cache| {
+                let info = cache
+                    .get_all_frames_by_image_id(texture_id, image_id)
+                    .ok_or_else(|| {
+                        crate::error::Error::Parse(format!(
+                            "texture not found: TEXBSI.{texture_id:03} image {image_id}"
+                        ))
+                    })?;
+                let mut out = Vec::new();
+                out.extend_from_slice(&i32::from(info.width).to_le_bytes());
+                out.extend_from_slice(&i32::from(info.height).to_le_bytes());
+                out.extend_from_slice(&i32::from(info.frame_count).to_le_bytes());
+                for frame in &info.frames {
+                    match frame {
+                        Some(rgba) => {
+                            out.extend_from_slice(
+                                &usize_to_i32(rgba.len(), "rgba_size")?.to_le_bytes(),
+                            );
+                            out.extend_from_slice(rgba);
+                        }
+                        None => {
+                            out.extend_from_slice(&0_i32.to_le_bytes());
+                        }
                     }
                 }
-            }
-            Ok(out)
+                Ok(out)
+            })
         })
     })();
 
@@ -425,16 +417,12 @@ pub unsafe extern "C" fn rg_texbsi_image_count(assets_dir: *const c_char, textur
     let result = (|| -> crate::Result<i32> {
         let assets_dir = unsafe { read_c_str(assets_dir, "assets_dir") }?;
         let assets_dir = PathBuf::from(assets_dir);
-        let mut cache = texture_cache_from_assets_dir(&assets_dir).ok_or_else(|| {
-            crate::error::Error::Parse(format!(
-                "failed to auto-resolve palette from WORLD.INI in assets_dir: {}",
-                assets_dir.display()
-            ))
-        })?;
         run_on_large_stack(move || {
-            cache.ensure_bsi_available(texture_id);
-            let count = cache.image_count(texture_id).unwrap_or(0);
-            usize_to_i32(count, "image_count")
+            with_texture_cache(&assets_dir, |cache| {
+                cache.ensure_bsi_available(texture_id);
+                let count = cache.image_count(texture_id).unwrap_or(0);
+                usize_to_i32(count, "image_count")
+            })
         })
     })();
 
