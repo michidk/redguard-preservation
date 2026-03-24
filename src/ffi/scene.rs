@@ -1,15 +1,26 @@
 use super::buffer::*;
+use super::types::*;
 use super::{i32_to_usize, read_c_str, with_texture_cache};
 use crate::gltf::{MaterialKey, UV_FIXED_POINT_SCALE, build_wld_unrolled_primitives};
 use crate::import::rtx::RtxEntry;
 use crate::import::{fnt, fnt_ttf, gxa, rgm, rob, rtx, sfx, wld};
 use crate::model3d::{self, Model3DFile, TextureData};
+use bytemuck;
 use hound::{SampleFormat, WavSpec, WavWriter};
 
 use std::collections::BTreeMap;
 use std::io::Cursor;
+use std::mem::size_of;
 use std::os::raw::c_char;
 use std::path::PathBuf;
+
+fn fixed_string<const N: usize>(s: &str) -> [u8; N] {
+    let mut buf = [0u8; N];
+    let bytes = s.as_bytes();
+    let len = bytes.len().min(N - 1);
+    buf[..len].copy_from_slice(&bytes[..len]);
+    buf
+}
 
 const ENGINE_UNIT_SCALE: f32 = 20.0;
 
@@ -164,67 +175,58 @@ fn serialize_model_3d(model: &Model3DFile) -> crate::Result<Vec<u8>> {
         .map(|(_, submesh)| submesh.indices.len())
         .sum::<usize>();
 
-    let mut out = Vec::new();
+    let header = RgmdHeader {
+        magic: *b"RGMD",
+        version: model.header.version,
+        submesh_count: usize_to_i32(populated_submeshes.len(), "submesh_count")?,
+        frame_count: i32::try_from(model.header.num_frames).map_err(|_| {
+            crate::error::Error::Parse(format!(
+                "frame_count exceeds i32::MAX: {}",
+                model.header.num_frames
+            ))
+        })?,
+        total_vertex_count: usize_to_i32(total_vertex_count, "total_vertex_count")?,
+        total_index_count: usize_to_i32(total_index_count, "total_index_count")?,
+        radius: model.header.radius,
+    };
 
-    out.extend_from_slice(b"RGMD");
-    out.extend_from_slice(&model.header.version);
-    out.extend_from_slice(&usize_to_i32(populated_submeshes.len(), "submesh_count")?.to_le_bytes());
-    out.extend_from_slice(
-        &i32::try_from(model.header.num_frames)
-            .map_err(|_| {
-                crate::error::Error::Parse(format!(
-                    "frame_count exceeds i32::MAX: {}",
-                    model.header.num_frames
-                ))
-            })?
-            .to_le_bytes(),
-    );
-    out.extend_from_slice(&usize_to_i32(total_vertex_count, "total_vertex_count")?.to_le_bytes());
-    out.extend_from_slice(&usize_to_i32(total_index_count, "total_index_count")?.to_le_bytes());
-    out.extend_from_slice(&model.header.radius.to_le_bytes());
+    let estimated_size = size_of::<RgmdHeader>()
+        + populated_submeshes.len() * size_of::<RgmdSubmeshHeader>()
+        + total_vertex_count * size_of::<RgmdVertex>()
+        + total_index_count * size_of::<u32>();
+    let mut out = Vec::with_capacity(estimated_size);
+    out.extend_from_slice(bytemuck::bytes_of(&header));
 
     for (key, submesh) in populated_submeshes {
-        match key {
-            SubmeshKey::SolidColor(color_index) => {
-                out.push(0);
-                out.push(color_index);
-                out.extend_from_slice(&0u16.to_le_bytes());
-                out.push(0);
-            }
-            SubmeshKey::Textured(texture_id, image_id) => {
-                out.push(1);
-                out.extend_from_slice(&texture_id.to_le_bytes());
-                out.push(image_id);
-            }
-        }
-        out.extend_from_slice(&[0, 0]);
-        out.push(1);
-        out.extend_from_slice(
-            &usize_to_i32(submesh.positions.len(), "submesh_vertex_count")?.to_le_bytes(),
-        );
-        out.extend_from_slice(
-            &usize_to_i32(submesh.indices.len(), "submesh_index_count")?.to_le_bytes(),
-        );
+        let (material_type, color_index, texture_id, image_id) = match key {
+            SubmeshKey::SolidColor(ci) => (0, ci, 0u16, 0u8),
+            SubmeshKey::Textured(tid, iid) => (1, 0u8, tid, iid),
+        };
 
-        for ((position, normal), uv) in submesh
+        let sub_header = RgmdSubmeshHeader {
+            material_type,
+            color_index,
+            texture_id,
+            image_id,
+            _pad: [0; 3],
+            vertex_count: usize_to_i32(submesh.positions.len(), "submesh_vertex_count")?,
+            index_count: usize_to_i32(submesh.indices.len(), "submesh_index_count")?,
+        };
+        out.extend_from_slice(bytemuck::bytes_of(&sub_header));
+
+        let vertices: Vec<RgmdVertex> = submesh
             .positions
             .iter()
-            .zip(submesh.normals.iter())
-            .zip(submesh.uvs.iter())
-        {
-            out.extend_from_slice(&position[0].to_le_bytes());
-            out.extend_from_slice(&position[1].to_le_bytes());
-            out.extend_from_slice(&position[2].to_le_bytes());
-            out.extend_from_slice(&normal[0].to_le_bytes());
-            out.extend_from_slice(&normal[1].to_le_bytes());
-            out.extend_from_slice(&normal[2].to_le_bytes());
-            out.extend_from_slice(&uv[0].to_le_bytes());
-            out.extend_from_slice(&uv[1].to_le_bytes());
-        }
-
-        for index in &submesh.indices {
-            out.extend_from_slice(&index.to_le_bytes());
-        }
+            .zip(&submesh.normals)
+            .zip(&submesh.uvs)
+            .map(|((pos, norm), uv)| RgmdVertex {
+                position: *pos,
+                normal: *norm,
+                uv: *uv,
+            })
+            .collect();
+        out.extend_from_slice(bytemuck::cast_slice::<RgmdVertex, u8>(&vertices));
+        out.extend_from_slice(bytemuck::cast_slice::<u32, u8>(&submesh.indices));
     }
 
     Ok(out)
@@ -298,24 +300,34 @@ pub unsafe extern "C" fn rg_parse_rob_data(file_path: *const c_char) -> *mut Byt
         run_on_large_stack(move || {
             let rob_file = rob::parse_rob_file(&rob_bytes)?;
 
+            let rob_header = RobHeader {
+                segment_count: usize_to_i32(rob_file.segments.len(), "segment_count")?,
+            };
             let mut out = Vec::new();
-            out.extend_from_slice(
-                &usize_to_i32(rob_file.segments.len(), "segment_count")?.to_le_bytes(),
-            );
+            out.extend_from_slice(bytemuck::bytes_of(&rob_header));
 
             for segment in &rob_file.segments {
-                out.extend_from_slice(&segment.segment_name);
-
-                if segment.has_embedded_3d_data() {
-                    out.push(1);
+                let (has_model, model_data) = if segment.has_embedded_3d_data() {
                     let model = segment.parse_embedded_3d_data()?;
-                    let serialized = serialize_model_3d(&model)?;
-                    out.extend_from_slice(
-                        &usize_to_i32(serialized.len(), "model_data_size")?.to_le_bytes(),
-                    );
-                    out.extend_from_slice(&serialized);
+                    (1u8, Some(serialize_model_3d(&model)?))
                 } else {
-                    out.push(0);
+                    (0u8, None)
+                };
+
+                let seg_header = RobSegmentHeader {
+                    segment_name: segment.segment_name,
+                    has_model,
+                    _pad: [0; 3],
+                    model_data_size: model_data
+                        .as_ref()
+                        .map(|d| usize_to_i32(d.len(), "model_data_size"))
+                        .transpose()?
+                        .unwrap_or(0),
+                };
+                out.extend_from_slice(bytemuck::bytes_of(&seg_header));
+
+                if let Some(data) = &model_data {
+                    out.extend_from_slice(data);
                 }
             }
 
@@ -348,11 +360,14 @@ pub unsafe extern "C" fn rg_decode_texture(
                             "texture not found: TEXBSI.{texture_id:03} image {image_id}"
                         ))
                     })?;
-                let mut out = Vec::new();
-                out.extend_from_slice(&i32::from(width).to_le_bytes());
-                out.extend_from_slice(&i32::from(height).to_le_bytes());
-                out.extend_from_slice(&i32::from(frame_count).to_le_bytes());
-                out.extend_from_slice(&usize_to_i32(rgba.len(), "rgba_size")?.to_le_bytes());
+                let header = TextureHeader {
+                    width: i32::from(width),
+                    height: i32::from(height),
+                    frame_count: i32::from(frame_count),
+                    rgba_size: usize_to_i32(rgba.len(), "rgba_size")?,
+                };
+                let mut out = Vec::with_capacity(size_of::<TextureHeader>() + rgba.len());
+                out.extend_from_slice(bytemuck::bytes_of(&header));
                 out.extend_from_slice(&rgba);
                 Ok(out)
             })
@@ -384,10 +399,13 @@ pub unsafe extern "C" fn rg_decode_texture_all_frames(
                             "texture not found: TEXBSI.{texture_id:03} image {image_id}"
                         ))
                     })?;
+                let header = AllFramesHeader {
+                    width: i32::from(info.width),
+                    height: i32::from(info.height),
+                    frame_count: i32::from(info.frame_count),
+                };
                 let mut out = Vec::new();
-                out.extend_from_slice(&i32::from(info.width).to_le_bytes());
-                out.extend_from_slice(&i32::from(info.height).to_le_bytes());
-                out.extend_from_slice(&i32::from(info.frame_count).to_le_bytes());
+                out.extend_from_slice(bytemuck::bytes_of(&header));
                 for frame in &info.frames {
                     match frame {
                         Some(rgba) => {
@@ -601,11 +619,14 @@ pub unsafe extern "C" fn rg_decode_gxa(file_path: *const c_char, frame: i32) -> 
                 ))
             })?;
 
-            let mut out = Vec::new();
-            out.extend_from_slice(&i32::from(selected.width).to_le_bytes());
-            out.extend_from_slice(&i32::from(selected.height).to_le_bytes());
-            out.extend_from_slice(&1_i32.to_le_bytes());
-            out.extend_from_slice(&usize_to_i32(selected.rgba.len(), "rgba_size")?.to_le_bytes());
+            let header = TextureHeader {
+                width: i32::from(selected.width),
+                height: i32::from(selected.height),
+                frame_count: 1,
+                rgba_size: usize_to_i32(selected.rgba.len(), "rgba_size")?,
+            };
+            let mut out = Vec::with_capacity(size_of::<TextureHeader>() + selected.rgba.len());
+            out.extend_from_slice(bytemuck::bytes_of(&header));
             out.extend_from_slice(&selected.rgba);
             Ok(out)
         })
@@ -620,106 +641,95 @@ fn serialize_terrain_primitives(
     let total_vertex_count: usize = primitives.iter().map(|p| p.positions.len()).sum();
     let total_index_count: usize = primitives.iter().map(|p| p.indices.len()).sum();
 
-    let mut out = Vec::new();
-    out.extend_from_slice(b"RGMD");
-    out.extend_from_slice(&[0u8; 4]);
-    out.extend_from_slice(&usize_to_i32(primitives.len(), "submesh_count")?.to_le_bytes());
-    out.extend_from_slice(&0_i32.to_le_bytes());
-    out.extend_from_slice(&usize_to_i32(total_vertex_count, "total_vertex_count")?.to_le_bytes());
-    out.extend_from_slice(&usize_to_i32(total_index_count, "total_index_count")?.to_le_bytes());
-    out.extend_from_slice(&0.0_f32.to_le_bytes());
+    let header = RgmdHeader {
+        magic: *b"RGMD",
+        version: [0; 4],
+        submesh_count: usize_to_i32(primitives.len(), "submesh_count")?,
+        frame_count: 0,
+        total_vertex_count: usize_to_i32(total_vertex_count, "total_vertex_count")?,
+        total_index_count: usize_to_i32(total_index_count, "total_index_count")?,
+        radius: 0,
+    };
+
+    let estimated_size = size_of::<RgmdHeader>()
+        + primitives.len() * size_of::<RgmdSubmeshHeader>()
+        + total_vertex_count * size_of::<RgmdVertex>()
+        + total_index_count * size_of::<u32>();
+    let mut out = Vec::with_capacity(estimated_size);
+    out.extend_from_slice(bytemuck::bytes_of(&header));
 
     for primitive in &primitives {
-        match primitive.material_key {
-            MaterialKey::Textured(texture_id, image_id) => {
-                out.push(1);
-                out.extend_from_slice(&texture_id.to_le_bytes());
-                out.push(image_id);
-            }
-            MaterialKey::SolidColor(rgb) => {
-                out.push(0);
-                out.push(rgb[0]);
-                out.extend_from_slice(&0u16.to_le_bytes());
-                out.push(0);
-            }
-            _ => {
-                out.push(0);
-                out.push(0);
-                out.extend_from_slice(&0u16.to_le_bytes());
-                out.push(0);
-            }
-        }
-        out.extend_from_slice(&[0, 0]);
-        out.push(1);
-        out.extend_from_slice(
-            &usize_to_i32(primitive.positions.len(), "submesh_vertex_count")?.to_le_bytes(),
-        );
-        out.extend_from_slice(
-            &usize_to_i32(primitive.indices.len(), "submesh_index_count")?.to_le_bytes(),
-        );
+        let (material_type, color_index, texture_id, image_id) = match primitive.material_key {
+            MaterialKey::Textured(tid, iid) => (1u8, 0u8, tid, iid),
+            MaterialKey::SolidColor(rgb) => (0u8, rgb[0], 0u16, 0u8),
+            _ => (0u8, 0u8, 0u16, 0u8),
+        };
 
-        for ((position, normal), uv) in primitive
+        let sub_header = RgmdSubmeshHeader {
+            material_type,
+            color_index,
+            texture_id,
+            image_id,
+            _pad: [0; 3],
+            vertex_count: usize_to_i32(primitive.positions.len(), "submesh_vertex_count")?,
+            index_count: usize_to_i32(primitive.indices.len(), "submesh_index_count")?,
+        };
+        out.extend_from_slice(bytemuck::bytes_of(&sub_header));
+
+        let vertices: Vec<RgmdVertex> = primitive
             .positions
             .iter()
-            .zip(primitive.normals.iter())
-            .zip(primitive.uvs.iter())
-        {
-            out.extend_from_slice(&position[0].to_le_bytes());
-            out.extend_from_slice(&position[1].to_le_bytes());
-            out.extend_from_slice(&position[2].to_le_bytes());
-            out.extend_from_slice(&normal[0].to_le_bytes());
-            out.extend_from_slice(&normal[1].to_le_bytes());
-            out.extend_from_slice(&normal[2].to_le_bytes());
-            out.extend_from_slice(&uv[0].to_le_bytes());
-            out.extend_from_slice(&uv[1].to_le_bytes());
-        }
-
-        for index in &primitive.indices {
-            out.extend_from_slice(&index.to_le_bytes());
-        }
+            .zip(&primitive.normals)
+            .zip(&primitive.uvs)
+            .map(|((pos, norm), uv)| RgmdVertex {
+                position: *pos,
+                normal: *norm,
+                uv: *uv,
+            })
+            .collect();
+        out.extend_from_slice(bytemuck::cast_slice::<RgmdVertex, u8>(&vertices));
+        out.extend_from_slice(bytemuck::cast_slice::<u32, u8>(&primitive.indices));
     }
 
     Ok(out)
-}
-
-const RGPL_NAME_LEN: usize = 32;
-
-fn write_fixed_string(out: &mut Vec<u8>, s: &str, max_len: usize) {
-    let bytes = s.as_bytes();
-    let write_len = bytes.len().min(max_len - 1);
-    out.extend_from_slice(&bytes[..write_len]);
-    out.extend(std::iter::repeat_n(0u8, max_len - write_len));
 }
 
 fn serialize_rgm_placements(
     placements: &[rgm::Placement],
     lights: &[rgm::PositionedLight],
 ) -> crate::Result<Vec<u8>> {
-    let mut out = Vec::new();
-    out.extend_from_slice(b"RGPL");
-    out.extend_from_slice(&usize_to_i32(placements.len(), "placement_count")?.to_le_bytes());
-    out.extend_from_slice(&usize_to_i32(lights.len(), "light_count")?.to_le_bytes());
+    let header = RgplHeader {
+        magic: *b"RGPL",
+        placement_count: usize_to_i32(placements.len(), "placement_count")?,
+        light_count: usize_to_i32(lights.len(), "light_count")?,
+    };
+
+    let estimated_size = size_of::<RgplHeader>()
+        + placements.len() * size_of::<RgplPlacement>()
+        + lights.len() * size_of::<RgplLight>();
+    let mut out = Vec::with_capacity(estimated_size);
+    out.extend_from_slice(bytemuck::bytes_of(&header));
 
     for p in placements {
-        write_fixed_string(&mut out, &p.model_name, RGPL_NAME_LEN);
-        write_fixed_string(&mut out, &p.source_id, RGPL_NAME_LEN);
-        for val in &p.transform {
-            out.extend_from_slice(&val.to_le_bytes());
-        }
-        out.push(p.object_type as u8);
-        out.extend_from_slice(&p.texture_id.to_le_bytes());
-        out.push(p.image_id);
+        let placement = RgplPlacement {
+            model_name: fixed_string::<32>(&p.model_name),
+            source_id: fixed_string::<32>(&p.source_id),
+            transform: p.transform,
+            texture_id: p.texture_id,
+            image_id: p.image_id,
+            object_type: p.object_type as u8,
+        };
+        out.extend_from_slice(bytemuck::bytes_of(&placement));
     }
 
     for light in lights {
-        write_fixed_string(&mut out, &light.name, RGPL_NAME_LEN);
-        for val in &light.color {
-            out.extend_from_slice(&val.to_le_bytes());
-        }
-        for val in &light.position {
-            out.extend_from_slice(&val.to_le_bytes());
-        }
-        out.extend_from_slice(&light.range.to_le_bytes());
+        let l = RgplLight {
+            name: fixed_string::<32>(&light.name),
+            color: light.color,
+            position: light.position,
+            range: light.range,
+        };
+        out.extend_from_slice(bytemuck::bytes_of(&l));
     }
 
     Ok(out)

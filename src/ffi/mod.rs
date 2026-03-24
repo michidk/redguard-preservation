@@ -1,5 +1,6 @@
 mod buffer;
 pub mod scene;
+pub mod types;
 
 use self::buffer::{into_ffi_result, last_error_message, run_on_large_stack};
 use crate::gltf::{

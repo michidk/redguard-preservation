@@ -703,6 +703,7 @@ dependencies = [
 name = "redguard-preservation"
 version = "0.3.3"
 dependencies = [
+ "bytemuck",
  "clap",
  "clap-verbosity-flag",
  "color-eyre",
