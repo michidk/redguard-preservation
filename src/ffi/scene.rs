@@ -188,7 +188,7 @@ fn serialize_model_3d(model: &Model3DFile, palette: Option<&Palette>) -> crate::
         })?,
         total_vertex_count: usize_to_i32(total_vertex_count, "total_vertex_count")?,
         total_index_count: usize_to_i32(total_index_count, "total_index_count")?,
-        radius: model.header.radius,
+        radius: model.header.radius as f32 / ENGINE_UNIT_SCALE,
     };
 
     let estimated_size = size_of::<RgmdHeader>()
@@ -679,7 +679,7 @@ fn serialize_terrain_primitives(
         frame_count: 0,
         total_vertex_count: usize_to_i32(total_vertex_count, "total_vertex_count")?,
         total_index_count: usize_to_i32(total_index_count, "total_index_count")?,
-        radius: 0,
+        radius: 0.0,
     };
 
     let estimated_size = size_of::<RgmdHeader>()

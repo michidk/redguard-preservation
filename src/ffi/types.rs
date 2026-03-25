@@ -32,7 +32,7 @@ pub struct RgmdHeader {
     pub frame_count: i32,
     pub total_vertex_count: i32,
     pub total_index_count: i32,
-    pub radius: u32,
+    pub radius: f32,
 }
 // 28 bytes, align 4.
 
