@@ -2,7 +2,9 @@
 
 The library builds as a C-compatible shared library (`cdylib`) alongside the CLI binary. This lets game engines like Unity load it as a native plugin and call the conversion functions directly at runtime.
 
-**Build output:** `librgpre.so` (Linux), `rgpre.dll` (Windows), `librgpre.dylib` (macOS)
+**Build:** `cargo build --release`
+
+**Output:** `target/release/librgpre.so` (Linux), `target/release/rgpre.dll` (Windows), `target/release/librgpre.dylib` (macOS)
 
 ## Architecture
 
@@ -22,6 +24,26 @@ char*  --P/Invoke--> Rust native plugin --> ByteBuffer*
 All asset inputs are file paths (`const char*`) plus scalar arguments (`i32`, `u16`, `u8`). No asset byte arrays cross the FFI boundary. Results are returned as `ByteBuffer*` pointers that the caller must free with `rg_free_buffer`. On error, buffer-returning functions return `NULL`, count functions return `-1`, and the message is available via `rg_last_error()`.
 
 All structured output buffers use `#[repr(C)]` structs (defined in `types.rs`) that can be directly cast via `Marshal.PtrToStructure<T>()` or `MemoryMarshal.Cast<byte, T>()` on the C# side. No manual byte parsing is needed — both sides share the same memory layout.
+
+## Thread Safety
+
+All functions are safe to call from any thread. Multiple threads may call FFI functions concurrently.
+
+`rg_last_error()` is thread-local — each thread has its own error slot, so concurrent calls won't clobber each other's error state.
+
+The internal texture cache is protected by a `Mutex`. The first `rg_decode_texture` call for a given `assets_dir` pays the full I/O cost (parse `WORLD.INI`, load palette, scan for `TEXBSI.*` files); subsequent calls reuse the cached state. The lock is held during cache population, so parallel first-calls to different `assets_dir` values proceed independently, but parallel first-calls to the *same* `assets_dir` will serialize.
+
+## Conventions
+
+**Coordinate system:** Right-handed, Y-up. Matches glTF. Positions are in scaled units (original engine units ÷ 20).
+
+**Winding order:** Counter-clockwise (CCW) front faces. Standard OpenGL/glTF convention.
+
+**UV origin:** Top-left. V increases downward. Matches glTF/DirectX convention.
+
+**Transform matrices:** `float[16]` in column-major order (translation in elements 12–14). Matches glTF/OpenGL convention.
+
+**String fields:** `model_name[32]`, `source_id[32]`, `segment_name[8]`, `name[32]` are null-terminated ASCII, zero-padded after the terminator.
 
 ## Memory and Errors
 
@@ -64,20 +86,22 @@ typedef struct AllFramesHeader {  // 12 bytes
 ```c
 typedef struct RgmdHeader {  // 28 bytes
     uint8_t  magic[4];       // "RGMD"
-    uint8_t  version[4];
+    uint8_t  version[4];     // RGMD format version (currently 1.0.0.0)
     int32_t  submesh_count;
-    int32_t  frame_count;
+    int32_t  frame_count;    // 1 for models, 0 for terrain
     int32_t  total_vertex_count;
     int32_t  total_index_count;
-    uint32_t radius;
+    float    radius;         // bounding sphere radius in scaled coordinates
 } RgmdHeader;
 
 typedef struct RgmdSubmeshHeader {  // 16 bytes
-    uint8_t  material_type;   // 0 = solid color, 1 = textured
-    uint8_t  color_index;     // palette index (solid) or 0 (textured)
-    uint16_t texture_id;      // TEXBSI id (textured) or 0 (solid)
-    uint8_t  image_id;        // TEXBSI image (textured) or 0 (solid)
-    uint8_t  _pad[3];
+    uint8_t  textured;       // 0 = solid color, 1 = textured
+    uint8_t  color_r;        // resolved RGB red (solid) or 0 (textured)
+    uint8_t  color_g;        // resolved RGB green (solid) or 0 (textured)
+    uint8_t  color_b;        // resolved RGB blue (solid) or 0 (textured)
+    uint16_t texture_id;     // TEXBSI id (textured) or 0 (solid)
+    uint8_t  image_id;       // TEXBSI image (textured) or 0 (solid)
+    uint8_t  _pad;
     int32_t  vertex_count;
     int32_t  index_count;
 } RgmdSubmeshHeader;
@@ -90,6 +114,16 @@ typedef struct RgmdVertex {  // 32 bytes
 // Followed by index_count × uint32_t indices.
 ```
 
+Reading an RGMD buffer:
+
+```
+read RgmdHeader
+for i in 0..submesh_count:
+    read RgmdSubmeshHeader
+    read vertex_count × RgmdVertex
+    read index_count × uint32_t (indices)
+```
+
 **RGPL** (`rg_parse_rgm_placements`):
 
 ```c
@@ -100,20 +134,32 @@ typedef struct RgplHeader {  // 12 bytes
 } RgplHeader;
 
 typedef struct RgplPlacement {  // 132 bytes
-    uint8_t  model_name[32];
-    uint8_t  source_id[32];
-    float    transform[16];
-    uint16_t texture_id;
-    uint8_t  image_id;
-    uint8_t  object_type;
+    uint8_t  model_name[32]; // null-terminated ASCII filename
+    uint8_t  source_id[32];  // null-terminated ASCII identifier
+    float    transform[16];  // 4×4 column-major matrix
+    uint16_t texture_id;     // TEXBSI texture for flat sprites; 0 for mesh/rope
+    uint8_t  image_id;       // TEXBSI image for flat sprites; 0 for mesh/rope
+    uint8_t  object_type;    // 0 = mesh, 1 = flat sprite, 2 = rope link
 } RgplPlacement;
 
-typedef struct RgplLight {  // 60 bytes
-    uint8_t name[32];
-    float   color[3];
+typedef struct RgplLight {  // 64 bytes
+    uint8_t name[32];        // null-terminated ASCII
+    float   color[3];        // linear RGB, 0.0–1.0
     float   position[3];
     float   range;
+    uint8_t light_type;      // 0 = point
+    uint8_t _pad[3];
 } RgplLight;
+```
+
+Reading an RGPL buffer:
+
+```
+read RgplHeader
+for i in 0..placement_count:
+    read RgplPlacement
+for i in 0..light_count:
+    read RgplLight
 ```
 
 **ROB** (`rg_parse_rob_data`):
@@ -124,10 +170,10 @@ typedef struct RobHeader {  // 4 bytes
 } RobHeader;
 
 typedef struct RobSegmentHeader {  // 16 bytes
-    uint8_t segment_name[8];
-    uint8_t has_model;
+    uint8_t segment_name[8]; // null-terminated ASCII
+    uint8_t has_model;       // 0 or 1
     uint8_t _pad[3];
-    int32_t model_data_size;  // 0 if no model
+    int32_t model_data_size; // 0 if no model
     // if has_model == 1, followed by model_data_size bytes of RGMD data
 } RobSegmentHeader;
 ```
@@ -155,14 +201,16 @@ ByteBuffer* rg_get_rgm_section(const char* file_path, const char* section_tag, i
 
 ## Scene Data Functions
 
-Return pre-transformed mesh data for direct engine consumption (RGMD binary format). Vertices are scaled and flipped to match the GLTF coordinate convention (`-x/20, -y/20, z/20`), faces are fan-triangulated, and geometry is grouped by submesh/material:
+Return pre-transformed mesh data for direct engine consumption (RGMD binary format). Vertices are in right-handed Y-up coordinates (see Conventions above), faces are fan-triangulated with CCW winding, and geometry is grouped by submesh/material:
 
 ```c
-ByteBuffer* rg_parse_model_data(const char* file_path);
-ByteBuffer* rg_parse_rob_data(const char* file_path);
+ByteBuffer* rg_parse_model_data(const char* file_path, const char* assets_dir);
+ByteBuffer* rg_parse_rob_data(const char* file_path, const char* assets_dir);
 ByteBuffer* rg_parse_wld_terrain_data(const char* file_path);
 ByteBuffer* rg_parse_rgm_placements(const char* file_path);
 ```
+
+`assets_dir` is used to resolve the palette for solid-color materials. Solid-color submeshes carry resolved RGB values; no separate palette lookup is needed on the engine side.
 
 ## Texture Functions
 
@@ -185,7 +233,10 @@ ByteBuffer* rg_convert_sfx_to_wav(const char* file_path, int32_t effect_index);
 int32_t rg_sfx_effect_count(const char* file_path);
 ByteBuffer* rg_convert_rtx_entry_to_wav(const char* file_path, int32_t entry_index);
 int32_t rg_rtx_entry_count(const char* file_path);
+ByteBuffer* rg_get_rtx_subtitle(const char* file_path, int32_t entry_index);
 ```
+
+RTX files interleave audio and text entries. Use `rg_convert_rtx_entry_to_wav` for audio entries and `rg_get_rtx_subtitle` for subtitle text. `rg_get_rtx_subtitle` returns a UTF-8 byte buffer (no null terminator).
 
 ## Other Functions
 
