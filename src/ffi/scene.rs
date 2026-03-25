@@ -594,7 +594,10 @@ pub unsafe extern "C" fn rg_gxa_frame_count(file_path: *const c_char) -> i32 {
         })
     })();
     match result {
-        Ok(count) => count,
+        Ok(count) => {
+            clear_last_error();
+            count
+        }
         Err(err) => {
             set_last_error(err);
             -1
