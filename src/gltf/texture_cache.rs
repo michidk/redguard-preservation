@@ -289,6 +289,27 @@ impl TextureCache {
         Some((image.width, image.height))
     }
 
+    /// Returns the effective `tex_scale` factor for a texture/image pair.
+    /// The raw BHDR `tex_scale` is 8.8 fixed-point; `0` is treated as `0x0100` (1.0).
+    pub fn get_image_tex_scale(&mut self, texture_id: u16, image_id: u8) -> Option<f32> {
+        if !self.ensure_bsi_loaded(texture_id, image_id) {
+            return None;
+        }
+
+        let bsi = self.bsi_files.get(&texture_id)?;
+        let image = bsi
+            .images
+            .iter()
+            .find(|entry| entry.image_index == u16::from(image_id))?;
+
+        let raw = if image.tex_scale == 0 {
+            0x0100
+        } else {
+            image.tex_scale
+        };
+        Some(f32::from(raw) / 256.0)
+    }
+
     /// Returns PNG-encoded image bytes, dimensions, and whether the image
     /// contains any transparent pixels (palette index 0) for a texture/image pair.
     pub fn get_image_png(

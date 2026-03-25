@@ -84,7 +84,11 @@ fn usize_to_u32(value: usize, name: &str) -> crate::Result<u32> {
         .map_err(|_| crate::error::Error::Parse(format!("{name} exceeds u32::MAX: {value}")))
 }
 
-fn serialize_model_3d(model: &Model3DFile, palette: Option<&Palette>) -> crate::Result<Vec<u8>> {
+fn serialize_model_3d(
+    model: &Model3DFile,
+    palette: Option<&Palette>,
+    mut texture_cache: Option<&mut crate::gltf::TextureCache>,
+) -> crate::Result<Vec<u8>> {
     let mut submeshes: BTreeMap<SubmeshKey, SubmeshData> = BTreeMap::new();
     let mut cumulative_fv_base: usize = 0;
 
@@ -160,10 +164,17 @@ fn serialize_model_3d(model: &Model3DFile, palette: Option<&Palette>) -> crate::
         .filter(|(_, submesh)| !submesh.indices.is_empty())
         .collect();
 
-    for (_, submesh) in &mut populated_submeshes {
+    for (key, submesh) in &mut populated_submeshes {
+        let tex_scale = match key {
+            SubmeshKey::Textured(texture_id, image_id) => texture_cache
+                .as_mut()
+                .and_then(|cache| cache.get_image_tex_scale(*texture_id, *image_id))
+                .unwrap_or(1.0),
+            SubmeshKey::SolidColor(_) => 1.0,
+        };
         for uv in &mut submesh.uvs {
-            uv[0] /= UV_FIXED_POINT_SCALE;
-            uv[1] /= UV_FIXED_POINT_SCALE;
+            uv[0] = uv[0] * tex_scale / UV_FIXED_POINT_SCALE;
+            uv[1] = uv[1] * tex_scale / UV_FIXED_POINT_SCALE;
         }
     }
 
@@ -257,6 +268,11 @@ fn pcm_to_wav_bytes(
             })?;
         }
     } else {
+        debug_assert!(
+            pcm_data.len().is_multiple_of(2),
+            "16-bit PCM data has odd byte count: {}",
+            pcm_data.len()
+        );
         for chunk in pcm_data.chunks_exact(2) {
             let sample = i16::from_le_bytes([chunk[0], chunk[1]]);
             writer.write_sample(sample).map_err(|e| {
@@ -290,7 +306,9 @@ pub unsafe extern "C" fn rg_parse_model_data(
             super::auto_resolve_palette(&assets_dir, &file_path, crate::import::FileType::Model3d);
         run_on_large_stack(move || {
             let model = model3d::parse_3d_file(&model_bytes)?;
-            serialize_model_3d(&model, palette.as_ref())
+            super::with_texture_cache(&assets_dir, |cache| {
+                serialize_model_3d(&model, palette.as_ref(), Some(cache))
+            })
         })
     })();
 
@@ -317,38 +335,43 @@ pub unsafe extern "C" fn rg_parse_rob_data(
         run_on_large_stack(move || {
             let rob_file = rob::parse_rob_file(&rob_bytes)?;
 
-            let rob_header = RobHeader {
-                segment_count: usize_to_i32(rob_file.segments.len(), "segment_count")?,
-            };
-            let mut out = Vec::new();
-            out.extend_from_slice(bytemuck::bytes_of(&rob_header));
-
-            for segment in &rob_file.segments {
-                let (has_model, model_data) = if segment.has_embedded_3d_data() {
-                    let model = segment.parse_embedded_3d_data()?;
-                    (1u8, Some(serialize_model_3d(&model, palette.as_ref())?))
-                } else {
-                    (0u8, None)
+            super::with_texture_cache(&assets_dir, |cache| {
+                let rob_header = RobHeader {
+                    segment_count: usize_to_i32(rob_file.segments.len(), "segment_count")?,
                 };
+                let mut out = Vec::new();
+                out.extend_from_slice(bytemuck::bytes_of(&rob_header));
 
-                let seg_header = RobSegmentHeader {
-                    segment_name: segment.segment_name,
-                    has_model,
-                    _pad: [0; 3],
-                    model_data_size: model_data
-                        .as_ref()
-                        .map(|d| usize_to_i32(d.len(), "model_data_size"))
-                        .transpose()?
-                        .unwrap_or(0),
-                };
-                out.extend_from_slice(bytemuck::bytes_of(&seg_header));
+                for segment in &rob_file.segments {
+                    let (has_model, model_data) = if segment.has_embedded_3d_data() {
+                        let model = segment.parse_embedded_3d_data()?;
+                        (
+                            1u8,
+                            Some(serialize_model_3d(&model, palette.as_ref(), Some(cache))?),
+                        )
+                    } else {
+                        (0u8, None)
+                    };
 
-                if let Some(data) = &model_data {
-                    out.extend_from_slice(data);
+                    let seg_header = RobSegmentHeader {
+                        segment_name: segment.segment_name,
+                        has_model,
+                        _pad: [0; 3],
+                        model_data_size: model_data
+                            .as_ref()
+                            .map(|d| usize_to_i32(d.len(), "model_data_size"))
+                            .transpose()?
+                            .unwrap_or(0),
+                    };
+                    out.extend_from_slice(bytemuck::bytes_of(&seg_header));
+
+                    if let Some(data) = &model_data {
+                        out.extend_from_slice(data);
+                    }
                 }
-            }
 
-            Ok(out)
+                Ok(out)
+            })
         })
     })();
 

@@ -445,9 +445,15 @@ impl<'a> GltfBuilder<'a> {
                         .as_deref_mut()
                         .and_then(|cache| cache.get_image_dimensions(texture_id, image_id));
 
+                    let tex_scale = self
+                        .texture_cache
+                        .as_deref_mut()
+                        .and_then(|cache| cache.get_image_tex_scale(texture_id, image_id))
+                        .unwrap_or(1.0);
+
                     if let Some((width, height)) = texture_dims {
-                        let u_scale = f32::from(width.max(1)) * UV_FIXED_POINT_SCALE;
-                        let v_scale = f32::from(height.max(1)) * UV_FIXED_POINT_SCALE;
+                        let u_scale = f32::from(width.max(1)) * UV_FIXED_POINT_SCALE / tex_scale;
+                        let v_scale = f32::from(height.max(1)) * UV_FIXED_POINT_SCALE / tex_scale;
                         primitive
                             .uvs
                             .iter()
@@ -457,7 +463,12 @@ impl<'a> GltfBuilder<'a> {
                         primitive
                             .uvs
                             .iter()
-                            .map(|[u, v]| [u / UV_FIXED_POINT_SCALE, v / UV_FIXED_POINT_SCALE])
+                            .map(|[u, v]| {
+                                [
+                                    u * tex_scale / UV_FIXED_POINT_SCALE,
+                                    v * tex_scale / UV_FIXED_POINT_SCALE,
+                                ]
+                            })
                             .collect()
                     }
                 }
