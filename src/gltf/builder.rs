@@ -93,144 +93,105 @@ impl<'a> GltfBuilder<'a> {
         self.buffer_data.extend(std::iter::repeat_n(0u8, padding));
     }
 
+    fn push_accessor_raw(
+        &mut self,
+        bytes: Vec<u8>,
+        count: usize,
+        component_type: ComponentType,
+        type_: Type,
+        target: Target,
+        min: Option<Value>,
+        max: Option<Value>,
+    ) -> usize {
+        self.align_buffer(4);
+        let buffer_offset = self.buffer_data.len();
+        self.buffer_data.extend_from_slice(&bytes);
+
+        let view_index = self.buffer_views.len();
+        self.buffer_views.push(View {
+            buffer: Index::new(0),
+            byte_offset: Some(USize64(Self::usize_u64(buffer_offset))),
+            byte_length: USize64(Self::usize_u64(bytes.len())),
+            byte_stride: None,
+            name: None,
+            target: Some(Checked::Valid(target)),
+            extensions: None,
+            extras: Void::default(),
+        });
+
+        let accessor_index = self.accessors.len();
+        self.accessors.push(Accessor {
+            buffer_view: Some(Index::new(Self::index_u32(view_index))),
+            byte_offset: Some(USize64(0)),
+            component_type: Checked::Valid(GenericComponentType(component_type)),
+            count: USize64(Self::usize_u64(count)),
+            type_: Checked::Valid(type_),
+            min,
+            max,
+            name: None,
+            normalized: false,
+            sparse: None,
+            extensions: None,
+            extras: Void::default(),
+        });
+
+        accessor_index
+    }
+
     fn push_vec3_accessor(
         &mut self,
         data: &[[f32; 3]],
         min: Option<[f32; 3]>,
         max: Option<[f32; 3]>,
     ) -> usize {
-        self.align_buffer(4);
-        let buffer_offset = self.buffer_data.len();
         let mut bytes = Vec::with_capacity(data.len() * 12);
         for item in data {
             bytes.extend_from_slice(&item[0].to_le_bytes());
             bytes.extend_from_slice(&item[1].to_le_bytes());
             bytes.extend_from_slice(&item[2].to_le_bytes());
         }
-        self.buffer_data.extend_from_slice(&bytes);
-
-        let view_index = self.buffer_views.len();
-        self.buffer_views.push(View {
-            buffer: Index::new(0),
-            byte_offset: Some(USize64(Self::usize_u64(buffer_offset))),
-            byte_length: USize64(Self::usize_u64(bytes.len())),
-            byte_stride: None,
-            name: None,
-            target: Some(Checked::Valid(Target::ArrayBuffer)),
-            extensions: None,
-            extras: Void::default(),
-        });
-
-        let accessor_index = self.accessors.len();
-        self.accessors.push(Accessor {
-            buffer_view: Some(Index::new(Self::index_u32(view_index))),
-            byte_offset: Some(USize64(0)),
-            component_type: Checked::Valid(GenericComponentType(ComponentType::F32)),
-            count: USize64(Self::usize_u64(data.len())),
-            type_: Checked::Valid(Type::Vec3),
-            min: min.map(|v| {
-                Value::Array(vec![
-                    Value::from(v[0]),
-                    Value::from(v[1]),
-                    Value::from(v[2]),
-                ])
-            }),
-            max: max.map(|v| {
-                Value::Array(vec![
-                    Value::from(v[0]),
-                    Value::from(v[1]),
-                    Value::from(v[2]),
-                ])
-            }),
-            name: None,
-            normalized: false,
-            sparse: None,
-            extensions: None,
-            extras: Void::default(),
-        });
-
-        accessor_index
+        self.push_accessor_raw(
+            bytes,
+            data.len(),
+            ComponentType::F32,
+            Type::Vec3,
+            Target::ArrayBuffer,
+            min.map(|v| Value::Array(vec![Value::from(v[0]), Value::from(v[1]), Value::from(v[2])])),
+            max.map(|v| Value::Array(vec![Value::from(v[0]), Value::from(v[1]), Value::from(v[2])])),
+        )
     }
 
     fn push_vec2_accessor(&mut self, data: &[[f32; 2]]) -> usize {
-        self.align_buffer(4);
-        let buffer_offset = self.buffer_data.len();
         let mut bytes = Vec::with_capacity(data.len() * 8);
         for item in data {
             bytes.extend_from_slice(&item[0].to_le_bytes());
             bytes.extend_from_slice(&item[1].to_le_bytes());
         }
-        self.buffer_data.extend_from_slice(&bytes);
-
-        let view_index = self.buffer_views.len();
-        self.buffer_views.push(View {
-            buffer: Index::new(0),
-            byte_offset: Some(USize64(Self::usize_u64(buffer_offset))),
-            byte_length: USize64(Self::usize_u64(bytes.len())),
-            byte_stride: None,
-            name: None,
-            target: Some(Checked::Valid(Target::ArrayBuffer)),
-            extensions: None,
-            extras: Void::default(),
-        });
-
-        let accessor_index = self.accessors.len();
-        self.accessors.push(Accessor {
-            buffer_view: Some(Index::new(Self::index_u32(view_index))),
-            byte_offset: Some(USize64(0)),
-            component_type: Checked::Valid(GenericComponentType(ComponentType::F32)),
-            count: USize64(Self::usize_u64(data.len())),
-            type_: Checked::Valid(Type::Vec2),
-            min: None,
-            max: None,
-            name: None,
-            normalized: false,
-            sparse: None,
-            extensions: None,
-            extras: Void::default(),
-        });
-
-        accessor_index
+        self.push_accessor_raw(
+            bytes,
+            data.len(),
+            ComponentType::F32,
+            Type::Vec2,
+            Target::ArrayBuffer,
+            None,
+            None,
+        )
     }
 
     fn push_index_accessor(&mut self, indices: &[u32]) -> usize {
-        self.align_buffer(4);
-        let buffer_offset = self.buffer_data.len();
         let mut bytes = Vec::with_capacity(indices.len() * 4);
         for index in indices {
             bytes.extend_from_slice(&index.to_le_bytes());
         }
-        self.buffer_data.extend_from_slice(&bytes);
-
-        let view_index = self.buffer_views.len();
-        self.buffer_views.push(View {
-            buffer: Index::new(0),
-            byte_offset: Some(USize64(Self::usize_u64(buffer_offset))),
-            byte_length: USize64(Self::usize_u64(bytes.len())),
-            target: Some(Checked::Valid(Target::ElementArrayBuffer)),
-            byte_stride: None,
-            name: None,
-            extensions: None,
-            extras: Void::default(),
-        });
-
-        let accessor_index = self.accessors.len();
-        self.accessors.push(Accessor {
-            buffer_view: Some(Index::new(Self::index_u32(view_index))),
-            byte_offset: Some(USize64(0)),
-            component_type: Checked::Valid(GenericComponentType(ComponentType::U32)),
-            count: USize64(Self::usize_u64(indices.len())),
-            type_: Checked::Valid(Type::Scalar),
-            min: None,
-            max: None,
-            name: None,
-            normalized: false,
-            sparse: None,
-            extensions: None,
-            extras: Void::default(),
-        });
-
-        accessor_index
+        self.push_accessor_raw(
+            bytes,
+            indices.len(),
+            ComponentType::U32,
+            Type::Scalar,
+            Target::ElementArrayBuffer,
+            None,
+            None,
+        )
     }
 
     fn push_blob_buffer_view(&mut self, data: &[u8]) -> usize {
