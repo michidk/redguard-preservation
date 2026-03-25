@@ -24,7 +24,7 @@ use rgpre::import::FileType;
 use rgpre::import::{palette::Palette, registry};
 use std::path::{Path, PathBuf};
 
-fn resolve_asset_root(args: &ConvertArgs) -> PathBuf {
+pub(super) fn resolve_asset_root(args: &ConvertArgs) -> PathBuf {
     args.assets
         .clone()
         .or_else(|| args.asset_path.clone())
@@ -74,7 +74,7 @@ fn resolve_output_path(args: &ConvertArgs, filetype: FileType) -> PathBuf {
     }
 }
 
-fn load_palette(
+pub(super) fn load_palette(
     args: &ConvertArgs,
     asset_root: &Path,
     filetype: FileType,

@@ -1,4 +1,4 @@
-use crate::cli::utils::{auto_resolve_palette, resolve_asset_root_from_input};
+use crate::cli::convert::{load_palette, resolve_asset_root};
 use crate::opts::ConvertArgs;
 use color_eyre::Result;
 use log::{info, warn};
@@ -33,20 +33,9 @@ fn handle_wld_glb_convert(args: &ConvertArgs, output_path: &Path) -> Result<()> 
 
     let texbsi_id = ENGINE_TERRAIN_TEXBSI_ID;
 
-    let asset_root = args
-        .assets
-        .clone()
-        .or_else(|| args.asset_path.clone())
-        .or_else(|| args.asset_dir.clone())
-        .unwrap_or_else(|| resolve_asset_root_from_input(&args.file));
+    let asset_root = resolve_asset_root(args);
 
-    let palette = match args.palette.as_ref() {
-        Some(path) => {
-            let data = std::fs::read(path)?;
-            Some(Palette::parse(&data).map_err(|e| color_eyre::eyre::eyre!("{e}"))?)
-        }
-        None => auto_resolve_palette(&asset_root, &args.file, FileType::Wld)?,
-    };
+    let palette = load_palette(args, &asset_root, FileType::Wld)?;
 
     let mut texture_cache = if args.terrain_textures {
         Some(TextureCache::new(
