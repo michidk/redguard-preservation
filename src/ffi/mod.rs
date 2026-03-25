@@ -164,7 +164,17 @@ where
         map.insert(assets_dir.to_path_buf(), cache);
     }
 
-    f(map.get_mut(assets_dir).unwrap())
+    let cache = map.get_mut(assets_dir).ok_or_else(|| {
+        log::warn!(
+            "texture cache map entry missing after insert for: {}",
+            assets_dir.display()
+        );
+        crate::error::Error::Parse(format!(
+            "texture cache map entry missing after insert for: {}",
+            assets_dir.display()
+        ))
+    })?;
+    f(cache)
 }
 
 fn wld_texbsi_id(wld_file: &wld::WldFile) -> u16 {
