@@ -4,7 +4,7 @@ use crate::import::rgm::{
     MpobRecord, MprpRecord, MpsRecord, MpslRecord, RaexRecord, RavcRecord, RgmFile, RgmSection,
     RgmSectionHeader,
 };
-use log::{debug, trace};
+use log::{debug, trace, warn};
 use nom::{
     IResult,
     bytes::complete::take,
@@ -70,7 +70,10 @@ fn mps_record(input: &[u8]) -> IResult<&[u8], MpsRecord> {
     }
 
     let (input, trailing_bytes) = take(2usize)(remaining)?;
-    let trailing: [u8; 2] = trailing_bytes.try_into().expect("trailing must be 2 bytes");
+    let trailing: [u8; 2] = trailing_bytes.try_into().map_err(|_| {
+        warn!("MPS record trailing bytes slice is not 2 bytes");
+        nom::Err::Failure(nom::error::Error::new(remaining, nom::error::ErrorKind::Fail))
+    })?;
 
     Ok((
         input,
@@ -137,11 +140,17 @@ fn mpob_record(input: &[u8]) -> IResult<&[u8], MpobRecord> {
     let (input, script_name_bytes) = take(9usize)(input)?;
     let script_name: [u8; 9] = script_name_bytes
         .try_into()
-        .expect("MPOB script name must be 9 bytes");
+        .map_err(|_| {
+            warn!("MPOB script name slice is not 9 bytes");
+            nom::Err::Failure(nom::error::Error::new(input, nom::error::ErrorKind::Fail))
+        })?;
     let (input, model_name_bytes) = take(9usize)(input)?;
     let model_name: [u8; 9] = model_name_bytes
         .try_into()
-        .expect("MPOB model name must be 9 bytes");
+        .map_err(|_| {
+            warn!("MPOB model name slice is not 9 bytes");
+            nom::Err::Failure(nom::error::Error::new(input, nom::error::ErrorKind::Fail))
+        })?;
 
     let (input, is_static) = take(1usize)(input)?;
     let is_static = is_static[0];
