@@ -157,8 +157,20 @@ impl<'a> GltfBuilder<'a> {
             ComponentType::F32,
             Type::Vec3,
             Target::ArrayBuffer,
-            min.map(|v| Value::Array(vec![Value::from(v[0]), Value::from(v[1]), Value::from(v[2])])),
-            max.map(|v| Value::Array(vec![Value::from(v[0]), Value::from(v[1]), Value::from(v[2])])),
+            min.map(|v| {
+                Value::Array(vec![
+                    Value::from(v[0]),
+                    Value::from(v[1]),
+                    Value::from(v[2]),
+                ])
+            }),
+            max.map(|v| {
+                Value::Array(vec![
+                    Value::from(v[0]),
+                    Value::from(v[1]),
+                    Value::from(v[2]),
+                ])
+            }),
         )
     }
 

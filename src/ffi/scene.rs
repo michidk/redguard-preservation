@@ -1,7 +1,9 @@
 use super::buffer::*;
 use super::types::*;
 use super::{i32_to_usize, read_c_str, with_texture_cache};
-use crate::gltf::{ENGINE_UNIT_SCALE, MaterialKey, UV_FIXED_POINT_SCALE, build_wld_unrolled_primitives};
+use crate::gltf::{
+    ENGINE_UNIT_SCALE, MaterialKey, UV_FIXED_POINT_SCALE, build_wld_unrolled_primitives,
+};
 use crate::import::palette::Palette;
 use crate::import::rtx::RtxEntry;
 use crate::import::{fnt, fnt_ttf, gxa, rgm, rob, rtx, sfx, wld};
@@ -22,7 +24,6 @@ fn fixed_string<const N: usize>(s: &str) -> [u8; N] {
     buf[..len].copy_from_slice(&bytes[..len]);
     buf
 }
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 enum SubmeshKey {
@@ -285,11 +286,8 @@ pub unsafe extern "C" fn rg_parse_model_data(
         let file_path = PathBuf::from(file_path);
         let assets_dir = PathBuf::from(assets_dir);
         let model_bytes = std::fs::read(&file_path)?;
-        let palette = super::auto_resolve_palette(
-            &assets_dir,
-            &file_path,
-            crate::import::FileType::Model3d,
-        );
+        let palette =
+            super::auto_resolve_palette(&assets_dir, &file_path, crate::import::FileType::Model3d);
         run_on_large_stack(move || {
             let model = model3d::parse_3d_file(&model_bytes)?;
             serialize_model_3d(&model, palette.as_ref())
@@ -314,11 +312,8 @@ pub unsafe extern "C" fn rg_parse_rob_data(
         let file_path = PathBuf::from(file_path);
         let assets_dir = PathBuf::from(assets_dir);
         let rob_bytes = std::fs::read(&file_path)?;
-        let palette = super::auto_resolve_palette(
-            &assets_dir,
-            &file_path,
-            crate::import::FileType::Rob,
-        );
+        let palette =
+            super::auto_resolve_palette(&assets_dir, &file_path, crate::import::FileType::Rob);
         run_on_large_stack(move || {
             let rob_file = rob::parse_rob_file(&rob_bytes)?;
 

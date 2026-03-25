@@ -72,7 +72,10 @@ fn mps_record(input: &[u8]) -> IResult<&[u8], MpsRecord> {
     let (input, trailing_bytes) = take(2usize)(remaining)?;
     let trailing: [u8; 2] = trailing_bytes.try_into().map_err(|_| {
         warn!("MPS record trailing bytes slice is not 2 bytes");
-        nom::Err::Failure(nom::error::Error::new(remaining, nom::error::ErrorKind::Fail))
+        nom::Err::Failure(nom::error::Error::new(
+            remaining,
+            nom::error::ErrorKind::Fail,
+        ))
     })?;
 
     Ok((
@@ -138,19 +141,15 @@ fn mpob_record(input: &[u8]) -> IResult<&[u8], MpobRecord> {
     let is_active = is_active[0];
 
     let (input, script_name_bytes) = take(9usize)(input)?;
-    let script_name: [u8; 9] = script_name_bytes
-        .try_into()
-        .map_err(|_| {
-            warn!("MPOB script name slice is not 9 bytes");
-            nom::Err::Failure(nom::error::Error::new(input, nom::error::ErrorKind::Fail))
-        })?;
+    let script_name: [u8; 9] = script_name_bytes.try_into().map_err(|_| {
+        warn!("MPOB script name slice is not 9 bytes");
+        nom::Err::Failure(nom::error::Error::new(input, nom::error::ErrorKind::Fail))
+    })?;
     let (input, model_name_bytes) = take(9usize)(input)?;
-    let model_name: [u8; 9] = model_name_bytes
-        .try_into()
-        .map_err(|_| {
-            warn!("MPOB model name slice is not 9 bytes");
-            nom::Err::Failure(nom::error::Error::new(input, nom::error::ErrorKind::Fail))
-        })?;
+    let model_name: [u8; 9] = model_name_bytes.try_into().map_err(|_| {
+        warn!("MPOB model name slice is not 9 bytes");
+        nom::Err::Failure(nom::error::Error::new(input, nom::error::ErrorKind::Fail))
+    })?;
 
     let (input, is_static) = take(1usize)(input)?;
     let is_static = is_static[0];
