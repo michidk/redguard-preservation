@@ -40,14 +40,16 @@ pub struct RgmdHeader {
 #[repr(C)]
 pub struct RgmdSubmeshHeader {
     pub textured: u8,
-    pub color_index: u8,
+    pub color_r: u8,
+    pub color_g: u8,
+    pub color_b: u8,
     pub texture_id: u16,
     pub image_id: u8,
-    pub _pad: [u8; 3],
+    pub _pad: u8,
     pub vertex_count: i32,
     pub index_count: i32,
 }
-// 16 bytes, align 4. textured: 0 = solid color (color_index is palette index),
+// 16 bytes, align 4. textured: 0 = solid color (color_r/g/b hold resolved RGB),
 // 1 = textured (texture_id + image_id identify the TEXBSI image).
 
 #[derive(Clone, Copy, Pod, Zeroable)]

@@ -2,6 +2,7 @@ use super::buffer::*;
 use super::types::*;
 use super::{i32_to_usize, read_c_str, with_texture_cache};
 use crate::gltf::{MaterialKey, UV_FIXED_POINT_SCALE, build_wld_unrolled_primitives};
+use crate::import::palette::Palette;
 use crate::import::rtx::RtxEntry;
 use crate::import::{fnt, fnt_ttf, gxa, rgm, rob, rtx, sfx, wld};
 use crate::model3d::{self, Model3DFile, TextureData};
@@ -83,7 +84,7 @@ fn usize_to_u32(value: usize, name: &str) -> crate::Result<u32> {
         .map_err(|_| crate::error::Error::Parse(format!("{name} exceeds u32::MAX: {value}")))
 }
 
-fn serialize_model_3d(model: &Model3DFile) -> crate::Result<Vec<u8>> {
+fn serialize_model_3d(model: &Model3DFile, palette: Option<&Palette>) -> crate::Result<Vec<u8>> {
     let mut submeshes: BTreeMap<SubmeshKey, SubmeshData> = BTreeMap::new();
     let mut cumulative_fv_base: usize = 0;
 
@@ -198,17 +199,22 @@ fn serialize_model_3d(model: &Model3DFile) -> crate::Result<Vec<u8>> {
     out.extend_from_slice(bytemuck::bytes_of(&header));
 
     for (key, submesh) in populated_submeshes {
-        let (textured, color_index, texture_id, image_id) = match key {
-            SubmeshKey::SolidColor(ci) => (0u8, ci, 0u16, 0u8),
-            SubmeshKey::Textured(tid, iid) => (1u8, 0u8, tid, iid),
+        let (textured, color_rgb, texture_id, image_id) = match key {
+            SubmeshKey::SolidColor(ci) => {
+                let rgb = palette.map_or([128, 128, 128], |pal| pal.colors[usize::from(ci)]);
+                (0u8, rgb, 0u16, 0u8)
+            }
+            SubmeshKey::Textured(tid, iid) => (1u8, [0u8; 3], tid, iid),
         };
 
         let sub_header = RgmdSubmeshHeader {
             textured,
-            color_index,
+            color_r: color_rgb[0],
+            color_g: color_rgb[1],
+            color_b: color_rgb[2],
             texture_id,
             image_id,
-            _pad: [0; 3],
+            _pad: 0,
             vertex_count: usize_to_i32(submesh.positions.len(), "submesh_vertex_count")?,
             index_count: usize_to_i32(submesh.indices.len(), "submesh_index_count")?,
         };
@@ -272,16 +278,27 @@ fn pcm_to_wav_bytes(
 
 /// # Safety
 ///
-/// `file_path` must be a valid null-terminated UTF-8 string.
+/// `file_path` and `assets_dir` must be valid null-terminated UTF-8 strings.
 /// The returned pointer must be released with `rg_free_buffer`.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn rg_parse_model_data(file_path: *const c_char) -> *mut ByteBuffer {
+pub unsafe extern "C" fn rg_parse_model_data(
+    file_path: *const c_char,
+    assets_dir: *const c_char,
+) -> *mut ByteBuffer {
     let result = (|| -> crate::Result<Vec<u8>> {
         let file_path = unsafe { read_c_str(file_path, "file_path") }?;
-        let model_bytes = std::fs::read(file_path)?;
+        let assets_dir = unsafe { read_c_str(assets_dir, "assets_dir") }?;
+        let file_path = PathBuf::from(file_path);
+        let assets_dir = PathBuf::from(assets_dir);
+        let model_bytes = std::fs::read(&file_path)?;
+        let palette = super::auto_resolve_palette(
+            &assets_dir,
+            &file_path,
+            crate::import::FileType::Model3d,
+        );
         run_on_large_stack(move || {
             let model = model3d::parse_3d_file(&model_bytes)?;
-            serialize_model_3d(&model)
+            serialize_model_3d(&model, palette.as_ref())
         })
     })();
 
@@ -290,13 +307,24 @@ pub unsafe extern "C" fn rg_parse_model_data(file_path: *const c_char) -> *mut B
 
 /// # Safety
 ///
-/// `file_path` must be a valid null-terminated UTF-8 string.
+/// `file_path` and `assets_dir` must be valid null-terminated UTF-8 strings.
 /// The returned pointer must be released with `rg_free_buffer`.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn rg_parse_rob_data(file_path: *const c_char) -> *mut ByteBuffer {
+pub unsafe extern "C" fn rg_parse_rob_data(
+    file_path: *const c_char,
+    assets_dir: *const c_char,
+) -> *mut ByteBuffer {
     let result = (|| -> crate::Result<Vec<u8>> {
         let file_path = unsafe { read_c_str(file_path, "file_path") }?;
-        let rob_bytes = std::fs::read(file_path)?;
+        let assets_dir = unsafe { read_c_str(assets_dir, "assets_dir") }?;
+        let file_path = PathBuf::from(file_path);
+        let assets_dir = PathBuf::from(assets_dir);
+        let rob_bytes = std::fs::read(&file_path)?;
+        let palette = super::auto_resolve_palette(
+            &assets_dir,
+            &file_path,
+            crate::import::FileType::Rob,
+        );
         run_on_large_stack(move || {
             let rob_file = rob::parse_rob_file(&rob_bytes)?;
 
@@ -309,7 +337,7 @@ pub unsafe extern "C" fn rg_parse_rob_data(file_path: *const c_char) -> *mut Byt
             for segment in &rob_file.segments {
                 let (has_model, model_data) = if segment.has_embedded_3d_data() {
                     let model = segment.parse_embedded_3d_data()?;
-                    (1u8, Some(serialize_model_3d(&model)?))
+                    (1u8, Some(serialize_model_3d(&model, palette.as_ref())?))
                 } else {
                     (0u8, None)
                 };
@@ -662,18 +690,22 @@ fn serialize_terrain_primitives(
     out.extend_from_slice(bytemuck::bytes_of(&header));
 
     for primitive in &primitives {
-        let (textured, color_index, texture_id, image_id) = match primitive.material_key {
-            MaterialKey::Textured(tid, iid) => (1u8, 0u8, tid, iid),
-            MaterialKey::SolidColor(rgb) => (0u8, rgb[0], 0u16, 0u8),
-            _ => (0u8, 0u8, 0u16, 0u8),
+        let (textured, color_rgb, texture_id, image_id) = match primitive.material_key {
+            MaterialKey::Textured(tid, iid) => (1u8, [0u8; 3], tid, iid),
+            MaterialKey::SolidColor(rgb) | MaterialKey::PaletteTexture(rgb) => {
+                (0u8, rgb, 0u16, 0u8)
+            }
+            MaterialKey::White => (0u8, [255u8; 3], 0u16, 0u8),
         };
 
         let sub_header = RgmdSubmeshHeader {
             textured,
-            color_index,
+            color_r: color_rgb[0],
+            color_g: color_rgb[1],
+            color_b: color_rgb[2],
             texture_id,
             image_id,
-            _pad: [0; 3],
+            _pad: 0,
             vertex_count: usize_to_i32(primitive.positions.len(), "submesh_vertex_count")?,
             index_count: usize_to_i32(primitive.indices.len(), "submesh_index_count")?,
         };
