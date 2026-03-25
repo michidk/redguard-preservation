@@ -180,12 +180,7 @@ fn serialize_model_3d(model: &Model3DFile, palette: Option<&Palette>) -> crate::
         magic: *b"RGMD",
         version: [1, 0, 0, 0],
         submesh_count: usize_to_i32(populated_submeshes.len(), "submesh_count")?,
-        frame_count: i32::try_from(model.header.num_frames).map_err(|_| {
-            crate::error::Error::Parse(format!(
-                "frame_count exceeds i32::MAX: {}",
-                model.header.num_frames
-            ))
-        })?,
+        frame_count: 1,
         total_vertex_count: usize_to_i32(total_vertex_count, "total_vertex_count")?,
         total_index_count: usize_to_i32(total_index_count, "total_index_count")?,
         radius: model.header.radius as f32 / ENGINE_UNIT_SCALE,
