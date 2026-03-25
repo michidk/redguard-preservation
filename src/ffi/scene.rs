@@ -586,6 +586,36 @@ pub unsafe extern "C" fn rg_convert_rtx_entry_to_wav(
 
 /// # Safety
 /// `file_path` must be a valid null-terminated UTF-8 string.
+/// The returned buffer contains UTF-8 subtitle text (no null terminator).
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn rg_get_rtx_subtitle(
+    file_path: *const c_char,
+    entry_index: i32,
+) -> *mut ByteBuffer {
+    let result = (|| -> crate::Result<Vec<u8>> {
+        let file_path = unsafe { read_c_str(file_path, "file_path") }?;
+        let rtx_bytes = std::fs::read(file_path)?;
+        run_on_large_stack(move || {
+            let parsed = rtx::parse_rtx_file(&rtx_bytes)?;
+            let entry_idx = i32_to_usize(entry_index, "entry_index")?;
+            let entry = parsed.entries.get(entry_idx).ok_or_else(|| {
+                crate::error::Error::Parse(format!("entry_index out of range: {entry_index}"))
+            })?;
+
+            match entry {
+                RtxEntry::Text { text, .. } => Ok(text.as_bytes().to_vec()),
+                RtxEntry::Audio { .. } => Err(crate::error::Error::Parse(
+                    "entry is audio, not text".to_string(),
+                )),
+            }
+        })
+    })();
+
+    into_ffi_result(result)
+}
+
+/// # Safety
+/// `file_path` must be a valid null-terminated UTF-8 string.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn rg_convert_fnt_to_ttf(file_path: *const c_char) -> *mut ByteBuffer {
     let result = (|| -> crate::Result<Vec<u8>> {
