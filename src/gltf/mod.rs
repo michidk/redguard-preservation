@@ -98,28 +98,13 @@ pub fn to_glb(root: &Root, buffer: &[u8]) -> Result<Vec<u8>> {
     Ok(glb.to_vec()?)
 }
 
-#[allow(clippy::missing_errors_doc)]
-pub fn convert_positioned_models_to_gltf(
+/// Adds positioned models to the builder with mesh deduplication and instance caching.
+fn add_positioned_models(
+    builder: &mut GltfBuilder,
     positioned_models: &[crate::import::rgm::PositionedModel],
-    lights: &[PositionedLight],
     palette: Option<&Palette>,
-    texture_cache: Option<&mut TextureCache>,
-    compress_textures: bool,
-) -> Result<(Root, Vec<u8>)> {
-    if positioned_models.is_empty() && lights.is_empty() {
-        return Err(crate::error::Error::Conversion(
-            "No positioned models or lights to convert".to_string(),
-        ));
-    }
-
-    trace!(
-        "Converting {} positioned models to GLTF",
-        positioned_models.len()
-    );
-
-    let mut builder = GltfBuilder::new(texture_cache, compress_textures);
-    let texture_cache_available = builder.has_texture_cache();
-
+    texture_cache_available: bool,
+) {
     let mut unique_source_models: HashMap<&str, &crate::model3d::Model3DFile> = HashMap::new();
     for pm in positioned_models {
         if let Some(source_id) = &pm.source_id {
@@ -181,6 +166,36 @@ pub fn convert_positioned_models_to_gltf(
             ..Default::default()
         });
     }
+}
+
+#[allow(clippy::missing_errors_doc)]
+pub fn convert_positioned_models_to_gltf(
+    positioned_models: &[crate::import::rgm::PositionedModel],
+    lights: &[PositionedLight],
+    palette: Option<&Palette>,
+    texture_cache: Option<&mut TextureCache>,
+    compress_textures: bool,
+) -> Result<(Root, Vec<u8>)> {
+    if positioned_models.is_empty() && lights.is_empty() {
+        return Err(crate::error::Error::Conversion(
+            "No positioned models or lights to convert".to_string(),
+        ));
+    }
+
+    trace!(
+        "Converting {} positioned models to GLTF",
+        positioned_models.len()
+    );
+
+    let mut builder = GltfBuilder::new(texture_cache, compress_textures);
+    let texture_cache_available = builder.has_texture_cache();
+
+    add_positioned_models(
+        &mut builder,
+        positioned_models,
+        palette,
+        texture_cache_available,
+    );
 
     let mut light_definitions = Vec::new();
     for (light_index, light) in lights.iter().enumerate() {
@@ -241,67 +256,12 @@ pub fn convert_wld_scene_to_gltf(
         });
     }
 
-    let mut unique_source_models: HashMap<&str, &crate::model3d::Model3DFile> = HashMap::new();
-    for pm in positioned_models {
-        if let Some(source_id) = &pm.source_id {
-            unique_source_models.entry(source_id).or_insert(&pm.model);
-        }
-    }
-
-    let unrolled_cache: HashMap<&str, Vec<UnrolledPrimitive>> = unique_source_models
-        .par_iter()
-        .map(|(&id, model)| {
-            (
-                id,
-                build_unrolled_primitives(model, palette, texture_cache_available),
-            )
-        })
-        .collect();
-
-    let mut mesh_instance_cache: HashMap<&str, u32> = HashMap::new();
-    for pm in positioned_models {
-        if let Some(source_id) = &pm.source_id
-            && let Some(&cached_mesh) = mesh_instance_cache.get(source_id.as_str())
-        {
-            builder.add_node(Node {
-                mesh: Some(Index::new(cached_mesh)),
-                matrix: Some(pm.transform),
-                name: Some(pm.model_name.clone()),
-                ..Default::default()
-            });
-            continue;
-        }
-
-        let unrolled = pm.source_id.as_ref().map_or_else(
-            || build_unrolled_primitives(&pm.model, palette, texture_cache_available),
-            |source_id| {
-                unrolled_cache
-                    .get(source_id.as_str())
-                    .cloned()
-                    .unwrap_or_default()
-            },
-        );
-
-        if unrolled.is_empty() {
-            builder.add_node(Node {
-                matrix: Some(pm.transform),
-                name: Some(pm.model_name.clone()),
-                ..Default::default()
-            });
-            continue;
-        }
-
-        let mesh_index = builder.append_mesh(unrolled);
-        if let Some(source_id) = &pm.source_id {
-            mesh_instance_cache.insert(source_id, index_u32(mesh_index));
-        }
-        builder.add_node(Node {
-            mesh: Some(Index::new(index_u32(mesh_index))),
-            matrix: Some(pm.transform),
-            name: Some(pm.model_name.clone()),
-            ..Default::default()
-        });
-    }
+    add_positioned_models(
+        &mut builder,
+        positioned_models,
+        palette,
+        texture_cache_available,
+    );
 
     if builder.nodes.is_empty() {
         return Err(crate::error::Error::Conversion(
