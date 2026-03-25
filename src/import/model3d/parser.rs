@@ -87,24 +87,15 @@ pub fn parse_3d_header(input: &[u8]) -> IResult<&[u8], Model3DHeader> {
     Ok((input, header))
 }
 
-/// Parses one face record, including per-vertex index and accumulated UV deltas.
-pub fn parse_face_data<'a>(input: &'a [u8], version: &ModelVersion) -> IResult<&'a [u8], FaceData> {
-    trace!(
-        "Starting face data parsing, first 16 bytes: {:02x?}",
-        &input[..input.len().min(16)]
-    );
-
-    let (input, vertex_count) = le_u8(input)?;
-    trace!("Read vertex_count: {vertex_count}");
-
-    let (input, texture_data_raw, tex_hi_val) = if matches!(
-        version,
-        ModelVersion::V40 | ModelVersion::V50
-    ) {
+fn parse_face_texture_header<'a>(
+    input: &'a [u8],
+    version: &ModelVersion,
+) -> IResult<&'a [u8], (u32, u8)> {
+    if matches!(version, ModelVersion::V40 | ModelVersion::V50) {
         let (input, tex_hi) = le_u8(input)?;
         let (input, raw) = le_u32(input)?;
         trace!("v4.0/5.0 texture fields: tex_hi=0x{tex_hi:02x}, raw=0x{raw:08x}");
-        (input, raw, tex_hi)
+        Ok((input, (raw, tex_hi)))
     } else {
         let (input, u1) = le_u8(input)?;
         let (input, texture_data) = le_u16(input)?;
@@ -112,14 +103,15 @@ pub fn parse_face_data<'a>(input: &'a [u8], version: &ModelVersion) -> IResult<&
         trace!(
             "v2.6/2.7 texture fields: u1=0x{u1:02x}, texture_data=0x{texture_data:04x}, raw=0x{raw:08x}"
         );
-        (input, raw, u1)
-    };
+        Ok((input, (raw, u1)))
+    }
+}
 
-    let (input, _unused_04) = le_u32(input)?;
-
-    let texture_data = parse_texture_data_value(texture_data_raw, version);
-    trace!("Parsed texture_data: {texture_data:?}");
-
+fn parse_face_vertices<'a>(
+    input: &'a [u8],
+    vertex_count: u8,
+    version: &ModelVersion,
+) -> IResult<&'a [u8], Vec<FaceVertex>> {
     let mut face_vertices = Vec::with_capacity(usize::from(vertex_count));
     let mut acc_u = 0i16;
     let mut acc_v = 0i16;
@@ -160,6 +152,27 @@ pub fn parse_face_data<'a>(input: &'a [u8], version: &ModelVersion) -> IResult<&
 
         input = input2;
     }
+
+    Ok((input, face_vertices))
+}
+
+/// Parses one face record, including per-vertex index and accumulated UV deltas.
+pub fn parse_face_data<'a>(input: &'a [u8], version: &ModelVersion) -> IResult<&'a [u8], FaceData> {
+    trace!(
+        "Starting face data parsing, first 16 bytes: {:02x?}",
+        &input[..input.len().min(16)]
+    );
+
+    let (input, vertex_count) = le_u8(input)?;
+    trace!("Read vertex_count: {vertex_count}");
+
+    let (input, (texture_data_raw, tex_hi_val)) = parse_face_texture_header(input, version)?;
+    let (input, _unused_04) = le_u32(input)?;
+
+    let texture_data = parse_texture_data_value(texture_data_raw, version);
+    trace!("Parsed texture_data: {texture_data:?}");
+
+    let (input, face_vertices) = parse_face_vertices(input, vertex_count, version)?;
 
     Ok((
         input,
