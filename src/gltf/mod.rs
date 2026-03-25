@@ -26,7 +26,7 @@ use rayon::prelude::*;
 use std::collections::HashMap;
 
 /// Engine-to-export coordinate divisor. Engine coordinates are 20x export units.
-const ENGINE_UNIT_SCALE: f32 = 20.0;
+pub(crate) const ENGINE_UNIT_SCALE: f32 = 20.0;
 
 /// UV coordinates in the 3D format are stored as i16 values in 4-bit fixed-point
 /// (1/16th pixel precision). The engine multiplies raw values by 1/16.0 to get

@@ -1,7 +1,7 @@
 use super::buffer::*;
 use super::types::*;
 use super::{i32_to_usize, read_c_str, with_texture_cache};
-use crate::gltf::{MaterialKey, UV_FIXED_POINT_SCALE, build_wld_unrolled_primitives};
+use crate::gltf::{ENGINE_UNIT_SCALE, MaterialKey, UV_FIXED_POINT_SCALE, build_wld_unrolled_primitives};
 use crate::import::palette::Palette;
 use crate::import::rtx::RtxEntry;
 use crate::import::{fnt, fnt_ttf, gxa, rgm, rob, rtx, sfx, wld};
@@ -23,7 +23,6 @@ fn fixed_string<const N: usize>(s: &str) -> [u8; N] {
     buf
 }
 
-const ENGINE_UNIT_SCALE: f32 = 20.0;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 enum SubmeshKey {
