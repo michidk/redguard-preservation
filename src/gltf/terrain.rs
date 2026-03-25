@@ -1,3 +1,4 @@
+use log::warn;
 use std::collections::BTreeMap;
 
 use crate::{Result, import::wld::WldFile};
@@ -66,41 +67,41 @@ fn map_side_from_square_len(len: usize) -> Option<usize> {
     (side.saturating_mul(side) == len).then_some(side)
 }
 
-#[must_use]
-fn scaled_grid_coordinate(value: usize) -> f32 {
-    f32::from(u16::try_from(value).expect("terrain grid coordinate exceeds u16::MAX"))
-        * WLD_SIZE_SCALE
+fn scaled_grid_coordinate(value: usize) -> Result<f32> {
+    let coord = u16::try_from(value).map_err(|_| {
+        warn!("terrain grid coordinate {value} exceeds u16::MAX");
+        crate::error::Error::Conversion("terrain grid coordinate exceeds u16::MAX".to_string())
+    })?;
+    Ok(f32::from(coord) * WLD_SIZE_SCALE)
 }
 
-#[must_use]
-fn terrain_position(heightmap: &[u8], map_side: usize, x: usize, y: usize) -> [f32; 3] {
-    [
-        -scaled_grid_coordinate(x),
+fn terrain_position(heightmap: &[u8], map_side: usize, x: usize, y: usize) -> Result<[f32; 3]> {
+    Ok([
+        -scaled_grid_coordinate(x)?,
         wld_height(heightmap[x + y * map_side]),
-        -scaled_grid_coordinate(y),
-    ]
+        -scaled_grid_coordinate(y)?,
+    ])
 }
 
-#[must_use]
 fn build_face_normals(
     heightmap: &[u8],
     map_side: usize,
     cells: usize,
-) -> Vec<([f32; 3], [f32; 3])> {
+) -> Result<Vec<([f32; 3], [f32; 3])>> {
     let mut face_normals: Vec<([f32; 3], [f32; 3])> = Vec::with_capacity(cells * cells);
     for y in 0..cells {
         for x in 0..cells {
-            let top_left = terrain_position(heightmap, map_side, x, y);
-            let top_right = terrain_position(heightmap, map_side, x + 1, y);
-            let bottom_left = terrain_position(heightmap, map_side, x, y + 1);
-            let bottom_right = terrain_position(heightmap, map_side, x + 1, y + 1);
+            let top_left = terrain_position(heightmap, map_side, x, y)?;
+            let top_right = terrain_position(heightmap, map_side, x + 1, y)?;
+            let bottom_left = terrain_position(heightmap, map_side, x, y + 1)?;
+            let bottom_right = terrain_position(heightmap, map_side, x + 1, y + 1)?;
             face_normals.push((
                 triangle_normal(top_left, bottom_right, top_right),
                 triangle_normal(bottom_right, top_left, bottom_left),
             ));
         }
     }
-    face_normals
+    Ok(face_normals)
 }
 
 #[must_use]
@@ -176,12 +177,12 @@ fn append_wld_cell(
     x: usize,
     y: usize,
     uv: [[f32; 2]; 6],
-) {
+) -> Result<()> {
     let normal_at = |vx: usize, vy: usize| vertex_normals[vx + vy * map_side];
-    let top_left = terrain_position(heightmap, map_side, x, y);
-    let top_right = terrain_position(heightmap, map_side, x + 1, y);
-    let bottom_left = terrain_position(heightmap, map_side, x, y + 1);
-    let bottom_right = terrain_position(heightmap, map_side, x + 1, y + 1);
+    let top_left = terrain_position(heightmap, map_side, x, y)?;
+    let top_right = terrain_position(heightmap, map_side, x + 1, y)?;
+    let bottom_left = terrain_position(heightmap, map_side, x, y + 1)?;
+    let bottom_right = terrain_position(heightmap, map_side, x + 1, y + 1)?;
     let normal_top_left = normal_at(x, y);
     let normal_top_right = normal_at(x + 1, y);
     let normal_bottom_left = normal_at(x, y + 1);
@@ -193,6 +194,7 @@ fn append_wld_cell(
     push_terrain_vertex(primitive, bottom_right, normal_bottom_right, uv[5]);
     push_terrain_vertex(primitive, top_left, normal_top_left, uv[3]);
     push_terrain_vertex(primitive, bottom_left, normal_bottom_left, uv[4]);
+    Ok(())
 }
 
 #[must_use]
@@ -256,7 +258,7 @@ pub(crate) fn build_wld_unrolled_primitives(
     }
 
     let cells = map_side - 1;
-    let face_normals = build_face_normals(&heightmap, map_side, cells);
+    let face_normals = build_face_normals(&heightmap, map_side, cells)?;
     let vertex_normals = build_vertex_normals(&face_normals, map_side, cells);
 
     let mut primitive_groups: BTreeMap<MaterialKey, UnrolledPrimitive> = BTreeMap::new();
@@ -277,7 +279,7 @@ pub(crate) fn build_wld_unrolled_primitives(
                 x,
                 y,
                 UV_ROTATIONS[tex_rot.min(3)],
-            );
+            )?;
         }
     }
 
