@@ -758,6 +758,8 @@ fn serialize_rgm_placements(
             color: light.color,
             position: light.position,
             range: light.range,
+            light_type: 0,
+            _pad: [0; 3],
         };
         out.extend_from_slice(bytemuck::bytes_of(&l));
     }

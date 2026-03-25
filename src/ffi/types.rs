@@ -91,8 +91,10 @@ pub struct RgplLight {
     pub color: [f32; 3],
     pub position: [f32; 3],
     pub range: f32,
+    pub light_type: u8,
+    pub _pad: [u8; 3],
 }
-// 60 bytes, align 4.
+// 64 bytes, align 4. light_type: 0 = point. color is linear RGB 0.0–1.0.
 
 // --- ROB (segment archive) ---
 
