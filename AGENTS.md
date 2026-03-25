@@ -53,6 +53,14 @@ Release notes are auto-generated from these prefixes via `cliff.toml`.
 - Do not promote hypotheses to facts.
 - Keep edits focused and consistent with local style.
 
+## Development checks
+
+```bash
+cargo fmt --all -- --check
+cargo clippy --all-targets --all-features -- -D warnings
+cargo test
+```
+
 ## Documentation conventions (`docs/`)
 
 - **Game context** (game name/year/global notes) belongs in `docs/README.md` only.
