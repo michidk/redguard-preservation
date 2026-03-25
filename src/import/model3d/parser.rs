@@ -523,6 +523,34 @@ fn parse_vertex_normals_section(
     normals
 }
 
+fn adjusted_offsets(header: &Model3DHeader) -> (u32, u32) {
+    if header.is_v27_or_earlier() {
+        (header.total_face_vertices, header.offset_vertex_normals)
+    } else {
+        (header.offset_vertex_normals, header.offset_vertex_coords)
+    }
+}
+
+// Convert normal_indices from file offsets to vertex_normals array indices.
+// Each raw entry is a byte offset into the vertex-normal section; dividing
+// by 12 (size of one f32×3 normal) yields the array index.
+fn convert_normal_indices(raw_indices: Vec<u32>, adjusted_offset_normals: u32) -> Vec<u32> {
+    if adjusted_offset_normals > 0 {
+        raw_indices
+            .into_iter()
+            .map(|offset| {
+                if offset >= adjusted_offset_normals {
+                    (offset - adjusted_offset_normals) / 12
+                } else {
+                    u32::MAX
+                }
+            })
+            .collect()
+    } else {
+        raw_indices
+    }
+}
+
 /// Parses a full 3D/3DC model and returns decoded geometry sections.
 pub fn parse_3d_file(input: &[u8]) -> IResult<&[u8], Model3DFile> {
     trace!(
@@ -537,11 +565,7 @@ pub fn parse_3d_file(input: &[u8]) -> IResult<&[u8], Model3DFile> {
         version, header.num_vertices, header.num_faces
     );
 
-    let (adjusted_offset_normals, adjusted_offset_vertex_coords) = if header.is_v27_or_earlier() {
-        (header.total_face_vertices, header.offset_vertex_normals)
-    } else {
-        (header.offset_vertex_normals, header.offset_vertex_coords)
-    };
+    let (adjusted_offset_normals, adjusted_offset_vertex_coords) = adjusted_offsets(&header);
 
     let frame_data = parse_frame_data_section(input, &header);
     let _ = parse_section4_data_section(input, &header);
@@ -552,23 +576,7 @@ pub fn parse_3d_file(input: &[u8]) -> IResult<&[u8], Model3DFile> {
     let raw_normal_indices = parse_normal_indices_section(input, &header);
     let vertex_normals = parse_vertex_normals_section(input, &header, adjusted_offset_normals);
 
-    // Convert normal_indices from file offsets to vertex_normals array indices.
-    // Each raw entry is a byte offset into the vertex-normal section; dividing
-    // by 12 (size of one f32×3 normal) yields the array index.
-    let normal_indices: Vec<u32> = if adjusted_offset_normals > 0 {
-        raw_normal_indices
-            .into_iter()
-            .map(|offset| {
-                if offset >= adjusted_offset_normals {
-                    (offset - adjusted_offset_normals) / 12
-                } else {
-                    u32::MAX
-                }
-            })
-            .collect()
-    } else {
-        raw_normal_indices
-    };
+    let normal_indices = convert_normal_indices(raw_normal_indices, adjusted_offset_normals);
 
     let remaining = &[];
 
