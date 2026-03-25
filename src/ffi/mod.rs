@@ -1,3 +1,9 @@
+//! C-compatible FFI layer for native plugin use (Unity, etc.).
+//!
+//! See [`README.md`](README.md) for the full API reference — architecture,
+//! C struct definitions, function signatures, memory management, and error
+//! handling.
+
 mod buffer;
 pub mod scene;
 pub mod types;
