@@ -198,13 +198,13 @@ fn serialize_model_3d(model: &Model3DFile) -> crate::Result<Vec<u8>> {
     out.extend_from_slice(bytemuck::bytes_of(&header));
 
     for (key, submesh) in populated_submeshes {
-        let (material_type, color_index, texture_id, image_id) = match key {
-            SubmeshKey::SolidColor(ci) => (0, ci, 0u16, 0u8),
-            SubmeshKey::Textured(tid, iid) => (1, 0u8, tid, iid),
+        let (textured, color_index, texture_id, image_id) = match key {
+            SubmeshKey::SolidColor(ci) => (0u8, ci, 0u16, 0u8),
+            SubmeshKey::Textured(tid, iid) => (1u8, 0u8, tid, iid),
         };
 
         let sub_header = RgmdSubmeshHeader {
-            material_type,
+            textured,
             color_index,
             texture_id,
             image_id,
@@ -659,14 +659,14 @@ fn serialize_terrain_primitives(
     out.extend_from_slice(bytemuck::bytes_of(&header));
 
     for primitive in &primitives {
-        let (material_type, color_index, texture_id, image_id) = match primitive.material_key {
+        let (textured, color_index, texture_id, image_id) = match primitive.material_key {
             MaterialKey::Textured(tid, iid) => (1u8, 0u8, tid, iid),
             MaterialKey::SolidColor(rgb) => (0u8, rgb[0], 0u16, 0u8),
             _ => (0u8, 0u8, 0u16, 0u8),
         };
 
         let sub_header = RgmdSubmeshHeader {
-            material_type,
+            textured,
             color_index,
             texture_id,
             image_id,
