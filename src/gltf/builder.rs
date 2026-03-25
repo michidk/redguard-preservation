@@ -93,6 +93,7 @@ impl<'a> GltfBuilder<'a> {
         self.buffer_data.extend(std::iter::repeat_n(0u8, padding));
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn push_accessor_raw(
         &mut self,
         bytes: Vec<u8>,
