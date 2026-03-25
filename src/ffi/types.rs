@@ -82,7 +82,8 @@ pub struct RgplPlacement {
     pub image_id: u8,
     pub object_type: u8,
 }
-// 132 bytes, align 4.
+// 132 bytes, align 4. object_type: 0 = mesh, 1 = flat sprite, 2 = rope link.
+// texture_id/image_id: TEXBSI texture for flat sprites; 0 for mesh/rope placements.
 
 #[derive(Clone, Copy, Pod, Zeroable)]
 #[repr(C)]
