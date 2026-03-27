@@ -515,55 +515,15 @@ All fields little-endian.
 
 Position decode uses the same MPOB scale/sign rules. MPSF items are flat quads with zero rotation.
 
-## Redguard Preservation CLI
-
-### Scene Export Notes
-
-- `RGM` carries scene placement transforms; `ROB` alone does not.
-- Practical scene assembly requires `MPOB` + `MPSO` + `MPRP` + `MPSF`.
-- Model lookup needs direct file stems, ROB segment-name resolution, and `RAHD`/`RAAN` fallback for empty `MPOB.model_name` (see [RAHD](#rahd-actor-header) and [RAAN](#raan-animation-file-references)).
-- Some names in shipped RGM files are truncated forms like `NAME.3` and require normalization (strip from last `.` to get the segment stem).
-- MPOB rotation parity uses degree-angle conversion; MPSO parity depends on the transposed matrix mapping above.
-- MPSO rotation parity in scene export is obtained by interpreting Q4.28 values as a row-major 3x3 matrix, converting through quaternion space, applying mesh-axis flip in YZX Euler space (`-X, +Y, -Z`), then rebuilding the final rotation.
-- Non-visual MPOB entries (sound triggers like `WATERSND`/`WINDSND`, door scripts like `LOCKDOOR`, lighting markers like `NTLIGHT`, entrance triggers like `ENT*`) have no model geometry; they emit transform-only nodes in the scene graph.
-- Node naming convention: `B_NNN_<script>` for MPOB, `SNNN_<model>` for MPSO, `FNNN_<texid>/<imgid>` for MPSF.
-- MPOB actors may carry a script-specific texture override from RAHD (`textureId` near record tail). Applying that override is required for correct character skin variants (for example Cartographer NPCs).
-
-#### ROB segment resolution order
-
-When a model name is not found as a direct file, the exporter scans all registered ROB files for a matching embedded segment. ROBs are scanned in source-priority order: `fxart` (v4.0/v5.0 models) before `maps` before `3dart` (v2.6/v2.7 models).
-
-v2.6/v2.7 models in `3dart/` ROBs have a known vertex-parsing limitation (vertex coordinates read as zero for ROB-embedded segments). Using `fxart` ROBs avoids this and produces correct geometry.
-
-### JSON Sidecar Output
-
-When converting an RGM file via `cargo run -- convert`, a `.json` sidecar is written alongside the `.glb` containing all actor metadata that does not fit in the glTF format:
-
-- **Per-actor RAGR animation groups** with every frame command decoded by opcode type
-- **Per-actor RAEX records** (grip, scabbard, combat ranges, texture overrides)
-- **RAHD cross-reference** (actor index and script name)
-
-Each animation command is decoded with opcode-specific parameter names:
-
-| Opcode layout | Fields in JSON |
-|---|---|
-| 10 + 10 (opcodes 0, 4, 10) | `param_a`, `param_b` |
-| 6 + 6 + 6 (opcodes 6, 8) | `x`, `y`, `z` |
-| 2 + 18 (opcodes 7, 9) | `axis`, `value` |
-| 6 + 7 + 7 (opcode 15) | `trigger_mask`, `start_frame`, `target_group` |
-| 20-bit (opcodes 1–3, 5, 11–14) | `value` |
-
-All commands include `opcode` (numeric) and `name` (e.g. `"ShowFrame"`, `"PlaySound"`).
-
 ## External References
 
 - [UESP: Mod:RGM File Format](https://en.uesp.net/wiki/Mod:RGM_File_Format)
 - [UESP: Mod:Redguard File Formats](https://en.uesp.net/wiki/Mod:Redguard_File_Formats)
 - [RGUnity/redguard-unity `RGRGMFile.cs`](https://github.com/RGUnity/redguard-unity/blob/master/Assets/Scripts/RGFileImport/RGGFXImport/RGRGMFile.cs) — RGM section parser
-- [RGUnity/redguard-unity `RGRGMScriptStore.cs`](https://github.com/RGUnity/redguard-unity/blob/master/Assets/Scripts/RGFileImport/RGMData/RGRGMScriptStore.cs) — RASC bytecode interpreter with dispatch loop and complete flags table (369 entries)
-- [RGUnity/redguard-unity `soupdeffcn_nimpl.cs`](https://github.com/RGUnity/redguard-unity/blob/master/Assets/Scripts/RGFileImport/RGMData/soupdeffcn_nimpl.cs) — Complete SOUP function ID-to-name table (367 functions)
+- [RGUnity/redguard-unity `RGRGMScriptStore.cs`](https://github.com/RGUnity/redguard-unity/blob/master/Assets/Scripts/RGFileImport/RGMData/RGRGMScriptStore.cs) — RASC bytecode interpreter with dispatch loop and flags table (369 entries)
+- [RGUnity/redguard-unity `soupdeffcn_nimpl.cs`](https://github.com/RGUnity/redguard-unity/blob/master/Assets/Scripts/RGFileImport/RGMData/soupdeffcn_nimpl.cs) — SOUP function ID-to-name table (367 functions)
 - [Dillonn241/redguard-mod-manager `ScriptReader.java`](https://github.com/Dillonn241/redguard-mod-manager/blob/main/src/redguard/ScriptReader.java) — RASC bytecode disassembler (bytecode to readable script text)
-- [Dillonn241/redguard-mod-manager `ScriptParser.java`](https://github.com/Dillonn241/redguard-mod-manager/blob/main/src/redguard/ScriptParser.java) — RASC bytecode assembler (script text to bytecode); confirms round-trip encoding
-- [Dillonn241/redguard-mod-manager `MapFile.java`](https://github.com/Dillonn241/redguard-mod-manager/blob/main/src/redguard/MapFile.java) — RGM section reader/writer with complete chunk tag list
+- [Dillonn241/redguard-mod-manager `ScriptParser.java`](https://github.com/Dillonn241/redguard-mod-manager/blob/main/src/redguard/ScriptParser.java) — RASC bytecode assembler (script text to bytecode)
+- [Dillonn241/redguard-mod-manager `MapFile.java`](https://github.com/Dillonn241/redguard-mod-manager/blob/main/src/redguard/MapFile.java) — RGM section reader/writer with chunk tag list
 - [Dillonn241/redguard-mod-manager `MapHeader.java`](https://github.com/Dillonn241/redguard-mod-manager/blob/main/src/redguard/MapHeader.java) — RAHD record parser with field offsets
 - [Dillonn241/redguard-mod-manager `MapDatabase.java`](https://github.com/Dillonn241/redguard-mod-manager/blob/main/src/redguard/MapDatabase.java) — SOUP386.DEF parser (function, flag, reference, attribute definitions)

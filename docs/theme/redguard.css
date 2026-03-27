@@ -123,6 +123,11 @@
   -webkit-box-decoration-break: clone;
 }
 
+.redguard .sidebar :not(pre) > code {
+  background: transparent;
+  color: inherit;
+}
+
 .redguard .content {
   background:
     radial-gradient(ellipse at 20% 50%, rgba(217, 200, 165, 0.25) 0%, transparent 50%),

@@ -39,14 +39,6 @@ State values: `0` = off, `1` = on. The console `cheat = N` syntax can set arbitr
 
 See [Cheat System](../engine/cheats.md) for cheat descriptions and activation methods.
 
-## Redguard Preservation CLI
-
-```bash
-cargo run -- read REDGUARD.CHT
-```
-
-Prints each named cheat with its on/off state.
-
 ## External References
 
-- [UESP Redguard Console](https://en.uesp.net/wiki/Redguard:Console) — Documents the developer console but not the cheat persistence file
+- [UESP Redguard Console](https://en.uesp.net/wiki/Redguard:Console)

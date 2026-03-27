@@ -81,7 +81,7 @@ All integers are little-endian. The VM reads a leading opcode byte and dispatche
 | `0x1B` | TaskPause | `u32` label | Pause until task completes |
 | `0x1E` | ScriptRV | `u8` expected, block | Branch on script return value |
 
-Bytes with no known opcode: `0x08`, `0x09`, `0x0B`–`0x0E`, `0x18`, `0x1C`–`0x1D`, `0x1F`+. The RGUnity interpreter throws a fatal error for any unrecognized byte, confirming these are not valid opcodes in shipped scripts.
+Bytes with no known opcode: `0x08`, `0x09`, `0x0B`–`0x0E`, `0x18`, `0x1C`–`0x1D`, `0x1F`+. These bytes are not used in any shipped script.
 
 ### Operand Encoding
 
@@ -152,7 +152,7 @@ Assignments use a terminated list of (value, operator) pairs. The formula loop r
 
 Operator bytes outside 1–9 terminate the formula loop. Bytes 10–11 (unary increment/decrement) are consumed as the final operator and also terminate. Bytes 12+ are fatal. Division by zero is not checked in software — it raises a CPU divide-by-zero exception caught by the C runtime signal handler.
 
-> **Note:** The Dillonn241 disassembler/assembler tools swap operators 3 and 4 (`/` and `*`). This swap is internally consistent within those tools (scripts round-trip correctly) but does not match the engine binary, where byte 3 maps to `imul` (multiply) and byte 4 maps to `div` (divide). The RGUnity runtime implementation also confirms byte 3 = multiply, byte 4 = divide.
+> **Note:** The Dillonn241 disassembler/assembler tools swap operators 3 and 4 (`/` and `*`). This swap is internally consistent within those tools (scripts round-trip correctly) but does not match the engine binary, where byte 3 maps to `imul` (multiply) and byte 4 maps to `div` (divide).
 
 ### Comparison Operators
 
@@ -313,9 +313,9 @@ See [RGM.md](../formats/RGM.md) for record-level layouts and offsets.
 ## External References
 
 - [UESP `Mod:RGM File Format`](https://en.uesp.net/wiki/Mod:RGM_File_Format)
-- [RGUnity/redguard-unity `RGRGMScriptStore.cs`](https://github.com/RGUnity/redguard-unity/blob/master/Assets/Scripts/RGFileImport/RGMData/RGRGMScriptStore.cs) — SOUP VM interpreter with dispatch loop, threading model, formula evaluator, and complete flags table (369 entries)
-- [RGUnity/redguard-unity `soupdeffcn_nimpl.cs`](https://github.com/RGUnity/redguard-unity/blob/master/Assets/Scripts/RGFileImport/RGMData/soupdeffcn_nimpl.cs) — Complete SOUP function ID-to-name table (367 functions)
+- [RGUnity/redguard-unity `RGRGMScriptStore.cs`](https://github.com/RGUnity/redguard-unity/blob/master/Assets/Scripts/RGFileImport/RGMData/RGRGMScriptStore.cs) — SOUP VM interpreter with dispatch loop, threading model, and formula evaluator
+- [RGUnity/redguard-unity `soupdeffcn_nimpl.cs`](https://github.com/RGUnity/redguard-unity/blob/master/Assets/Scripts/RGFileImport/RGMData/soupdeffcn_nimpl.cs) — SOUP function ID-to-name table (367 functions)
 - [Dillonn241/redguard-mod-manager `ScriptReader.java`](https://github.com/Dillonn241/redguard-mod-manager/blob/main/src/redguard/ScriptReader.java) — RASC bytecode disassembler with full opcode and value-mode decoding
-- [Dillonn241/redguard-mod-manager `ScriptParser.java`](https://github.com/Dillonn241/redguard-mod-manager/blob/main/src/redguard/ScriptParser.java) — RASC bytecode assembler (round-trip verified)
-- [Dillonn241/redguard-mod-manager `MapHeader.java`](https://github.com/Dillonn241/redguard-mod-manager/blob/main/src/redguard/MapHeader.java) — RAHD record parser with verified field offsets
+- [Dillonn241/redguard-mod-manager `ScriptParser.java`](https://github.com/Dillonn241/redguard-mod-manager/blob/main/src/redguard/ScriptParser.java) — RASC bytecode assembler (script text to bytecode)
+- [Dillonn241/redguard-mod-manager `MapHeader.java`](https://github.com/Dillonn241/redguard-mod-manager/blob/main/src/redguard/MapHeader.java) — RAHD record parser with field offsets
 - [Dillonn241/redguard-mod-manager `MapDatabase.java`](https://github.com/Dillonn241/redguard-mod-manager/blob/main/src/redguard/MapDatabase.java) — SOUP386.DEF parser (function, flag, reference, attribute definitions)

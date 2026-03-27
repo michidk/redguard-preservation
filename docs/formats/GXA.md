@@ -59,12 +59,6 @@ Sections are chunked and can appear in this observed order:
 - Non-zero indices map to `BPAL` RGB and use alpha `255`.
 - Stored rows are vertically flipped in shipped assets; decoders flip Y during RGBA expansion.
 
-## Redguard Preservation CLI
-
-- `rgpre convert SYSTEM/STARTUP2.GXA -o out/startup_gxa/` extracts all frames to PNG and writes `metadata.json`.
-- `rgpre read SYSTEM/STARTUP2.GXA` prints parsed title/frame-count summary.
-- FFI: `rg_decode_gxa(data, len, frame)` returns one decoded RGBA frame (`width`, `height`, `frame_count=1`, `rgba_size`, `rgba`).
-
 ## External References
 
 - [RGUnity `RGGXAFile.cs`](https://github.com/RGUnity/redguard-unity/blob/master/Assets/Scripts/RGFileImport/RGGFXImport/RGGXAFile.cs)

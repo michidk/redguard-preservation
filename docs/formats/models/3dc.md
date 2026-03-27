@@ -69,4 +69,4 @@ Same as [3D.md — Section Layout](3d.md#section-layout), but with animated fram
 ## External References
 
 - [UESP: Mod:Model Files](https://en.uesp.net/wiki/Mod:Model_Files) — baseline notes for shared `.3D`/`.3DC` structures and version differences.
-- [RGUnity/redguard-unity `RG3DFile.cs`](https://github.com/RGUnity/redguard-unity/blob/master/Assets/Scripts/RGFileImport/RGGFXImport/RG3DFile.cs) — practical reference for animated-frame decoding paths used in a full game implementation.
+- [RGUnity/redguard-unity `RG3DFile.cs`](https://github.com/RGUnity/redguard-unity/blob/master/Assets/Scripts/RGFileImport/RGGFXImport/RG3DFile.cs) — 3D/3DC importer with animated-frame decoding.

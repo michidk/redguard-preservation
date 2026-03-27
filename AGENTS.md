@@ -73,7 +73,6 @@ cargo test
 - Do not put endianness annotations inline in the Type column (e.g. `` `u32` (LE) ``). Use a separate `Endian` column or state endianness above the table.
 - Include **verified counts/statistics** where known.
 - Cross-link related formats (for example `3DC` -> `3D`, `ROB` -> `3D`).
-- Sections describing **this project's CLI/converter behavior** (export notes, JSON sidecar output, parser quirks) go under `## Redguard Preservation CLI`, placed just before `## External References`. Demote subsections accordingly.
 - End each format doc with `## External References`.
 - In references, link to the **exact file/folder page**, not generic repo root links.
 

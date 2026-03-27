@@ -27,15 +27,6 @@ Entry 0 is always (0, 0, 0) — black.
 - [TEXBSI](TEXBSI.md) — the `CMAP` subrecord in animated TEXBSI images uses the identical 256 × RGB triplet layout (768 bytes). CMAP palettes are embedded per-image; COL palettes are per-scene.
 - [FNT](FNT.md) — font files embed their own `BPAL`/`FPAL` palettes (same 768-byte layout), independent of scene COL palettes.
 
-## Redguard Preservation CLI
-
-The `convert` command exports a COL file as two companion files:
-
-- **Swatch PNG** — 256×256 image with a 16×16 grid of color swatches (16 px per cell). Index 0 is top-left, 255 is bottom-right, row-major order.
-- **Palette JSON** — structured metadata with per-entry `index`, `r`, `g`, `b` (0–255), and `hex` fields. Versioned as `redguard-col-v1`.
-
-The output path determines the primary filename; the companion file shares the same stem with the other extension. Passing `-o ISLAND.png` produces `ISLAND.png` + `ISLAND.json`; passing `-o ISLAND.json` produces the same pair.
-
 ## External References
 
 - [UESP: Mod:Palette Files](https://en.uesp.net/wiki/Mod:Palette_Files) — dedicated Redguard COL page with the 8-byte header + 768-byte palette layout.

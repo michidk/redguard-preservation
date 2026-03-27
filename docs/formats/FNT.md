@@ -123,4 +123,4 @@ Numeric fields are little-endian.
 
 - [UESP: Mod:Font Files](https://en.uesp.net/wiki/Mod:Font_Files) — primary external reference for `FNHD`/`BPAL`/`FBMP`/`RDAT` chunk semantics.
 - [UESP: Redguard:Glide Differences](https://en.uesp.net/wiki/Redguard:Glide_Differences) — renderer-specific font usage differences (non-structure behavior).
-- [UESP: Mod:RedguardFNTImporter](https://en.uesp.net/wiki/Mod:RedguardFNTImporter) — tooling-oriented evidence for practical import/export expectations.
+- [UESP: Mod:RedguardFNTImporter](https://en.uesp.net/wiki/Mod:RedguardFNTImporter) — FNT import/export tooling notes.

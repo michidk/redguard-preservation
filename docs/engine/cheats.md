@@ -1,6 +1,6 @@
 # Cheat System
 
-Hidden cheat system built into the Redguard game engine. The 13 cheat codes are XOR-obfuscated in the binary (each byte XOR'd with `0xAA`) and not documented in any official or community source at the time of writing.
+Hidden cheat system built into the Redguard game engine. The 13 cheat codes are XOR-obfuscated in the binary (each byte XOR'd with `0xAA`).
 
 ## Activation
 
@@ -48,5 +48,5 @@ The cheat names are stored in the game binary as XOR-encoded strings (each byte 
 
 ## External References
 
-- [UESP Redguard Console](https://en.uesp.net/wiki/Redguard:Console) — Documents the developer console but not the cheat system
-- [UESP Redguard Cheats](https://en.uesp.net/wiki/Redguard:Cheats) — Lists only the `item add` console command and a geometry exploit; does not mention the built-in cheat system
+- [UESP Redguard Console](https://en.uesp.net/wiki/Redguard:Console)
+- [UESP Redguard Cheats](https://en.uesp.net/wiki/Redguard:Cheats)

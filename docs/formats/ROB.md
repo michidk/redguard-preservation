@@ -121,4 +121,4 @@ Version `v4.02` appears only in these three MB_PG segments — it is not found i
 ## External References
 
 - [UESP: Mod:ROB File Format](https://en.uesp.net/wiki/Mod:ROB_File_Format) — high-level ROB structure and historical notes.
-- [RGUnity/redguard-unity `RGROBFile.cs`](https://github.com/RGUnity/redguard-unity/blob/master/Assets/Scripts/RGFileImport/RGGFXImport/RGROBFile.cs) — segment parsing behavior in a working loader.
+- [RGUnity/redguard-unity `RGROBFile.cs`](https://github.com/RGUnity/redguard-unity/blob/master/Assets/Scripts/RGFileImport/RGGFXImport/RGROBFile.cs) — ROB segment parsing.

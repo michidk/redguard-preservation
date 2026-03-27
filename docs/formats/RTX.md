@@ -128,21 +128,9 @@ All fields little-endian unless noted.
 
 - [SFX](SFX.md) — sound effects container. Uses the same 27-byte audio header structure (offsets 0x00–0x1A) as RTX audio entries. RTX stores voice clips; SFX stores sound effects.
 
-## Redguard Preservation CLI
-
-### Read
-
-`cargo run -- read ENGLISH.RTX` parses the file and prints a per-entry summary: tag, type (TEXT or AUDIO), audio format, sample rate, duration, and a label preview.
-
-### Convert
-
-`cargo run -- convert ENGLISH.RTX -o output_dir/` extracts all audio entries as individual `.wav` files (named by 4-character tag, e.g. `zbza.wav`) and writes an `index.json` sidecar containing metadata for all 4866 entries (both text-only and audio).
-
-Validated against `ENGLISH.RTX`: 3933 `.wav` files + 933 text entries in `index.json`.
-
 ## External References
 
 - [RGUnity/redguard-unity `RGRTXFile.cs`](https://github.com/RGUnity/redguard-unity/blob/ab09f557050a4a52591bedbb3445f0cbd25ae1af/Assets/Scripts/RGFileImport/RGGFXImport/RGRTXFile.cs) | RTX container reader
-- [Dillonn241/redguard-mod-manager `RtxDatabase.java`](https://github.com/Dillonn241/redguard-mod-manager/blob/08dab1c413a73433a9c04b2e9e6a5bfb92b7bc3f/src/redguard/RtxDatabase.java) | RTX read/write with round-trip support
+- [Dillonn241/redguard-mod-manager `RtxDatabase.java`](https://github.com/Dillonn241/redguard-mod-manager/blob/08dab1c413a73433a9c04b2e9e6a5bfb92b7bc3f/src/redguard/RtxDatabase.java) | RTX read/write
 - [Dillonn241/redguard-mod-manager `RtxEntry.java`](https://github.com/Dillonn241/redguard-mod-manager/blob/08dab1c413a73433a9c04b2e9e6a5bfb92b7bc3f/src/redguard/RtxEntry.java) | RTX entry structure and audio format definitions
 - [UESP: Redguard Console](https://en.uesp.net/wiki/Redguard:Console) (script command context)

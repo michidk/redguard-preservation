@@ -140,10 +140,6 @@ Worlds 0, 1, 6, 27, 28, and 30 have `world_world` entries and use a WLD terrain 
 
 **Worlds 27 and 28 are time-of-day variants of world 1.** All three share `MAPS\ISLAND.WLD` and the same PVO node maps (`islan001`..`islan004`, `lighths`). World 27 uses a night palette and sky; world 28 uses a sunset palette matching world 0.
 
-## Redguard Preservation CLI
-
-When converting RGM or WLD files without an explicit `--palette` flag, the CLI reads `WORLD.INI` from the asset root to auto-resolve the correct palette. If multiple world entries match the input file (e.g. `ISLAND.RGM` appears in worlds 1, 27, and 28), the first match is used and alternatives are logged. Use `--palette` to override.
-
 ## External References
 
 - [UESP: Redguard:Console](https://en.uesp.net/wiki/Redguard:Console) — the `show world` console command displays the current world index at runtime
