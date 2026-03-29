@@ -3,10 +3,9 @@ use crate::import::fnt::FntFile;
 use kurbo::BezPath;
 use std::collections::{HashMap, HashSet};
 use std::time::{SystemTime, UNIX_EPOCH};
-use write_fonts::OffsetMarker;
 use write_fonts::tables::cmap::Cmap;
-use write_fonts::tables::glyf::Bbox;
-use write_fonts::tables::glyf::{GlyfLocaBuilder, Glyph, SimpleGlyph};
+use write_fonts::tables::gasp::{Gasp, GaspRange, GaspRangeBehavior};
+use write_fonts::tables::glyf::{Bbox, GlyfLocaBuilder, Glyph, SimpleGlyph};
 use write_fonts::tables::head::{Flags, Head, MacStyle};
 use write_fonts::tables::hhea::Hhea;
 use write_fonts::tables::hmtx::Hmtx;
@@ -17,8 +16,20 @@ use write_fonts::tables::os2::{Os2, SelectionFlags};
 use write_fonts::tables::post::Post;
 use write_fonts::tables::vmtx::LongMetric;
 use write_fonts::types::{FWord, Fixed, GlyphId, LongDateTime, NameId, Tag, UfWord};
+use write_fonts::{FontBuilder, OffsetMarker};
 
 const SCALE: u32 = 64;
+
+/// Empty DSIG table: version 1, zero signatures.
+const EMPTY_DSIG: [u8; 8] = [0, 0, 0, 1, 0, 0, 0, 0];
+
+macro_rules! add_table {
+    ($builder:expr, $table:expr) => {
+        $builder
+            .add_table($table)
+            .map_err(|e| Error::Conversion(e.to_string()))
+    };
+}
 
 fn usize_to_u16(value: usize, context: &str) -> Result<u16, Error> {
     u16::try_from(value).map_err(|e| Error::Conversion(format!("{context}: {e}")))
@@ -292,55 +303,40 @@ fn summarize_horizontal_metrics(
 }
 
 fn build_name_records(family_name: &str) -> Vec<NameRecord> {
-    let platform_id = 3_u16;
-    let encoding_id = 1_u16;
-    let language_id = 0x0409_u16;
     let postscript_name = sanitize_postscript_name(&format!("{family_name}-Regular"));
 
-    vec![
-        NameRecord {
-            platform_id,
-            encoding_id,
-            language_id,
-            name_id: NameId::from(1),
-            string: OffsetMarker::new(family_name.to_string()),
-        },
-        NameRecord {
-            platform_id,
-            encoding_id,
-            language_id,
-            name_id: NameId::from(2),
-            string: OffsetMarker::new("Regular".to_string()),
-        },
-        NameRecord {
-            platform_id,
-            encoding_id,
-            language_id,
-            name_id: NameId::from(3),
-            string: OffsetMarker::new(format!("{postscript_name};Version 1.0")),
-        },
-        NameRecord {
-            platform_id,
-            encoding_id,
-            language_id,
-            name_id: NameId::from(4),
-            string: OffsetMarker::new(format!("{family_name} Regular")),
-        },
-        NameRecord {
-            platform_id,
-            encoding_id,
-            language_id,
-            name_id: NameId::from(5),
-            string: OffsetMarker::new("Version 1.0".to_string()),
-        },
-        NameRecord {
-            platform_id,
-            encoding_id,
-            language_id,
-            name_id: NameId::from(6),
-            string: OffsetMarker::new(postscript_name),
-        },
-    ]
+    let mut records = Vec::new();
+
+    let mac_entries: &[(u16, &str)] = &[(1, family_name), (2, "Regular")];
+    for &(name_id, value) in mac_entries {
+        records.push(NameRecord {
+            platform_id: 1,
+            encoding_id: 0,
+            language_id: 0,
+            name_id: NameId::from(name_id),
+            string: OffsetMarker::new(value.to_string()),
+        });
+    }
+
+    let win_entries: Vec<(u16, String)> = vec![
+        (1, family_name.to_string()),
+        (2, "Regular".to_string()),
+        (3, format!("{postscript_name};Version 1.0")),
+        (4, format!("{family_name} Regular")),
+        (5, "Version 1.0".to_string()),
+        (6, postscript_name),
+    ];
+    for (name_id, value) in win_entries {
+        records.push(NameRecord {
+            platform_id: 3,
+            encoding_id: 1,
+            language_id: 0x0409,
+            name_id: NameId::from(name_id),
+            string: OffsetMarker::new(value),
+        });
+    }
+
+    records
 }
 
 fn average_advance(glyph_metrics: &[(u32, i16)], line_height: u32) -> Result<i16, Error> {
@@ -468,7 +464,7 @@ fn build_os2_table(
         )?,
         s_family_class: 0,
         panose_10: [0; 10],
-        ul_unicode_range_1: 0,
+        ul_unicode_range_1: 1, // bit 0 = Basic Latin
         ul_unicode_range_2: 0,
         ul_unicode_range_3: 0,
         ul_unicode_range_4: 0,
@@ -480,24 +476,28 @@ fn build_os2_table(
         s_typo_descender: metrics.descender,
         s_typo_line_gap: 0,
         us_win_ascent: i16_to_u16_non_negative(
-            metrics.summary.head_bbox.3.max(0),
+            metrics.ascender.max(metrics.summary.head_bbox.3).max(1),
             "us_win_ascent to u16",
         )?,
-        us_win_descent: metrics.summary.head_bbox.1.unsigned_abs(),
-        ul_code_page_range_1: None,
-        ul_code_page_range_2: None,
-        sx_height: None,
-        s_cap_height: None,
-        us_default_char: None,
-        us_break_char: None,
-        us_max_context: None,
+        us_win_descent: metrics
+            .descender
+            .unsigned_abs()
+            .max(metrics.summary.head_bbox.1.unsigned_abs())
+            .max(1),
+        ul_code_page_range_1: Some(1), // bit 0 = Latin 1 (CP 1252)
+        ul_code_page_range_2: Some(0),
+        sx_height: Some(metrics.ascender * 7 / 10),
+        s_cap_height: Some(metrics.ascender),
+        us_default_char: Some(0),
+        us_break_char: Some(32),
+        us_max_context: Some(0),
         us_lower_optical_point_size: None,
         us_upper_optical_point_size: None,
     })
 }
 
 fn add_primary_tables(
-    builder: &mut write_fonts::FontBuilder,
+    builder: &mut FontBuilder,
     family_name: &str,
     glyph_data: &GlyphBuildData,
     metrics: &FontGlobalMetrics,
@@ -506,7 +506,7 @@ fn add_primary_tables(
     index_to_loc_format: i16,
 ) -> Result<(), Error> {
     let head = Head::new(
-        Fixed::from(0),
+        Fixed::from_f64(1.0),
         0,
         metrics.head_flags,
         metrics.units_per_em,
@@ -520,40 +520,45 @@ fn add_primary_tables(
         8,
         index_to_loc_format,
     );
-    builder
-        .add_table(&head)
-        .map_err(|e| Error::Conversion(e.to_string()))?;
-    builder
-        .add_table(&Name::new(build_name_records(family_name)))
-        .map_err(|e| Error::Conversion(e.to_string()))?;
-    builder
-        .add_table(&build_os2_table(glyph_data, line_height, metrics)?)
-        .map_err(|e| Error::Conversion(e.to_string()))?;
-
-    let maxp = Maxp {
-        num_glyphs,
-        max_points: Some(glyph_data.max_points.max(4)),
-        max_contours: Some(glyph_data.max_contours.max(1)),
-        max_composite_points: Some(0),
-        max_composite_contours: Some(0),
-        max_zones: Some(2),
-        max_twilight_points: Some(0),
-        max_storage: Some(1),
-        max_function_defs: Some(1),
-        max_instruction_defs: Some(0),
-        max_stack_elements: Some(128),
-        max_size_of_instructions: Some(0),
-        max_component_elements: Some(0),
-        max_component_depth: Some(0),
-    };
-    builder
-        .add_table(&maxp)
-        .map_err(|e| Error::Conversion(e.to_string()))?;
+    add_table!(builder, &head)?;
+    add_table!(builder, &Name::new(build_name_records(family_name)))?;
+    add_table!(builder, &build_os2_table(glyph_data, line_height, metrics)?)?;
+    add_table!(
+        builder,
+        &Gasp {
+            version: 1,
+            num_ranges: 1,
+            gasp_ranges: vec![GaspRange {
+                range_max_ppem: 0xFFFF,
+                range_gasp_behavior: GaspRangeBehavior::GASP_DOGRAY
+                    | GaspRangeBehavior::GASP_SYMMETRIC_SMOOTHING,
+            }],
+        }
+    )?;
+    add_table!(
+        builder,
+        &Maxp {
+            num_glyphs,
+            max_points: Some(glyph_data.max_points.max(4)),
+            max_contours: Some(glyph_data.max_contours.max(1)),
+            max_composite_points: Some(0),
+            max_composite_contours: Some(0),
+            max_zones: Some(2),
+            max_twilight_points: Some(0),
+            max_storage: Some(0),
+            max_function_defs: Some(0),
+            max_instruction_defs: Some(0),
+            max_stack_elements: Some(0),
+            max_size_of_instructions: Some(0),
+            max_component_elements: Some(0),
+            max_component_depth: Some(0),
+        }
+    )?;
     Ok(())
 }
 
 fn add_layout_tables(
-    builder: &mut write_fonts::FontBuilder,
+    builder: &mut FontBuilder,
     glyph_data: &GlyphBuildData,
     metrics: &FontGlobalMetrics,
     ascender: i16,
@@ -565,15 +570,11 @@ fn add_layout_tables(
     post.underline_position = FWord::new(-u32_to_i16(SCALE, "underline_position scale to i16")?);
     post.underline_thickness = FWord::new(u32_to_i16(SCALE / 2, "underline_thickness to i16")?);
     post.is_fixed_pitch = 0;
-    builder
-        .add_table(&post)
-        .map_err(|e| Error::Conversion(e.to_string()))?;
+    add_table!(builder, &post)?;
 
     let cmap = Cmap::from_mappings(glyph_data.cmap_mappings.clone())
         .map_err(|e| Error::Conversion(format!("failed to build cmap: {e}")))?;
-    builder
-        .add_table(&cmap)
-        .map_err(|e| Error::Conversion(e.to_string()))?;
+    add_table!(builder, &cmap)?;
 
     let hhea = Hhea::new(
         FWord::new(ascender),
@@ -588,14 +589,11 @@ fn add_layout_tables(
         0,
         num_glyphs,
     );
-    builder
-        .add_table(&hhea)
-        .map_err(|e| Error::Conversion(e.to_string()))?;
-
-    let hmtx = Hmtx::new(build_hmtx_metrics(&glyph_data.glyph_metrics)?, vec![]);
-    builder
-        .add_table(&hmtx)
-        .map_err(|e| Error::Conversion(e.to_string()))?;
+    add_table!(builder, &hhea)?;
+    add_table!(
+        builder,
+        &Hmtx::new(build_hmtx_metrics(&glyph_data.glyph_metrics)?, vec![],)
+    )?;
     Ok(())
 }
 
@@ -712,7 +710,7 @@ pub fn build_ttf_from_fnt(fnt: &FntFile, family_name: &str) -> Result<Vec<u8>, E
     let line_height = u32::from(fnt.header.line_height.max(1));
     let baseline = baseline_from_line_height(line_height)?;
 
-    let mut builder = write_fonts::FontBuilder::new();
+    let mut builder = FontBuilder::new();
     let mut glyf_builder = GlyfLocaBuilder::new();
 
     let mut glyph_data = init_glyph_data(line_height, &mut glyf_builder)?;
@@ -753,12 +751,9 @@ pub fn build_ttf_from_fnt(fnt: &FntFile, family_name: &str) -> Result<Vec<u8>, E
         num_glyphs,
     )?;
 
-    builder
-        .add_table(&glyf)
-        .map_err(|e| Error::Conversion(e.to_string()))?;
-    builder
-        .add_table(&loca)
-        .map_err(|e| Error::Conversion(e.to_string()))?;
+    add_table!(builder, &glyf)?;
+    add_table!(builder, &loca)?;
+    builder.add_raw(Tag::new(b"DSIG"), EMPTY_DSIG.to_vec());
 
     Ok(builder.build())
 }

@@ -39,7 +39,7 @@ Each format has its own subcommand with scoped flags. `convert <FILE>` auto-dete
 | `convert cht` | `.cht` | `.json` | (none) |
 | `convert pvo` | `.pvo` | `.json` | (none) |
 
-¹ Exported TTF fonts are bitmap-traced vector outlines without hinting. They work in game engines (Unity, Godot, etc.) and can be previewed at [fontdrop.info](https://fontdrop.info), but may not render well when installed as a system font on Windows.
+¹ Exported TTF fonts are bitmap-traced vector outlines without hinting. They can be installed on Windows, used in game engines (Unity, Godot, etc.), and previewed at [fontdrop.info](https://fontdrop.info).
 
 ## Documentation
 
