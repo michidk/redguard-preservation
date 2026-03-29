@@ -1,6 +1,6 @@
 use super::{
     MpobRecord, MprpRecord, MpsRecord, MpslRecord, RaexRecord, RagrAnimGroup, RagrCommand,
-    RavcRecord, RgmFile, RgmSection, positioning, script,
+    RavcRecord, RgmFile, RgmSection, positioning,
     shared::{read_i16_le, read_i32_le, read_script_name_9},
 };
 use crate::import::soup_def::SoupDef;
@@ -714,22 +714,6 @@ pub(super) fn export_rgm_metadata_json_impl(
         RgmSection::Rahd(_, data) => Some(data.as_slice()),
         _ => None,
     });
-    let rasc_data = rgm.sections.iter().find_map(|s| match s {
-        RgmSection::Rasc(_, data) => Some(data.as_slice()),
-        _ => None,
-    });
-    let rast_data = rgm.sections.iter().find_map(|s| match s {
-        RgmSection::Rast(_, data) => Some(data.as_slice()),
-        _ => None,
-    });
-    let rasb_data = rgm.sections.iter().find_map(|s| match s {
-        RgmSection::Rasb(_, data) => Some(data.as_slice()),
-        _ => None,
-    });
-    let rava_data = rgm.sections.iter().find_map(|s| match s {
-        RgmSection::Rava(_, data) => Some(data.as_slice()),
-        _ => None,
-    });
     let ragr_data = rgm.sections.iter().find_map(|s| match s {
         RgmSection::Ragr(_, data) => Some(data.as_slice()),
         _ => None,
@@ -751,16 +735,6 @@ pub(super) fn export_rgm_metadata_json_impl(
         .and_then(|rahd| read_u32_le(rahd, 0))
         .and_then(|count| usize::try_from(count).ok())
         .unwrap_or_default();
-
-    let script_by_name: HashMap<String, script::ActorScript> =
-        match (rahd_data, rasc_data, rast_data, rasb_data, rava_data) {
-            (Some(rahd), Some(rasc), Some(rast), Some(rasb), Some(rava)) => {
-                script::disassemble_actor_scripts(rahd, rasc, rast, rasb, rava, soup_def)
-                    .into_iter()
-                    .collect()
-            }
-            _ => HashMap::new(),
-        };
 
     let mut actors = Vec::new();
     if let Some(rahd) = rahd_data
@@ -836,33 +810,6 @@ pub(super) fn export_rgm_metadata_json_impl(
                         actor.insert("raan_entries".into(), serde_json::Value::Array(entries));
                     }
                 }
-            }
-
-            if let Some(script_data) = script_by_name.get(&script_name) {
-                let instructions = script_data
-                    .instructions
-                    .iter()
-                    .map(|instruction| {
-                        serde_json::json!({
-                            "addr": instruction.addr,
-                            "indent": instruction.indent,
-                            "text": instruction.text,
-                        })
-                    })
-                    .collect::<Vec<_>>();
-                actor.insert(
-                    "script".into(),
-                    serde_json::json!({
-                        "script_length": script_data.script_length,
-                        "script_data_offset": script_data.script_data_offset,
-                        "script_pc": script_data.script_pc,
-                        "num_strings": script_data.num_strings,
-                        "num_variables": script_data.num_variables,
-                        "strings": script_data.strings,
-                        "variables": script_data.variables,
-                        "instructions": instructions,
-                    }),
-                );
             }
 
             actors.push(serde_json::Value::Object(actor));
