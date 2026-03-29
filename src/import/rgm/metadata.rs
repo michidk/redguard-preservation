@@ -1,7 +1,7 @@
 use super::{
     MpobRecord, MprpRecord, MpsRecord, MpslRecord, RaexRecord, RagrAnimGroup, RagrCommand,
     RavcRecord, RgmFile, RgmSection, positioning, script,
-    shared::{read_i32_le, read_script_name_9},
+    shared::{read_i16_le, read_i32_le, read_script_name_9},
 };
 use crate::import::soup_def::SoupDef;
 use std::collections::HashMap;
@@ -391,6 +391,321 @@ fn raw_section_to_json(name: &str, data: &[u8]) -> serde_json::Value {
     })
 }
 
+fn read_u32_le(bytes: &[u8], offset: usize) -> Option<u32> {
+    let chunk: [u8; 4] = bytes.get(offset..offset + 4)?.try_into().ok()?;
+    Some(u32::from_le_bytes(chunk))
+}
+
+fn read_u16_le(bytes: &[u8], offset: usize) -> Option<u16> {
+    let chunk: [u8; 2] = bytes.get(offset..offset + 2)?.try_into().ok()?;
+    Some(u16::from_le_bytes(chunk))
+}
+
+fn read_u8(bytes: &[u8], offset: usize) -> Option<u8> {
+    bytes.get(offset).copied()
+}
+
+fn read_i24_le_signed(bytes: &[u8], offset: usize) -> Option<i32> {
+    let b0 = i32::from(*bytes.get(offset)?);
+    let b1 = i32::from(*bytes.get(offset + 1)?) << 8;
+    let b2 = i32::from(*bytes.get(offset + 2)?) << 16;
+    let mut value = b0 | b1 | b2;
+    if (value & 0x0080_0000) != 0 {
+        value |= !0x00FF_FFFF;
+    }
+    Some(value)
+}
+
+fn read_u24_le(bytes: &[u8], offset: usize) -> Option<u32> {
+    let b0 = u32::from(*bytes.get(offset)?);
+    let b1 = u32::from(*bytes.get(offset + 1)?) << 8;
+    let b2 = u32::from(*bytes.get(offset + 2)?) << 16;
+    Some(b0 | b1 | b2)
+}
+
+fn parse_raan_entries(data: &[u8], offset: usize, count: usize) -> Vec<serde_json::Value> {
+    let mut entries = Vec::new();
+    let mut cursor = offset;
+    for _ in 0..count {
+        if cursor + 6 > data.len() {
+            break;
+        }
+
+        let Some(frame_count) = read_u8(data, cursor + 4) else {
+            break;
+        };
+        let Some(model_type) = read_u8(data, cursor + 5) else {
+            break;
+        };
+
+        let path_start = cursor + 6;
+        let Some(path_len) = data[path_start..].iter().position(|&b| b == 0) else {
+            break;
+        };
+        let path_end = path_start + path_len;
+        let file_path = String::from_utf8_lossy(&data[path_start..path_end]).to_string();
+
+        entries.push(serde_json::json!({
+            "frame_count": frame_count,
+            "model_type": model_type,
+            "file_path": file_path,
+        }));
+
+        cursor = path_end + 1;
+    }
+    entries
+}
+
+fn parse_mpf_records(data: &[u8]) -> Vec<serde_json::Value> {
+    let Some(count_u32) = read_u32_le(data, 0) else {
+        return Vec::new();
+    };
+    let count = usize::try_from(count_u32).unwrap_or_default();
+    let mut out = Vec::with_capacity(count);
+    let mut cursor = 4usize;
+
+    for _ in 0..count {
+        if cursor + 24 > data.len() {
+            break;
+        }
+
+        let Some(id) = read_u32_le(data, cursor) else {
+            break;
+        };
+        let Some(pos_x) = read_i24_le_signed(data, cursor + 8) else {
+            break;
+        };
+        let Some(pos_y) = read_i24_le_signed(data, cursor + 12) else {
+            break;
+        };
+        let Some(pos_z) = read_u24_le(data, cursor + 16) else {
+            break;
+        };
+        let Some(texture_data) = read_u16_le(data, cursor + 20) else {
+            break;
+        };
+
+        out.push(serde_json::json!({
+            "id": id,
+            "position": positioning::decode_position(pos_x, pos_y, pos_z),
+            "texture_id": texture_data >> 7,
+            "image_id": texture_data & 0x7F,
+        }));
+
+        cursor += 24;
+    }
+
+    out
+}
+
+fn parse_mpm_records(data: &[u8]) -> Vec<serde_json::Value> {
+    let Some(count_u32) = read_u32_le(data, 0) else {
+        return Vec::new();
+    };
+    let count = usize::try_from(count_u32).unwrap_or_default();
+    let mut out = Vec::with_capacity(count);
+    let mut cursor = 4usize;
+
+    for _ in 0..count {
+        if cursor + 13 > data.len() {
+            break;
+        }
+
+        let Some(pos_x) = read_i24_le_signed(data, cursor) else {
+            break;
+        };
+        let Some(pos_y) = read_i24_le_signed(data, cursor + 4) else {
+            break;
+        };
+        let Some(pos_z_signed) = read_i24_le_signed(data, cursor + 8) else {
+            break;
+        };
+        let pos_z = (pos_z_signed as u32) & 0x00FF_FFFF;
+        let reserved = read_u8(data, cursor + 12).unwrap_or_default();
+
+        out.push(serde_json::json!({
+            "position": positioning::decode_position(pos_x, pos_y, pos_z),
+            "reserved": reserved,
+        }));
+
+        cursor += 13;
+    }
+
+    out
+}
+
+fn parse_wdnm_maps(data: &[u8]) -> Vec<serde_json::Value> {
+    let Some(map_count_u32) = read_u32_le(data, 0) else {
+        return Vec::new();
+    };
+    let map_count = usize::try_from(map_count_u32).unwrap_or_default();
+    let mut maps = Vec::with_capacity(map_count);
+    let mut cursor = 4usize;
+
+    for _ in 0..map_count {
+        if cursor + 0x1C > data.len() {
+            break;
+        }
+
+        let map_start = cursor;
+        let Some(map_length_u32) = read_u32_le(data, map_start) else {
+            break;
+        };
+        let map_length = usize::try_from(map_length_u32).unwrap_or_default();
+        let Some(node_count_u32) = read_u32_le(data, map_start + 4) else {
+            break;
+        };
+        let node_count = usize::try_from(node_count_u32).unwrap_or_default();
+        let node_count_dup = read_u32_le(data, map_start + 8).unwrap_or_default();
+        let Some(map_pos_x) = read_i24_le_signed(data, map_start + 0x0C) else {
+            break;
+        };
+        let Some(map_pos_y) = read_i24_le_signed(data, map_start + 0x10) else {
+            break;
+        };
+        let Some(map_pos_z_signed) = read_i24_le_signed(data, map_start + 0x14) else {
+            break;
+        };
+        let map_pos_z = (map_pos_z_signed as u32) & 0x00FF_FFFF;
+        let radius = read_u32_le(data, map_start + 0x18).unwrap_or_default();
+
+        cursor = map_start + 0x1C;
+
+        let mut nodes = Vec::with_capacity(node_count);
+        for _ in 0..node_count {
+            if cursor + 0x0C > data.len() {
+                break;
+            }
+
+            let node_start = cursor;
+            let node_length = read_u32_le(data, node_start).unwrap_or_default();
+            let node_pos_x = read_u16_le(data, node_start + 4).unwrap_or_default();
+            let node_pos_y = read_i16_le(data, node_start + 6).unwrap_or_default();
+            let node_pos_z = read_u16_le(data, node_start + 8).unwrap_or_default();
+            let reserved = read_u8(data, node_start + 0x0A).unwrap_or_default();
+            let route_count = usize::from(read_u8(data, node_start + 0x0B).unwrap_or_default());
+
+            cursor = node_start + 0x0C;
+            let mut routes = Vec::with_capacity(route_count);
+            for _ in 0..route_count {
+                if cursor + 4 > data.len() {
+                    break;
+                }
+                let target_node_id = read_u16_le(data, cursor).unwrap_or_default();
+                let cost = read_u16_le(data, cursor + 2).unwrap_or_default();
+                routes.push(serde_json::json!({
+                    "target_node_id": target_node_id,
+                    "cost": cost,
+                }));
+                cursor += 4;
+            }
+
+            if let Ok(node_len) = usize::try_from(node_length)
+                && node_len >= 0x0C
+                && node_start + node_len <= data.len()
+                && node_start + node_len > cursor
+            {
+                cursor = node_start + node_len;
+            }
+
+            nodes.push(serde_json::json!({
+                "node_length": node_length,
+                "node_pos_x": node_pos_x,
+                "node_pos_y": node_pos_y,
+                "node_pos_z": node_pos_z,
+                "reserved": reserved,
+                "route_count": route_count,
+                "routes": routes,
+            }));
+        }
+
+        if map_length >= 0x1C
+            && map_start + map_length <= data.len()
+            && map_start + map_length > cursor
+        {
+            cursor = map_start + map_length;
+        }
+
+        maps.push(serde_json::json!({
+            "map_length": map_length_u32,
+            "node_count": node_count_u32,
+            "node_count_dup": node_count_dup,
+            "position": positioning::decode_position(map_pos_x, map_pos_y, map_pos_z),
+            "radius": radius,
+            "walk_nodes": nodes,
+        }));
+    }
+
+    maps
+}
+
+fn parse_ranm_namespace(data: &[u8]) -> Vec<String> {
+    data.split(|b| *b == 0)
+        .filter_map(|chunk| {
+            if chunk.is_empty() {
+                None
+            } else {
+                Some(String::from_utf8_lossy(chunk).to_string())
+            }
+        })
+        .collect()
+}
+
+fn parse_rafs_entries(data: &[u8]) -> Vec<serde_json::Value> {
+    if data.len() <= 10 {
+        return Vec::new();
+    }
+
+    let mut out = Vec::new();
+    let mut cursor = 0usize;
+    while cursor + 11 <= data.len() {
+        out.push(serde_json::json!({
+            "data_hex": hex_encode(&data[cursor..cursor + 11]),
+        }));
+        cursor += 11;
+    }
+    out
+}
+
+fn parse_mpsz_entries(data: &[u8], actor_count: usize) -> Vec<serde_json::Value> {
+    if data.is_empty() {
+        return Vec::new();
+    }
+
+    if actor_count == 0 {
+        return vec![serde_json::json!({
+            "index": 0,
+            "data_hex": hex_encode(data),
+        })];
+    }
+
+    let stride = data.len() / actor_count;
+    if stride == 0 {
+        return vec![serde_json::json!({
+            "index": 0,
+            "data_hex": hex_encode(data),
+        })];
+    }
+
+    let mut out = Vec::with_capacity(actor_count);
+    for i in 0..actor_count {
+        let start = i * stride;
+        if start >= data.len() {
+            break;
+        }
+        let end = if i + 1 == actor_count {
+            data.len()
+        } else {
+            (start + stride).min(data.len())
+        };
+        out.push(serde_json::json!({
+            "index": i,
+            "data_hex": hex_encode(&data[start..end]),
+        }));
+    }
+    out
+}
+
 pub(super) fn export_rgm_metadata_json_impl(
     rgm: &RgmFile,
     soup_def: Option<&SoupDef>,
@@ -419,10 +734,23 @@ pub(super) fn export_rgm_metadata_json_impl(
         RgmSection::Ragr(_, data) => Some(data.as_slice()),
         _ => None,
     });
+    let raat_data = rgm.sections.iter().find_map(|s| match s {
+        RgmSection::Raat(_, data) => Some(data.as_slice()),
+        _ => None,
+    });
+    let raan_data = rgm.sections.iter().find_map(|s| match s {
+        RgmSection::Raan(_, data) => Some(data.as_slice()),
+        _ => None,
+    });
     let raex_records = rgm.sections.iter().find_map(|s| match s {
         RgmSection::RaexParsed(_, recs) => Some(recs.as_slice()),
         _ => None,
     });
+
+    let actor_count = rahd_data
+        .and_then(|rahd| read_u32_le(rahd, 0))
+        .and_then(|count| usize::try_from(count).ok())
+        .unwrap_or_default();
 
     let script_by_name: HashMap<String, script::ActorScript> =
         match (rahd_data, rasc_data, rast_data, rasb_data, rava_data) {
@@ -474,6 +802,42 @@ pub(super) fn export_rgm_metadata_json_impl(
                 actor.insert("raex".into(), raex_to_json(&raex[i]));
             }
 
+            if let Some(raat) = raat_data {
+                let start = i.saturating_mul(256);
+                if let Some(slice) = raat.get(start..start + 256) {
+                    let mut attrs = serde_json::Map::new();
+                    for (attr_idx, value) in slice.iter().copied().enumerate() {
+                        if value == 0 {
+                            continue;
+                        }
+                        let key = soup_def
+                            .and_then(|def| def.attributes.get(attr_idx))
+                            .filter(|name| !name.is_empty())
+                            .cloned()
+                            .unwrap_or_else(|| format!("attr_{attr_idx}"));
+                        attrs.insert(key, serde_json::Value::from(value));
+                    }
+                    if !attrs.is_empty() {
+                        actor.insert("attributes".into(), serde_json::Value::Object(attrs));
+                    }
+                }
+            }
+
+            if let Some(raan) = raan_data {
+                let raan_count = read_i32_le(item, 0x21)
+                    .map(|value| usize::try_from(value.max(0)).unwrap_or_default())
+                    .unwrap_or_default();
+                let raan_offset = read_i32_le(item, 0x29)
+                    .map(|value| usize::try_from(value.max(0)).unwrap_or_default())
+                    .unwrap_or_default();
+                if raan_count > 0 {
+                    let entries = parse_raan_entries(raan, raan_offset, raan_count);
+                    if !entries.is_empty() {
+                        actor.insert("raan_entries".into(), serde_json::Value::Array(entries));
+                    }
+                }
+            }
+
             if let Some(script_data) = script_by_name.get(&script_name) {
                 let instructions = script_data
                     .instructions
@@ -510,6 +874,18 @@ pub(super) fn export_rgm_metadata_json_impl(
     let mut lights = Vec::new();
     let mut ropes = Vec::new();
     let mut collision_volumes = Vec::new();
+    let mut flat_sprites = Vec::new();
+    let mut markers = Vec::new();
+    let mut walk_node_maps = Vec::new();
+    let mut ralc_locations = Vec::new();
+    let mut rahk_hooks = Vec::new();
+    let mut ranm_namespace = Vec::new();
+    let mut rafs_entries = Vec::new();
+    let mut mpsz_entries = Vec::new();
+    let mut rast_strings = Vec::new();
+    let mut rasb_offsets = Vec::new();
+    let mut rava_variables = Vec::new();
+    let mut rasc_size = 0usize;
     let mut raw_sections = Vec::new();
 
     for section in &rgm.sections {
@@ -534,20 +910,81 @@ pub(super) fn export_rgm_metadata_json_impl(
             RgmSection::RavcParsed(_, records) => {
                 collision_volumes.extend(records.iter().map(ravc_to_json));
             }
-            RgmSection::Wdnm(_, data) => raw_sections.push(raw_section_to_json("WDNM", data)),
-            RgmSection::Rafs(_, data) => raw_sections.push(raw_section_to_json("RAFS", data)),
-            RgmSection::Rast(_, data) => raw_sections.push(raw_section_to_json("RAST", data)),
-            RgmSection::Rasb(_, data) => raw_sections.push(raw_section_to_json("RASB", data)),
-            RgmSection::Rava(_, data) => raw_sections.push(raw_section_to_json("RAVA", data)),
-            RgmSection::Rasc(_, data) => raw_sections.push(raw_section_to_json("RASC", data)),
-            RgmSection::Rahk(_, data) => raw_sections.push(raw_section_to_json("RAHK", data)),
-            RgmSection::Ralc(_, data) => raw_sections.push(raw_section_to_json("RALC", data)),
-            RgmSection::Raat(_, data) => raw_sections.push(raw_section_to_json("RAAT", data)),
-            RgmSection::Raan(_, data) => raw_sections.push(raw_section_to_json("RAAN", data)),
-            RgmSection::Ranm(_, data) => raw_sections.push(raw_section_to_json("RANM", data)),
-            RgmSection::Mpf(_, data) => raw_sections.push(raw_section_to_json("MPF ", data)),
-            RgmSection::Mpm(_, data) => raw_sections.push(raw_section_to_json("MPM ", data)),
-            RgmSection::Mpsz(_, data) => raw_sections.push(raw_section_to_json("MPSZ", data)),
+            RgmSection::Wdnm(_, data) => {
+                walk_node_maps.extend(parse_wdnm_maps(data));
+            }
+            RgmSection::Rafs(_, data) => {
+                rafs_entries.extend(parse_rafs_entries(data));
+            }
+            RgmSection::Rast(_, data) => {
+                rast_strings.extend(
+                    parse_ranm_namespace(data)
+                        .into_iter()
+                        .map(serde_json::Value::String),
+                );
+            }
+            RgmSection::Rasb(_, data) => {
+                let mut cursor = 0usize;
+                while cursor + 4 <= data.len() {
+                    if let Some(value) = read_u32_le(data, cursor) {
+                        rasb_offsets.push(serde_json::Value::from(value));
+                    }
+                    cursor += 4;
+                }
+            }
+            RgmSection::Rava(_, data) => {
+                let mut cursor = 0usize;
+                while cursor + 4 <= data.len() {
+                    rava_variables.push(serde_json::Value::from(
+                        read_i32_le(data, cursor).unwrap_or_default(),
+                    ));
+                    cursor += 4;
+                }
+            }
+            RgmSection::Rasc(_, data) => {
+                rasc_size = data.len();
+            }
+            RgmSection::Rahk(_, data) => {
+                let mut cursor = 0usize;
+                while cursor + 4 <= data.len() {
+                    if let Some(value) = read_u32_le(data, cursor) {
+                        rahk_hooks.push(serde_json::Value::from(value));
+                    }
+                    cursor += 4;
+                }
+            }
+            RgmSection::Ralc(_, data) => {
+                let mut cursor = 0usize;
+                while cursor + 12 <= data.len() {
+                    let offset_x = read_i32_le(data, cursor).unwrap_or_default();
+                    let offset_y = read_i32_le(data, cursor + 4).unwrap_or_default();
+                    let offset_z = read_i32_le(data, cursor + 8).unwrap_or_default();
+                    ralc_locations.push(serde_json::json!({
+                        "offset_x": offset_x,
+                        "offset_y": offset_y,
+                        "offset_z": offset_z,
+                    }));
+                    cursor += 12;
+                }
+            }
+            RgmSection::Raat(_, _) => {}
+            RgmSection::Raan(_, _) => {}
+            RgmSection::Ranm(_, data) => {
+                ranm_namespace.extend(
+                    parse_ranm_namespace(data)
+                        .into_iter()
+                        .map(serde_json::Value::String),
+                );
+            }
+            RgmSection::Mpf(_, data) => {
+                flat_sprites.extend(parse_mpf_records(data));
+            }
+            RgmSection::Mpm(_, data) => {
+                markers.extend(parse_mpm_records(data));
+            }
+            RgmSection::Mpsz(_, data) => {
+                mpsz_entries.extend(parse_mpsz_entries(data, actor_count));
+            }
             RgmSection::Flat(_, data) => raw_sections.push(raw_section_to_json("FLAT", data)),
             RgmSection::Raex(_, data) => raw_sections.push(raw_section_to_json("RAEX", data)),
             RgmSection::Ravc(_, data) => raw_sections.push(raw_section_to_json("RAVC", data)),
@@ -568,6 +1005,18 @@ pub(super) fn export_rgm_metadata_json_impl(
         "lights": lights,
         "ropes": ropes,
         "collision_volumes": collision_volumes,
+        "flat_sprites": flat_sprites,
+        "markers": markers,
+        "walk_node_maps": walk_node_maps,
+        "ralc_locations": ralc_locations,
+        "rahk_hooks": rahk_hooks,
+        "ranm_namespace": ranm_namespace,
+        "rafs_entries": rafs_entries,
+        "mpsz_entries": mpsz_entries,
+        "rast_strings": rast_strings,
+        "rasb_offsets": rasb_offsets,
+        "rava_variables": rava_variables,
+        "rasc_size": rasc_size,
         "raw_sections": raw_sections,
     })
 }
