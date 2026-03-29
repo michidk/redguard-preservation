@@ -30,6 +30,7 @@ pub mod rob;
 pub mod rtx;
 /// Parser for SFX sound effect files.
 pub mod sfx;
+pub mod soup_def;
 /// Parser and export helpers for WLD world files.
 pub mod wld;
 /// Parser for WORLD.INI world/level database.

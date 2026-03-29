@@ -163,6 +163,8 @@ fn handle_model_convert(args: &ModelArgs) -> Result<()> {
 fn handle_rgm_convert(args: &RgmArgs) -> Result<()> {
     let output_path = resolve_output(&args.io, FileType::Rgm);
     let asset_root = resolve_asset_root(args.assets.as_deref(), &args.io.file);
+    let soup_def = rgpre::import::soup_def::try_load_soup_def(&asset_root);
+    let rtx_labels = rgpre::import::rtx::try_load_rtx_labels(&asset_root);
 
     info!(
         "Creating registry from assets root: {}",
@@ -208,10 +210,38 @@ fn handle_rgm_convert(args: &RgmArgs) -> Result<()> {
     info!("Successfully converted to: {}", output_path.display());
 
     let json_path = output_path.with_extension("json");
-    let metadata = rgpre::import::rgm::export_rgm_metadata_json(&rgm_file);
+    let metadata = rgpre::import::rgm::export_rgm_metadata_json(&rgm_file, soup_def.as_ref());
     let json_bytes = serde_json::to_string_pretty(&metadata)?;
     std::fs::write(&json_path, json_bytes)?;
     info!("Actor metadata exported to: {}", json_path.display());
+
+    let scripts = rgpre::import::rgm::disassemble_rgm_scripts(&rgm_file, soup_def.as_ref());
+    if !scripts.is_empty() {
+        let scripts_dir = output_path.with_extension("").with_extension("scripts");
+        std::fs::create_dir_all(&scripts_dir)?;
+        let source_name = args.io.file.file_name().map_or_else(
+            || "unknown".to_string(),
+            |n| n.to_string_lossy().to_string(),
+        );
+        for (name, script) in &scripts {
+            let text = rgpre::import::rgm::script::format_soup_text(
+                name,
+                &source_name,
+                script,
+                rtx_labels.as_ref(),
+            );
+            std::fs::write(scripts_dir.join(format!("{name}.soup")), text)?;
+
+            let meta_json = rgpre::import::rgm::script::script_metadata_json(script);
+            let json_bytes = serde_json::to_string_pretty(&meta_json)?;
+            std::fs::write(scripts_dir.join(format!("{name}.json")), json_bytes)?;
+        }
+        info!(
+            "Exported {} script files to: {}",
+            scripts.len(),
+            scripts_dir.display()
+        );
+    }
 
     Ok(())
 }

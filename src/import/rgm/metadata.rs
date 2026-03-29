@@ -1,7 +1,9 @@
 use super::{
-    RaexRecord, RagrAnimGroup, RagrCommand, RgmFile, RgmSection,
+    MpobRecord, MprpRecord, MpsRecord, MpslRecord, RaexRecord, RagrAnimGroup, RagrCommand,
+    RavcRecord, RgmFile, RgmSection, positioning, script,
     shared::{read_i32_le, read_script_name_9},
 };
+use crate::import::soup_def::SoupDef;
 use std::collections::HashMap;
 
 const OPCODE_NAMES: [&str; 16] = [
@@ -299,9 +301,118 @@ fn raex_to_json(rec: &RaexRecord) -> serde_json::Value {
     })
 }
 
-pub(super) fn export_rgm_metadata_json_impl(rgm: &RgmFile) -> serde_json::Value {
+fn hex_encode(data: &[u8]) -> String {
+    data.iter().map(|b| format!("{b:02x}")).collect()
+}
+
+fn mps_to_json(record: &MpsRecord) -> serde_json::Value {
+    serde_json::json!({
+        "id": record.id,
+        "model_name": record.model_name(),
+        "pos_x": record.pos_x,
+        "pos_y": record.pos_y,
+        "pos_z": record.pos_z,
+        "position": positioning::decode_position(record.pos_x, record.pos_y, record.pos_z),
+        "rotation_matrix": record.rotation_matrix,
+        "trailing": record.trailing,
+    })
+}
+
+fn mpob_to_json(index: usize, record: &MpobRecord) -> serde_json::Value {
+    serde_json::json!({
+        "index": index,
+        "id": record.id,
+        "object_type": record.object_type,
+        "is_active": record.is_active,
+        "is_static": record.is_static,
+        "script_name": record.script_name(),
+        "model_name": record.model_name(),
+        "texture_id": record.texture_id,
+        "image_id": record.image_id,
+        "position": positioning::decode_position(record.pos_x, record.pos_y, record.pos_z),
+        "angle_x": record.angle_x,
+        "angle_y": record.angle_y,
+        "angle_z": record.angle_z,
+        "intensity": record.intensity,
+        "radius": record.radius,
+        "model_id": record.model_id,
+        "world_id": record.world_id,
+        "red": record.red,
+        "green": record.green,
+        "blue": record.blue,
+    })
+}
+
+fn mpsl_to_json(record: &MpslRecord) -> serde_json::Value {
+    serde_json::json!({
+        "color_r": record.color_r,
+        "color_g": record.color_g,
+        "color_b": record.color_b,
+        "color_flags": record.color_flags,
+        "unknown0": record.unknown0,
+        "position": positioning::decode_position(record.pos_x, record.pos_y, record.pos_z),
+        "param0": record.param0,
+        "param1": record.param1,
+        "unknown1_hex": hex_encode(&record.unknown1),
+    })
+}
+
+fn mprp_to_json(record: &MprpRecord) -> serde_json::Value {
+    serde_json::json!({
+        "id": record.id,
+        "unknown0": record.unknown0,
+        "position": positioning::decode_position(record.pos_x, record.pos_y, record.pos_z),
+        "angle_y": record.angle_y,
+        "rope_type": record.rope_type,
+        "swing": record.swing,
+        "speed": record.speed,
+        "length": record.length,
+        "static_model": record.static_model,
+        "rope_model": record.rope_model,
+        "unknown1": record.unknown1,
+    })
+}
+
+fn ravc_to_json(record: &RavcRecord) -> serde_json::Value {
+    serde_json::json!({
+        "offset_x": record.offset_x,
+        "offset_y": record.offset_y,
+        "offset_z": record.offset_z,
+        "vertex": record.vertex,
+        "radius": record.radius,
+    })
+}
+
+fn raw_section_to_json(name: &str, data: &[u8]) -> serde_json::Value {
+    serde_json::json!({
+        "name": name,
+        "size": data.len(),
+        "data_hex": hex_encode(data),
+    })
+}
+
+pub(super) fn export_rgm_metadata_json_impl(
+    rgm: &RgmFile,
+    soup_def: Option<&SoupDef>,
+) -> serde_json::Value {
     let rahd_data = rgm.sections.iter().find_map(|s| match s {
         RgmSection::Rahd(_, data) => Some(data.as_slice()),
+        _ => None,
+    });
+    let rasc_data = rgm.sections.iter().find_map(|s| match s {
+        RgmSection::Rasc(_, data) => Some(data.as_slice()),
+        _ => None,
+    });
+    let rast_data = rgm.sections.iter().find_map(|s| match s {
+        RgmSection::Rast(_, data) => Some(data.as_slice()),
+        _ => None,
+    });
+    let rasb_data = rgm.sections.iter().find_map(|s| match s {
+        RgmSection::Rasb(_, data) => Some(data.as_slice()),
+        _ => None,
+    });
+    let rava_data = rgm.sections.iter().find_map(|s| match s {
+        RgmSection::Rava(_, data) => Some(data.as_slice()),
         _ => None,
     });
     let ragr_data = rgm.sections.iter().find_map(|s| match s {
@@ -313,52 +424,150 @@ pub(super) fn export_rgm_metadata_json_impl(rgm: &RgmFile) -> serde_json::Value 
         _ => None,
     });
 
-    let Some(rahd) = rahd_data else {
-        return serde_json::json!({ "actors": [] });
-    };
-    if rahd.len() < 8 {
-        return serde_json::json!({ "actors": [] });
-    }
+    let script_by_name: HashMap<String, script::ActorScript> =
+        match (rahd_data, rasc_data, rast_data, rasb_data, rava_data) {
+            (Some(rahd), Some(rasc), Some(rast), Some(rasb), Some(rava)) => {
+                script::disassemble_actor_scripts(rahd, rasc, rast, rasb, rava, soup_def)
+                    .into_iter()
+                    .collect()
+            }
+            _ => HashMap::new(),
+        };
 
-    let count = u32::from_le_bytes([rahd[0], rahd[1], rahd[2], rahd[3]]) as usize;
     let mut actors = Vec::new();
-    for i in 0..count {
-        let rec_off = 8 + i * RAHD_ITEM_SIZE;
-        if rec_off + RAHD_ITEM_SIZE > rahd.len() {
-            break;
-        }
-        let item = &rahd[rec_off..rec_off + RAHD_ITEM_SIZE];
+    if let Some(rahd) = rahd_data
+        && rahd.len() >= 8
+    {
+        let count = u32::from_le_bytes([rahd[0], rahd[1], rahd[2], rahd[3]]) as usize;
+        for i in 0..count {
+            let rec_off = 8 + i * RAHD_ITEM_SIZE;
+            if rec_off + RAHD_ITEM_SIZE > rahd.len() {
+                break;
+            }
+            let item = &rahd[rec_off..rec_off + RAHD_ITEM_SIZE];
 
-        let script_name = read_script_name_9(item, 4).unwrap_or_default();
-        if script_name.is_empty() {
-            continue;
-        }
+            let script_name = read_script_name_9(item, 4).unwrap_or_default();
+            if script_name.is_empty() {
+                continue;
+            }
 
-        let ragr_offset = read_i32_le(item, 0x31).unwrap_or(-1);
-        let mut actor = serde_json::Map::new();
-        actor.insert("index".into(), i.into());
-        actor.insert("script_name".into(), script_name.clone().into());
+            let ragr_offset = read_i32_le(item, 0x31).unwrap_or(-1);
+            let mut actor = serde_json::Map::new();
+            actor.insert("index".into(), i.into());
+            actor.insert("script_name".into(), script_name.clone().into());
 
-        if let Some(ragr) = ragr_data
-            && let Ok(ragr_offset) = usize::try_from(ragr_offset)
-        {
-            let groups = parse_ragr_actor_groups_impl(ragr, ragr_offset);
-            if !groups.is_empty() {
+            if let Some(ragr) = ragr_data
+                && let Ok(ragr_offset) = usize::try_from(ragr_offset)
+            {
+                let groups = parse_ragr_actor_groups_impl(ragr, ragr_offset);
+                if !groups.is_empty() {
+                    actor.insert(
+                        "animation_groups".into(),
+                        groups.iter().map(group_to_json).collect::<Vec<_>>().into(),
+                    );
+                }
+            }
+
+            if let Some(raex) = raex_records
+                && i < raex.len()
+            {
+                actor.insert("raex".into(), raex_to_json(&raex[i]));
+            }
+
+            if let Some(script_data) = script_by_name.get(&script_name) {
+                let instructions = script_data
+                    .instructions
+                    .iter()
+                    .map(|instruction| {
+                        serde_json::json!({
+                            "addr": instruction.addr,
+                            "indent": instruction.indent,
+                            "text": instruction.text,
+                        })
+                    })
+                    .collect::<Vec<_>>();
                 actor.insert(
-                    "animation_groups".into(),
-                    groups.iter().map(group_to_json).collect::<Vec<_>>().into(),
+                    "script".into(),
+                    serde_json::json!({
+                        "script_length": script_data.script_length,
+                        "script_data_offset": script_data.script_data_offset,
+                        "script_pc": script_data.script_pc,
+                        "num_strings": script_data.num_strings,
+                        "num_variables": script_data.num_variables,
+                        "strings": script_data.strings,
+                        "variables": script_data.variables,
+                        "instructions": instructions,
+                    }),
                 );
             }
-        }
 
-        if let Some(raex) = raex_records
-            && i < raex.len()
-        {
-            actor.insert("raex".into(), raex_to_json(&raex[i]));
+            actors.push(serde_json::Value::Object(actor));
         }
-
-        actors.push(serde_json::Value::Object(actor));
     }
 
-    serde_json::json!({ "actors": actors })
+    let mut mps_placements = Vec::new();
+    let mut mpob_objects = Vec::new();
+    let mut lights = Vec::new();
+    let mut ropes = Vec::new();
+    let mut collision_volumes = Vec::new();
+    let mut raw_sections = Vec::new();
+
+    for section in &rgm.sections {
+        match section {
+            RgmSection::Mps(_, records) => {
+                mps_placements.extend(records.iter().map(mps_to_json));
+            }
+            RgmSection::MpobParsed(_, records) => {
+                mpob_objects.extend(
+                    records
+                        .iter()
+                        .enumerate()
+                        .map(|(index, record)| mpob_to_json(index, record)),
+                );
+            }
+            RgmSection::MplParsed(_, records) => {
+                lights.extend(records.iter().map(mpsl_to_json));
+            }
+            RgmSection::MprpParsed(_, records) => {
+                ropes.extend(records.iter().map(mprp_to_json));
+            }
+            RgmSection::RavcParsed(_, records) => {
+                collision_volumes.extend(records.iter().map(ravc_to_json));
+            }
+            RgmSection::Wdnm(_, data) => raw_sections.push(raw_section_to_json("WDNM", data)),
+            RgmSection::Rafs(_, data) => raw_sections.push(raw_section_to_json("RAFS", data)),
+            RgmSection::Rast(_, data) => raw_sections.push(raw_section_to_json("RAST", data)),
+            RgmSection::Rasb(_, data) => raw_sections.push(raw_section_to_json("RASB", data)),
+            RgmSection::Rava(_, data) => raw_sections.push(raw_section_to_json("RAVA", data)),
+            RgmSection::Rasc(_, data) => raw_sections.push(raw_section_to_json("RASC", data)),
+            RgmSection::Rahk(_, data) => raw_sections.push(raw_section_to_json("RAHK", data)),
+            RgmSection::Ralc(_, data) => raw_sections.push(raw_section_to_json("RALC", data)),
+            RgmSection::Raat(_, data) => raw_sections.push(raw_section_to_json("RAAT", data)),
+            RgmSection::Raan(_, data) => raw_sections.push(raw_section_to_json("RAAN", data)),
+            RgmSection::Ranm(_, data) => raw_sections.push(raw_section_to_json("RANM", data)),
+            RgmSection::Mpf(_, data) => raw_sections.push(raw_section_to_json("MPF ", data)),
+            RgmSection::Mpm(_, data) => raw_sections.push(raw_section_to_json("MPM ", data)),
+            RgmSection::Mpsz(_, data) => raw_sections.push(raw_section_to_json("MPSZ", data)),
+            RgmSection::Flat(_, data) => raw_sections.push(raw_section_to_json("FLAT", data)),
+            RgmSection::Raex(_, data) => raw_sections.push(raw_section_to_json("RAEX", data)),
+            RgmSection::Ravc(_, data) => raw_sections.push(raw_section_to_json("RAVC", data)),
+            RgmSection::Mpob(_, data) => raw_sections.push(raw_section_to_json("MPOB", data)),
+            RgmSection::Mprp(_, data) => raw_sections.push(raw_section_to_json("MPRP", data)),
+            RgmSection::Mpl(_, data) => raw_sections.push(raw_section_to_json("MPL ", data)),
+            RgmSection::Rahd(_, _)
+            | RgmSection::Ragr(_, _)
+            | RgmSection::RaexParsed(_, _)
+            | RgmSection::End(_) => {}
+        }
+    }
+
+    serde_json::json!({
+        "actors": actors,
+        "mps_placements": mps_placements,
+        "mpob_objects": mpob_objects,
+        "lights": lights,
+        "ropes": ropes,
+        "collision_volumes": collision_volumes,
+        "raw_sections": raw_sections,
+    })
 }

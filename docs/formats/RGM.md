@@ -515,6 +515,10 @@ All fields little-endian.
 
 Position decode uses the same MPOB scale/sign rules. MPSF items are flat quads with zero rotation.
 
+## FLAT
+
+`FLAT` appears in all 27 shipped RGM files as the last section before `END `. Fixed size: 1111 bytes in 26 files, 1108 in `HIDEOUT.RGM`. Mostly zero-filled with sparse non-zero values concentrated in two regions: small integer indices (0–4) at offsets 92–156 and 580–988, and a dense 87-byte block at offset 1024+ containing packed byte triplets. Internal structure is not decoded. Distinct from `MPSF` (flat billboard objects), which has its own section tag and parsed record format.
+
 ## External References
 
 - [UESP: Mod:RGM File Format](https://en.uesp.net/wiki/Mod:RGM_File_Format)

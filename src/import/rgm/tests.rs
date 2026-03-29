@@ -116,7 +116,7 @@ fn island_rgm_json_export_contains_cyrus_attachment() {
     }
     let data = std::fs::read(path).unwrap();
     let rgm = super::parse_rgm_file(&data).unwrap();
-    let json = super::export_rgm_metadata_json(&rgm);
+    let json = super::export_rgm_metadata_json(&rgm, None);
 
     let actors = json["actors"].as_array().unwrap();
     assert!(!actors.is_empty());

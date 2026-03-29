@@ -76,7 +76,7 @@ fn handle_wld_glb_convert(args: &WldArgs, output_path: &Path) -> Result<()> {
         );
 
         let json_path = output_path.with_extension("json");
-        let metadata = rgpre::import::rgm::export_rgm_metadata_json(&rgm_parsed);
+        let metadata = rgpre::import::rgm::export_rgm_metadata_json(&rgm_parsed, None);
         let json_bytes = serde_json::to_string_pretty(&metadata)?;
         super::ensure_parent_dir(&json_path)?;
         std::fs::write(&json_path, &json_bytes)?;

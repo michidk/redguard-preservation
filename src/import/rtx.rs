@@ -288,6 +288,48 @@ impl RtxFile {
     pub fn text_count(&self) -> usize {
         self.entries.iter().filter(|e| !e.is_audio()).count()
     }
+
+    #[must_use]
+    pub fn build_label_map(&self) -> std::collections::HashMap<String, String> {
+        let mut map = std::collections::HashMap::new();
+        for entry in &self.entries {
+            match entry {
+                RtxEntry::Audio { tag, label, .. } => {
+                    let key = String::from_utf8_lossy(tag).to_string();
+                    if !label.is_empty() {
+                        map.insert(key, label.clone());
+                    }
+                }
+                RtxEntry::Text { tag, text } => {
+                    let key = String::from_utf8_lossy(tag).to_string();
+                    if !text.is_empty() {
+                        map.insert(key, text.clone());
+                    }
+                }
+            }
+        }
+        map
+    }
+}
+
+pub fn try_load_rtx_labels(
+    asset_root: &std::path::Path,
+) -> Option<std::collections::HashMap<String, String>> {
+    let entries = std::fs::read_dir(asset_root).ok()?;
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if path.is_file()
+            && path
+                .file_name()
+                .and_then(|n| n.to_str())
+                .is_some_and(|n| n.eq_ignore_ascii_case("ENGLISH.RTX"))
+        {
+            let data = std::fs::read(&path).ok()?;
+            let rtx = parse_rtx_file(&data).ok()?;
+            return Some(rtx.build_label_map());
+        }
+    }
+    None
 }
 
 impl RtxAudioHeader {

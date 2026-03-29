@@ -302,14 +302,6 @@ Flag categories span narrative progression (acts 1–8, for example `After_Catac
 
 See [RGM.md](../formats/RGM.md) for record-level layouts and offsets.
 
-## Open Questions
-
-- `TaskPause` (`0x1B`) semantics are not fully understood — the RGUnity implementation is a stub ("TODO: do the pause somehow; also whats the taskval?").
-- `ScriptRV` (`0x1E`) branches on a script return value whose source is unknown — RGUnity comment: "TODO: where does the return val come from?"
-- The `Anchor` opcode (`0x17`) has an encoding discrepancy between the disassembler (reads `0x17` then a byte) and assembler (writes the anchor value directly as the opcode byte).
-- The operator byte consumed after flag/variable reads in LHS/RHS mode has unclear effect — RGUnity marks it "TODO: does this operator do anything?"
-- Some SOUP API surface does not appear in shipped `RGM` scripts; usage may be limited to `.AI` flows that were available during development but not included in the final release.
-
 ## External References
 
 - [UESP `Mod:RGM File Format`](https://en.uesp.net/wiki/Mod:RGM_File_Format)

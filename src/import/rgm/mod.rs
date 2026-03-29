@@ -1,5 +1,6 @@
 //! RGM file structures and parsing.
 pub mod parser;
+pub mod script;
 
 mod metadata;
 mod positioning;
@@ -223,51 +224,57 @@ pub fn parse_rgm_with_models(
 }
 
 #[must_use]
-pub fn export_rgm_metadata_json(rgm: &RgmFile) -> serde_json::Value {
-    metadata::export_rgm_metadata_json_impl(rgm)
+pub fn export_rgm_metadata_json(
+    rgm: &RgmFile,
+    soup_def: Option<&crate::import::soup_def::SoupDef>,
+) -> serde_json::Value {
+    metadata::export_rgm_metadata_json_impl(rgm, soup_def)
 }
 
 #[allow(clippy::missing_errors_doc)]
-pub fn export_rgm_runtime_metadata_json(input: &[u8]) -> Result<serde_json::Value> {
+pub fn export_rgm_runtime_metadata_json(
+    input: &[u8],
+    soup_def: Option<&crate::import::soup_def::SoupDef>,
+) -> Result<serde_json::Value> {
     let rgm_file = parse_rgm_file(input)?;
+    Ok(export_rgm_metadata_json(&rgm_file, soup_def))
+}
 
-    let mut root = match export_rgm_metadata_json(&rgm_file) {
-        serde_json::Value::Object(map) => map,
-        _ => serde_json::Map::new(),
-    };
+#[must_use]
+pub fn disassemble_rgm_scripts(
+    rgm: &RgmFile,
+    soup_def: Option<&crate::import::soup_def::SoupDef>,
+) -> Vec<(String, script::ActorScript)> {
+    let rahd_data = rgm.sections.iter().find_map(|s| match s {
+        RgmSection::Rahd(_, data) => Some(data.as_slice()),
+        _ => None,
+    });
+    let rasc_data = rgm.sections.iter().find_map(|s| match s {
+        RgmSection::Rasc(_, data) => Some(data.as_slice()),
+        _ => None,
+    });
+    let rast_data = rgm.sections.iter().find_map(|s| match s {
+        RgmSection::Rast(_, data) => Some(data.as_slice()),
+        _ => None,
+    });
+    let rasb_data = rgm.sections.iter().find_map(|s| match s {
+        RgmSection::Rasb(_, data) => Some(data.as_slice()),
+        _ => None,
+    });
+    let rava_data = rgm.sections.iter().find_map(|s| match s {
+        RgmSection::Rava(_, data) => Some(data.as_slice()),
+        _ => None,
+    });
 
-    let mut mpob_objects = Vec::new();
-    for section in &rgm_file.sections {
-        if let RgmSection::MpobParsed(_, records) = section {
-            for (index, record) in records.iter().enumerate() {
-                let position =
-                    positioning::decode_position(record.pos_x, record.pos_y, record.pos_z);
-                mpob_objects.push(serde_json::json!({
-                    "index": index,
-                    "id": record.id,
-                    "object_type": record.object_type,
-                    "is_active": record.is_active,
-                    "is_static": record.is_static,
-                    "script_name": record.script_name(),
-                    "model_name": record.model_name(),
-                    "texture_id": record.texture_id,
-                    "image_id": record.image_id,
-                    "position": position,
-                    "angle_x": record.angle_x,
-                    "angle_y": record.angle_y,
-                    "angle_z": record.angle_z,
-                    "model_id": record.model_id,
-                    "world_id": record.world_id,
-                }));
-            }
-        }
-    }
-
-    root.insert(
-        "mpob_objects".into(),
-        serde_json::Value::Array(mpob_objects),
-    );
-    Ok(serde_json::Value::Object(root))
+    let empty: &[u8] = &[];
+    script::disassemble_actor_scripts(
+        rahd_data.unwrap_or(empty),
+        rasc_data.unwrap_or(empty),
+        rast_data.unwrap_or(empty),
+        rasb_data.unwrap_or(empty),
+        rava_data.unwrap_or(empty),
+        soup_def,
+    )
 }
 
 #[allow(clippy::missing_errors_doc)] // Public wrapper extracts placements without loading models.
