@@ -491,7 +491,7 @@ At load time, the engine bulk-copies the raw MPSZ bytes to a runtime buffer (sce
 | +0x10 | 4 | `ptr` | rahk_offset | From RAHD +0x5D |
 | +0x14 | 2 | `i16` | instances_minus_1 | From RAHD +0x0D (instances − 1) |
 
-The MPSZ file data is stored for save/restore operations — the meaningful per-actor fields it represents are already present in RAHD. File-level record sizes vary across maps (7–37 bytes per actor, total 245–7056 bytes). Present in all 27 shipped RGM files.
+The MPSZ file data is preserved at runtime but its per-field usage beyond the loader has not been traced. The meaningful per-actor fields it parallels are already present in RAHD. File-level record sizes vary across maps (7–37 bytes per actor, total 245–7056 bytes). Present in all 27 shipped RGM files.
 
 ## MPSF (Flat Objects)
 
