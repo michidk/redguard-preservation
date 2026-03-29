@@ -50,14 +50,45 @@ Sections are chunked and can appear in this observed order:
 | 0x00 | 2 | `i16` | unknown_00 | Unknown frame field. |
 | 0x02 | 2 | `i16` | width | Frame width in pixels. |
 | 0x04 | 2 | `i16` | height | Frame height in pixels. |
-| 0x06 | 12 | `[u8; 12]` | unknown_06 | Six unknown `i16` values. |
-| 0x12 | `width*height` | `[u8; N]` | pixels | Indexed-color pixel data. |
+| 0x06 | 4 | `[i16; 2]` | unknown_06 | Two unknown frame fields. |
+| 0x0A | 2 | `i16` | compression | Compression type (`0` = raw, `1` = RLE, `2` = LZHUF). |
+| 0x0C | 6 | `[i16; 3]` | unknown_0c | Three unknown frame fields. |
 
 ### Pixel Decode Rules
 
 - Palette index `0` is transparent (`RGBA = 0,0,0,0`).
 - Non-zero indices map to `BPAL` RGB and use alpha `255`.
 - Stored rows are vertically flipped in shipped assets; decoders flip Y during RGBA expansion.
+
+### Compression Type 0 - Raw
+
+Pixel data is `width * height` uncompressed bytes starting at offset `0x12`.
+
+### Compression Type 1 - RLE
+
+| Offset | Size | Type | Name | Description |
+|---|---:|---|---|---|
+| 0x12 | 4 | `u32` | compressed_size | Size of RLE-compressed pixel data. |
+| 0x16 | compressed_size | `[u8; N]` | compressed_data | RLE-encoded pixel stream. |
+
+RLE control byte behavior:
+
+- `0x80..=0xFF`: repeat the next byte `(ctrl & 0x7F) + 1` times.
+- `0x00..=0x7F`: copy the next `ctrl + 1` literal bytes.
+
+### Compression Type 2 - LZHUF
+
+| Offset | Size | Type | Name | Description |
+|---|---:|---|---|---|
+| 0x12 | 4 | `u32` | compressed_size | Size of LZHUF-compressed pixel data. |
+| 0x16 | 4 | `u32` | uncompressed_size | Expected decompressed size (`width * height`). |
+| 0x1A | compressed_size | `[u8; N]` | compressed_data | LZHUF bitstream (Okumura LZSS + adaptive Huffman, 4 KB window). |
+
+LZHUF uses a 4096-byte sliding window initialized to `0x20`, with adaptive Huffman coding for both character and position codes. This matches the classic Okumura `lzhuf.c` algorithm, equivalent to LHA method `lh1`.
+
+### Section Length Quirk
+
+Some files store BBMP `data_length_be` as `file_size - 4` instead of the actual BBMP payload size. Parsers should clamp the BBMP section length to available data.
 
 ## External References
 

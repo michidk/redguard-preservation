@@ -1,4 +1,4 @@
-use crate::{error::Error, Result};
+use crate::{Result, error::Error};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 /// Encoded audio channel/bit-depth layout for an SFX effect.

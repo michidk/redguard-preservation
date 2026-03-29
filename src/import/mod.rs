@@ -14,10 +14,10 @@ pub mod gxa;
 pub mod model3d;
 /// Parser for COL palette files.
 pub mod palette;
-/// Shared PNG save helper with compression control.
-pub mod png;
 /// Export helpers for COL palette assets.
 pub mod palette_export;
+/// Shared PNG save helper with compression control.
+pub mod png;
 /// Parser for PVO octree collision files.
 pub mod pvo;
 /// Asset registry and directory scanning helpers.
