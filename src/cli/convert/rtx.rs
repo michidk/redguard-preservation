@@ -125,7 +125,7 @@ pub(crate) fn handle_rtx_convert(args: &ConvertArgs, output_path: &Path) -> Resu
 
                     if header.audio_type.bits_per_sample() == 8 {
                         for &sample in pcm_data {
-                            writer.write_sample(sample.cast_signed())?;
+                            writer.write_sample((sample as i16 - 128) as i8)?;
                         }
                     } else {
                         debug_assert!(
