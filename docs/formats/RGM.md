@@ -478,21 +478,20 @@ Position fields use the same i24+pad encoding as MPOB/MPSO. No explicit record I
 
 ## MPSZ (Sizes)
 
-MPSZ contains per-actor state data. Unlike other MP* sections, MPSZ does NOT use the standard count-prefixed layout — the first u32 is data, not a record count.
+MPSZ contains per-actor persistent state data. Unlike other MP* sections, MPSZ does NOT use the standard count-prefixed layout — the first u32 is data, not a record count.
 
-The engine allocates `actor_count × 0x1A` (26) bytes at runtime and builds a **linked list** of 26-byte records. Each record is populated from RAHD fields during loading.
+At load time, the engine bulk-copies the raw MPSZ bytes to a runtime buffer (scene structure offset +0x7C) but does **not** parse them field-by-field. Instead, it allocates a separate `actor_count × 0x1A` (26) byte linked list and populates it entirely from RAHD fields:
 
 | Offset | Size | Type | Name | Description |
 |---|---|---|---|---|
 | +0x00 | 4 | `ptr` | next | Next record in linked list (0 = last) |
-| +0x04 | 4 | `ptr` | actor_ptr | Pointer to actor object (from RAHD) |
-| +0x08 | 4 | `u32` | field_08 | From RAHD +0x51 |
-| +0x0C | 4 | `ptr` | resource_0 | Allocated resource pointer |
-| +0x10 | 4 | `ptr` | resource_1 | Allocated resource pointer |
-| +0x14 | 4 | `ptr` | resource_2 | Allocated resource pointer |
-| +0x18 | 2 | `i16` | field_18 | From RAHD +0x0D (instances - 1) |
+| +0x04 | 4 | `ptr` | actor_ptr | Pointer to RAHD record + 4 |
+| +0x08 | 4 | `u32` | script_data_offset | From RAHD +0x51 |
+| +0x0C | 4 | `ptr` | resource_0 | Allocated at runtime |
+| +0x10 | 4 | `ptr` | rahk_offset | From RAHD +0x5D |
+| +0x14 | 2 | `i16` | instances_minus_1 | From RAHD +0x0D (instances − 1) |
 
-File-level record sizes vary across maps (7–26+ bytes per actor). The file-to-runtime unpacking involves conditional rebasing from RAHD fields. Present in all 27 shipped RGM files (245–7056 bytes).
+The MPSZ file data is stored for save/restore operations — the meaningful per-actor fields it represents are already present in RAHD. File-level record sizes vary across maps (7–37 bytes per actor, total 245–7056 bytes). Present in all 27 shipped RGM files.
 
 ## MPSF (Flat Objects)
 
