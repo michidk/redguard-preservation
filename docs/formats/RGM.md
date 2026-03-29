@@ -476,22 +476,29 @@ All fields little-endian.
 
 Position fields use the same i24+pad encoding as MPOB/MPSO. No explicit record ID field. The engine branches on marker type (byte +0x04 in runtime struct) with values 0x02 and 0x06 triggering distinct paths.
 
-## MPSZ (Sizes)
+## MPSZ (Actor Instance Registry)
 
-MPSZ contains per-actor persistent state data. Unlike other MP* sections, MPSZ does NOT use the standard count-prefixed layout — the first u32 is data, not a record count.
+MPSZ provides initial data for the runtime actor instance registry. Unlike other MP* sections, MPSZ does NOT use the standard count-prefixed layout — the first u32 is data, not a record count.
 
-At load time, the engine bulk-copies the raw MPSZ bytes to a runtime buffer (scene structure offset +0x7C) but does **not** parse them field-by-field. Instead, it allocates a separate `actor_count × 0x1A` (26) byte linked list and populates it entirely from RAHD fields:
+At load time, the engine bulk-copies the raw MPSZ bytes to a runtime buffer (scene structure offset +0x7C) and allocates a separate `actor_count × 0x1A` (26) byte linked list populated from RAHD fields. This linked list serves as an **actor instance registry** used by three runtime operations:
+
+1. **Lookup by name** — walks the list to find an actor by name, increments instance counter on match (used when spawning actors)
+2. **Lookup by script offset** — reverse lookup: finds the actor name for a given `script_data_offset` (used to identify which actor owns a script block)
+3. **Dynamic creation** — allocates new 26-byte nodes for actors spawned at runtime (not from RAHD)
+
+### Runtime Record (26 bytes)
 
 | Offset | Size | Type | Name | Description |
 |---|---|---|---|---|
 | +0x00 | 4 | `ptr` | next | Next record in linked list (0 = last) |
-| +0x04 | 4 | `ptr` | actor_ptr | Pointer to RAHD record + 4 |
+| +0x04 | 4 | `ptr` | actor_name | Pointer to actor name string (from RAHD +0x04, or dynamically allocated) |
 | +0x08 | 4 | `u32` | script_data_offset | From RAHD +0x51 |
-| +0x0C | 4 | `ptr` | resource_0 | Allocated at runtime |
-| +0x10 | 4 | `ptr` | rahk_offset | From RAHD +0x5D |
-| +0x14 | 2 | `i16` | instances_minus_1 | From RAHD +0x0D (instances − 1) |
+| +0x0C | 4 | — | reserved | Zeroed during load, used for runtime resources |
+| +0x10 | 4 | `u32` | rahk_offset | From RAHD +0x5D |
+| +0x14 | 2 | `i16` | instance_count | From RAHD +0x0D (instances − 1); incremented on each lookup-by-name |
+| +0x16 | 4 | `i32` | sequential_id | Assigned from a global counter during creation |
 
-The MPSZ file data is preserved at runtime but its per-field usage beyond the loader has not been traced. The meaningful per-actor fields it parallels are already present in RAHD. File-level record sizes vary across maps (7–37 bytes per actor, total 245–7056 bytes). Present in all 27 shipped RGM files.
+The MPSZ file data is preserved at runtime but its per-field file-level format has not been fully traced — the runtime linked list is populated entirely from RAHD fields, not from MPSZ bytes. File-level sizes vary across maps (7–37 bytes per actor, total 245–7056 bytes). Present in all 27 shipped RGM files.
 
 ## MPSF (Flat Objects)
 
