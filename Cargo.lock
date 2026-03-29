@@ -719,7 +719,7 @@ dependencies = [
 
 [[package]]
 name = "redguard-preservation"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "bytemuck",
  "clap",
