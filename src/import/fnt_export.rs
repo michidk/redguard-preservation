@@ -352,23 +352,3 @@ pub fn export_fnt_bitmap(
         bmfont_path,
     })
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use std::path::Path;
-
-    #[test]
-    #[ignore = "manual local fixture export"]
-    fn manual_export_redsel_ttf_to_out() {
-        let input = Path::new("fonts/REDSEL.FNT");
-        let output = Path::new("out/REDSEL.ttf");
-        assert!(
-            input.exists(),
-            "expected sample font at {}",
-            input.display()
-        );
-        export_fnt_ttf(input, output).expect("manual REDSEL export should succeed");
-        assert!(output.exists(), "expected output at {}", output.display());
-    }
-}
