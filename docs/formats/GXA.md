@@ -27,6 +27,8 @@ Sections are chunked and can appear in this observed order:
 
 ## BMHD Section
 
+All shipped files use the title `GXlib image conversion`.
+
 | Offset | Size | Type | Name | Description |
 |---|---:|---|---|---|
 | 0x00 | 22 | `[u8; 22]` | title | Null-terminated title/label. |
@@ -37,11 +39,11 @@ Sections are chunked and can appear in this observed order:
 
 | Offset | Size | Type | Name | Description |
 |---|---:|---|---|---|
-| 0x00 | 768 | `[u8; 768]` | colors | 256 palette entries, each RGB triplet (`r,g,b`). |
+| 0x00 | 768 | `[u8; 768]` | colors | 256 palette entries, each RGB triplet (`r,g,b`). Values are 6-bit VGA (0–63); shift left by 2 for 8-bit RGB. |
 
 ## BBMP Section
 
-`BBMP` stores `num_images` frame records back-to-back.
+`BBMP` stores `num_images` frame records back-to-back. The GOG release contains 65 GXA files with 450 total frames: 320 raw, 128 RLE-compressed, 2 LZHUF-compressed.
 
 ### Frame Record Header
 
@@ -57,8 +59,8 @@ Sections are chunked and can appear in this observed order:
 ### Pixel Decode Rules
 
 - Palette index `0` is transparent (`RGBA = 0,0,0,0`).
-- Non-zero indices map to `BPAL` RGB and use alpha `255`.
-- Stored rows are vertically flipped in shipped assets; decoders flip Y during RGBA expansion.
+- Non-zero indices map to `BPAL` RGB (after 6-bit → 8-bit expansion) and use alpha `255`.
+- Rows are stored top-to-bottom (no Y-flip needed).
 
 ### Compression Type 0 - Raw
 

@@ -114,18 +114,14 @@ fn decode_frame_rgba(
     }
 
     let mut rgba = vec![0u8; pixel_count * 4];
-    for y in 1..=height {
-        for x in 0..width {
-            let src = x + (y - 1) * width;
-            let dst = x + (height - y) * width;
-            let idx = usize::from(pixels[src]);
-            let o = dst * 4;
-            if idx == 0 {
-                rgba[o..o + 4].copy_from_slice(&[0, 0, 0, 0]);
-            } else {
-                let c = palette[idx];
-                rgba[o..o + 4].copy_from_slice(&[c[0], c[1], c[2], 255]);
-            }
+    for (i, &px) in pixels[..pixel_count].iter().enumerate() {
+        let idx = usize::from(px);
+        let o = i * 4;
+        if idx == 0 {
+            rgba[o..o + 4].copy_from_slice(&[0, 0, 0, 0]);
+        } else {
+            let c = palette[idx];
+            rgba[o..o + 4].copy_from_slice(&[c[0], c[1], c[2], 255]);
         }
     }
 
@@ -477,9 +473,14 @@ pub fn parse_gxa_file(data: &[u8]) -> Result<GxaFile> {
                         section.len()
                     )));
                 }
+                // BPAL stores 6-bit VGA values (0–63); shift left by 2 for 8-bit RGB
                 for (i, color) in palette.iter_mut().enumerate() {
                     let off = i * 3;
-                    *color = [section[off], section[off + 1], section[off + 2]];
+                    *color = [
+                        section[off] << 2,
+                        section[off + 1] << 2,
+                        section[off + 2] << 2,
+                    ];
                 }
                 has_palette = true;
             }
