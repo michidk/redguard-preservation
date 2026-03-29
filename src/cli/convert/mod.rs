@@ -254,13 +254,7 @@ fn handle_rgm_convert(args: &RgmArgs) -> Result<()> {
         )?;
         write_json(
             "tables.json",
-            &pick(&[
-                "rahk_hooks",
-                "ranm_namespace",
-                "mpsz_entries",
-                "rafs_entries",
-                "raw_sections",
-            ]),
+            &pick(&["mpsz_entries", "rafs_entries", "raw_sections"]),
         )?;
     }
     info!("Exported metadata to: {}", out_dir.display());

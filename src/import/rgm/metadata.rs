@@ -639,18 +639,6 @@ fn parse_wdnm_maps(data: &[u8]) -> Vec<serde_json::Value> {
     maps
 }
 
-fn parse_ranm_namespace(data: &[u8]) -> Vec<String> {
-    data.split(|b| *b == 0)
-        .filter_map(|chunk| {
-            if chunk.is_empty() {
-                None
-            } else {
-                Some(String::from_utf8_lossy(chunk).to_string())
-            }
-        })
-        .collect()
-}
-
 fn parse_rafs_entries(data: &[u8]) -> Vec<serde_json::Value> {
     if data.len() <= 10 {
         return Vec::new();
@@ -724,6 +712,14 @@ pub(super) fn export_rgm_metadata_json_impl(
     });
     let raan_data = rgm.sections.iter().find_map(|s| match s {
         RgmSection::Raan(_, data) => Some(data.as_slice()),
+        _ => None,
+    });
+    let rahk_data = rgm.sections.iter().find_map(|s| match s {
+        RgmSection::Rahk(_, data) => Some(data.as_slice()),
+        _ => None,
+    });
+    let ranm_data = rgm.sections.iter().find_map(|s| match s {
+        RgmSection::Ranm(_, data) => Some(data.as_slice()),
         _ => None,
     });
     let raex_records = rgm.sections.iter().find_map(|s| match s {
@@ -812,6 +808,42 @@ pub(super) fn export_rgm_metadata_json_impl(
                 }
             }
 
+            if let Some(rahk) = rahk_data {
+                let rahk_offset = read_i32_le(item, 0x5D)
+                    .map(|v| usize::try_from(v.max(0)).unwrap_or_default())
+                    .unwrap_or_default();
+                if rahk_offset > 0 && rahk_offset < rahk.len() {
+                    let mut hooks = Vec::new();
+                    let mut cursor = rahk_offset;
+                    while cursor + 4 <= rahk.len() {
+                        let val = read_u32_le(rahk, cursor).unwrap_or_default();
+                        if val == 0 && cursor > rahk_offset {
+                            break;
+                        }
+                        hooks.push(serde_json::Value::from(val));
+                        cursor += 4;
+                    }
+                    if !hooks.is_empty() {
+                        actor.insert("rahk_hooks".into(), serde_json::Value::Array(hooks));
+                    }
+                }
+            }
+
+            if let Some(ranm) = ranm_data {
+                let ranm_offset = read_i32_le(item, 0x19)
+                    .map(|v| usize::try_from(v.max(0)).unwrap_or_default())
+                    .unwrap_or_default();
+                if ranm_offset < ranm.len()
+                    && let Some(end) = ranm[ranm_offset..].iter().position(|&b| b == 0)
+                {
+                    let s =
+                        String::from_utf8_lossy(&ranm[ranm_offset..ranm_offset + end]).to_string();
+                    if !s.is_empty() {
+                        actor.insert("ranm_name".into(), serde_json::Value::String(s));
+                    }
+                }
+            }
+
             actors.push(serde_json::Value::Object(actor));
         }
     }
@@ -825,8 +857,6 @@ pub(super) fn export_rgm_metadata_json_impl(
     let mut markers = Vec::new();
     let mut walk_node_maps = Vec::new();
     let mut ralc_locations = Vec::new();
-    let mut rahk_hooks = Vec::new();
-    let mut ranm_namespace = Vec::new();
     let mut rafs_entries = Vec::new();
     let mut mpsz_entries = Vec::new();
     let mut raw_sections = Vec::new();
@@ -862,16 +892,9 @@ pub(super) fn export_rgm_metadata_json_impl(
             RgmSection::Rast(_, _)
             | RgmSection::Rasb(_, _)
             | RgmSection::Rava(_, _)
-            | RgmSection::Rasc(_, _) => {}
-            RgmSection::Rahk(_, data) => {
-                let mut cursor = 0usize;
-                while cursor + 4 <= data.len() {
-                    if let Some(value) = read_u32_le(data, cursor) {
-                        rahk_hooks.push(serde_json::Value::from(value));
-                    }
-                    cursor += 4;
-                }
-            }
+            | RgmSection::Rasc(_, _)
+            | RgmSection::Rahk(_, _)
+            | RgmSection::Ranm(_, _) => {}
             RgmSection::Ralc(_, data) => {
                 let mut cursor = 0usize;
                 while cursor + 12 <= data.len() {
@@ -888,13 +911,6 @@ pub(super) fn export_rgm_metadata_json_impl(
             }
             RgmSection::Raat(_, _) => {}
             RgmSection::Raan(_, _) => {}
-            RgmSection::Ranm(_, data) => {
-                ranm_namespace.extend(
-                    parse_ranm_namespace(data)
-                        .into_iter()
-                        .map(serde_json::Value::String),
-                );
-            }
             RgmSection::Mpf(_, data) => {
                 flat_sprites.extend(parse_mpf_records(data));
             }
@@ -928,8 +944,6 @@ pub(super) fn export_rgm_metadata_json_impl(
         "markers": markers,
         "walk_node_maps": walk_node_maps,
         "ralc_locations": ralc_locations,
-        "rahk_hooks": rahk_hooks,
-        "ranm_namespace": ranm_namespace,
         "rafs_entries": rafs_entries,
         "mpsz_entries": mpsz_entries,
         "raw_sections": raw_sections,
