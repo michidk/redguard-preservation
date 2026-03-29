@@ -11,7 +11,7 @@ Animated variant of the [3D model format](3d.md). Same binary layout — identic
 | Animated frame data | None | Frames 1+ with compressed or full-precision geometry |
 | Section4 (SubObject BVH) | Present (v5.0) | Always absent (offset=0, count=0) |
 | Vertex-normal indirection table | Present | Always absent (offset=0) |
-| Version | v4.0 or v5.0 | Always v4.0 |
+| Version | v4.0 or v5.0 | v4.0 (`fxart/`), v2.6 or v2.7 (`3dart/`) |
 
 All shared structures (header, face data, vertex coordinates, face normals, vertex normals, texture encoding) are documented in [3D.md](3d.md).
 
@@ -55,7 +55,7 @@ nz = (float)((packed <<  2) >> 22) * scale;   // bits 20–29, sign-extended
 
 The values (0 and 3) are likely packing artifacts — 3 (0b11) can result from sign extension during the build tool's encoding step. Parsers should mask or discard these bits.
 
-## Section Layout
+## Section Layout (v4.0)
 
 Same as [3D.md — Section Layout](3d.md#section-layout), but with animated frame data inserted and `.3D`-only sections absent:
 
@@ -65,6 +65,16 @@ Same as [3D.md — Section Layout](3d.md#section-layout), but with animated fram
 4. **Frame Data** — `num_frames` × 16-byte records
 5. **Animated Frame Vertex/Normal Data** — frames 1+ geometry
 6. **Vertex Normals** — per-vertex normals (f32 × 3)
+
+## Section Layout (v2.6/v2.7)
+
+v2.6/v2.7 `.3DC` files use a different section order, with frame data immediately after the header and vertex coordinates at a computed offset:
+
+1. **Frame Data** — at `offset_frame_data` (immediately after header)
+2. **Face Data** — at `offset_face_data` (variable offset)
+3. **Section4** — at `offset_section4` (may overlap with face data end)
+4. **Vertex Coordinates** — at `face_data_end + frame_data[0].reserved` (see [3D.md — Vertex Coordinates](3d.md#vertex-coordinates))
+5. **Face Normals** — at `offset_face_normals`
 
 ## External References
 

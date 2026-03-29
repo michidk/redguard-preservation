@@ -67,9 +67,9 @@ impl FaceData {
     #[must_use]
     pub const fn size_in_bytes(&self, version: &ModelVersion) -> usize {
         let texture_header_size = if matches!(version, ModelVersion::V40 | ModelVersion::V50) {
-            1 + 2 + 2
+            1 + 4 // tex_hi (u8) + texture_raw (u32)
         } else {
-            1 + 1 + 2
+            1 + 2 // u1 (u8) + texture_data (u16)
         };
         let vertex_data_size = self.face_vertices.len() * (4 + 2 + 2);
         1 + texture_header_size + 4 + vertex_data_size
@@ -208,7 +208,7 @@ impl Model3DFile {
     }
 }
 
-use crate::{Result, error::Error};
+use crate::{error::Error, Result};
 use log::warn;
 
 fn parse_data_internal(input: &[u8], kind: &str) -> Result<Model3DFile> {
