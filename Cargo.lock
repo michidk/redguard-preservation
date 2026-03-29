@@ -116,6 +116,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "843867be96c8daad0d758b57df9392b6d8d271134fce549de6ce169ff98a92af"
 
 [[package]]
+name = "bitmap2ttf"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5a37f2a47eca7e754ee68444ef0dd94fdb245d81fa243202a044d5c0564f064f"
+dependencies = [
+ "kurbo",
+ "thiserror",
+ "write-fonts",
+]
+
+[[package]]
 name = "bytemuck"
 version = "1.25.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -721,6 +732,7 @@ dependencies = [
 name = "redguard-preservation"
 version = "0.5.1"
 dependencies = [
+ "bitmap2ttf",
  "bytemuck",
  "clap",
  "clap-verbosity-flag",
@@ -731,7 +743,6 @@ dependencies = [
  "gltf-json",
  "hound",
  "image",
- "kurbo",
  "log",
  "nom",
  "rayon",
@@ -739,7 +750,6 @@ dependencies = [
  "thiserror",
  "ttf-parser",
  "walkdir",
- "write-fonts",
 ]
 
 [[package]]
