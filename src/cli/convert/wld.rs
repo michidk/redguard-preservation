@@ -1,5 +1,5 @@
 use crate::cli::convert::{load_palette, resolve_asset_root};
-use crate::opts::ConvertArgs;
+use crate::opts::WldArgs;
 use color_eyre::Result;
 use log::{info, warn};
 use rgpre::gltf::{TextureCache, convert_wld_scene_to_gltf, to_glb};
@@ -9,9 +9,8 @@ use std::path::Path;
 const ENGINE_TERRAIN_TEXBSI_ID: u16 = 302;
 
 #[allow(clippy::large_stack_frames)]
-// WLD parse currently materializes a large struct; this keeps CLI behavior unchanged.
-fn handle_wld_glb_convert(args: &ConvertArgs, output_path: &Path) -> Result<()> {
-    let bytes = std::fs::read(&args.file)?;
+fn handle_wld_glb_convert(args: &WldArgs, output_path: &Path) -> Result<()> {
+    let bytes = std::fs::read(&args.io.file)?;
     let wld_file = wld::parse_wld_file(&bytes).map_err(|e| color_eyre::eyre::eyre!("{e}"))?;
 
     let declared_texbsi_id = if wld_file.sections[0].header.len() >= 8 {
@@ -33,9 +32,14 @@ fn handle_wld_glb_convert(args: &ConvertArgs, output_path: &Path) -> Result<()> 
 
     let texbsi_id = ENGINE_TERRAIN_TEXBSI_ID;
 
-    let asset_root = resolve_asset_root(args);
+    let asset_root = resolve_asset_root(args.assets.as_deref(), &args.io.file);
 
-    let palette = load_palette(args, &asset_root, FileType::Wld)?;
+    let palette = load_palette(
+        args.palette.as_deref(),
+        &asset_root,
+        &args.io.file,
+        FileType::Wld,
+    )?;
 
     let mut texture_cache = if args.terrain_textures {
         Some(TextureCache::new(
@@ -47,8 +51,8 @@ fn handle_wld_glb_convert(args: &ConvertArgs, output_path: &Path) -> Result<()> 
         None
     };
 
-    let rgm_upper = args.file.with_extension("RGM");
-    let rgm_lower = args.file.with_extension("rgm");
+    let rgm_upper = args.io.file.with_extension("RGM");
+    let rgm_lower = args.io.file.with_extension("rgm");
     let rgm_path = if args.terrain_only {
         None
     } else if rgm_upper.is_file() {
@@ -108,7 +112,7 @@ fn handle_wld_glb_convert(args: &ConvertArgs, output_path: &Path) -> Result<()> 
     Ok(())
 }
 
-fn handle_wld_png_convert(args: &ConvertArgs, output_path: &Path) -> Result<()> {
+fn handle_wld_png_convert(args: &WldArgs, output_path: &Path) -> Result<()> {
     let out_ext = output_path
         .extension()
         .and_then(|e| e.to_str())
@@ -124,7 +128,7 @@ fn handle_wld_png_convert(args: &ConvertArgs, output_path: &Path) -> Result<()> 
         output_path.with_extension("png")
     };
 
-    let outputs = wld::export_wld_maps_pngs(&args.file, &png_output, args.compress_textures)
+    let outputs = wld::export_wld_maps_pngs(&args.io.file, &png_output, args.compress_textures)
         .map_err(|e| color_eyre::eyre::eyre!("{e}"))?;
     info!("Successfully exported WLD map PNGs:");
     info!("  map1 (height): {}", outputs.map1_path.display());
@@ -134,7 +138,7 @@ fn handle_wld_png_convert(args: &ConvertArgs, output_path: &Path) -> Result<()> 
     Ok(())
 }
 
-pub(crate) fn handle_wld_convert(args: &ConvertArgs, output_path: &Path) -> Result<()> {
+pub(crate) fn handle_wld_convert(args: &WldArgs, output_path: &Path) -> Result<()> {
     let out_ext = output_path
         .extension()
         .and_then(|e| e.to_str())

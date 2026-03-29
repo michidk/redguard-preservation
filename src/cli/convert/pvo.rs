@@ -1,13 +1,12 @@
 use crate::cli::convert::ensure_parent_dir;
-use crate::opts::ConvertArgs;
 use color_eyre::Result;
 use log::info;
 use rgpre::import::pvo;
 use serde_json::json;
 use std::path::Path;
 
-pub(crate) fn handle_pvo_convert(args: &ConvertArgs, output_path: &Path) -> Result<()> {
-    let file_content = std::fs::read(&args.file)?;
+pub(crate) fn handle_pvo_convert(file: &Path, output_path: &Path) -> Result<()> {
+    let file_content = std::fs::read(file)?;
     let parsed = pvo::parse_pvo_file(&file_content)?;
 
     let nodes = parsed

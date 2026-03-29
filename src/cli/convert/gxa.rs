@@ -1,4 +1,4 @@
-use crate::opts::{ConvertArgs, OutputFormat};
+use crate::opts::{GxaArgs, GxaFormat};
 use color_eyre::Result;
 use image::codecs::gif::{GifEncoder, Repeat};
 use image::{DynamicImage, Frame, Rgba, RgbaImage};
@@ -23,12 +23,12 @@ fn rgba_to_image(width: u16, height: u16, rgba: &[u8]) -> RgbaImage {
     })
 }
 
-pub(crate) fn handle_gxa_convert(args: &ConvertArgs, output_path: &Path) -> Result<()> {
-    let file_content = std::fs::read(&args.file)?;
+pub(crate) fn handle_gxa_convert(args: &GxaArgs, output_path: &Path) -> Result<()> {
+    let file_content = std::fs::read(&args.io.file)?;
     let gxa_file =
         gxa::parse_gxa_file(&file_content).map_err(|e| color_eyre::eyre::eyre!("{e}"))?;
 
-    let use_gif = !matches!(args.format, Some(OutputFormat::Png));
+    let use_gif = !matches!(args.format, GxaFormat::Png);
 
     if use_gif && gxa_file.frames.len() > 1 {
         std::fs::create_dir_all(output_path)?;
@@ -58,6 +58,7 @@ pub(crate) fn handle_gxa_convert(args: &ConvertArgs, output_path: &Path) -> Resu
         );
 
         let source_name = args
+            .io
             .file
             .file_name()
             .map(|n| n.to_string_lossy().to_string())
@@ -79,6 +80,7 @@ pub(crate) fn handle_gxa_convert(args: &ConvertArgs, output_path: &Path) -> Resu
     std::fs::create_dir_all(output_path)?;
 
     let source_name = args
+        .io
         .file
         .file_name()
         .map(|n| n.to_string_lossy().to_string())

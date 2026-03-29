@@ -1,4 +1,4 @@
-use crate::opts::{ConvertArgs, OutputFormat};
+use crate::opts::{TexbsiArgs, TexbsiFormat};
 use color_eyre::Result;
 use image::codecs::gif::{GifEncoder, Repeat};
 use image::{DynamicImage, Frame, Rgba, RgbaImage};
@@ -112,8 +112,8 @@ fn export_image_gif(
     }
 }
 
-pub(crate) fn handle_texbsi_convert(args: &ConvertArgs, output_path: &Path) -> Result<()> {
-    let file_content = std::fs::read(&args.file)?;
+pub(crate) fn handle_texbsi_convert(args: &TexbsiArgs, output_path: &Path) -> Result<()> {
+    let file_content = std::fs::read(&args.io.file)?;
     let bsi_file =
         bsi::parse_bsi_file(&file_content).map_err(|e| color_eyre::eyre::eyre!("{e}"))?;
 
@@ -134,16 +134,14 @@ pub(crate) fn handle_texbsi_convert(args: &ConvertArgs, output_path: &Path) -> R
         .map(|n| n.to_string_lossy().to_string());
 
     let source_name = args
+        .io
         .file
         .file_name()
         .map(|n| n.to_string_lossy().to_string())
         .unwrap_or_default();
 
-    let use_gif = !matches!(
-        args.format,
-        Some(OutputFormat::Png) | Some(OutputFormat::Frames)
-    );
-    let export_all_frames = args.format == Some(OutputFormat::Frames);
+    let use_gif = !matches!(args.format, TexbsiFormat::Png | TexbsiFormat::Frames);
+    let export_all_frames = args.format == TexbsiFormat::Frames;
     let compress = args.compress_textures;
 
     let image_metadata: Vec<serde_json::Value> = bsi_file

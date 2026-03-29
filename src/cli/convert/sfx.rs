@@ -1,4 +1,3 @@
-use crate::opts::ConvertArgs;
 use color_eyre::Result;
 use hound::{SampleFormat, WavSpec, WavWriter};
 use log::info;
@@ -7,8 +6,8 @@ use rgpre::import::sfx;
 use serde_json::json;
 use std::path::Path;
 
-pub(crate) fn handle_sfx_convert(args: &ConvertArgs, output_path: &Path) -> Result<()> {
-    let file_content = std::fs::read(&args.file)?;
+pub(crate) fn handle_sfx_convert(file: &Path, output_path: &Path) -> Result<()> {
+    let file_content = std::fs::read(file)?;
     let sfx_file =
         sfx::parse_sfx_file(&file_content).map_err(|e| color_eyre::eyre::eyre!("{e}"))?;
 
@@ -71,8 +70,7 @@ pub(crate) fn handle_sfx_convert(args: &ConvertArgs, output_path: &Path) -> Resu
         })
         .collect::<Result<Vec<_>>>()?;
 
-    let source_name = args
-        .file
+    let source_name = file
         .file_name()
         .map(|n| n.to_string_lossy().to_string())
         .unwrap_or_default();

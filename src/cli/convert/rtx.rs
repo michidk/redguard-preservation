@@ -1,4 +1,4 @@
-use crate::opts::ConvertArgs;
+use crate::opts::RtxArgs;
 use color_eyre::Result;
 use hound::{SampleFormat, WavSpec, WavWriter};
 use log::info;
@@ -75,8 +75,8 @@ fn build_resolved_filenames(entries: &[RtxEntry]) -> Vec<String> {
         .collect()
 }
 
-pub(crate) fn handle_rtx_convert(args: &ConvertArgs, output_path: &Path) -> Result<()> {
-    let file_content = std::fs::read(&args.file)?;
+pub(crate) fn handle_rtx_convert(args: &RtxArgs, output_path: &Path) -> Result<()> {
+    let file_content = std::fs::read(&args.io.file)?;
     let rtx_file =
         rtx::parse_rtx_file(&file_content).map_err(|e| color_eyre::eyre::eyre!("{e}"))?;
 

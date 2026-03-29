@@ -12,10 +12,12 @@ use super::utils::{
     auto_resolve_palette, parse_file, resolve_asset_root_from_input, resolve_filetype,
 };
 use crate::cli::filetype::FileTypeCliExt;
-use crate::opts::{ConvertArgs, OutputFormat};
+use crate::opts::{
+    AutoConvertArgs, ColArgs, ConvertArgs, ConvertCommand, ConvertFileArgs, FntArgs, FntFormat,
+    GxaArgs, GxaFormat, ModelArgs, RgmArgs, RtxArgs, TexbsiArgs, TexbsiFormat, WldArgs,
+};
 use color_eyre::Result;
-use color_eyre::eyre::WrapErr;
-use color_eyre::eyre::bail;
+use color_eyre::eyre::{WrapErr, bail};
 use log::{info, warn};
 use rgpre::gltf::{
     TextureCache, convert_models_to_gltf, convert_positioned_models_to_gltf, to_glb,
@@ -24,22 +26,34 @@ use rgpre::import::FileType;
 use rgpre::import::{palette::Palette, registry};
 use std::path::{Path, PathBuf};
 
-pub(super) fn resolve_asset_root(args: &ConvertArgs) -> PathBuf {
-    args.assets
-        .clone()
-        .or_else(|| args.asset_path.clone())
-        .or_else(|| args.asset_dir.clone())
-        .unwrap_or_else(|| resolve_asset_root_from_input(&args.file))
+fn resolve_output(io: &ConvertFileArgs, filetype: FileType) -> PathBuf {
+    let default = filetype.default_output_path(&io.file);
+    match io.output.clone() {
+        Some(out) => resolve_dir_output(out, &default),
+        None => default,
+    }
 }
 
-fn default_fnt_output_for_format(file: &Path, format: OutputFormat) -> PathBuf {
-    let mut path = file.to_path_buf();
-    if format == OutputFormat::Ttf {
-        path.set_extension("ttf");
+fn resolve_fnt_output(args: &FntArgs) -> PathBuf {
+    let default = if args.format == FntFormat::Ttf {
+        let mut p = args.io.file.clone();
+        p.set_extension("ttf");
+        p
     } else {
-        path.set_extension("png");
+        FileType::Fnt.default_output_path(&args.io.file)
+    };
+    match args.io.output.clone() {
+        Some(out) => resolve_dir_output(out, &default),
+        None => default,
     }
-    path
+}
+
+fn resolve_dir_output(output: PathBuf, default_path: &Path) -> PathBuf {
+    if output.is_dir() {
+        output.join(default_path.file_name().unwrap_or(default_path.as_os_str()))
+    } else {
+        output
+    }
 }
 
 pub(super) fn ensure_parent_dir(path: &Path) -> Result<(), color_eyre::eyre::Error> {
@@ -56,49 +70,25 @@ pub(super) fn ensure_parent_dir(path: &Path) -> Result<(), color_eyre::eyre::Err
     Ok(())
 }
 
-fn resolve_output_path(args: &ConvertArgs, filetype: FileType) -> PathBuf {
-    if filetype != FileType::Fnt {
-        let default = filetype.default_output_path(&args.file);
-        return match args.output.clone() {
-            Some(out) => resolve_dir_output(out, &default),
-            None => default,
-        };
-    }
-
-    let default = match args.format {
-        Some(fmt @ (OutputFormat::Ttf | OutputFormat::Bitmap)) => {
-            default_fnt_output_for_format(&args.file, fmt)
-        }
-        _ => filetype.default_output_path(&args.file),
-    };
-    match args.output.clone() {
-        Some(out) => resolve_dir_output(out, &default),
-        None => default,
-    }
+fn resolve_asset_root(assets: Option<&Path>, file: &Path) -> PathBuf {
+    assets
+        .map(Path::to_path_buf)
+        .unwrap_or_else(|| resolve_asset_root_from_input(file))
 }
 
-/// If `output` is an existing directory on disk, append the default filename;
-/// otherwise return `output` unchanged.
-fn resolve_dir_output(output: PathBuf, default_path: &Path) -> PathBuf {
-    if output.is_dir() {
-        output.join(default_path.file_name().unwrap_or(default_path.as_os_str()))
-    } else {
-        output
-    }
-}
-
-pub(super) fn load_palette(
-    args: &ConvertArgs,
+fn load_palette(
+    palette_path: Option<&Path>,
     asset_root: &Path,
+    file: &Path,
     filetype: FileType,
 ) -> Result<Option<Palette>> {
-    match args.palette.as_ref() {
+    match palette_path {
         Some(path) => {
             let data = std::fs::read(path)?;
             let palette = Palette::parse(&data).map_err(|e| color_eyre::eyre::eyre!("{e}"))?;
             Ok(Some(palette))
         }
-        None => auto_resolve_palette(asset_root, &args.file, filetype),
+        None => auto_resolve_palette(asset_root, file, filetype),
     }
 }
 
@@ -112,23 +102,88 @@ fn build_texture_cache(palette: Option<&Palette>, asset_root: PathBuf) -> Option
         },
         |pal| {
             Some(TextureCache::new(
-            asset_root,
-            Some(Palette { colors: pal.colors }),
+                asset_root,
+                Some(Palette { colors: pal.colors }),
             ))
         },
     )
 }
 
-fn convert_rgm(
-    args: &ConvertArgs,
-    output_path: &Path,
-    registry: &registry::Registry,
-    palette: Option<&Palette>,
-    texture_cache: &mut Option<TextureCache>,
-) -> Result<()> {
-    let file_content = std::fs::read(&args.file)?;
+fn handle_model_convert(args: &ModelArgs) -> Result<()> {
+    let filetype = resolve_filetype(&args.io.file)?;
+    if !matches!(
+        filetype,
+        FileType::Model3d | FileType::Model3dc | FileType::Rob
+    ) {
+        bail!(
+            "'model' subcommand expects .3d, .3dc, or .rob files; got {}",
+            filetype.display_name()
+        );
+    }
+
+    let output_path = resolve_output(&args.io, filetype);
+    let asset_root = resolve_asset_root(args.assets.as_deref(), &args.io.file);
+    let palette = load_palette(
+        args.palette.as_deref(),
+        &asset_root,
+        &args.io.file,
+        filetype,
+    )?;
+    let mut texture_cache = build_texture_cache(palette.as_ref(), asset_root);
+
+    let models = parse_file(&args.io.file, Some(filetype), None)?;
+
+    if filetype == FileType::Rob {
+        warn!(
+            "ROB conversion exports segment geometry only (no scene instance placement). Full area/object placement requires RGM scene data."
+        );
+    }
+
+    if models.is_empty() {
+        bail!("No 3D models found to convert.");
+    }
+
+    info!("Converting file: {}", args.io.file.display());
+    info!("Requested output path: {}", output_path.display());
+
+    let (root, buffer) = convert_models_to_gltf(
+        &models,
+        palette.as_ref(),
+        texture_cache.as_mut(),
+        args.compress_textures,
+    )?;
+    let glb_data = to_glb(&root, &buffer)?;
+    ensure_parent_dir(&output_path)?;
+    std::fs::write(&output_path, glb_data)?;
+    info!("Successfully converted to: {}", output_path.display());
+
+    Ok(())
+}
+
+fn handle_rgm_convert(args: &RgmArgs) -> Result<()> {
+    let output_path = resolve_output(&args.io, FileType::Rgm);
+    let asset_root = resolve_asset_root(args.assets.as_deref(), &args.io.file);
+
+    info!(
+        "Creating registry from assets root: {}",
+        asset_root.display()
+    );
+    let registry = registry::scan_dir(asset_root.clone())?;
+
+    let palette = load_palette(
+        args.palette.as_deref(),
+        &asset_root,
+        &args.io.file,
+        FileType::Rgm,
+    )?;
+    let mut texture_cache = build_texture_cache(palette.as_ref(), asset_root);
+
+    info!("Converting file: {}", args.io.file.display());
+    info!("Requested output path: {}", output_path.display());
+
+    let file_content = std::fs::read(&args.io.file)?;
     let (rgm_file, positioned_models, lights) =
-        rgpre::import::rgm::parse_rgm_with_models(&file_content, registry)?;
+        rgpre::import::rgm::parse_rgm_with_models(&file_content, &registry)?;
 
     if positioned_models.is_empty() && lights.is_empty() {
         bail!("No positioned models or lights found to convert.");
@@ -143,13 +198,13 @@ fn convert_rgm(
     let (root, buffer) = convert_positioned_models_to_gltf(
         &positioned_models,
         &lights,
-        palette,
+        palette.as_ref(),
         texture_cache.as_mut(),
         args.compress_textures,
     )?;
     let glb_data = to_glb(&root, &buffer)?;
-    ensure_parent_dir(output_path)?;
-    std::fs::write(output_path, &glb_data)?;
+    ensure_parent_dir(&output_path)?;
+    std::fs::write(&output_path, &glb_data)?;
     info!("Successfully converted to: {}", output_path.display());
 
     let json_path = output_path.with_extension("json");
@@ -161,135 +216,169 @@ fn convert_rgm(
     Ok(())
 }
 
-fn convert_models(
-    args: &ConvertArgs,
-    output_path: &Path,
-    filetype: FileType,
-    registry: Option<&registry::Registry>,
-    palette: Option<&Palette>,
-    texture_cache: &mut Option<TextureCache>,
-) -> Result<()> {
-    let models = parse_file(&args.file, Some(filetype), registry)?;
-
-    if filetype == FileType::Rob {
-        warn!(
-            "ROB conversion exports segment geometry only (no scene instance placement). Full area/object placement requires RGM scene data."
-        );
-    }
-
-    if models.is_empty() {
-        bail!("No 3D models found to convert.");
-    }
-
-    let (root, buffer) = convert_models_to_gltf(
-        &models,
-        palette,
-        texture_cache.as_mut(),
-        args.compress_textures,
-    )?;
-    let glb_data = to_glb(&root, &buffer)?;
-    ensure_parent_dir(output_path)?;
-    std::fs::write(output_path, glb_data)?;
-    info!("Successfully converted to: {}", output_path.display());
-
-    Ok(())
-}
-
-fn warn_irrelevant_flags(args: &ConvertArgs, filetype: FileType) {
-    if args.terrain_only && filetype != FileType::Wld {
-        warn!(
-            "--terrain-only has no effect for {} files (WLD only)",
-            filetype.display_name()
-        );
-    }
-    if !args.terrain_textures && filetype != FileType::Wld {
-        warn!(
-            "--terrain-textures has no effect for {} files (WLD only)",
-            filetype.display_name()
-        );
-    }
-    if let Some(fmt) = args.format {
-        let valid = match fmt {
-            OutputFormat::Bitmap | OutputFormat::Ttf => filetype == FileType::Fnt,
-            OutputFormat::Frames | OutputFormat::Gif => {
-                matches!(filetype, FileType::Bsi | FileType::Gxa)
-            }
-            OutputFormat::Png => {
-                matches!(filetype, FileType::Bsi | FileType::Gxa | FileType::Col)
-            }
-            OutputFormat::Json => filetype == FileType::Col,
-        };
-        if !valid {
-            warn!(
-                "--format {fmt:?} has no effect for {} files",
-                filetype.display_name()
-            );
+fn handle_subcommand(cmd: ConvertCommand) -> Result<()> {
+    match cmd {
+        ConvertCommand::Texbsi(args) => {
+            let output = resolve_output(&args.io, FileType::Bsi);
+            texbsi::handle_texbsi_convert(&args, &output)
+        }
+        ConvertCommand::Gxa(args) => {
+            let output = resolve_output(&args.io, FileType::Gxa);
+            gxa::handle_gxa_convert(&args, &output)
+        }
+        ConvertCommand::Fnt(args) => {
+            let output = resolve_fnt_output(&args);
+            fnt::handle_fnt_convert(&args, &output)
+        }
+        ConvertCommand::Col(args) => {
+            let output = resolve_output(&args.io, FileType::Col);
+            col::handle_col_convert(&args, &output)
+        }
+        ConvertCommand::Wld(args) => {
+            let output = resolve_output(&args.io, FileType::Wld);
+            wld::handle_wld_convert(&args, &output)
+        }
+        ConvertCommand::Model(args) => handle_model_convert(&args),
+        ConvertCommand::Rgm(args) => handle_rgm_convert(&args),
+        ConvertCommand::Rtx(args) => {
+            let output = resolve_output(&args.io, FileType::Rtx);
+            rtx::handle_rtx_convert(&args, &output)
+        }
+        ConvertCommand::Sfx(io) => {
+            let output = resolve_output(&io, FileType::Sfx);
+            sfx::handle_sfx_convert(&io.file, &output)
+        }
+        ConvertCommand::Cht(io) => {
+            let output = resolve_output(&io, FileType::Cht);
+            cht::handle_cht_convert(&io.file, &output)
+        }
+        ConvertCommand::Pvo(io) => {
+            let output = resolve_output(&io, FileType::Pvo);
+            pvo::handle_pvo_convert(&io.file, &output)
         }
     }
-    let produces_images = !matches!(
-        filetype,
-        FileType::Cht | FileType::Pvo | FileType::Sfx | FileType::Rtx
-    );
-    if args.compress_textures && !produces_images {
-        warn!(
-            "--compress-textures has no effect for {} files (image/GLB output only)",
-            filetype.display_name()
-        );
+}
+
+fn handle_auto_convert(auto: AutoConvertArgs) -> Result<()> {
+    let file = auto.file.ok_or_else(|| {
+        color_eyre::eyre::eyre!(
+            "file argument required.\nUsage: convert <FILE> or convert <FORMAT> <FILE>"
+        )
+    })?;
+    let filetype = resolve_filetype(&file)?;
+
+    let io = ConvertFileArgs {
+        file,
+        output: auto.output,
+    };
+    let compress = auto.compress_textures;
+
+    info!("Converting file: {}", io.file.display());
+
+    match filetype {
+        FileType::Bsi => {
+            let args = TexbsiArgs {
+                io,
+                format: TexbsiFormat::Gif,
+                palette: None,
+                compress_textures: compress,
+            };
+            let output = resolve_output(&args.io, FileType::Bsi);
+            info!("Requested output path: {}", output.display());
+            texbsi::handle_texbsi_convert(&args, &output)
+        }
+        FileType::Gxa => {
+            let args = GxaArgs {
+                io,
+                format: GxaFormat::Gif,
+                compress_textures: compress,
+            };
+            let output = resolve_output(&args.io, FileType::Gxa);
+            info!("Requested output path: {}", output.display());
+            gxa::handle_gxa_convert(&args, &output)
+        }
+        FileType::Fnt => {
+            let args = FntArgs {
+                io,
+                format: FntFormat::Bitmap,
+                compress_textures: compress,
+            };
+            let output = resolve_fnt_output(&args);
+            info!("Requested output path: {}", output.display());
+            fnt::handle_fnt_convert(&args, &output)
+        }
+        FileType::Col => {
+            let args = ColArgs {
+                io,
+                format: None,
+                compress_textures: compress,
+            };
+            let output = resolve_output(&args.io, FileType::Col);
+            info!("Requested output path: {}", output.display());
+            col::handle_col_convert(&args, &output)
+        }
+        FileType::Wld => {
+            let args = WldArgs {
+                io,
+                assets: None,
+                palette: None,
+                terrain_only: false,
+                terrain_textures: true,
+                compress_textures: compress,
+            };
+            let output = resolve_output(&args.io, FileType::Wld);
+            info!("Requested output path: {}", output.display());
+            wld::handle_wld_convert(&args, &output)
+        }
+        FileType::Model3d | FileType::Model3dc | FileType::Rob => {
+            let args = ModelArgs {
+                io,
+                assets: None,
+                palette: None,
+                compress_textures: compress,
+            };
+            handle_model_convert(&args)
+        }
+        FileType::Rgm => {
+            let args = RgmArgs {
+                io,
+                assets: None,
+                palette: None,
+                compress_textures: compress,
+            };
+            handle_rgm_convert(&args)
+        }
+        FileType::Rtx => {
+            let args = RtxArgs {
+                io,
+                resolve_names: false,
+            };
+            let output = resolve_output(&args.io, FileType::Rtx);
+            info!("Requested output path: {}", output.display());
+            rtx::handle_rtx_convert(&args, &output)
+        }
+        FileType::Sfx => {
+            let output = resolve_output(&io, FileType::Sfx);
+            info!("Requested output path: {}", output.display());
+            sfx::handle_sfx_convert(&io.file, &output)
+        }
+        FileType::Cht => {
+            let output = resolve_output(&io, FileType::Cht);
+            info!("Requested output path: {}", output.display());
+            cht::handle_cht_convert(&io.file, &output)
+        }
+        FileType::Pvo => {
+            let output = resolve_output(&io, FileType::Pvo);
+            info!("Requested output path: {}", output.display());
+            pvo::handle_pvo_convert(&io.file, &output)
+        }
     }
 }
 
 #[allow(clippy::needless_pass_by_value)]
-// CLI handlers take owned args by clap design for consistent command dispatch.
 pub fn handle_convert_command(args: ConvertArgs) -> Result<()> {
-    let filetype = resolve_filetype(&args.file)?;
-    warn_irrelevant_flags(&args, filetype);
-    let asset_root = resolve_asset_root(&args);
-
-    if args.asset_path.is_some() || args.asset_dir.is_some() {
-        warn!("--asset-path/--asset-dir are deprecated aliases; prefer --assets");
+    match args.command {
+        Some(cmd) => handle_subcommand(cmd),
+        None => handle_auto_convert(args.auto),
     }
-
-    let output_path = resolve_output_path(&args, filetype);
-
-    info!("Converting file: {}", args.file.display());
-    info!("Requested output path: {}", output_path.display());
-
-    if let Some(result) = filetype.handle_direct_convert(&args, &output_path) {
-        return result;
-    }
-
-    let registry = if filetype == FileType::Rgm {
-        info!(
-            "Creating registry from assets root: {}",
-            asset_root.display()
-        );
-        Some(registry::scan_dir(asset_root.clone())?)
-    } else {
-        None
-    };
-
-    let palette = load_palette(&args, &asset_root, filetype)?;
-    let mut texture_cache = build_texture_cache(palette.as_ref(), asset_root);
-
-    if filetype == FileType::Rgm {
-        let registry = registry.ok_or_else(|| {
-            color_eyre::eyre::eyre!("internal error: registry is required for RGM files")
-        })?;
-        return convert_rgm(
-            &args,
-            &output_path,
-            &registry,
-            palette.as_ref(),
-            &mut texture_cache,
-        );
-    }
-
-    convert_models(
-        &args,
-        &output_path,
-        filetype,
-        registry.as_ref(),
-        palette.as_ref(),
-        &mut texture_cache,
-    )
 }

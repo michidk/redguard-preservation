@@ -21,24 +21,25 @@ Preserving *The Elder Scrolls Adventures: Redguard* (1998) — reverse-engineere
 
 The `scan` command recursively detects known Redguard files in a directory tree.
 
-## Convert Flag Matrix
+## Convert Subcommands
 
-Not all flags apply to every format. The CLI warns when a flag has no effect for the given file type.
+Each format has its own subcommand with scoped flags. `convert <FILE>` auto-detects the format and uses defaults.
 
-| Flag | 3D/3DC/ROB | RGM | WLD | FNT | TEXBSI | GXA | COL | SFX | RTX | CHT/PVO |
-|---|---|---|---|---|---|---|---|---|---|---|
-| `--format gif` | — | — | — | — | animated GIF (default) | animated GIF (default) | — | — | — | — |
-| `--format png` | — | — | — | — | frame 0 only | per-frame PNGs | swatch only | — | — | — |
-| `--format json` | — | — | — | — | — | — | metadata only | — | — | — |
-| `--format frames` | — | — | — | — | all frames as PNGs | — | — | — | — | — |
-| `--format bitmap` | — | — | — | PNG atlas + BMFont (default) | — | — | — | — | — | — |
-| `--format ttf` | — | — | — | TrueType font | — | — | — | — | — | — |
-| `--terrain-only` | — | — | skip RGM placement | — | — | — | — | — | — | — |
-| `--terrain-textures` | — | — | enable/disable texturing | — | — | — | — | — | — | — |
-| `--compress-textures` | smaller GLB | smaller GLB | smaller GLB/PNG | smaller PNG | smaller PNGs | smaller PNGs | smaller PNG | — | — | — |
-| `--resolve-names` | — | — | — | — | — | — | — | — | text-based filenames | — |
-| `--palette` | face colors | face colors | terrain colors | — | decode colors | — | — | — | — | — |
-| `--assets` | — | model lookup | model + texture lookup | — | — | — | — | — | — | — |
+| Subcommand | Input | Output | Format-specific flags |
+|---|---|---|---|
+| `convert texbsi` | `TEXBSI.###` | `.gif` / `.png` | `--format gif\|png\|frames`, `--palette`, `--compress-textures` |
+| `convert gxa` | `.gxa` | `.gif` / `.png` | `--format gif\|png`, `--compress-textures` |
+| `convert fnt` | `.fnt` | `.png` + `.fnt` + `.json`, or `.ttf` | `--format bitmap\|ttf`, `--compress-textures` |
+| `convert col` | `.col` | `.png` + `.json` | `--format png\|json` (default: both), `--compress-textures` |
+| `convert wld` | `.wld` | `.glb` + `.json`, or map `.png` set | `--assets`, `--palette`, `--terrain-only`, `--terrain-textures`, `--compress-textures` |
+| `convert model` | `.3d`, `.3dc`, `.rob` | `.glb` | `--assets`, `--palette`, `--compress-textures` |
+| `convert rgm` | `.rgm` | `.glb` + `.json` | `--assets`, `--palette`, `--compress-textures` |
+| `convert rtx` | `.rtx` | `.wav` + `index.json` | `--resolve-names` |
+| `convert sfx` | `.sfx` | `.wav` + `index.json` | (none) |
+| `convert cht` | `.cht` | `.json` | (none) |
+| `convert pvo` | `.pvo` | `.json` | (none) |
+
+¹ Exported TTF fonts are bitmap-traced vector outlines without hinting. They work in game engines (Unity, Godot, etc.) and can be previewed at [fontdrop.info](https://fontdrop.info), but may not render well when installed as a system font on Windows.
 
 ## Documentation
 
@@ -80,70 +81,73 @@ rgpre --help
 
 ## CLI Commands
 
-- `read` (`r`) - parse an input file and print decoded structure
-- `convert` (`c`) - export supported inputs to output formats
-- `scan` (`s`) - recursively scan a directory for known Redguard files
+- `read` (`r`) — parse an input file and print decoded structure
+- `convert` (`c`) — export supported inputs to output formats
+  - `convert <FILE>` — auto-detect format, use defaults
+  - `convert <FORMAT> <FILE>` — format-specific subcommand with scoped flags
+- `scan` (`s`) — recursively scan a directory for known Redguard files
 
 ## Usage Examples
 
-Read a model:
-
-```bash
-rgpre read 3dart/LHBM4.3DC
-```
-
-Read a ROB archive:
-
-```bash
-rgpre read 3dart/BELLTOWR.ROB
-```
-
-Convert model to GLB:
+Auto-detect format (uses defaults):
 
 ```bash
 rgpre convert 3dart/LHBM4.3DC -o output/LHBM4.glb
+rgpre convert fxart/TEXBSI.302 -o output/TEXBSI_302/
 ```
 
-Convert ROB archive to GLB:
+Convert model with palette and asset root:
 
 ```bash
-rgpre convert 3dart/BELLTOWR.ROB -o output/BELLTOWR.glb
+rgpre convert model 3dart/BELLTOWR.ROB --palette fxart/ISLAND.COL --assets . -o output/BELLTOWR.glb
 ```
 
 Convert RGM scene (palette auto-resolved from `WORLD.INI`):
 
 ```bash
-rgpre convert maps/ISLAND.RGM --assets . -o output/ISLAND_scene.glb
+rgpre convert rgm maps/ISLAND.RGM --assets . -o output/ISLAND_scene.glb
 ```
 
-Convert WLD world to GLB terrain + companion RGM placement (also writes JSON sidecar metadata):
+Convert WLD world to GLB terrain + companion RGM placement:
 
 ```bash
-rgpre convert maps/ISLAND.WLD --assets . -o output/ISLAND_world.glb
+rgpre convert wld maps/ISLAND.WLD --assets . -o output/ISLAND_world.glb
 ```
 
 Convert WLD terrain only:
 
 ```bash
-rgpre convert maps/ISLAND.WLD --assets . --terrain-only -o output/ISLAND_terrain.glb
+rgpre convert wld maps/ISLAND.WLD --assets . --terrain-only -o output/ISLAND_terrain.glb
 ```
 
-Convert TEXBSI texture bank to PNGs (auto-detected by `TEXBSI.*` stem):
+Convert TEXBSI texture bank with palette:
 
 ```bash
-rgpre convert fxart/TEXBSI.302 --palette fxart/ISLAND.COL -o output/TEXBSI_302/
+rgpre convert texbsi fxart/TEXBSI.302 --palette fxart/ISLAND.COL -o output/TEXBSI_302/
 ```
 
-Convert with all animation frames as separate PNGs:
+Export all animation frames as separate PNGs:
 
 ```bash
-rgpre convert fxart/TEXBSI.302 --palette fxart/ISLAND.COL --format frames -o output/TEXBSI_302/
+rgpre convert texbsi fxart/TEXBSI.302 --palette fxart/ISLAND.COL --format frames -o output/TEXBSI_302/
 ```
 
-Convert animated textures to GIF:
+Convert font to TrueType:
 
 ```bash
-rgpre convert fxart/TEXBSI.302 --palette fxart/ISLAND.COL --format gif -o output/TEXBSI_302/
+rgpre convert fnt input/FONT01.FNT --format ttf -o output/FONT01.ttf
+```
+
+Export COL palette as JSON only:
+
+```bash
+rgpre convert col fxart/ISLAND.COL --format json -o output/ISLAND.json
+```
+
+Extract RTX dialogue with resolved filenames:
+
+```bash
+rgpre convert rtx input/DIALOG.RTX --resolve-names -o output/dialog/
 ```
 
 Scan a directory:

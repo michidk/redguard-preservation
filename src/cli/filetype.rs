@@ -1,4 +1,3 @@
-use crate::opts::ConvertArgs;
 use color_eyre::Result;
 use log::info;
 use rgpre::import::{
@@ -10,7 +9,6 @@ use std::path::{Path, PathBuf};
 pub(super) trait FileTypeCliExt {
     fn default_output_path(self, file: &Path) -> PathBuf;
     fn print_read_output(self, file_content: &[u8]) -> Result<()>;
-    fn handle_direct_convert(self, args: &ConvertArgs, output_path: &Path) -> Option<Result<()>>;
 }
 
 impl FileTypeCliExt for FileType {
@@ -75,24 +73,6 @@ impl FileTypeCliExt for FileType {
             FileType::Sfx => print_sfx(file_content),
             FileType::Rtx => print_rtx(file_content),
             FileType::Gxa => print_gxa(file_content),
-        }
-    }
-
-    fn handle_direct_convert(self, args: &ConvertArgs, output_path: &Path) -> Option<Result<()>> {
-        match self {
-            FileType::Cht => Some(super::convert::cht::handle_cht_convert(args, output_path)),
-            FileType::Col => Some(super::convert::col::handle_col_convert(args, output_path)),
-            FileType::Pvo => Some(super::convert::pvo::handle_pvo_convert(args, output_path)),
-            FileType::Fnt => Some(super::convert::fnt::handle_fnt_convert(args, output_path)),
-            FileType::Gxa => Some(super::convert::gxa::handle_gxa_convert(args, output_path)),
-            FileType::Wld => Some(super::convert::wld::handle_wld_convert(args, output_path)),
-            FileType::Sfx => Some(super::convert::sfx::handle_sfx_convert(args, output_path)),
-            FileType::Rtx => Some(super::convert::rtx::handle_rtx_convert(args, output_path)),
-            FileType::Bsi => Some(super::convert::texbsi::handle_texbsi_convert(
-                args,
-                output_path,
-            )),
-            FileType::Rgm | FileType::Model3d | FileType::Model3dc | FileType::Rob => None,
         }
     }
 }

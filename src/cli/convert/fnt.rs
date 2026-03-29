@@ -1,21 +1,18 @@
-use crate::opts::{ConvertArgs, OutputFormat};
+use crate::opts::{FntArgs, FntFormat};
 use color_eyre::Result;
 use log::{info, warn};
 use rgpre::import::fnt_export;
 use std::path::Path;
 
-pub(crate) fn handle_fnt_convert(args: &ConvertArgs, output_path: &Path) -> Result<()> {
+pub(crate) fn handle_fnt_convert(args: &FntArgs, output_path: &Path) -> Result<()> {
     let out_ext = output_path
         .extension()
         .and_then(|e| e.to_str())
         .map(str::to_ascii_lowercase);
 
     let is_ttf = match args.format {
-        Some(OutputFormat::Ttf) => true,
-        Some(OutputFormat::Bitmap) | None => {
-            matches!(out_ext.as_deref(), Some("ttf"))
-        }
-        _ => false,
+        FntFormat::Ttf => true,
+        FntFormat::Bitmap => matches!(out_ext.as_deref(), Some("ttf")),
     };
 
     if is_ttf {
@@ -29,7 +26,7 @@ pub(crate) fn handle_fnt_convert(args: &ConvertArgs, output_path: &Path) -> Resu
             output_path.with_extension("ttf")
         };
 
-        fnt_export::export_fnt_ttf(&args.file, &ttf_output)
+        fnt_export::export_fnt_ttf(&args.io.file, &ttf_output)
             .map_err(|e| color_eyre::eyre::eyre!("{e}"))?;
         info!(
             "Successfully converted FNT to TTF: {}",
@@ -38,7 +35,7 @@ pub(crate) fn handle_fnt_convert(args: &ConvertArgs, output_path: &Path) -> Resu
         return Ok(());
     }
 
-    let paths = fnt_export::export_fnt_bitmap(&args.file, output_path, args.compress_textures)
+    let paths = fnt_export::export_fnt_bitmap(&args.io.file, output_path, args.compress_textures)
         .map_err(|e| color_eyre::eyre::eyre!("{e}"))?;
     info!("Successfully converted FNT to {}", paths.png_path.display());
     info!("Wrote BMFont text to {}", paths.bmfont_path.display());
