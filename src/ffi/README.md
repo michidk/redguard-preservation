@@ -35,11 +35,11 @@ The internal texture cache is protected by a `Mutex`. The first `rg_decode_textu
 
 ## Conventions
 
-**Coordinate system:** Right-handed, Y-up. Matches glTF. Positions are in scaled units (original engine units ÷ 20).
+**Coordinate system:** Right-handed, Y-up. Matches glTF. Positions are in scaled units (original engine units ÷ 20). The engine's Y axis is negated during conversion; triangle winding is reversed to preserve CCW front faces.
 
 **Winding order:** Counter-clockwise (CCW) front faces. Standard OpenGL/glTF convention.
 
-**UV origin:** Top-left. V increases downward. Matches glTF/DirectX convention. All RGMD UVs are normalized to 0–1. Model/ROB UVs are derived from raw fixed-point deltas divided by `16 × texture_dimension × tex_scale`. Terrain UVs are hardcoded per-tile 0–1 coordinates with rotation variants.
+**UV origin:** Top-left. V increases downward. Matches glTF/DirectX convention. Model/ROB UVs are derived from raw fixed-point deltas divided by `16 × texture_dimension × tex_scale`, with V flipped (`1 − v`) to convert from the engine's bottom-left origin. Terrain UVs are hardcoded per-tile 0–1 coordinates with rotation variants.
 
 **Transform matrices:** `float[16]` in column-major order (translation in elements 12–14). Matches glTF/OpenGL convention.
 
