@@ -99,7 +99,7 @@ rgpre convert fxart/TEXBSI.302 -o output/TEXBSI_302/
 Convert model with palette and asset root:
 
 ```bash
-rgpre convert model 3dart/BELLTOWR.ROB --palette fxart/ISLAND.COL --assets . -o output/BELLTOWR.glb
+rgpre convert model fxart/BELLTOWR.ROB --palette fxart/ISLAND.COL --assets . -o output/BELLTOWR.glb
 ```
 
 Convert RGM scene with palette and asset root:
