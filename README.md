@@ -96,7 +96,7 @@ Redguard shipped with two parallel sets of 3D assets for different renderers:
 | `3dart/` | Software | v2.6, v2.7 | `art_pal.col` only | Original CD only |
 | `fxart/` | Glide (3dfx) | v4.0, v5.0 | 27 `.COL` palettes (per-scene) | ✓ |
 
-Both directories are supported. The `fxart/` Glide assets are recommended — they are included in the GOG release and use the newer model format. Each scene uses its own palette (e.g. `ISLAND.COL` for the overworld, `NECRO.COL` for the Necropolis). Pass the matching palette via `--palette`.
+Both directories are supported. The `fxart/` Glide assets are recommended — they are included in the GOG release and use the newer model format. Each scene uses its own palette (e.g. `ISLAND.COL` for the overworld, `NECRO.COL` for the Necropolis). Pass the matching palette via `--palette` — without it, 3D exports will have no textures.
 
 ## Usage Examples
 
@@ -122,13 +122,13 @@ rgpre convert rgm maps/BELLTOWR.RGM --palette fxart/ISLAND.COL --assets . -o out
 Convert WLD world to GLB terrain + companion RGM placement:
 
 ```bash
-rgpre convert wld maps/ISLAND.WLD --assets . -o output/ISLAND_world.glb
+rgpre convert wld maps/ISLAND.WLD --palette fxart/ISLAND.COL --assets . -o output/ISLAND_world.glb
 ```
 
 Convert WLD terrain only:
 
 ```bash
-rgpre convert wld maps/ISLAND.WLD --assets . --terrain-only -o output/ISLAND_terrain.glb
+rgpre convert wld maps/ISLAND.WLD --palette fxart/ISLAND.COL --assets . --terrain-only -o output/ISLAND_terrain.glb
 ```
 
 Convert TEXBSI texture bank with palette:
