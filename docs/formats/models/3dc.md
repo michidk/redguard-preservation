@@ -73,7 +73,7 @@ v2.6/v2.7 `.3DC` files use a different section order, with frame data immediatel
 1. **Frame Data** — at `offset_frame_data` (immediately after header)
 2. **Face Data** — at `offset_face_data` (variable offset)
 3. **Section4** — at `offset_section4` (may overlap with face data end)
-4. **Vertex Coordinates** — at `face_data_end + frame_data[0].reserved` (see [3D.md — Vertex Coordinates](3d.md#vertex-coordinates))
+4. **Vertex Coordinates** — at `face_data_end + frame_data[0].reserved`, or `face_data_end` when the gap is absent (see [3D.md — Vertex Coordinates](3d.md#vertex-coordinates))
 5. **Face Normals** — at `offset_face_normals`
 
 ## External References

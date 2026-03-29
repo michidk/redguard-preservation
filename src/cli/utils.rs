@@ -28,6 +28,12 @@ pub fn resolve_asset_root_from_input(input_file: &Path) -> PathBuf {
 
     for ancestor in parent.ancestors() {
         if count_known_subdirs(ancestor) >= 2 {
+            // `Path::ancestors()` yields `""` for relative paths like `"fxart"`.
+            // An empty path is invalid for directory traversal (`WalkDir`, `read_dir`),
+            // so normalise it to `"."` which refers to the current working directory.
+            if ancestor.as_os_str().is_empty() {
+                return PathBuf::from(".");
+            }
             return ancestor.to_path_buf();
         }
     }
@@ -35,10 +41,13 @@ pub fn resolve_asset_root_from_input(input_file: &Path) -> PathBuf {
     if let Some(parent_name) = parent.file_name().and_then(|n| n.to_str())
         && is_known_game_subdir(parent_name)
     {
-        return parent
+        let grandparent = parent
             .parent()
-            .unwrap_or_else(|| Path::new("."))
-            .to_path_buf();
+            .unwrap_or_else(|| Path::new("."));
+        if grandparent.as_os_str().is_empty() {
+            return PathBuf::from(".");
+        }
+        return grandparent.to_path_buf();
     }
 
     parent.to_path_buf()

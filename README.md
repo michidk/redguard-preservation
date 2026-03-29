@@ -102,10 +102,10 @@ Convert model with palette and asset root:
 rgpre convert model 3dart/BELLTOWR.ROB --palette fxart/ISLAND.COL --assets . -o output/BELLTOWR.glb
 ```
 
-Convert RGM scene (palette auto-resolved from `WORLD.INI`):
+Convert RGM scene with palette and asset root:
 
 ```bash
-rgpre convert rgm maps/ISLAND.RGM --assets . -o output/ISLAND_scene.glb
+rgpre convert rgm maps/BELLTOWR.RGM --palette fxart/ISLAND.COL --assets . -o output/BELLTOWR_scene.glb
 ```
 
 Convert WLD world to GLB terrain + companion RGM placement:
