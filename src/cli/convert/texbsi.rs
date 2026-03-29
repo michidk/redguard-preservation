@@ -1,18 +1,18 @@
 use crate::opts::ConvertArgs;
 use color_eyre::Result;
-use image::{Rgba, RgbaImage};
+use image::{DynamicImage, Rgba, RgbaImage};
 use log::info;
 use rayon::prelude::*;
-use rgpre::import::{bsi, palette::Palette};
+use rgpre::import::{bsi, palette::Palette, png::save_png};
 use serde_json::json;
 use std::path::Path;
 
-fn save_rgba_png(path: &Path, width: u32, height: u32, rgba: &[u8]) -> Result<()> {
+fn save_rgba_png(path: &Path, width: u32, height: u32, rgba: &[u8], compress: bool) -> Result<()> {
     let img = RgbaImage::from_fn(width, height, |x, y| {
         let i = (y * width + x) as usize * 4;
         Rgba([rgba[i], rgba[i + 1], rgba[i + 2], rgba[i + 3]])
     });
-    img.save(path)?;
+    save_png(&DynamicImage::ImageRgba8(img), path, compress)?;
     Ok(())
 }
 
@@ -44,6 +44,7 @@ pub(crate) fn handle_texbsi_convert(args: &ConvertArgs, output_path: &Path) -> R
         .unwrap_or_default();
 
     let all_frames = args.all_frames;
+    let compress = args.compress_textures;
     let image_metadata: Vec<serde_json::Value> = bsi_file
         .images
         .par_iter()
@@ -57,6 +58,7 @@ pub(crate) fn handle_texbsi_convert(args: &ConvertArgs, output_path: &Path) -> R
                 u32::from(image.width),
                 u32::from(image.height),
                 &rgba,
+                compress,
             )?;
 
             let mut frame_files: Vec<String> = vec![png_name.clone()];
@@ -71,6 +73,7 @@ pub(crate) fn handle_texbsi_convert(args: &ConvertArgs, output_path: &Path) -> R
                             u32::from(image.width),
                             u32::from(image.height),
                             &frame_rgba,
+                            compress,
                         )?;
                         frame_files.push(frame_name);
                     }

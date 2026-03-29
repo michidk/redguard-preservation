@@ -124,7 +124,7 @@ fn handle_wld_png_convert(args: &ConvertArgs, output_path: &Path) -> Result<()> 
         output_path.with_extension("png")
     };
 
-    let outputs = wld::export_wld_maps_pngs(&args.file, &png_output)
+    let outputs = wld::export_wld_maps_pngs(&args.file, &png_output, args.compress_textures)
         .map_err(|e| color_eyre::eyre::eyre!("{e}"))?;
     info!("Successfully exported WLD map PNGs:");
     info!("  map1 (height): {}", outputs.map1_path.display());

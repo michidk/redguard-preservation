@@ -38,7 +38,7 @@ pub(crate) fn handle_fnt_convert(args: &ConvertArgs, output_path: &Path) -> Resu
         return Ok(());
     }
 
-    let paths = fnt_export::export_fnt_bitmap(&args.file, output_path)
+    let paths = fnt_export::export_fnt_bitmap(&args.file, output_path, args.compress_textures)
         .map_err(|e| color_eyre::eyre::eyre!("{e}"))?;
     info!("Successfully converted FNT to {}", paths.png_path.display());
     info!("Wrote BMFont text to {}", paths.bmfont_path.display());

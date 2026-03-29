@@ -61,16 +61,30 @@ pub(super) fn ensure_parent_dir(path: &Path) -> Result<(), color_eyre::eyre::Err
 
 fn resolve_output_path(args: &ConvertArgs, filetype: FileType) -> PathBuf {
     if filetype != FileType::Fnt {
-        return args
-            .output
-            .clone()
-            .unwrap_or_else(|| filetype.default_output_path(&args.file));
+        let default = filetype.default_output_path(&args.file);
+        return match args.output.clone() {
+            Some(out) => resolve_dir_output(out, &default),
+            None => default,
+        };
     }
 
-    match (args.output.clone(), args.font_output) {
-        (Some(path), _) => path,
-        (None, Some(mode)) => default_fnt_output_for_mode(&args.file, mode),
-        (None, None) => filetype.default_output_path(&args.file),
+    let default = match args.font_output {
+        Some(mode) => default_fnt_output_for_mode(&args.file, mode),
+        None => filetype.default_output_path(&args.file),
+    };
+    match args.output.clone() {
+        Some(out) => resolve_dir_output(out, &default),
+        None => default,
+    }
+}
+
+/// If `output` is an existing directory on disk, append the default filename;
+/// otherwise return `output` unchanged.
+fn resolve_dir_output(output: PathBuf, default_path: &Path) -> PathBuf {
+    if output.is_dir() {
+        output.join(default_path.file_name().unwrap_or(default_path.as_os_str()))
+    } else {
+        output
     }
 }
 
@@ -182,10 +196,48 @@ fn convert_models(
     Ok(())
 }
 
+fn warn_irrelevant_flags(args: &ConvertArgs, filetype: FileType) {
+    if args.terrain_only && filetype != FileType::Wld {
+        warn!(
+            "--terrain-only has no effect for {} files (WLD only)",
+            filetype.display_name()
+        );
+    }
+    if !args.terrain_textures && filetype != FileType::Wld {
+        warn!(
+            "--terrain-textures has no effect for {} files (WLD only)",
+            filetype.display_name()
+        );
+    }
+    if args.font_output.is_some() && filetype != FileType::Fnt {
+        warn!(
+            "--font-output has no effect for {} files (FNT only)",
+            filetype.display_name()
+        );
+    }
+    if args.all_frames && filetype != FileType::Bsi {
+        warn!(
+            "--all-frames has no effect for {} files (TEXBSI only)",
+            filetype.display_name()
+        );
+    }
+    let produces_images = !matches!(
+        filetype,
+        FileType::Cht | FileType::Pvo | FileType::Sfx | FileType::Rtx
+    );
+    if args.compress_textures && !produces_images {
+        warn!(
+            "--compress-textures has no effect for {} files (image/GLB output only)",
+            filetype.display_name()
+        );
+    }
+}
+
 #[allow(clippy::needless_pass_by_value)]
 // CLI handlers take owned args by clap design for consistent command dispatch.
 pub fn handle_convert_command(args: ConvertArgs) -> Result<()> {
     let filetype = resolve_filetype(&args.file, args.filetype)?;
+    warn_irrelevant_flags(&args, filetype);
     let asset_root = resolve_asset_root(&args);
 
     if args.asset_path.is_some() || args.asset_dir.is_some() {

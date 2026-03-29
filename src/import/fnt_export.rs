@@ -1,6 +1,6 @@
 use crate::error::Error;
-use crate::import::{fnt, fnt_ttf};
-use image::{Rgba, RgbaImage};
+use crate::import::{fnt, fnt_ttf, png::save_png};
+use image::{DynamicImage, Rgba, RgbaImage};
 use serde_json::json;
 use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
@@ -276,6 +276,7 @@ pub fn export_fnt_ttf(input_path: &Path, output_path: &Path) -> Result<(), Error
 pub fn export_fnt_bitmap(
     input_path: &Path,
     output_path: &Path,
+    compress: bool,
 ) -> Result<BitmapExportPaths, Error> {
     let bytes = std::fs::read(input_path)?;
     let fnt = fnt::parse_fnt(&bytes)?;
@@ -289,8 +290,7 @@ pub fn export_fnt_bitmap(
     ensure_parent_dir(&png_path)?;
     ensure_parent_dir(&json_path)?;
     ensure_parent_dir(&bmfont_path)?;
-    image
-        .save(&png_path)
+    save_png(&DynamicImage::ImageRgba8(image), &png_path, compress)
         .map_err(|e| Error::Conversion(e.to_string()))?;
 
     let face_name = input_path

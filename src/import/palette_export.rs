@@ -1,6 +1,7 @@
 use crate::error::Error;
 use crate::import::palette::Palette;
-use image::{Rgb, RgbImage};
+use crate::import::png::save_png;
+use image::{DynamicImage, Rgb, RgbImage};
 use serde_json::json;
 use std::path::{Path, PathBuf};
 
@@ -52,6 +53,7 @@ fn paired_output_paths(output: &Path) -> (PathBuf, PathBuf) {
 pub fn export_col_palette(
     palette: &Palette,
     output_path: &Path,
+    compress: bool,
 ) -> Result<PaletteExportPaths, Error> {
     let img_size = GRID_DIM * CELL_SIZE;
     let mut image = RgbImage::new(img_size, img_size);
@@ -77,8 +79,7 @@ pub fn export_col_palette(
     ensure_parent_dir(&png_path)?;
     ensure_parent_dir(&json_path)?;
 
-    image
-        .save(&png_path)
+    save_png(&DynamicImage::ImageRgb8(image), &png_path, compress)
         .map_err(|e| Error::Conversion(e.to_string()))?;
 
     let colors: Vec<serde_json::Value> = palette

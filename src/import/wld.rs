@@ -1,5 +1,6 @@
+use crate::import::png::save_png;
 use crate::{Result, error::Error};
-use image::{GrayImage, Luma};
+use image::{DynamicImage, GrayImage, Luma};
 use std::path::{Path, PathBuf};
 
 pub const WLD_HEADER_BYTES: usize = 1184;
@@ -211,8 +212,12 @@ fn ensure_parent_dir(path: &Path) -> Result<()> {
 }
 
 /// Exports combined WLD heightmap data to a PNG file.
-pub fn export_wld_heightmap_png(input_path: &Path, output_path: &Path) -> Result<()> {
-    let paths = export_wld_maps_pngs(input_path, output_path)?;
+pub fn export_wld_heightmap_png(
+    input_path: &Path,
+    output_path: &Path,
+    compress: bool,
+) -> Result<()> {
+    let paths = export_wld_maps_pngs(input_path, output_path, compress)?;
     if paths.map1_path != output_path {
         std::fs::copy(&paths.map1_path, output_path).map_err(|e| Error::File {
             path: output_path.to_path_buf(),
@@ -231,7 +236,7 @@ pub struct WldMapExportPaths {
     pub map4_path: PathBuf,
 }
 
-fn write_luma_png(output_path: &Path, luma: &[u8]) -> Result<()> {
+fn write_luma_png(output_path: &Path, luma: &[u8], compress: bool) -> Result<()> {
     let expected = (WLD_MAP_SIDE * 2) * (WLD_MAP_SIDE * 2);
     if luma.len() != expected {
         return Err(Error::Conversion(format!(
@@ -253,7 +258,7 @@ fn write_luma_png(output_path: &Path, luma: &[u8]) -> Result<()> {
     }
 
     ensure_parent_dir(output_path)?;
-    image.save(output_path).map_err(|e| {
+    save_png(&DynamicImage::ImageLuma8(image), output_path, compress).map_err(|e| {
         Error::Conversion(format!(
             "failed to write PNG '{}': {e}",
             output_path.display()
@@ -280,15 +285,19 @@ fn map_output_paths(output_path: &Path) -> WldMapExportPaths {
 }
 
 /// Exports all four combined WLD maps as grayscale PNG files.
-pub fn export_wld_maps_pngs(input_path: &Path, output_path: &Path) -> Result<WldMapExportPaths> {
+pub fn export_wld_maps_pngs(
+    input_path: &Path,
+    output_path: &Path,
+    compress: bool,
+) -> Result<WldMapExportPaths> {
     let bytes = std::fs::read(input_path)?;
     let wld = parse_wld_file(&bytes)?;
     let paths = map_output_paths(output_path);
 
-    write_luma_png(&paths.map1_path, &wld.combined_heightmap_luma()?)?;
-    write_luma_png(&paths.map2_path, &wld.combined_map(1)?)?;
-    write_luma_png(&paths.map3_path, &wld.combined_map(2)?)?;
-    write_luma_png(&paths.map4_path, &wld.combined_map(3)?)?;
+    write_luma_png(&paths.map1_path, &wld.combined_heightmap_luma()?, compress)?;
+    write_luma_png(&paths.map2_path, &wld.combined_map(1)?, compress)?;
+    write_luma_png(&paths.map3_path, &wld.combined_map(2)?, compress)?;
+    write_luma_png(&paths.map4_path, &wld.combined_map(3)?, compress)?;
 
     Ok(paths)
 }

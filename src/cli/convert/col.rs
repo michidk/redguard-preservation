@@ -8,7 +8,7 @@ pub(crate) fn handle_col_convert(args: &ConvertArgs, output_path: &Path) -> Resu
     let file_content = std::fs::read(&args.file)?;
     let palette = Palette::parse(&file_content).map_err(|e| color_eyre::eyre::eyre!("{e}"))?;
 
-    let paths = palette_export::export_col_palette(&palette, output_path)
+    let paths = palette_export::export_col_palette(&palette, output_path, args.compress_textures)
         .map_err(|e| color_eyre::eyre::eyre!("{e}"))?;
 
     info!("Palette swatch exported to: {}", paths.png_path.display());

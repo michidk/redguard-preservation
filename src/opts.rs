@@ -56,7 +56,7 @@ pub struct ConvertArgs {
     #[arg(short, long, value_parser = clap::value_parser!(FileType))]
     pub filetype: Option<FileType>,
 
-    /// Output file path (defaults to input file with .gltf extension)
+    /// Output file or directory; when a directory, the filename is derived automatically
     #[arg(short, long)]
     pub output: Option<PathBuf>,
 
@@ -87,13 +87,17 @@ pub struct ConvertArgs {
     #[arg(long, default_value_t = true, action = clap::ArgAction::Set)]
     pub terrain_textures: bool,
 
-    /// Apply lossless deflate compression to embedded PNG textures
+    /// Apply higher PNG compression to exported images and embedded GLB textures
     #[arg(long, default_value_t = false)]
     pub compress_textures: bool,
 
     /// For TEXBSI conversion, export all animation frames (default: frame 0 only)
     #[arg(long, default_value_t = false)]
     pub all_frames: bool,
+
+    /// For RTX conversion, use resolved text names as filenames instead of 4-char tags
+    #[arg(long, default_value_t = false)]
+    pub resolve_names: bool,
 }
 
 /// Arguments for scanning a directory
@@ -109,7 +113,7 @@ pub enum Commands {
     /// Read and parse a ROB or 3D model file
     #[clap(alias = "r")]
     Read(ReadArgs),
-    /// Convert a ROB or 3D model file to GLTF format
+    /// Convert a supported file to its output format (GLB, JSON, PNG, WAV, etc.)
     #[clap(alias = "c")]
     Convert(ConvertArgs),
     /// Scan a directory for files
