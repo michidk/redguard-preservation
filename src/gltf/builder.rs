@@ -445,15 +445,9 @@ impl<'a> GltfBuilder<'a> {
                         .as_deref_mut()
                         .and_then(|cache| cache.get_image_dimensions(texture_id, image_id));
 
-                    let tex_scale = self
-                        .texture_cache
-                        .as_deref_mut()
-                        .and_then(|cache| cache.get_image_tex_scale(texture_id, image_id))
-                        .unwrap_or(1.0);
-
                     if let Some((width, height)) = texture_dims {
-                        let u_scale = f32::from(width.max(1)) * UV_FIXED_POINT_SCALE / tex_scale;
-                        let v_scale = f32::from(height.max(1)) * UV_FIXED_POINT_SCALE / tex_scale;
+                        let u_scale = f32::from(width.max(1)) * UV_FIXED_POINT_SCALE;
+                        let v_scale = f32::from(height.max(1)) * UV_FIXED_POINT_SCALE;
                         primitive
                             .uvs
                             .iter()
@@ -464,20 +458,24 @@ impl<'a> GltfBuilder<'a> {
                             .uvs
                             .iter()
                             .map(|[u, v]| {
-                                [
-                                    u * tex_scale / UV_FIXED_POINT_SCALE,
-                                    1.0 - v * tex_scale / UV_FIXED_POINT_SCALE,
-                                ]
+                                [u / UV_FIXED_POINT_SCALE, 1.0 - v / UV_FIXED_POINT_SCALE]
                             })
                             .collect()
                     }
                 }
                 MaterialKey::Textured(_, _) => primitive.uvs.clone(),
-                _ => primitive
-                    .uvs
-                    .iter()
-                    .map(|[u, v]| [u / UV_FIXED_POINT_SCALE, 1.0 - v / UV_FIXED_POINT_SCALE])
-                    .collect(),
+                _ => {
+                    // PaletteTexture / SolidColor faces use a tiny 8×8 solid-colour
+                    // texture, so UVs must be normalised by (8 × 16) = 128 to match
+                    // the same coordinate space as textured faces.
+                    const PALETTE_TEX_DIM: f32 = 8.0;
+                    let scale = PALETTE_TEX_DIM * UV_FIXED_POINT_SCALE;
+                    primitive
+                        .uvs
+                        .iter()
+                        .map(|[u, v]| [u / scale, 1.0 - v / scale])
+                        .collect()
+                }
             };
 
             let position_accessor_index = self.push_vec3_accessor(

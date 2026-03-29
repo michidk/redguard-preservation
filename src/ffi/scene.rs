@@ -165,22 +165,19 @@ fn serialize_model_3d(
         .collect();
 
     for (key, submesh) in &mut populated_submeshes {
-        let (tex_scale, tex_w, tex_h) = match key {
+        let (tex_w, tex_h) = match key {
             SubmeshKey::Textured(texture_id, image_id) => {
                 let cache = texture_cache.as_mut().expect("texture_cache required");
-                let scale = cache
-                    .get_image_tex_scale(*texture_id, *image_id)
-                    .unwrap_or(1.0);
                 let (w, h) = cache
                     .get_image_dimensions(*texture_id, *image_id)
                     .unwrap_or((1, 1));
-                (scale, f32::from(w.max(1)), f32::from(h.max(1)))
+                (f32::from(w.max(1)), f32::from(h.max(1)))
             }
-            SubmeshKey::SolidColor(_) => (1.0, 1.0, 1.0),
+            SubmeshKey::SolidColor(_) => (8.0, 8.0),
         };
         for uv in &mut submesh.uvs {
-            uv[0] = uv[0] * tex_scale / (UV_FIXED_POINT_SCALE * tex_w);
-            uv[1] = 1.0 - uv[1] * tex_scale / (UV_FIXED_POINT_SCALE * tex_h);
+            uv[0] /= UV_FIXED_POINT_SCALE * tex_w;
+            uv[1] = 1.0 - uv[1] / (UV_FIXED_POINT_SCALE * tex_h);
         }
     }
 

@@ -39,7 +39,7 @@ The internal texture cache is protected by a `Mutex`. The first `rg_decode_textu
 
 **Winding order:** Counter-clockwise (CCW) front faces. Standard OpenGL/glTF convention.
 
-**UV origin:** Top-left. V increases downward. Matches glTF/DirectX convention. Model/ROB UVs are derived from raw fixed-point deltas divided by `16 × texture_dimension × tex_scale`, with V flipped (`1 − v`) to convert from the engine's bottom-left origin. Terrain UVs are hardcoded per-tile 0–1 coordinates with rotation variants.
+**UV origin:** Top-left. V increases downward. Matches glTF/DirectX convention. Model/ROB UVs are derived from raw fixed-point deltas divided by `16 × texture_dimension`, with V flipped (`1 − v`) to convert from the engine's bottom-left origin. Terrain UVs are hardcoded per-tile 0–1 coordinates with rotation variants.
 
 **Transform matrices:** `float[16]` in column-major order (translation in elements 12–14). Matches glTF/OpenGL convention.
 
