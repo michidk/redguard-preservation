@@ -476,29 +476,33 @@ All fields little-endian.
 
 Position fields use the same i24+pad encoding as MPOB/MPSO. No explicit record ID field. The engine branches on marker type (byte +0x04 in runtime struct) with values 0x02 and 0x06 triggering distinct paths.
 
-## MPSZ (Actor Instance Registry)
+## MPSZ (Bounding Volumes)
 
-MPSZ provides initial data for the runtime actor instance registry. Unlike other MP* sections, MPSZ does NOT use the standard count-prefixed layout — the first u32 is data, not a record count.
+MPSZ is an array of 49-byte bounding volume records used for actor collision and interaction bounds. Not count-prefixed — record count is `section_size / 49`. RAHD fields at +0x8D and +0x91 store per-actor indices into this table (−1 = no record).
 
-At load time, the engine bulk-copies the raw MPSZ bytes to a runtime buffer (scene structure offset +0x7C) and allocates a separate `actor_count × 0x1A` (26) byte linked list populated from RAHD fields. This linked list serves as an **actor instance registry** used by three runtime operations:
-
-1. **Lookup by name** — walks the list to find an actor by name, increments instance counter on match (used when spawning actors)
-2. **Lookup by script offset** — reverse lookup: finds the actor name for a given `script_data_offset` (used to identify which actor owns a script block)
-3. **Dynamic creation** — allocates new 26-byte nodes for actors spawned at runtime (not from RAHD)
-
-### Runtime Record (26 bytes)
+### Record Layout (49 bytes)
 
 | Offset | Size | Type | Name | Description |
 |---|---|---|---|---|
-| +0x00 | 4 | `ptr` | next | Next record in linked list (0 = last) |
-| +0x04 | 4 | `ptr` | actor_name | Pointer to actor name string (from RAHD +0x04, or dynamically allocated) |
-| +0x08 | 4 | `u32` | script_data_offset | From RAHD +0x51 |
-| +0x0C | 4 | — | reserved | Zeroed during load, used for runtime resources |
-| +0x10 | 4 | `u32` | rahk_offset | From RAHD +0x5D |
-| +0x14 | 2 | `i16` | instance_count | From RAHD +0x0D (instances − 1); incremented on each lookup-by-name |
-| +0x16 | 4 | `i32` | sequential_id | Assigned from a global counter during creation |
+| 0x00 | 4 | `i32` | total_x | Total extent X (`neg_x + pos_x`) |
+| 0x04 | 4 | `i32` | total_y | Total extent Y (`neg_y + pos_y`) |
+| 0x08 | 4 | `i32` | total_z | Total extent Z (`neg_z + pos_z`) |
+| 0x0C | 4 | `i32` | center_x | Center offset X (always 0 in shipped data) |
+| 0x10 | 4 | `i32` | center_y | Center offset Y (always 0 in shipped data) |
+| 0x14 | 4 | `i32` | center_z | Center offset Z (always 0 in shipped data) |
+| 0x18 | 4 | `i32` | neg_x | Negative half-extent X |
+| 0x1C | 4 | `i32` | neg_y | Negative half-extent Y |
+| 0x20 | 4 | `i32` | neg_z | Negative half-extent Z |
+| 0x24 | 4 | `i32` | pos_x | Positive half-extent X |
+| 0x28 | 4 | `i32` | pos_y | Positive half-extent Y |
+| 0x2C | 4 | `i32` | pos_z | Positive half-extent Z |
+| 0x30 | 1 | `u8` | flags | Always 0 in shipped data |
 
-The MPSZ file data is preserved at runtime but its per-field file-level format has not been fully traced — the runtime linked list is populated entirely from RAHD fields, not from MPSZ bytes. File-level sizes vary across maps (7–37 bytes per actor, total 245–7056 bytes). Present in all 27 shipped RGM files.
+Invariant: `total = neg + pos` for each axis. Center is always zero in shipped files. About 30% of records are symmetric (`neg == pos`); the rest have asymmetric bounds.
+
+At runtime, the engine copies these 49 bytes into the actor's collision structure and builds a 3D bounding volume from them. Two RAHD index fields allow actors to reference separate bounds (e.g. standing vs crouching hitbox, or body vs interaction range).
+
+Present in all 27 shipped RGM files (5–144 records per map).
 
 ## MPSF (Flat Objects)
 

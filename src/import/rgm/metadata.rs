@@ -655,40 +655,37 @@ fn parse_rafs_entries(data: &[u8]) -> Vec<serde_json::Value> {
     out
 }
 
-fn parse_mpsz_entries(data: &[u8], actor_count: usize) -> Vec<serde_json::Value> {
-    if data.is_empty() {
+fn parse_mpsz_entries(data: &[u8]) -> Vec<serde_json::Value> {
+    const RECORD_SIZE: usize = 49;
+    if data.len() < RECORD_SIZE {
         return Vec::new();
     }
 
-    if actor_count == 0 {
-        return vec![serde_json::json!({
-            "index": 0,
-            "data_hex": hex_encode(data),
-        })];
-    }
-
-    let stride = data.len() / actor_count;
-    if stride == 0 {
-        return vec![serde_json::json!({
-            "index": 0,
-            "data_hex": hex_encode(data),
-        })];
-    }
-
-    let mut out = Vec::with_capacity(actor_count);
-    for i in 0..actor_count {
-        let start = i * stride;
-        if start >= data.len() {
-            break;
-        }
-        let end = if i + 1 == actor_count {
-            data.len()
-        } else {
-            (start + stride).min(data.len())
-        };
+    let count = data.len() / RECORD_SIZE;
+    let mut out = Vec::with_capacity(count);
+    for i in 0..count {
+        let off = i * RECORD_SIZE;
+        let rec = &data[off..off + RECORD_SIZE];
+        let total_x = read_i32_le(rec, 0x00).unwrap_or_default();
+        let total_y = read_i32_le(rec, 0x04).unwrap_or_default();
+        let total_z = read_i32_le(rec, 0x08).unwrap_or_default();
+        let center_x = read_i32_le(rec, 0x0C).unwrap_or_default();
+        let center_y = read_i32_le(rec, 0x10).unwrap_or_default();
+        let center_z = read_i32_le(rec, 0x14).unwrap_or_default();
+        let neg_x = read_i32_le(rec, 0x18).unwrap_or_default();
+        let neg_y = read_i32_le(rec, 0x1C).unwrap_or_default();
+        let neg_z = read_i32_le(rec, 0x20).unwrap_or_default();
+        let pos_x = read_i32_le(rec, 0x24).unwrap_or_default();
+        let pos_y = read_i32_le(rec, 0x28).unwrap_or_default();
+        let pos_z = read_i32_le(rec, 0x2C).unwrap_or_default();
+        let flags = rec.get(0x30).copied().unwrap_or_default();
         out.push(serde_json::json!({
             "index": i,
-            "data_hex": hex_encode(&data[start..end]),
+            "total_extent": [total_x, total_y, total_z],
+            "center_offset": [center_x, center_y, center_z],
+            "neg_extent": [neg_x, neg_y, neg_z],
+            "pos_extent": [pos_x, pos_y, pos_z],
+            "flags": flags,
         }));
     }
     out
@@ -726,11 +723,6 @@ pub(super) fn export_rgm_metadata_json_impl(
         RgmSection::RaexParsed(_, recs) => Some(recs.as_slice()),
         _ => None,
     });
-
-    let actor_count = rahd_data
-        .and_then(|rahd| read_u32_le(rahd, 0))
-        .and_then(|count| usize::try_from(count).ok())
-        .unwrap_or_default();
 
     let mut actors = Vec::new();
     if let Some(rahd) = rahd_data
@@ -844,6 +836,15 @@ pub(super) fn export_rgm_metadata_json_impl(
                 }
             }
 
+            let mpsz_index_0 = read_i32_le(item, 0x8D).unwrap_or(-1);
+            let mpsz_index_1 = read_i32_le(item, 0x91).unwrap_or(-1);
+            if mpsz_index_0 >= 0 {
+                actor.insert("mpsz_bounds_0".into(), mpsz_index_0.into());
+            }
+            if mpsz_index_1 >= 0 {
+                actor.insert("mpsz_bounds_1".into(), mpsz_index_1.into());
+            }
+
             actors.push(serde_json::Value::Object(actor));
         }
     }
@@ -918,7 +919,7 @@ pub(super) fn export_rgm_metadata_json_impl(
                 markers.extend(parse_mpm_records(data));
             }
             RgmSection::Mpsz(_, data) => {
-                mpsz_entries.extend(parse_mpsz_entries(data, actor_count));
+                mpsz_entries.extend(parse_mpsz_entries(data));
             }
             RgmSection::Flat(_, data) => raw_sections.push(raw_section_to_json("FLAT", data)),
             RgmSection::Raex(_, data) => raw_sections.push(raw_section_to_json("RAEX", data)),
