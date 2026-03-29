@@ -139,7 +139,10 @@ pub(crate) fn handle_texbsi_convert(args: &ConvertArgs, output_path: &Path) -> R
         .map(|n| n.to_string_lossy().to_string())
         .unwrap_or_default();
 
-    let use_gif = args.format == Some(OutputFormat::Gif);
+    let use_gif = !matches!(
+        args.format,
+        Some(OutputFormat::Png) | Some(OutputFormat::Frames)
+    );
     let export_all_frames = args.format == Some(OutputFormat::Frames);
     let compress = args.compress_textures;
 

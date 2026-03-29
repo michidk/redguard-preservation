@@ -28,7 +28,7 @@ pub(crate) fn handle_gxa_convert(args: &ConvertArgs, output_path: &Path) -> Resu
     let gxa_file =
         gxa::parse_gxa_file(&file_content).map_err(|e| color_eyre::eyre::eyre!("{e}"))?;
 
-    let use_gif = args.format == Some(OutputFormat::Gif);
+    let use_gif = !matches!(args.format, Some(OutputFormat::Png));
 
     if use_gif && gxa_file.frames.len() > 1 {
         std::fs::create_dir_all(output_path)?;

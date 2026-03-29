@@ -7,11 +7,11 @@ use std::path::PathBuf;
 
 #[derive(Debug, Clone, Copy, clap::ValueEnum, PartialEq, Eq)]
 pub enum OutputFormat {
-    /// Single PNG per image, frame 0 only (TEXBSI/GXA default)
+    /// Single PNG per image, frame 0 only
     Png,
     /// All animation frames as separate PNGs
     Frames,
-    /// Animated GIF for multi-frame images, PNG for single-frame
+    /// Animated GIF for multi-frame images, PNG for single-frame (TEXBSI/GXA default)
     Gif,
     /// Bitmap font atlas: PNG + BMFont + JSON (FNT default)
     Bitmap,
