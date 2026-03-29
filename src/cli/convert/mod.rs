@@ -245,16 +245,13 @@ fn handle_rgm_convert(args: &RgmArgs) -> Result<()> {
                 "ropes",
                 "markers",
                 "collision_volumes",
+                "mpsz_entries",
             ]),
         )?;
         write_json("actors.json", &pick(&["actors"]))?;
         write_json(
             "navigation.json",
             &pick(&["walk_node_maps", "ralc_locations"]),
-        )?;
-        write_json(
-            "tables.json",
-            &pick(&["mpsz_entries", "rafs_entries", "raw_sections"]),
         )?;
     }
     info!("Exported metadata to: {}", out_dir.display());

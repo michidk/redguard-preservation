@@ -301,9 +301,9 @@ When an MPOB record has an empty `model_name`, the exporter resolves a model via
 4. Use the stem as the model name for asset lookup.
 5. If no RAHD/RAAN match, fall back to using `script_name` as the model name.
 
-## RAFS (FSphere)
+## RAFS (Actor FSphere Data)
 
-RAFS contains bounding-sphere data for actors. Records are 11 bytes each (RAHD `rafs_index` rebases as `rafs_data + index × 11`). Internal per-field layout is not decoded. The engine only loads this section if its size exceeds 10 bytes.
+RAFS was intended to store pre-computed fsphere (combat/collision sphere) data for actors. The engine only loads this section when its size exceeds 10 bytes. In all 27 shipped RGM files, RAFS is exactly 1 byte — the section is vestigial and never loaded at runtime. FSpheres are instead computed from MPSZ bounding volume records indexed via RAHD.
 
 ## RAST (String Data)
 
@@ -478,7 +478,7 @@ Position fields use the same i24+pad encoding as MPOB/MPSO. No explicit record I
 
 ## MPSZ (Bounding Volumes)
 
-MPSZ is an array of 49-byte bounding volume records used for actor collision and interaction bounds. Not count-prefixed — record count is `section_size / 49`. RAHD fields at +0x8D and +0x91 store per-actor indices into this table (−1 = no record).
+MPSZ is an array of 49-byte bounding volume records used to build per-actor **fspheres** (combat/collision bounding spheres) at runtime. Not count-prefixed — record count is `section_size / 49`. RAHD fields at +0x8D and +0x91 store per-actor indices into this table (−1 = no record).
 
 ### Record Layout (49 bytes)
 
@@ -500,7 +500,7 @@ MPSZ is an array of 49-byte bounding volume records used for actor collision and
 
 Invariant: `total = neg + pos` for each axis. Center is always zero in shipped files. About 30% of records are symmetric (`neg == pos`); the rest have asymmetric bounds.
 
-At runtime, the engine copies these 49 bytes into the actor's collision structure and builds a 3D bounding volume from them. Two RAHD index fields allow actors to reference separate bounds (e.g. standing vs crouching hitbox, or body vs interaction range).
+At runtime, the engine copies these 49 bytes and calls the fsphere builder to create a 3D bounding volume for the actor. RAHD provides two separate index fields per actor, allowing reference to different bounding records. Only a subset of actors have direct RAHD indices — other records may be referenced by MPOB objects or other runtime systems.
 
 Present in all 27 shipped RGM files (5–144 records per map).
 

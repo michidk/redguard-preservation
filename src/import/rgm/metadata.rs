@@ -383,14 +383,6 @@ fn ravc_to_json(record: &RavcRecord) -> serde_json::Value {
     })
 }
 
-fn raw_section_to_json(name: &str, data: &[u8]) -> serde_json::Value {
-    serde_json::json!({
-        "name": name,
-        "size": data.len(),
-        "data_hex": hex_encode(data),
-    })
-}
-
 fn read_u32_le(bytes: &[u8], offset: usize) -> Option<u32> {
     let chunk: [u8; 4] = bytes.get(offset..offset + 4)?.try_into().ok()?;
     Some(u32::from_le_bytes(chunk))
@@ -639,22 +631,6 @@ fn parse_wdnm_maps(data: &[u8]) -> Vec<serde_json::Value> {
     maps
 }
 
-fn parse_rafs_entries(data: &[u8]) -> Vec<serde_json::Value> {
-    if data.len() <= 10 {
-        return Vec::new();
-    }
-
-    let mut out = Vec::new();
-    let mut cursor = 0usize;
-    while cursor + 11 <= data.len() {
-        out.push(serde_json::json!({
-            "data_hex": hex_encode(&data[cursor..cursor + 11]),
-        }));
-        cursor += 11;
-    }
-    out
-}
-
 fn parse_mpsz_entries(data: &[u8]) -> Vec<serde_json::Value> {
     const RECORD_SIZE: usize = 49;
     if data.len() < RECORD_SIZE {
@@ -858,9 +834,7 @@ pub(super) fn export_rgm_metadata_json_impl(
     let mut markers = Vec::new();
     let mut walk_node_maps = Vec::new();
     let mut ralc_locations = Vec::new();
-    let mut rafs_entries = Vec::new();
     let mut mpsz_entries = Vec::new();
-    let mut raw_sections = Vec::new();
 
     for section in &rgm.sections {
         match section {
@@ -887,10 +861,8 @@ pub(super) fn export_rgm_metadata_json_impl(
             RgmSection::Wdnm(_, data) => {
                 walk_node_maps.extend(parse_wdnm_maps(data));
             }
-            RgmSection::Rafs(_, data) => {
-                rafs_entries.extend(parse_rafs_entries(data));
-            }
-            RgmSection::Rast(_, _)
+            RgmSection::Rafs(_, _)
+            | RgmSection::Rast(_, _)
             | RgmSection::Rasb(_, _)
             | RgmSection::Rava(_, _)
             | RgmSection::Rasc(_, _)
@@ -921,13 +893,13 @@ pub(super) fn export_rgm_metadata_json_impl(
             RgmSection::Mpsz(_, data) => {
                 mpsz_entries.extend(parse_mpsz_entries(data));
             }
-            RgmSection::Flat(_, data) => raw_sections.push(raw_section_to_json("FLAT", data)),
-            RgmSection::Raex(_, data) => raw_sections.push(raw_section_to_json("RAEX", data)),
-            RgmSection::Ravc(_, data) => raw_sections.push(raw_section_to_json("RAVC", data)),
-            RgmSection::Mpob(_, data) => raw_sections.push(raw_section_to_json("MPOB", data)),
-            RgmSection::Mprp(_, data) => raw_sections.push(raw_section_to_json("MPRP", data)),
-            RgmSection::Mpl(_, data) => raw_sections.push(raw_section_to_json("MPL ", data)),
-            RgmSection::Rahd(_, _)
+            RgmSection::Flat(_, _)
+            | RgmSection::Raex(_, _)
+            | RgmSection::Ravc(_, _)
+            | RgmSection::Mpob(_, _)
+            | RgmSection::Mprp(_, _)
+            | RgmSection::Mpl(_, _)
+            | RgmSection::Rahd(_, _)
             | RgmSection::Ragr(_, _)
             | RgmSection::RaexParsed(_, _)
             | RgmSection::End(_) => {}
@@ -945,8 +917,6 @@ pub(super) fn export_rgm_metadata_json_impl(
         "markers": markers,
         "walk_node_maps": walk_node_maps,
         "ralc_locations": ralc_locations,
-        "rafs_entries": rafs_entries,
         "mpsz_entries": mpsz_entries,
-        "raw_sections": raw_sections,
     })
 }
