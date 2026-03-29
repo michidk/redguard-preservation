@@ -87,6 +87,17 @@ rgpre --help
   - `convert <FORMAT> <FILE>` — format-specific subcommand with scoped flags
 - `scan` (`s`) — recursively scan a directory for known Redguard files
 
+## Asset Directories
+
+Redguard shipped with two parallel sets of 3D assets for different renderers:
+
+| Directory | Renderer | Model versions | Palette files | Included in GOG |
+|---|---|---|---|---|
+| `3dart/` | Software | v2.6, v2.7 | `art_pal.col` only | Original CD only |
+| `fxart/` | Glide (3dfx) | v4.0, v5.0 | 27 `.COL` palettes (per-scene) | ✓ |
+
+Both directories are supported. The `fxart/` Glide assets are recommended — they are included in the GOG release and use the newer model format. Each scene uses its own palette (e.g. `ISLAND.COL` for the overworld, `NECRO.COL` for the Necropolis). Pass the matching palette via `--palette`.
+
 ## Usage Examples
 
 Auto-detect format (uses defaults):
