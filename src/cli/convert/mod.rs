@@ -255,14 +255,10 @@ fn handle_rgm_convert(args: &RgmArgs) -> Result<()> {
         write_json(
             "tables.json",
             &pick(&[
-                "rava_variables",
-                "rast_strings",
-                "rasb_offsets",
                 "rahk_hooks",
                 "ranm_namespace",
                 "mpsz_entries",
                 "rafs_entries",
-                "rasc_size",
                 "raw_sections",
             ]),
         )?;

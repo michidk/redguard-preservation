@@ -829,10 +829,6 @@ pub(super) fn export_rgm_metadata_json_impl(
     let mut ranm_namespace = Vec::new();
     let mut rafs_entries = Vec::new();
     let mut mpsz_entries = Vec::new();
-    let mut rast_strings = Vec::new();
-    let mut rasb_offsets = Vec::new();
-    let mut rava_variables = Vec::new();
-    let mut rasc_size = 0usize;
     let mut raw_sections = Vec::new();
 
     for section in &rgm.sections {
@@ -863,34 +859,10 @@ pub(super) fn export_rgm_metadata_json_impl(
             RgmSection::Rafs(_, data) => {
                 rafs_entries.extend(parse_rafs_entries(data));
             }
-            RgmSection::Rast(_, data) => {
-                rast_strings.extend(
-                    parse_ranm_namespace(data)
-                        .into_iter()
-                        .map(serde_json::Value::String),
-                );
-            }
-            RgmSection::Rasb(_, data) => {
-                let mut cursor = 0usize;
-                while cursor + 4 <= data.len() {
-                    if let Some(value) = read_u32_le(data, cursor) {
-                        rasb_offsets.push(serde_json::Value::from(value));
-                    }
-                    cursor += 4;
-                }
-            }
-            RgmSection::Rava(_, data) => {
-                let mut cursor = 0usize;
-                while cursor + 4 <= data.len() {
-                    rava_variables.push(serde_json::Value::from(
-                        read_i32_le(data, cursor).unwrap_or_default(),
-                    ));
-                    cursor += 4;
-                }
-            }
-            RgmSection::Rasc(_, data) => {
-                rasc_size = data.len();
-            }
+            RgmSection::Rast(_, _)
+            | RgmSection::Rasb(_, _)
+            | RgmSection::Rava(_, _)
+            | RgmSection::Rasc(_, _) => {}
             RgmSection::Rahk(_, data) => {
                 let mut cursor = 0usize;
                 while cursor + 4 <= data.len() {
@@ -960,10 +932,6 @@ pub(super) fn export_rgm_metadata_json_impl(
         "ranm_namespace": ranm_namespace,
         "rafs_entries": rafs_entries,
         "mpsz_entries": mpsz_entries,
-        "rast_strings": rast_strings,
-        "rasb_offsets": rasb_offsets,
-        "rava_variables": rava_variables,
-        "rasc_size": rasc_size,
         "raw_sections": raw_sections,
     })
 }
