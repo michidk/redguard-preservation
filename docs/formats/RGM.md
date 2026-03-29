@@ -244,7 +244,7 @@ All typed fields are little-endian.
 | 0x2D | 4 | — | anim_control_prefix | Low byte stored at animation control struct offset `+0x12` during RAGR loading. Remaining bytes are not decoded. |
 | 0x31 | 4 | `u32` | ragr_offset | Byte offset into RAGR section data (rebased to pointer at load) |
 | 0x35 | 8 | — | padding | Always 0. |
-| 0x3D | 4 | `u32` | rafs_index | Index into RAFS data (rebased: `rafs_data + index × 11`; RAFS records are 11 bytes) |
+| 0x3D | 4 | `u32` | rafs_index | Index into RAFS data (vestigial — RAFS is 1 byte in all shipped files) |
 | 0x41 | 4 | `u32` | num_strings | Number of strings used by this actor's script |
 | 0x45 | 4 | — | padding | Always 0. |
 | 0x49 | 4 | `u32` | string_offsets_index | Byte offset into RASB section data |

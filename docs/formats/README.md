@@ -14,7 +14,7 @@ Binary, little-endian file formats.
 | Model | .3d | yes | `.glb` | [3D](models/3d.md) | Static 3D models. |
 | Animated Model | .3dc | yes | `.glb` | [3DC](models/3dc.md) | Animated 3D models (multi-frame). |
 | ROB Archive | .rob | yes | `.glb` | [ROB.md](ROB.md) | Contains world/dungeon model data; used within maps. |
-| Map Data | .rgm | yes | output directory: `.glb` + scene/actors/navigation/tables `.json` + per-actor `.soup`/`.json` scripts | [RGM.md](RGM.md) | Game map files containing sections for objects, scripts, locations, collisions, etc. |
+| Map Data | .rgm | yes | output directory: `.glb` + scene/actors/navigation `.json` + per-actor `.soup`/`.json` scripts | [RGM.md](RGM.md) | Game map files containing sections for objects, scripts, locations, collisions, etc. |
 | World Geometry | .wld | yes | `.glb` + metadata `.json`, or map `.png` set | [WLD.md](WLD.md) | World geometry/height-map data with 4 sections and 128×128 maps; supports terrain GLB export (and companion RGM merge). |
 | Visibility Octree | .pvo | yes | `.json` | [PVO](pvo/format.md) | Pre-computed visibility octree for level geometry culling. |
 | Cheat States | .cht | yes | — | [CHT.md](CHT.md) | Cheat persistence file (`REDGUARD.CHT`); 256-byte raw dump of 64 u32 LE cheat state slots. |

@@ -8,7 +8,7 @@ Preserving *The Elder Scrolls Adventures: Redguard* (1998) — reverse-engineere
 |---|---|---|
 | Model | `.3d`, `.3dc` | `.glb` |
 | ROB archive | `.rob` | `.glb` |
-| RGM scene | `.rgm` | directory: `.glb` + scene/actors/navigation/tables `.json` + per-actor `.soup`/`.json` scripts |
+| RGM scene | `.rgm` | directory: `.glb` + scene/actors/navigation `.json` + per-actor `.soup`/`.json` scripts |
 | WLD world | `.wld` | `.glb` + actor metadata `.json` (scene mode), or map `.png` set |
 | Font | `.fnt` | bitmap `.png` + BMFont `.fnt` + glyph metadata `.json`, or `.ttf` |
 | Visibility octree | `.pvo` | `.json` |
