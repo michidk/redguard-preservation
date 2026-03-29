@@ -4,9 +4,9 @@ use super::{
 };
 use log::trace;
 use nom::{
-    bytes::complete::take,
-    number::complete::{le_f32, le_i16, le_i32, le_u16, le_u32, le_u8},
     IResult, Parser,
+    bytes::complete::take,
+    number::complete::{le_f32, le_i16, le_i32, le_u8, le_u16, le_u32},
 };
 
 /// Parses the fixed-size model header from a 3D/3DC byte slice.
@@ -361,10 +361,7 @@ fn parse_face_data_section(
                 Ok((remaining, face)) => {
                     trace!(
                         "Face {}: vertex_count={}, tex_hi={}, texture_data={:?}",
-                        face_index,
-                        face.vertex_count,
-                        face.tex_hi,
-                        face.texture_data,
+                        face_index, face.vertex_count, face.tex_hi, face.texture_data,
                     );
                     face_data.push(face);
                     face_data_input = remaining;
@@ -401,10 +398,7 @@ fn parse_vertex_coords_section(
                     if vertex_index < 5 {
                         trace!(
                             "Vertex {}: ({:.2}, {:.2}, {:.2})",
-                            vertex_index,
-                            vertex.x,
-                            vertex.y,
-                            vertex.z
+                            vertex_index, vertex.x, vertex.y, vertex.z
                         );
                     }
                     vertex_coords.push(vertex);
@@ -438,10 +432,7 @@ fn parse_face_normals_section(input: &[u8], header: &Model3DHeader) -> Vec<FaceN
                     if normal_index < 5 {
                         trace!(
                             "Normal {}: ({:.2}, {:.2}, {:.2})",
-                            normal_index,
-                            normal.x,
-                            normal.y,
-                            normal.z
+                            normal_index, normal.x, normal.y, normal.z
                         );
                     }
                     face_normals.push(normal);
@@ -515,10 +506,7 @@ fn parse_vertex_normals_section(
                 if i < 5 {
                     trace!(
                         "Vertex normal {}: ({:.4}, {:.4}, {:.4})",
-                        i,
-                        normal.x,
-                        normal.y,
-                        normal.z
+                        i, normal.x, normal.y, normal.z
                     );
                 }
                 normals.push(normal);
@@ -658,9 +646,7 @@ pub fn parse_3d_file(input: &[u8]) -> IResult<&[u8], Model3DFile> {
 
     trace!(
         "Parsing 3D file - Version: {:?}, Vertices: {}, Faces: {}",
-        version,
-        header.num_vertices,
-        header.num_faces
+        version, header.num_vertices, header.num_faces
     );
 
     let frame_data = parse_frame_data_section(input, &header);

@@ -41,9 +41,7 @@ pub fn resolve_asset_root_from_input(input_file: &Path) -> PathBuf {
     if let Some(parent_name) = parent.file_name().and_then(|n| n.to_str())
         && is_known_game_subdir(parent_name)
     {
-        let grandparent = parent
-            .parent()
-            .unwrap_or_else(|| Path::new("."));
+        let grandparent = parent.parent().unwrap_or_else(|| Path::new("."));
         if grandparent.as_os_str().is_empty() {
             return PathBuf::from(".");
         }
