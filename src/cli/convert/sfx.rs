@@ -4,6 +4,7 @@ use hound::{SampleFormat, WavSpec, WavWriter};
 use log::info;
 use rayon::prelude::*;
 use rgpre::import::sfx;
+use serde_json::json;
 use std::path::Path;
 
 pub(crate) fn handle_sfx_convert(args: &ConvertArgs, output_path: &Path) -> Result<()> {
@@ -13,12 +14,13 @@ pub(crate) fn handle_sfx_convert(args: &ConvertArgs, output_path: &Path) -> Resu
 
     std::fs::create_dir_all(output_path)?;
 
-    sfx_file
+    let effect_metadata: Vec<serde_json::Value> = sfx_file
         .effects
         .par_iter()
         .enumerate()
-        .try_for_each(|(i, effect)| -> Result<()> {
-            let wav_path = output_path.join(format!("{i:03}.wav"));
+        .map(|(i, effect)| -> Result<serde_json::Value> {
+            let wav_filename = format!("{i:03}.wav");
+            let wav_path = output_path.join(&wav_filename);
 
             let spec = WavSpec {
                 channels: effect.audio_type.channels(),
@@ -55,8 +57,36 @@ pub(crate) fn handle_sfx_convert(args: &ConvertArgs, output_path: &Path) -> Resu
                 wav_path.display(),
             );
 
-            Ok(())
-        })?;
+            Ok(json!({
+                "index": i,
+                "wav_file": wav_filename,
+                "audio_type": format!("{:?}", effect.audio_type),
+                "sample_rate": effect.sample_rate,
+                "duration_secs": effect.duration_secs(),
+                "loop": effect.loop_flag != 0,
+                "loop_offset": effect.loop_offset,
+                "loop_end": effect.loop_end,
+                "pcm_bytes": effect.pcm_data.len(),
+            }))
+        })
+        .collect::<Result<Vec<_>>>()?;
+
+    let source_name = args
+        .file
+        .file_name()
+        .map(|n| n.to_string_lossy().to_string())
+        .unwrap_or_default();
+
+    let index = json!({
+        "source": source_name,
+        "description": sfx_file.description,
+        "effect_count": effect_metadata.len(),
+        "effects": effect_metadata,
+    });
+
+    let index_path = output_path.join("index.json");
+    std::fs::write(&index_path, serde_json::to_string_pretty(&index)?)?;
+    info!("Metadata index written to: {}", index_path.display());
 
     info!(
         "Extracted {} effects to {}",
