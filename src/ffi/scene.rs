@@ -68,7 +68,7 @@ fn resolve_vertex_normal(
         && !vn.y.is_nan()
         && !vn.z.is_nan()
     {
-        return [-sanitize_f32(vn.x), -sanitize_f32(vn.y), sanitize_f32(vn.z)];
+        return [sanitize_f32(vn.x), -sanitize_f32(vn.y), sanitize_f32(vn.z)];
     }
 
     face_normal
@@ -101,7 +101,7 @@ fn serialize_model_3d(
         let face_normal = if face_index < model.face_normals.len() {
             let fn_ = &model.face_normals[face_index];
             [
-                -sanitize_f32(fn_.x),
+                sanitize_f32(fn_.x),
                 -sanitize_f32(fn_.y),
                 sanitize_f32(fn_.z),
             ]
@@ -122,8 +122,8 @@ fn serialize_model_3d(
         for i in 1..(face.face_vertices.len() - 1) {
             let v1 = &face.face_vertices[i];
             let v2 = &face.face_vertices[i + 1];
-            let tri_fv = [v0, v1, v2];
-            let tri_fv_indices = [0usize, i, i + 1];
+            let tri_fv = [v0, v2, v1];
+            let tri_fv_indices = [0usize, i + 1, i];
 
             if tri_fv.iter().any(|fv| {
                 usize::try_from(fv.vertex_index)
@@ -139,7 +139,7 @@ fn serialize_model_3d(
                 };
 
                 let pos = &model.vertex_coords[idx];
-                let px = -sanitize_f32(pos.x) / ENGINE_UNIT_SCALE;
+                let px = sanitize_f32(pos.x) / ENGINE_UNIT_SCALE;
                 let py = -sanitize_f32(pos.y) / ENGINE_UNIT_SCALE;
                 let pz = sanitize_f32(pos.z) / ENGINE_UNIT_SCALE;
                 submesh.positions.push([px, py, pz]);
@@ -180,7 +180,7 @@ fn serialize_model_3d(
         };
         for uv in &mut submesh.uvs {
             uv[0] = uv[0] * tex_scale / (UV_FIXED_POINT_SCALE * tex_w);
-            uv[1] = uv[1] * tex_scale / (UV_FIXED_POINT_SCALE * tex_h);
+            uv[1] = 1.0 - uv[1] * tex_scale / (UV_FIXED_POINT_SCALE * tex_h);
         }
     }
 

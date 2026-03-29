@@ -457,7 +457,7 @@ impl<'a> GltfBuilder<'a> {
                         primitive
                             .uvs
                             .iter()
-                            .map(|[u, v]| [u / u_scale, v / v_scale])
+                            .map(|[u, v]| [u / u_scale, 1.0 - v / v_scale])
                             .collect()
                     } else {
                         primitive
@@ -466,7 +466,7 @@ impl<'a> GltfBuilder<'a> {
                             .map(|[u, v]| {
                                 [
                                     u * tex_scale / UV_FIXED_POINT_SCALE,
-                                    v * tex_scale / UV_FIXED_POINT_SCALE,
+                                    1.0 - v * tex_scale / UV_FIXED_POINT_SCALE,
                                 ]
                             })
                             .collect()
@@ -476,7 +476,7 @@ impl<'a> GltfBuilder<'a> {
                 _ => primitive
                     .uvs
                     .iter()
-                    .map(|[u, v]| [u / UV_FIXED_POINT_SCALE, v / UV_FIXED_POINT_SCALE])
+                    .map(|[u, v]| [u / UV_FIXED_POINT_SCALE, 1.0 - v / UV_FIXED_POINT_SCALE])
                     .collect(),
             };
 
