@@ -7,7 +7,7 @@ use log::info;
 #[allow(clippy::needless_pass_by_value)]
 pub fn handle_read_command(args: ReadArgs) -> Result<()> {
     let file_path = &args.file;
-    let filetype = resolve_filetype(file_path, args.filetype)?;
+    let filetype = resolve_filetype(file_path)?;
 
     info!("Reading file: {}", file_path.display());
     info!("File type: {filetype:?}");

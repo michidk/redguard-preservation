@@ -3,12 +3,19 @@
 //! This module defines the command-line interface using clap.
 
 use clap::{Args, Parser, Subcommand};
-use rgpre::import::FileType;
 use std::path::PathBuf;
 
 #[derive(Debug, Clone, Copy, clap::ValueEnum, PartialEq, Eq)]
-pub enum FontOutputMode {
+pub enum OutputFormat {
+    /// Single PNG per image, frame 0 only (TEXBSI/GXA default)
+    Png,
+    /// All animation frames as separate PNGs
+    Frames,
+    /// Animated GIF for multi-frame images, PNG for single-frame
+    Gif,
+    /// Bitmap font atlas: PNG + BMFont + JSON (FNT default)
     Bitmap,
+    /// TrueType font
     Ttf,
 }
 
@@ -37,10 +44,6 @@ pub struct ReadArgs {
     /// The file to read
     #[arg(value_parser)]
     pub file: PathBuf,
-
-    /// Optional file type override (otherwise inferred from extension)
-    #[arg(short, long, value_parser = clap::value_parser!(FileType))]
-    pub filetype: Option<FileType>,
 }
 
 /// Arguments for converting files to GLTF
@@ -51,10 +54,6 @@ pub struct ConvertArgs {
     /// The file to convert
     #[arg(value_parser)]
     pub file: PathBuf,
-
-    /// Optional file type override (otherwise inferred from extension)
-    #[arg(short, long, value_parser = clap::value_parser!(FileType))]
-    pub filetype: Option<FileType>,
 
     /// Output file or directory; when a directory, the filename is derived automatically
     #[arg(short, long)]
@@ -76,8 +75,9 @@ pub struct ConvertArgs {
     #[arg(long, hide = true)]
     pub asset_dir: Option<PathBuf>,
 
-    #[arg(long, value_enum, help = "FNT conversion output mode: bitmap or ttf")]
-    pub font_output: Option<FontOutputMode>,
+    /// Output format override (default depends on file type)
+    #[arg(long, value_enum)]
+    pub format: Option<OutputFormat>,
 
     /// For WLD->GLB conversion, export only terrain (skip companion RGM placement merge)
     #[arg(long, default_value_t = false)]
@@ -90,10 +90,6 @@ pub struct ConvertArgs {
     /// Apply higher PNG compression to exported images and embedded GLB textures
     #[arg(long, default_value_t = false)]
     pub compress_textures: bool,
-
-    /// For TEXBSI conversion, export all animation frames (default: frame 0 only)
-    #[arg(long, default_value_t = false)]
-    pub all_frames: bool,
 
     /// For RTX conversion, use resolved text names as filenames instead of 4-char tags
     #[arg(long, default_value_t = false)]
@@ -110,7 +106,7 @@ pub struct ScanArgs {
 
 #[derive(Subcommand, Debug)]
 pub enum Commands {
-    /// Read and parse a ROB or 3D model file
+    /// Read and parse a supported file, printing its decoded structure
     #[clap(alias = "r")]
     Read(ReadArgs),
     /// Convert a supported file to its output format (GLB, JSON, PNG, WAV, etc.)

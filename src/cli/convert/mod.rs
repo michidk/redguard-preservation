@@ -12,7 +12,7 @@ use super::utils::{
     auto_resolve_palette, parse_file, resolve_asset_root_from_input, resolve_filetype,
 };
 use crate::cli::filetype::FileTypeCliExt;
-use crate::opts::{ConvertArgs, FontOutputMode};
+use crate::opts::{ConvertArgs, OutputFormat};
 use color_eyre::Result;
 use color_eyre::eyre::WrapErr;
 use color_eyre::eyre::bail;
@@ -32,15 +32,12 @@ pub(super) fn resolve_asset_root(args: &ConvertArgs) -> PathBuf {
         .unwrap_or_else(|| resolve_asset_root_from_input(&args.file))
 }
 
-fn default_fnt_output_for_mode(file: &Path, mode: FontOutputMode) -> PathBuf {
+fn default_fnt_output_for_format(file: &Path, format: OutputFormat) -> PathBuf {
     let mut path = file.to_path_buf();
-    match mode {
-        FontOutputMode::Bitmap => {
-            path.set_extension("png");
-        }
-        FontOutputMode::Ttf => {
-            path.set_extension("ttf");
-        }
+    if format == OutputFormat::Ttf {
+        path.set_extension("ttf");
+    } else {
+        path.set_extension("png");
     }
     path
 }
@@ -68,9 +65,11 @@ fn resolve_output_path(args: &ConvertArgs, filetype: FileType) -> PathBuf {
         };
     }
 
-    let default = match args.font_output {
-        Some(mode) => default_fnt_output_for_mode(&args.file, mode),
-        None => filetype.default_output_path(&args.file),
+    let default = match args.format {
+        Some(fmt @ (OutputFormat::Ttf | OutputFormat::Bitmap)) => {
+            default_fnt_output_for_format(&args.file, fmt)
+        }
+        _ => filetype.default_output_path(&args.file),
     };
     match args.output.clone() {
         Some(out) => resolve_dir_output(out, &default),
@@ -209,17 +208,19 @@ fn warn_irrelevant_flags(args: &ConvertArgs, filetype: FileType) {
             filetype.display_name()
         );
     }
-    if args.font_output.is_some() && filetype != FileType::Fnt {
-        warn!(
-            "--font-output has no effect for {} files (FNT only)",
-            filetype.display_name()
-        );
-    }
-    if args.all_frames && filetype != FileType::Bsi {
-        warn!(
-            "--all-frames has no effect for {} files (TEXBSI only)",
-            filetype.display_name()
-        );
+    if let Some(fmt) = args.format {
+        let valid = match fmt {
+            OutputFormat::Bitmap | OutputFormat::Ttf => filetype == FileType::Fnt,
+            OutputFormat::Png | OutputFormat::Frames | OutputFormat::Gif => {
+                matches!(filetype, FileType::Bsi | FileType::Gxa)
+            }
+        };
+        if !valid {
+            warn!(
+                "--format {fmt:?} has no effect for {} files",
+                filetype.display_name()
+            );
+        }
     }
     let produces_images = !matches!(
         filetype,
@@ -236,7 +237,7 @@ fn warn_irrelevant_flags(args: &ConvertArgs, filetype: FileType) {
 #[allow(clippy::needless_pass_by_value)]
 // CLI handlers take owned args by clap design for consistent command dispatch.
 pub fn handle_convert_command(args: ConvertArgs) -> Result<()> {
-    let filetype = resolve_filetype(&args.file, args.filetype)?;
+    let filetype = resolve_filetype(&args.file)?;
     warn_irrelevant_flags(&args, filetype);
     let asset_root = resolve_asset_root(&args);
 

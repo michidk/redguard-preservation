@@ -1,4 +1,4 @@
-use crate::{Result, error::Error};
+use crate::{error::Error, Result};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 /// Encoded audio channel/bit-depth layout for an SFX effect.
@@ -84,33 +84,46 @@ fn read_u32_be(data: &[u8], offset: usize) -> Option<u32> {
 
 /// Parses a Redguard SFX file from bytes.
 pub fn parse_sfx_file(input: &[u8]) -> Result<SfxFile> {
-    if input.len() < 48 {
+    if input.len() < 52 {
         return Err(Error::Parse("SFX file too small for FXHD section".into()));
     }
 
-    // FXHD: 4 bytes BE section_size + 32 bytes description + 4 bytes LE effect_count
-    let _section_size = read_u32_be(input, 0)
+    // FXHD: 4-byte tag + 4 bytes BE section_size + 32 bytes description + 4 bytes LE effect_count
+    if &input[0..4] != b"FXHD" {
+        return Err(Error::Parse(format!(
+            "expected FXHD tag, got {:?}",
+            String::from_utf8_lossy(&input[0..4])
+        )));
+    }
+
+    let _section_size = read_u32_be(input, 4)
         .ok_or_else(|| Error::Parse("failed to read FXHD section_size".into()))?;
 
-    let description = String::from_utf8_lossy(&input[4..36])
+    let description = String::from_utf8_lossy(&input[8..40])
         .trim_matches('\0')
         .to_string();
 
     let effect_count = usize::try_from(
-        read_u32_le(input, 36)
+        read_u32_le(input, 40)
             .ok_or_else(|| Error::Parse("failed to read FXHD effect_count".into()))?,
     )
     .map_err(|_| Error::Parse("FXHD effect_count does not fit usize".to_string()))?;
 
-    // FXDT: starts at offset 40 with 4 bytes BE section_size
-    let fxdt_offset = 40;
-    if input.len() < fxdt_offset + 4 {
+    // FXDT: 4-byte tag + 4 bytes BE section_size, then sequential effects
+    let fxdt_offset = 44;
+    if input.len() < fxdt_offset + 8 {
         return Err(Error::Parse("SFX file too small for FXDT header".into()));
     }
-    let _fxdt_size = read_u32_be(input, fxdt_offset)
+    if &input[fxdt_offset..fxdt_offset + 4] != b"FXDT" {
+        return Err(Error::Parse(format!(
+            "expected FXDT tag, got {:?}",
+            String::from_utf8_lossy(&input[fxdt_offset..fxdt_offset + 4])
+        )));
+    }
+    let _fxdt_size = read_u32_be(input, fxdt_offset + 4)
         .ok_or_else(|| Error::Parse("failed to read FXDT section_size".into()))?;
 
-    let mut cursor = fxdt_offset + 4;
+    let mut cursor = fxdt_offset + 8;
     let mut effects = Vec::with_capacity(effect_count);
 
     for i in 0..effect_count {
@@ -174,10 +187,12 @@ mod tests {
 
     fn make_minimal_sfx(effect_count: u32, effects_data: &[u8]) -> Vec<u8> {
         let mut buf = Vec::new();
+        buf.extend_from_slice(b"FXHD");
         let fxhd_payload_size: u32 = 36;
         buf.extend_from_slice(&fxhd_payload_size.to_be_bytes());
         buf.extend_from_slice(&[0u8; 32]);
         buf.extend_from_slice(&effect_count.to_le_bytes());
+        buf.extend_from_slice(b"FXDT");
         let fxdt_size = u32::try_from(effects_data.len()).expect("effects data must fit u32");
         buf.extend_from_slice(&fxdt_size.to_be_bytes());
         buf.extend_from_slice(effects_data);

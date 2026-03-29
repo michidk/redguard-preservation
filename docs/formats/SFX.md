@@ -18,13 +18,14 @@ Effects are stored sequentially with no offset table. The game references effect
 
 | Offset | Size | Type | Endian | Name | Description |
 |---|---|---|---|---|---|
-| 0x00 | 4 | u32 | BE | section_size | Payload size excluding this field |
-| 0x04 | 32 | `[u8; 32]` | — | description | ASCII string, set by internal tool "SoupFX" |
-| 0x24 | 4 | u32 | LE | effect_count | Number of sound effects (118 in `MAIN.SFX`) |
+| 0x00 | 4 | `[u8; 4]` | — | tag | Always `FXHD` |
+| 0x04 | 4 | `u32` | BE | section_size | Payload size excluding this field and the tag |
+| 0x08 | 32 | `[u8; 32]` | — | description | ASCII string, set by internal tool "SoupFX" |
+| 0x28 | 4 | `u32` | LE | effect_count | Number of sound effects (118 in `MAIN.SFX`) |
 
 ## FXDT (Data Section)
 
-Begins with a big-endian u32 section size (excluding itself), followed immediately by sequential effect records.
+Begins with a 4-byte ASCII tag `FXDT`, followed by a big-endian u32 section size (excluding itself and the tag), followed immediately by sequential effect records.
 
 ### Effect Record
 

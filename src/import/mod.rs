@@ -126,10 +126,19 @@ impl FileType {
         })
     }
 
-    /// Detects a supported Redguard file type from a path extension.
+    /// Detects a supported Redguard file type from path extension or filename stem.
     pub fn from_path<P: AsRef<Path>>(path: P) -> Option<Self> {
-        let extension = path.as_ref().extension()?.to_str()?;
-        Self::from_extension(extension)
+        let p = path.as_ref();
+        if let Some(ext) = p.extension().and_then(|e| e.to_str())
+            && let Some(ft) = Self::from_extension(ext)
+        {
+            return Some(ft);
+        }
+        let stem = p.file_stem()?.to_str()?.to_ascii_uppercase();
+        if stem == "TEXBSI" {
+            return Some(Self::Bsi);
+        }
+        None
     }
 }
 

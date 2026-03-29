@@ -13,12 +13,31 @@ Preserving *The Elder Scrolls Adventures: Redguard* (1998) — reverse-engineere
 | Font | `.fnt` | bitmap `.png` + BMFont `.fnt` + glyph metadata `.json`, or `.ttf` |
 | Visibility octree | `.pvo` | `.json` |
 | Palette | `.col` | swatch `.png` + palette metadata `.json` |
-| Sound effects bank | `.sfx` | extracted `.wav` files (directory output) |
+| Sound effects bank | `.sfx` | extracted `.wav` files + `index.json` metadata (directory output) |
 | Dialogue audio | `.rtx` | extracted `.wav` files + `index.json` metadata (directory output) |
-| Texture bank | `TEXBSI.###` | extracted `.png` files + metadata `.json` (directory output) |
-| GXA bitmap archive | `.gxa` | extracted `.png` frames + metadata `.json` (directory output) |
+| Texture bank | `TEXBSI.###` | extracted `.png` or `.gif` files + `metadata.json` (directory output) |
+| GXA bitmap archive | `.gxa` | extracted `.png` frames or animated `.gif` + `metadata.json` (directory output) |
+| Cheat states | `.cht` | `.json` |
 
 The `scan` command recursively detects known Redguard files in a directory tree.
+
+## Convert Flag Matrix
+
+Not all flags apply to every format. The CLI warns when a flag has no effect for the given file type.
+
+| Flag | 3D/3DC/ROB | RGM | WLD | FNT | TEXBSI | GXA | COL | SFX | RTX | CHT/PVO |
+|---|---|---|---|---|---|---|---|---|---|---|
+| `--format png` | — | — | — | — | frame 0 only (default) | per-frame PNGs (default) | — | — | — | — |
+| `--format frames` | — | — | — | — | all frames as PNGs | — | — | — | — | — |
+| `--format gif` | — | — | — | — | animated GIF | animated GIF | — | — | — | — |
+| `--format bitmap` | — | — | — | PNG atlas + BMFont (default) | — | — | — | — | — | — |
+| `--format ttf` | — | — | — | TrueType font | — | — | — | — | — | — |
+| `--terrain-only` | — | — | skip RGM placement | — | — | — | — | — | — | — |
+| `--terrain-textures` | — | — | enable/disable texturing | — | — | — | — | — | — | — |
+| `--compress-textures` | smaller GLB | smaller GLB | smaller GLB/PNG | smaller PNG | smaller PNGs | smaller PNGs | smaller PNG | — | — | — |
+| `--resolve-names` | — | — | — | — | — | — | — | — | text-based filenames | — |
+| `--palette` | face colors | face colors | terrain colors | — | decode colors | — | — | — | — | — |
+| `--assets` | — | model lookup | model + texture lookup | — | — | — | — | — | — | — |
 
 ## Documentation
 
@@ -108,16 +127,22 @@ Convert WLD terrain only:
 rgpre convert maps/ISLAND.WLD --assets . --terrain-only -o output/ISLAND_terrain.glb
 ```
 
-Convert TEXBSI texture bank to PNGs (requires `--filetype bsi` since extension is numeric):
+Convert TEXBSI texture bank to PNGs (auto-detected by `TEXBSI.*` stem):
 
 ```bash
-rgpre convert fxart/TEXBSI.302 --filetype bsi --palette fxart/ISLAND.COL -o output/TEXBSI_302/
+rgpre convert fxart/TEXBSI.302 --palette fxart/ISLAND.COL -o output/TEXBSI_302/
 ```
 
-Convert with all animation frames:
+Convert with all animation frames as separate PNGs:
 
 ```bash
-rgpre convert fxart/TEXBSI.302 --filetype bsi --palette fxart/ISLAND.COL --all-frames -o output/TEXBSI_302/
+rgpre convert fxart/TEXBSI.302 --palette fxart/ISLAND.COL --format frames -o output/TEXBSI_302/
+```
+
+Convert animated textures to GIF:
+
+```bash
+rgpre convert fxart/TEXBSI.302 --palette fxart/ISLAND.COL --format gif -o output/TEXBSI_302/
 ```
 
 Scan a directory:

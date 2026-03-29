@@ -1,4 +1,4 @@
-use crate::opts::{ConvertArgs, FontOutputMode};
+use crate::opts::{ConvertArgs, OutputFormat};
 use color_eyre::Result;
 use log::{info, warn};
 use rgpre::import::fnt_export;
@@ -10,17 +10,17 @@ pub(crate) fn handle_fnt_convert(args: &ConvertArgs, output_path: &Path) -> Resu
         .and_then(|e| e.to_str())
         .map(str::to_ascii_lowercase);
 
-    let mode = args.font_output.unwrap_or({
-        if matches!(out_ext.as_deref(), Some("ttf")) {
-            FontOutputMode::Ttf
-        } else {
-            FontOutputMode::Bitmap
+    let is_ttf = match args.format {
+        Some(OutputFormat::Ttf) => true,
+        Some(OutputFormat::Bitmap) | None => {
+            matches!(out_ext.as_deref(), Some("ttf"))
         }
-    });
+        _ => false,
+    };
 
-    if mode == FontOutputMode::Ttf {
+    if is_ttf {
         if !matches!(out_ext.as_deref(), Some("ttf")) {
-            warn!("--font-output ttf selected; overriding output extension to .ttf");
+            warn!("--format ttf selected; overriding output extension to .ttf");
         }
 
         let ttf_output = if matches!(out_ext.as_deref(), Some("ttf")) {

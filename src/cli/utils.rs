@@ -44,14 +44,10 @@ pub fn resolve_asset_root_from_input(input_file: &Path) -> PathBuf {
     parent.to_path_buf()
 }
 
-pub fn resolve_filetype(path: &Path, override_filetype: Option<FileType>) -> Result<FileType> {
-    if let Some(filetype) = override_filetype {
-        return Ok(filetype);
-    }
-
+pub fn resolve_filetype(path: &Path) -> Result<FileType> {
     FileType::from_path(path).ok_or_else(|| {
         eyre!(
-            "Could not infer file type from extension for '{}'. Use --filetype to override.",
+            "Could not infer file type for '{}'. Supported extensions: .3d, .3dc, .rob, .rgm, .wld, .fnt, .col, .pvo, .sfx, .rtx, .gxa, .cht, and TEXBSI.* by stem.",
             path.display()
         )
     })
@@ -62,7 +58,7 @@ pub fn parse_file(
     filetype: Option<rgpre::import::FileType>,
     registry: Option<&rgpre::import::registry::Registry>,
 ) -> Result<Vec<rgpre::import::model3d::Model3DFile>> {
-    let filetype = resolve_filetype(file_path, filetype)?;
+    let filetype = filetype.map_or_else(|| resolve_filetype(file_path), Ok)?;
 
     let file_content = std::fs::read(file_path)?;
 
