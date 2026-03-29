@@ -4,9 +4,9 @@ use super::{
 };
 use log::trace;
 use nom::{
-    IResult, Parser,
     bytes::complete::take,
-    number::complete::{le_f32, le_i16, le_i32, le_u8, le_u16, le_u32},
+    number::complete::{le_f32, le_i16, le_i32, le_u16, le_u32, le_u8},
+    IResult, Parser,
 };
 
 /// Parses the fixed-size model header from a 3D/3DC byte slice.
@@ -361,7 +361,10 @@ fn parse_face_data_section(
                 Ok((remaining, face)) => {
                     trace!(
                         "Face {}: vertex_count={}, tex_hi={}, texture_data={:?}",
-                        face_index, face.vertex_count, face.tex_hi, face.texture_data,
+                        face_index,
+                        face.vertex_count,
+                        face.tex_hi,
+                        face.texture_data,
                     );
                     face_data.push(face);
                     face_data_input = remaining;
@@ -398,7 +401,10 @@ fn parse_vertex_coords_section(
                     if vertex_index < 5 {
                         trace!(
                             "Vertex {}: ({:.2}, {:.2}, {:.2})",
-                            vertex_index, vertex.x, vertex.y, vertex.z
+                            vertex_index,
+                            vertex.x,
+                            vertex.y,
+                            vertex.z
                         );
                     }
                     vertex_coords.push(vertex);
@@ -432,7 +438,10 @@ fn parse_face_normals_section(input: &[u8], header: &Model3DHeader) -> Vec<FaceN
                     if normal_index < 5 {
                         trace!(
                             "Normal {}: ({:.2}, {:.2}, {:.2})",
-                            normal_index, normal.x, normal.y, normal.z
+                            normal_index,
+                            normal.x,
+                            normal.y,
+                            normal.z
                         );
                     }
                     face_normals.push(normal);
@@ -506,7 +515,10 @@ fn parse_vertex_normals_section(
                 if i < 5 {
                     trace!(
                         "Vertex normal {}: ({:.4}, {:.4}, {:.4})",
-                        i, normal.x, normal.y, normal.z
+                        i,
+                        normal.x,
+                        normal.y,
+                        normal.z
                     );
                 }
                 normals.push(normal);
@@ -553,9 +565,7 @@ fn vertex_normals_offset(header: &Model3DHeader) -> u32 {
 fn vertex_coords_offset(
     input: &[u8],
     header: &Model3DHeader,
-    version: &ModelVersion,
     frame_data: &[FrameDataEntry],
-    face_data: &[FaceData],
 ) -> u32 {
     let is_animated_legacy =
         header.is_v27_or_earlier() && header.num_frames > 0 && !frame_data.is_empty();
@@ -564,11 +574,13 @@ fn vertex_coords_offset(
         return header.offset_vertex_coords;
     }
 
-    let face_bytes: u32 = face_data
-        .iter()
-        .map(|f| f.size_in_bytes(version) as u32)
-        .sum();
-    let face_data_end = header.offset_face_data.saturating_add(face_bytes);
+    // In v2.6/v2.7, frame_data[0].normal_offset stores the face data byte
+    // count.  The software renderer streams face data for exactly this many
+    // bytes, then continues with vertex data (possibly after a gap encoded
+    // in frame_data[0].reserved).
+    let face_data_end = header
+        .offset_face_data
+        .saturating_add(frame_data[0].normal_offset);
     let primary = face_data_end.saturating_add(frame_data[0].reserved);
 
     if vertices_look_valid(input, primary, header.num_vertices) {
@@ -646,7 +658,9 @@ pub fn parse_3d_file(input: &[u8]) -> IResult<&[u8], Model3DFile> {
 
     trace!(
         "Parsing 3D file - Version: {:?}, Vertices: {}, Faces: {}",
-        version, header.num_vertices, header.num_faces
+        version,
+        header.num_vertices,
+        header.num_faces
     );
 
     let frame_data = parse_frame_data_section(input, &header);
@@ -654,8 +668,7 @@ pub fn parse_3d_file(input: &[u8]) -> IResult<&[u8], Model3DFile> {
     let face_data = parse_face_data_section(input, &header, &version);
 
     let adjusted_offset_normals = vertex_normals_offset(&header);
-    let adjusted_offset_vertex_coords =
-        vertex_coords_offset(input, &header, &version, &frame_data, &face_data);
+    let adjusted_offset_vertex_coords = vertex_coords_offset(input, &header, &frame_data);
 
     let vertex_coords = parse_vertex_coords_section(input, &header, adjusted_offset_vertex_coords);
     let face_normals = parse_face_normals_section(input, &header);
