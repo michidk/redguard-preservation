@@ -224,7 +224,7 @@ pub(crate) fn handle_texbsi_convert(args: &ConvertArgs, output_path: &Path) -> R
         "images": image_metadata,
     });
 
-    let json_path = output_path.join("metadata.json");
+    let json_path = output_path.join("index.json");
     let json_text = serde_json::to_string_pretty(&metadata)?;
     std::fs::write(&json_path, json_text)?;
 

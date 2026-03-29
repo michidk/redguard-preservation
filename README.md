@@ -15,8 +15,8 @@ Preserving *The Elder Scrolls Adventures: Redguard* (1998) — reverse-engineere
 | Palette | `.col` | swatch `.png` + palette metadata `.json` |
 | Sound effects bank | `.sfx` | extracted `.wav` files + `index.json` metadata (directory output) |
 | Dialogue audio | `.rtx` | extracted `.wav` files + `index.json` metadata (directory output) |
-| Texture bank | `TEXBSI.###` | animated `.gif` + static `.png` files + `metadata.json` (directory output) |
-| GXA bitmap archive | `.gxa` | animated `.gif` + `metadata.json` (directory output) |
+| Texture bank | `TEXBSI.###` | animated `.gif` + static `.png` files + `index.json` (directory output) |
+| GXA bitmap archive | `.gxa` | animated `.gif` + `index.json` (directory output) |
 | Cheat states | `.cht` | `.json` |
 
 The `scan` command recursively detects known Redguard files in a directory tree.
@@ -28,7 +28,8 @@ Not all flags apply to every format. The CLI warns when a flag has no effect for
 | Flag | 3D/3DC/ROB | RGM | WLD | FNT | TEXBSI | GXA | COL | SFX | RTX | CHT/PVO |
 |---|---|---|---|---|---|---|---|---|---|---|
 | `--format gif` | — | — | — | — | animated GIF (default) | animated GIF (default) | — | — | — | — |
-| `--format png` | — | — | — | — | frame 0 only | per-frame PNGs | — | — | — | — |
+| `--format png` | — | — | — | — | frame 0 only | per-frame PNGs | swatch only | — | — | — |
+| `--format json` | — | — | — | — | — | — | metadata only | — | — | — |
 | `--format frames` | — | — | — | — | all frames as PNGs | — | — | — | — | — |
 | `--format bitmap` | — | — | — | PNG atlas + BMFont (default) | — | — | — | — | — | — |
 | `--format ttf` | — | — | — | TrueType font | — | — | — | — | — | — |

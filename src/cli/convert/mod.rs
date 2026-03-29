@@ -211,9 +211,13 @@ fn warn_irrelevant_flags(args: &ConvertArgs, filetype: FileType) {
     if let Some(fmt) = args.format {
         let valid = match fmt {
             OutputFormat::Bitmap | OutputFormat::Ttf => filetype == FileType::Fnt,
-            OutputFormat::Png | OutputFormat::Frames | OutputFormat::Gif => {
+            OutputFormat::Frames | OutputFormat::Gif => {
                 matches!(filetype, FileType::Bsi | FileType::Gxa)
             }
+            OutputFormat::Png => {
+                matches!(filetype, FileType::Bsi | FileType::Gxa | FileType::Col)
+            }
+            OutputFormat::Json => filetype == FileType::Col,
         };
         if !valid {
             warn!(

@@ -69,7 +69,7 @@ pub(crate) fn handle_gxa_convert(args: &ConvertArgs, output_path: &Path) -> Resu
             "frame_count": gxa_file.frame_count,
             "file": gif_name,
         });
-        let json_path = output_path.join("metadata.json");
+        let json_path = output_path.join("index.json");
         std::fs::write(&json_path, serde_json::to_string_pretty(&metadata)?)?;
         info!("Metadata written to {}", json_path.display());
 
@@ -115,7 +115,7 @@ pub(crate) fn handle_gxa_convert(args: &ConvertArgs, output_path: &Path) -> Resu
         "frame_count": gxa_file.frame_count,
         "frames": frames_meta,
     });
-    let json_path = output_path.join("metadata.json");
+    let json_path = output_path.join("index.json");
     std::fs::write(&json_path, serde_json::to_string_pretty(&metadata)?)?;
 
     info!(

@@ -13,6 +13,8 @@ pub enum OutputFormat {
     Frames,
     /// Animated GIF for multi-frame images, PNG for single-frame (TEXBSI/GXA default)
     Gif,
+    /// JSON metadata only (COL palette)
+    Json,
     /// Bitmap font atlas: PNG + BMFont + JSON (FNT default)
     Bitmap,
     /// TrueType font
