@@ -213,7 +213,7 @@ impl TextureCache {
             self.warn_missing_once(texture_id, image_id, "image id not present in TEXBSI file");
             return None;
         };
-        let rgba = image.decode_rgba(self.palette.as_ref());
+        let rgba = flip_rows_vertical(image.decode_rgba(self.palette.as_ref()), image.width);
         Some((rgba, image.width, image.height))
     }
 
@@ -235,7 +235,7 @@ impl TextureCache {
             self.warn_missing_once(texture_id, image_id, "image id not present in TEXBSI file");
             return None;
         };
-        let rgba = image.decode_rgba(self.palette.as_ref());
+        let rgba = flip_rows_vertical(image.decode_rgba(self.palette.as_ref()), image.width);
         Some((rgba, image.width, image.height, image.frame_count))
     }
 
@@ -260,7 +260,11 @@ impl TextureCache {
 
         let mut frames = Vec::with_capacity(usize::from(image.frame_count));
         for frame_idx in 0..usize::from(image.frame_count) {
-            frames.push(image.decode_frame_rgba(frame_idx, self.palette.as_ref()));
+            frames.push(
+                image
+                    .decode_frame_rgba(frame_idx, self.palette.as_ref())
+                    .map(|rgba| flip_rows_vertical(rgba, image.width)),
+            );
         }
         Some(AllFramesInfo {
             width: image.width,
@@ -346,15 +350,6 @@ fn encode_rgba_png(width: u32, height: u32, rgba: &[u8], compress: bool) -> Opti
         return None;
     }
 
-    // Flip rows vertically: BSI pixel data is stored top-to-bottom but the
-    // engine's texture origin is bottom-left, so the image must be flipped
-    // to align with glTF's top-left UV origin after the V-flip (1 − v).
-    let stride = width as usize * 4;
-    let mut flipped = Vec::with_capacity(expected);
-    for row in rgba.chunks_exact(stride).rev() {
-        flipped.extend_from_slice(row);
-    }
-
     let mut buf = Vec::new();
     let (compression, filter) = if compress {
         (CompressionType::Default, FilterType::Adaptive)
@@ -363,9 +358,24 @@ fn encode_rgba_png(width: u32, height: u32, rgba: &[u8], compress: bool) -> Opti
     };
     let encoder = PngEncoder::new_with_quality(&mut buf, compression, filter);
     encoder
-        .write_image(&flipped, width, height, image::ExtendedColorType::Rgba8)
+        .write_image(rgba, width, height, image::ExtendedColorType::Rgba8)
         .ok()?;
     Some(buf)
+}
+
+/// Flips RGBA pixel rows vertically. BSI pixel data is stored top-to-bottom
+/// but the engine's texture origin is bottom-left; flipping aligns the image
+/// with glTF/Unity's top-left UV origin after the V-flip (1 − v).
+fn flip_rows_vertical(rgba: Vec<u8>, width: u16) -> Vec<u8> {
+    let stride = usize::from(width) * 4;
+    if stride == 0 {
+        return rgba;
+    }
+    let mut flipped = Vec::with_capacity(rgba.len());
+    for row in rgba.chunks_exact(stride).rev() {
+        flipped.extend_from_slice(row);
+    }
+    flipped
 }
 
 pub(super) fn create_palette_color_png(rgb: [u8; 3], compress: bool) -> Option<Vec<u8>> {
