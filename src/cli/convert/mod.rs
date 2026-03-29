@@ -205,19 +205,73 @@ fn handle_rgm_convert(args: &RgmArgs) -> Result<()> {
         args.compress_textures,
     )?;
     let glb_data = to_glb(&root, &buffer)?;
-    ensure_parent_dir(&output_path)?;
-    std::fs::write(&output_path, &glb_data)?;
-    info!("Successfully converted to: {}", output_path.display());
 
-    let json_path = output_path.with_extension("json");
+    let out_dir = output_path.with_extension("");
+    std::fs::create_dir_all(&out_dir)?;
+
+    let glb_name = output_path
+        .file_name()
+        .unwrap_or_else(|| std::ffi::OsStr::new("output.glb"));
+    let glb_path = out_dir.join(glb_name);
+    std::fs::write(&glb_path, &glb_data)?;
+    info!("Successfully converted to: {}", out_dir.display());
+
     let metadata = rgpre::import::rgm::export_rgm_metadata_json(&rgm_file, soup_def.as_ref());
-    let json_bytes = serde_json::to_string_pretty(&metadata)?;
-    std::fs::write(&json_path, json_bytes)?;
-    info!("Actor metadata exported to: {}", json_path.display());
+
+    let write_json = |name: &str, value: &serde_json::Value| -> Result<()> {
+        let path = out_dir.join(name);
+        std::fs::write(&path, serde_json::to_string_pretty(value)?)?;
+        Ok(())
+    };
+
+    if let serde_json::Value::Object(map) = &metadata {
+        let pick = |keys: &[&str]| -> serde_json::Value {
+            let mut obj = serde_json::Map::new();
+            for &key in keys {
+                if let Some(val) = map.get(key) {
+                    obj.insert(key.to_string(), val.clone());
+                }
+            }
+            serde_json::Value::Object(obj)
+        };
+
+        write_json(
+            "scene.json",
+            &pick(&[
+                "mps_placements",
+                "mpob_objects",
+                "lights",
+                "flat_sprites",
+                "ropes",
+                "markers",
+                "collision_volumes",
+            ]),
+        )?;
+        write_json("actors.json", &pick(&["actors"]))?;
+        write_json(
+            "navigation.json",
+            &pick(&["walk_node_maps", "ralc_locations"]),
+        )?;
+        write_json(
+            "tables.json",
+            &pick(&[
+                "rava_variables",
+                "rast_strings",
+                "rasb_offsets",
+                "rahk_hooks",
+                "ranm_namespace",
+                "mpsz_entries",
+                "rafs_entries",
+                "rasc_size",
+                "raw_sections",
+            ]),
+        )?;
+    }
+    info!("Exported metadata to: {}", out_dir.display());
 
     let scripts = rgpre::import::rgm::disassemble_rgm_scripts(&rgm_file, soup_def.as_ref());
     if !scripts.is_empty() {
-        let scripts_dir = output_path.with_extension("").with_extension("scripts");
+        let scripts_dir = out_dir.join("scripts");
         std::fs::create_dir_all(&scripts_dir)?;
         let source_name = args.io.file.file_name().map_or_else(
             || "unknown".to_string(),

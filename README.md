@@ -8,7 +8,7 @@ Preserving *The Elder Scrolls Adventures: Redguard* (1998) — reverse-engineere
 |---|---|---|
 | Model | `.3d`, `.3dc` | `.glb` |
 | ROB archive | `.rob` | `.glb` |
-| RGM scene | `.rgm` | `.glb` + actor metadata `.json` |
+| RGM scene | `.rgm` | directory: `.glb` + scene/actors/navigation/tables `.json` + per-actor `.soup`/`.json` scripts |
 | WLD world | `.wld` | `.glb` + actor metadata `.json` (scene mode), or map `.png` set |
 | Font | `.fnt` | bitmap `.png` + BMFont `.fnt` + glyph metadata `.json`, or `.ttf` |
 | Visibility octree | `.pvo` | `.json` |
@@ -33,7 +33,7 @@ Each format has its own subcommand with scoped flags. `convert <FILE>` auto-dete
 | `convert col` | `.col` | `.png` + `.json` | `--format png\|json` (default: both), `--compress-textures` |
 | `convert wld` | `.wld` | `.glb` + `.json`, or map `.png` set | `--assets`, `--palette`, `--terrain-only`, `--terrain-textures`, `--compress-textures` |
 | `convert model` | `.3d`, `.3dc`, `.rob` | `.glb` | `--assets`, `--palette`, `--compress-textures` |
-| `convert rgm` | `.rgm` | `.glb` + `.json` | `--assets`, `--palette`, `--compress-textures` |
+| `convert rgm` | `.rgm` | output directory | `--assets`, `--palette`, `--compress-textures` |
 | `convert rtx` | `.rtx` | `.wav` + `index.json` | `--resolve-names` |
 | `convert sfx` | `.sfx` | `.wav` + `index.json` | (none) |
 | `convert cht` | `.cht` | `.json` | (none) |
