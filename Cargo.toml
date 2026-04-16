@@ -36,9 +36,9 @@ thiserror = "2.0.18"
 walkdir = "2.5.0"
 hound = "3.5"
 bytemuck = { version = "1", features = ["derive"] }
-glam = "0.30"
+glam = "0.32"
 rayon = "1.10"
 delharc = { version = "0.6", default-features = false, features = ["std", "lh1"] }
 
 [dev-dependencies]
-ttf-parser = "0.24"
+ttf-parser = "0.25"
