@@ -480,8 +480,8 @@ fn build_flat_model(texture_id: u16, image_id: u8) -> Model3DFile {
         vertex_coords: flat_model_vertices(),
         face_normals: vec![FaceNormal {
             x: 0.0,
-            y: 1.0,
-            z: 0.0,
+            y: 0.0,
+            z: -1.0,
         }],
         normal_indices: vec![],
         vertex_normals: flat_model_normals(),
@@ -549,24 +549,24 @@ fn flat_model_face(texture_id: u16, image_id: u8) -> FaceData {
 fn flat_model_vertices() -> Vec<VertexCoord> {
     vec![
         VertexCoord {
-            x: -0.5,
+            x: 0.0,
             y: 0.0,
-            z: 0.5,
+            z: 0.0,
         },
         VertexCoord {
-            x: 0.5,
+            x: 20.0,
             y: 0.0,
-            z: 0.5,
+            z: 0.0,
         },
         VertexCoord {
-            x: 0.5,
-            y: 0.0,
-            z: -0.5,
+            x: 20.0,
+            y: -20.0,
+            z: 0.0,
         },
         VertexCoord {
-            x: -0.5,
-            y: 0.0,
-            z: -0.5,
+            x: 0.0,
+            y: -20.0,
+            z: 0.0,
         },
     ]
 }
@@ -575,23 +575,23 @@ fn flat_model_normals() -> Vec<VertexNormal> {
     vec![
         VertexNormal {
             x: 0.0,
-            y: 1.0,
-            z: 0.0,
+            y: 0.0,
+            z: -1.0,
         },
         VertexNormal {
             x: 0.0,
-            y: 1.0,
-            z: 0.0,
+            y: 0.0,
+            z: -1.0,
         },
         VertexNormal {
             x: 0.0,
-            y: 1.0,
-            z: 0.0,
+            y: 0.0,
+            z: -1.0,
         },
         VertexNormal {
             x: 0.0,
-            y: 1.0,
-            z: 0.0,
+            y: 0.0,
+            z: -1.0,
         },
     ]
 }

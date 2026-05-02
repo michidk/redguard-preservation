@@ -91,7 +91,7 @@ pub(crate) fn resolve_vertex_normal(
         && !vn.y.is_nan()
         && !vn.z.is_nan()
     {
-        return [sanitize_f32(vn.x), -sanitize_f32(vn.y), sanitize_f32(vn.z)];
+        return [-sanitize_f32(vn.x), -sanitize_f32(vn.y), sanitize_f32(vn.z)];
     }
 
     face_normal
@@ -121,7 +121,7 @@ pub(crate) fn build_unrolled_primitives(
         let face_normal = if face_index < model.face_normals.len() {
             let fn_ = &model.face_normals[face_index];
             [
-                sanitize_f32(fn_.x),
+                -sanitize_f32(fn_.x),
                 -sanitize_f32(fn_.y),
                 sanitize_f32(fn_.z),
             ]
@@ -149,8 +149,8 @@ pub(crate) fn build_unrolled_primitives(
             let v1 = &face.face_vertices[i];
             let v2 = &face.face_vertices[i + 1];
 
-            let tri_fv = [v0, v2, v1];
-            let tri_fv_indices = [0usize, i + 1, i];
+            let tri_fv = [v0, v1, v2];
+            let tri_fv_indices = [0usize, i, i + 1];
             if tri_fv.iter().any(|fv| {
                 usize::try_from(fv.vertex_index)
                     .ok()
@@ -164,7 +164,7 @@ pub(crate) fn build_unrolled_primitives(
                     continue;
                 };
                 let pos = &model.vertex_coords[idx];
-                let x = sanitize_f32(pos.x) / ENGINE_UNIT_SCALE;
+                let x = -sanitize_f32(pos.x) / ENGINE_UNIT_SCALE;
                 let y = -sanitize_f32(pos.y) / ENGINE_UNIT_SCALE;
                 let z = sanitize_f32(pos.z) / ENGINE_UNIT_SCALE;
                 group.positions.push([x, y, z]);
