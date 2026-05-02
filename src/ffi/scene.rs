@@ -2,6 +2,10 @@ use super::buffer::*;
 use super::types::*;
 use super::world::WorldHandle;
 use super::{i32_to_usize, read_c_str};
+use crate::geometry::{
+    FFI_CONVENTION, resolve_vertex_normal, transform_normal, transform_position,
+    triangle_vertex_offsets,
+};
 use crate::gltf::{
     ENGINE_UNIT_SCALE, MaterialKey, UV_FIXED_POINT_SCALE, build_wld_unrolled_primitives,
 };
@@ -40,41 +44,6 @@ struct SubmeshData {
     indices: Vec<u32>,
 }
 
-#[must_use]
-const fn sanitize_f32(value: f32) -> f32 {
-    if value.is_nan() { 0.0 } else { value }
-}
-
-#[must_use]
-fn resolve_vertex_normal(
-    model: &Model3DFile,
-    vertex_index: usize,
-    cumulative_fv_index: usize,
-    face_normal: [f32; 3],
-) -> [f32; 3] {
-    let vn_index = if !model.normal_indices.is_empty() {
-        model
-            .normal_indices
-            .get(cumulative_fv_index)
-            .and_then(|&index| usize::try_from(index).ok())
-    } else if !model.vertex_normals.is_empty() {
-        Some(vertex_index)
-    } else {
-        None
-    };
-
-    if let Some(idx) = vn_index
-        && let Some(vn) = model.vertex_normals.get(idx)
-        && !vn.x.is_nan()
-        && !vn.y.is_nan()
-        && !vn.z.is_nan()
-    {
-        return [sanitize_f32(vn.x), -sanitize_f32(vn.y), sanitize_f32(vn.z)];
-    }
-
-    face_normal
-}
-
 fn usize_to_i32(value: usize, name: &str) -> crate::Result<i32> {
     i32::try_from(value)
         .map_err(|_| crate::error::Error::Parse(format!("{name} exceeds i32::MAX: {value}")))
@@ -101,11 +70,7 @@ pub(crate) fn serialize_model_3d(
 
         let face_normal = if face_index < model.face_normals.len() {
             let fn_ = &model.face_normals[face_index];
-            [
-                sanitize_f32(fn_.x),
-                -sanitize_f32(fn_.y),
-                sanitize_f32(fn_.z),
-            ]
+            transform_normal(fn_.x, fn_.y, fn_.z, FFI_CONVENTION)
         } else {
             [0.0, 0.0, 1.0]
         };
@@ -119,12 +84,13 @@ pub(crate) fn serialize_model_3d(
         };
         let submesh = submeshes.entry(submesh_key).or_default();
 
-        let v0 = &face.face_vertices[0];
         for i in 1..(face.face_vertices.len() - 1) {
-            let v1 = &face.face_vertices[i];
-            let v2 = &face.face_vertices[i + 1];
-            let tri_fv = [v0, v2, v1];
-            let tri_fv_indices = [0usize, i + 1, i];
+            let tri_fv_indices = triangle_vertex_offsets(i, FFI_CONVENTION.winding);
+            let tri_fv = [
+                &face.face_vertices[tri_fv_indices[0]],
+                &face.face_vertices[tri_fv_indices[1]],
+                &face.face_vertices[tri_fv_indices[2]],
+            ];
 
             if tri_fv.iter().any(|fv| {
                 usize::try_from(fv.vertex_index)
@@ -140,13 +106,17 @@ pub(crate) fn serialize_model_3d(
                 };
 
                 let pos = &model.vertex_coords[idx];
-                let px = sanitize_f32(pos.x) / ENGINE_UNIT_SCALE;
-                let py = -sanitize_f32(pos.y) / ENGINE_UNIT_SCALE;
-                let pz = sanitize_f32(pos.z) / ENGINE_UNIT_SCALE;
+                let [px, py, pz] =
+                    transform_position(pos.x, pos.y, pos.z, ENGINE_UNIT_SCALE, FFI_CONVENTION);
                 submesh.positions.push([px, py, pz]);
 
-                let normal =
-                    resolve_vertex_normal(model, idx, cumulative_fv_base + fv_idx, face_normal);
+                let normal = resolve_vertex_normal(
+                    model,
+                    idx,
+                    cumulative_fv_base + fv_idx,
+                    face_normal,
+                    FFI_CONVENTION,
+                );
                 submesh.normals.push(normal);
 
                 submesh.uvs.push([f32::from(fv.u), f32::from(fv.v)]);
