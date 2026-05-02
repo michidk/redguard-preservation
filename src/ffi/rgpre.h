@@ -22,6 +22,8 @@ typedef struct ByteBuffer {
     int32_t  capacity;
 } ByteBuffer;
 
+typedef struct RgWorldHandle RgWorldHandle;
+
 void        rg_free_buffer(ByteBuffer *buffer);
 ByteBuffer *rg_last_error(void);
 
@@ -113,29 +115,48 @@ typedef struct RobSegmentHeader {   /* 16 bytes */
     /* if has_model == 1, followed by model_data_size bytes of RGMD data */
 } RobSegmentHeader;
 
+typedef struct RgWorldDescriptor {  /* 204 bytes */
+    int32_t world_id;
+    uint8_t has_wld;
+    uint8_t _pad[3];
+    uint16_t texbsi_id;
+    uint8_t _pad2[2];
+    uint8_t rgm_path[64];           /* null-terminated ASCII */
+    uint8_t wld_path[64];           /* null-terminated ASCII */
+    uint8_t palette_path[64];       /* null-terminated ASCII */
+} RgWorldDescriptor;
+
 /* ── GLB export ────────────────────────────────────────────────────── */
 
 ByteBuffer *rg_convert_model_from_path(const char *file_path, const char *assets_dir);
 ByteBuffer *rg_convert_rgm_from_path(const char *file_path, const char *assets_dir);
 ByteBuffer *rg_convert_wld_from_path(const char *file_path, const char *assets_dir);
 
-/* ── RGM section access ───────────────────────────────────────────── */
+/* ── World handle API ──────────────────────────────────────────────── */
 
-int32_t     rg_rgm_section_count(const char *file_path, const char *section_tag);
-ByteBuffer *rg_get_rgm_section(const char *file_path, const char *section_tag, int32_t section_index);
+RgWorldHandle *rg_open_world(const char *assets_dir, int32_t world_id);
+RgWorldHandle *rg_open_world_explicit(const char *assets_dir, const char *rgm_path, const char *wld_path, const char *palette_path);
+void           rg_close_world(RgWorldHandle *world);
+int32_t        rg_world_count(const char *assets_dir);
+ByteBuffer    *rg_get_world_descriptor(RgWorldHandle *world);
+ByteBuffer    *rg_get_world_terrain(RgWorldHandle *world);
+ByteBuffer    *rg_get_world_placements(RgWorldHandle *world);
+ByteBuffer    *rg_decode_texture_world(RgWorldHandle *world, uint16_t texture_id, uint8_t image_id);
+ByteBuffer    *rg_decode_texture_all_frames_world(RgWorldHandle *world, uint16_t texture_id, uint8_t image_id);
+int32_t        rg_rgm_section_count_world(RgWorldHandle *world, const char *section_tag);
+ByteBuffer    *rg_get_rgm_section_world(RgWorldHandle *world, const char *section_tag, int32_t section_index);
 
 /* ── Scene data ────────────────────────────────────────────────────── */
 
 ByteBuffer *rg_parse_model_data(const char *file_path, const char *assets_dir);
 ByteBuffer *rg_parse_rob_data(const char *file_path, const char *assets_dir);
+ByteBuffer *rg_parse_model_data_world(RgWorldHandle *world, const char *file_path);
+ByteBuffer *rg_parse_rob_data_world(RgWorldHandle *world, const char *file_path);
 ByteBuffer *rg_parse_wld_terrain_data(const char *file_path);
 ByteBuffer *rg_parse_rgm_placements(const char *file_path);
 
 /* ── Textures ──────────────────────────────────────────────────────── */
 
-ByteBuffer *rg_decode_texture(const char *assets_dir, uint16_t texture_id, uint8_t image_id);
-ByteBuffer *rg_decode_texture_all_frames(const char *assets_dir, uint16_t texture_id, uint8_t image_id);
-int32_t     rg_texbsi_image_count(const char *assets_dir, uint16_t texture_id);
 int32_t     rg_gxa_frame_count(const char *file_path);
 ByteBuffer *rg_decode_gxa(const char *file_path, int32_t frame);
 

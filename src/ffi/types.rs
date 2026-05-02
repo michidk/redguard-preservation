@@ -115,3 +115,17 @@ pub struct RobSegmentHeader {
     pub model_data_size: i32,
 }
 // 16 bytes, align 4. If has_model == 1, followed by model_data_size bytes of RGMD data.
+
+#[derive(Clone, Copy, Pod, Zeroable)]
+#[repr(C)]
+pub struct RgWorldDescriptor {
+    pub world_id: i32,
+    pub has_wld: u8,
+    pub _pad: [u8; 3],
+    pub texbsi_id: u16,
+    pub _pad2: [u8; 2],
+    pub rgm_path: [u8; 64],
+    pub wld_path: [u8; 64],
+    pub palette_path: [u8; 64],
+}
+// 204 bytes, align 4. Paths are null-terminated ASCII, zero-padded.
