@@ -217,9 +217,18 @@ pub fn parse_rgm_with_models(
     input: &[u8],
     registry: &Registry,
 ) -> Result<(RgmFile, Vec<PositionedModel>, Vec<PositionedLight>)> {
+    parse_rgm_with_models_for_stem(input, registry, None)
+}
+
+#[allow(clippy::missing_errors_doc)]
+pub fn parse_rgm_with_models_for_stem(
+    input: &[u8],
+    registry: &Registry,
+    preferred_rob_stem: Option<&str>,
+) -> Result<(RgmFile, Vec<PositionedModel>, Vec<PositionedLight>)> {
     let rgm_file = parse_rgm_file(input)?;
     let (positioned_models, positioned_lights) =
-        positioning::extract_positioned_models(input, &rgm_file, registry);
+        positioning::extract_positioned_models(input, &rgm_file, registry, preferred_rob_stem);
     Ok((rgm_file, positioned_models, positioned_lights))
 }
 

@@ -66,9 +66,13 @@ fn handle_wld_glb_convert(args: &WldArgs, output_path: &Path) -> Result<()> {
     let positioned_models = if let Some(rgm_file) = rgm_path {
         let registry = registry::scan_dir(asset_root)?;
         let rgm_bytes = std::fs::read(&rgm_file)?;
-        let (rgm_parsed, models, _lights) =
-            rgpre::import::rgm::parse_rgm_with_models(&rgm_bytes, &registry)
-                .map_err(|e| color_eyre::eyre::eyre!("{e}"))?;
+        let preferred_rob_stem = rgm_file.file_stem().and_then(|s| s.to_str());
+        let (rgm_parsed, models, _lights) = rgpre::import::rgm::parse_rgm_with_models_for_stem(
+            &rgm_bytes,
+            &registry,
+            preferred_rob_stem,
+        )
+        .map_err(|e| color_eyre::eyre::eyre!("{e}"))?;
         info!(
             "Loaded {} positioned models from companion scene '{}'",
             models.len(),

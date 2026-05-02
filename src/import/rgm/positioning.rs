@@ -30,13 +30,30 @@ struct MpsfRecord {
     image_id: u8,
 }
 
-fn build_rob_segment_index(registry: &Registry) -> HashMap<String, Model3DFile> {
+fn build_rob_segment_index(
+    registry: &Registry,
+    preferred_rob_stem: Option<&str>,
+) -> HashMap<String, Model3DFile> {
     let mut rob_entries: Vec<_> = registry
         .files
         .values()
         .filter(|e| e.file_type == crate::import::FileType::Rob)
         .collect();
-    rob_entries.sort_by_key(|entry| registry.source_rank_key(&entry.path));
+    let preferred_rob_stem = preferred_rob_stem.map(str::to_ascii_uppercase);
+    rob_entries.sort_by_key(|entry| {
+        let stem = entry
+            .path
+            .file_stem()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .to_ascii_uppercase();
+        let preferred_rank = if preferred_rob_stem.as_deref() == Some(stem.as_str()) {
+            0usize
+        } else {
+            1usize
+        };
+        (preferred_rank, registry.source_rank_key(&entry.path))
+    });
 
     let segment_batches: Vec<Vec<(String, Model3DFile)>> = rob_entries
         .par_iter()
@@ -87,11 +104,12 @@ pub(super) fn extract_positioned_models(
     input: &[u8],
     rgm_file: &RgmFile,
     registry: &Registry,
+    preferred_rob_stem: Option<&str>,
 ) -> (Vec<PositionedModel>, Vec<PositionedLight>) {
     let mut positioned_models = Vec::new();
     let mut positioned_lights = Vec::new();
     let mut model_cache: HashMap<String, Option<Model3DFile>> = HashMap::new();
-    let rob_index = build_rob_segment_index(registry);
+    let rob_index = build_rob_segment_index(registry, preferred_rob_stem);
     let rahd_data = first_section_payload(input, *b"RAHD");
     let raan_data = first_section_payload(input, *b"RAAN");
 
@@ -1006,6 +1024,15 @@ fn read_entry_data(entry: &crate::import::registry::FileEntry) -> std::io::Resul
     std::fs::read(&entry.path)
 }
 
+const fn model_file_rank(file_type: crate::import::FileType) -> Option<usize> {
+    match file_type {
+        crate::import::FileType::Model3dc => Some(0),
+        crate::import::FileType::Model3d => Some(1),
+        crate::import::FileType::Rob => Some(2),
+        _ => None,
+    }
+}
+
 fn load_model_from_registry(
     model_name: &str,
     registry: &Registry,
@@ -1026,9 +1053,20 @@ fn load_model_from_registry(
     candidates.sort();
     candidates.dedup();
 
-    let file_entry = candidates
-        .iter()
-        .find_map(|candidate| registry.get_file_by_name(candidate));
+    let file_entry = candidates.iter().find_map(|candidate| {
+        registry
+            .files
+            .iter()
+            .filter(|(key, _)| *key == candidate || key.starts_with(&format!("{candidate}#")))
+            .filter_map(|(_, entry)| {
+                model_file_rank(entry.file_type).map(|type_rank| {
+                    let source_rank = registry.source_rank_key(&entry.path);
+                    (type_rank, source_rank, entry)
+                })
+            })
+            .min_by_key(|(type_rank, source_rank, _)| (*type_rank, source_rank.clone()))
+            .map(|(_, _, entry)| entry)
+    });
 
     if let Some(file_entry) = file_entry {
         info!(

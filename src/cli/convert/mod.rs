@@ -184,8 +184,12 @@ fn handle_rgm_convert(args: &RgmArgs) -> Result<()> {
     info!("Requested output path: {}", output_path.display());
 
     let file_content = std::fs::read(&args.io.file)?;
-    let (rgm_file, positioned_models, lights) =
-        rgpre::import::rgm::parse_rgm_with_models(&file_content, &registry)?;
+    let preferred_rob_stem = args.io.file.file_stem().and_then(|s| s.to_str());
+    let (rgm_file, positioned_models, lights) = rgpre::import::rgm::parse_rgm_with_models_for_stem(
+        &file_content,
+        &registry,
+        preferred_rob_stem,
+    )?;
 
     if positioned_models.is_empty() && lights.is_empty() {
         bail!("No positioned models or lights found to convert.");
