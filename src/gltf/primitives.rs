@@ -1,4 +1,8 @@
 use crate::{
+    geometry::{
+        GLB_CONVENTION, resolve_vertex_normal, transform_normal, transform_position,
+        triangle_vertex_offsets,
+    },
     import::palette::Palette,
     model3d::{Model3DFile, TextureData},
 };
@@ -24,11 +28,6 @@ pub(crate) struct UnrolledPrimitive {
     pub(crate) indices: Vec<u32>,
     pub(crate) min: [f32; 3],
     pub(crate) max: [f32; 3],
-}
-
-#[must_use]
-pub(crate) const fn sanitize_f32(value: f32) -> f32 {
-    if value.is_nan() { 0.0 } else { value }
 }
 
 #[must_use]
@@ -67,36 +66,6 @@ pub(crate) fn material_for_face(
     }
 }
 
-#[must_use]
-pub(crate) fn resolve_vertex_normal(
-    model: &Model3DFile,
-    vertex_index: usize,
-    cumulative_fv_index: usize,
-    face_normal: [f32; 3],
-) -> [f32; 3] {
-    let vn_index = if !model.normal_indices.is_empty() {
-        model
-            .normal_indices
-            .get(cumulative_fv_index)
-            .and_then(|&index| usize::try_from(index).ok())
-    } else if !model.vertex_normals.is_empty() {
-        Some(vertex_index)
-    } else {
-        None
-    };
-
-    if let Some(idx) = vn_index
-        && let Some(vn) = model.vertex_normals.get(idx)
-        && !vn.x.is_nan()
-        && !vn.y.is_nan()
-        && !vn.z.is_nan()
-    {
-        return [-sanitize_f32(vn.x), -sanitize_f32(vn.y), sanitize_f32(vn.z)];
-    }
-
-    face_normal
-}
-
 #[allow(clippy::cast_possible_truncation)]
 // GLTF indices are u32; generated vertex/index counts remain far below u32::MAX.
 #[must_use]
@@ -120,11 +89,7 @@ pub(crate) fn build_unrolled_primitives(
 
         let face_normal = if face_index < model.face_normals.len() {
             let fn_ = &model.face_normals[face_index];
-            [
-                -sanitize_f32(fn_.x),
-                -sanitize_f32(fn_.y),
-                sanitize_f32(fn_.z),
-            ]
+            transform_normal(fn_.x, fn_.y, fn_.z, GLB_CONVENTION)
         } else {
             [0.0, 0.0, 1.0]
         };
@@ -144,13 +109,13 @@ pub(crate) fn build_unrolled_primitives(
                 max: [f32::NEG_INFINITY, f32::NEG_INFINITY, f32::NEG_INFINITY],
             });
 
-        let v0 = &face.face_vertices[0];
         for i in 1..(face.face_vertices.len() - 1) {
-            let v1 = &face.face_vertices[i];
-            let v2 = &face.face_vertices[i + 1];
-
-            let tri_fv = [v0, v1, v2];
-            let tri_fv_indices = [0usize, i, i + 1];
+            let tri_fv_indices = triangle_vertex_offsets(i, GLB_CONVENTION.winding);
+            let tri_fv = [
+                &face.face_vertices[tri_fv_indices[0]],
+                &face.face_vertices[tri_fv_indices[1]],
+                &face.face_vertices[tri_fv_indices[2]],
+            ];
             if tri_fv.iter().any(|fv| {
                 usize::try_from(fv.vertex_index)
                     .ok()
@@ -164,9 +129,8 @@ pub(crate) fn build_unrolled_primitives(
                     continue;
                 };
                 let pos = &model.vertex_coords[idx];
-                let x = -sanitize_f32(pos.x) / ENGINE_UNIT_SCALE;
-                let y = -sanitize_f32(pos.y) / ENGINE_UNIT_SCALE;
-                let z = sanitize_f32(pos.z) / ENGINE_UNIT_SCALE;
+                let [x, y, z] =
+                    transform_position(pos.x, pos.y, pos.z, ENGINE_UNIT_SCALE, GLB_CONVENTION);
                 group.positions.push([x, y, z]);
 
                 group.min[0] = group.min[0].min(x);
@@ -176,8 +140,13 @@ pub(crate) fn build_unrolled_primitives(
                 group.max[1] = group.max[1].max(y);
                 group.max[2] = group.max[2].max(z);
 
-                let normal =
-                    resolve_vertex_normal(model, idx, cumulative_fv_base + fv_idx, face_normal);
+                let normal = resolve_vertex_normal(
+                    model,
+                    idx,
+                    cumulative_fv_base + fv_idx,
+                    face_normal,
+                    GLB_CONVENTION,
+                );
                 group.normals.push(normal);
 
                 group.uvs.push([f32::from(fv.u), f32::from(fv.v)]);
