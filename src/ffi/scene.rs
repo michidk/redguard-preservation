@@ -855,7 +855,7 @@ pub(crate) fn scan_rgm_sections<'a>(data: &'a [u8], target_tag: &[u8; 4]) -> Vec
     let mut offset = 0;
     while offset + 8 <= data.len() {
         let tag = &data[offset..offset + 4];
-        let length = u32::from_le_bytes(data[offset + 4..offset + 8].try_into().unwrap_or_default())
+        let length = u32::from_be_bytes(data[offset + 4..offset + 8].try_into().unwrap_or_default())
             as usize;
         let payload_start = offset + 8;
         let payload_end = (payload_start + length).min(data.len());
