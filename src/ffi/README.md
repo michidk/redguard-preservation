@@ -23,7 +23,7 @@ char*  --P/Invoke--> Rust native plugin --> ByteBuffer*
   rg_free_buffer(buf)
 ```
 
-All asset inputs are file paths (`const char*`) plus scalar arguments (`i32`, `u16`, `u8`). No asset byte arrays cross the FFI boundary. Results are returned as `ByteBuffer*` pointers that the caller must free with `rg_free_buffer`. On error, buffer-returning functions return `NULL`, count functions return `-1`, and the message is available via `rg_last_error()`.
+All asset inputs are file paths (`const char*`) plus scalar arguments (`i32`, `u16`, `u8`), or an opaque `RgWorldHandle*` returned by `rg_open_world`. No asset byte arrays cross the FFI boundary. Results are returned as `ByteBuffer*` pointers that the caller must free with `rg_free_buffer`. On error, buffer-returning functions return `NULL`, count functions return `-1`, and the message is available via `rg_last_error()`.
 
 All structured output buffers use `#[repr(C)]` structs (defined in [`types.rs`](types.rs)) that can be directly cast via `Marshal.PtrToStructure<T>()` or `MemoryMarshal.Cast<byte, T>()` on the C# side. No manual byte parsing is needed — both sides share the same memory layout.
 
@@ -33,7 +33,7 @@ All functions are safe to call from any thread. Multiple threads may call FFI fu
 
 `rg_last_error()` is thread-local — each thread has its own error slot, so concurrent calls won't clobber each other's error state.
 
-The internal texture cache is protected by a `Mutex`. The first `rg_decode_texture` call for a given `assets_dir` pays the full I/O cost (parse `WORLD.INI`, load palette, scan for `TEXBSI.*` files); subsequent calls reuse the cached state. The lock is held during cache population, so parallel first-calls to different `assets_dir` values proceed independently, but parallel first-calls to the *same* `assets_dir` will serialize.
+Each `RgWorldHandle` owns its resolved palette, world metadata, and `TextureCache` instance. Parallel calls against different world handles do not share texture decode state.
 
 ## Conventions
 
@@ -79,9 +79,15 @@ for i in 0..light_count:
 
 Converts 3D/3DC, ROB, RGM, and WLD files to in-memory GLB. `assets_dir` should be the game root containing `3dart/`, `fxart/`, `maps/`, and `WORLD.INI`. WLD conversion auto-discovers the companion RGM file.
 
-## RGM Section Access
+## World Handle API
 
-Extracts raw section bytes from RGM files for direct use by AnimStore, ScriptStore, and ScriptedObject. `section_tag` is a 4-character string (e.g. `"RAHD"`, `"RAAN"`, `"RAGR"`, `"RAST"`, `"RASB"`, `"RASC"`, `"RAVA"`, `"RAAT"`, `"RANM"`, `"RALC"`, `"RAEX"`, `"RAVC"`, `"RAHK"`). Returns the raw section payload bytes.
+Use `rg_world_count` to enumerate available worlds, then `rg_open_world(assets_dir, world_id)` to create a native world context. The handle resolves the `WORLD.INI` entry, palette, scene paths, and texture cache once and keeps them together so Unity cannot accidentally mix one world's scene with another world's palette.
+
+`rg_get_world_descriptor` returns a fixed-size `RgWorldDescriptor` struct containing the world id, whether a WLD exists, the terrain TEXBSI id when available, and the raw `WORLD.INI` paths for the RGM, WLD, and palette entries.
+
+After opening a handle, Unity can request terrain (`rg_get_world_terrain`), placements (`rg_get_world_placements`), RGM section payloads (`rg_rgm_section_count_world`, `rg_get_rgm_section_world`), and decoded TEXBSI textures (`rg_decode_texture_world`, `rg_decode_texture_all_frames_world`) without passing palette names or re-parsing `WORLD.INI`.
+
+Release the handle with `rg_close_world` when finished.
 
 ## Scene Data Functions
 
@@ -89,7 +95,7 @@ Return pre-transformed mesh data for direct engine consumption (RGMD binary form
 
 ## Texture Functions
 
-Texture functions resolve palette data from `WORLD.INI` in `assets_dir` and load texture banks on demand. The resolved `WORLD.INI`, palette, and TEXBSI directory index are cached per `assets_dir` for the lifetime of the loaded library — the first call pays the full I/O cost, subsequent calls with the same `assets_dir` reuse the cached state (including previously-parsed TEXBSI banks).
+Texture decode in the FFI API is world-handle based. Open a world first, then decode TEXBSI images through that handle so the correct palette and cache are always used for that world.
 
 `image_id` is the TEXBSI image identifier from model/placement data, not an array index into TEXBSI entries.
 
