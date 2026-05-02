@@ -1130,7 +1130,7 @@ pub struct Placement {
 }
 
 pub(super) fn extract_placements(
-    input: &[u8],
+    _input: &[u8],
     rgm_file: &RgmFile,
 ) -> (Vec<Placement>, Vec<PositionedLight>) {
     let mut placements = Vec::new();
