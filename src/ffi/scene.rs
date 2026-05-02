@@ -1,6 +1,7 @@
 use super::buffer::*;
 use super::types::*;
-use super::{i32_to_usize, read_c_str, with_texture_cache};
+use super::world::WorldHandle;
+use super::{i32_to_usize, read_c_str};
 use crate::gltf::{
     ENGINE_UNIT_SCALE, MaterialKey, UV_FIXED_POINT_SCALE, build_wld_unrolled_primitives,
 };
@@ -84,7 +85,7 @@ fn usize_to_u32(value: usize, name: &str) -> crate::Result<u32> {
         .map_err(|_| crate::error::Error::Parse(format!("{name} exceeds u32::MAX: {value}")))
 }
 
-fn serialize_model_3d(
+pub(crate) fn serialize_model_3d(
     model: &Model3DFile,
     palette: Option<&Palette>,
     mut texture_cache: Option<&mut crate::gltf::TextureCache>,
@@ -307,11 +308,13 @@ pub unsafe extern "C" fn rg_parse_model_data(
         let model_bytes = std::fs::read(&file_path)?;
         let palette =
             super::auto_resolve_palette(&assets_dir, &file_path, crate::import::FileType::Model3d);
+        let mut texture_cache = crate::gltf::TextureCache::new(
+            assets_dir.clone(),
+            palette.as_ref().map(|pal| Palette { colors: pal.colors }),
+        );
         run_on_large_stack(move || {
             let model = model3d::parse_3d_file(&model_bytes)?;
-            super::with_texture_cache(&assets_dir, |cache| {
-                serialize_model_3d(&model, palette.as_ref(), Some(cache))
-            })
+            serialize_model_3d(&model, palette.as_ref(), Some(&mut texture_cache))
         })
     })();
 
@@ -335,46 +338,52 @@ pub unsafe extern "C" fn rg_parse_rob_data(
         let rob_bytes = std::fs::read(&file_path)?;
         let palette =
             super::auto_resolve_palette(&assets_dir, &file_path, crate::import::FileType::Rob);
+        let mut texture_cache = crate::gltf::TextureCache::new(
+            assets_dir.clone(),
+            palette.as_ref().map(|pal| Palette { colors: pal.colors }),
+        );
         run_on_large_stack(move || {
             let rob_file = rob::parse_rob_file(&rob_bytes)?;
 
-            super::with_texture_cache(&assets_dir, |cache| {
-                let rob_header = RobHeader {
-                    segment_count: usize_to_i32(rob_file.segments.len(), "segment_count")?,
+            let rob_header = RobHeader {
+                segment_count: usize_to_i32(rob_file.segments.len(), "segment_count")?,
+            };
+            let mut out = Vec::new();
+            out.extend_from_slice(bytemuck::bytes_of(&rob_header));
+
+            for segment in &rob_file.segments {
+                let (has_model, model_data) = if segment.has_embedded_3d_data() {
+                    let model = segment.parse_embedded_3d_data()?;
+                    (
+                        1u8,
+                        Some(serialize_model_3d(
+                            &model,
+                            palette.as_ref(),
+                            Some(&mut texture_cache),
+                        )?),
+                    )
+                } else {
+                    (0u8, None)
                 };
-                let mut out = Vec::new();
-                out.extend_from_slice(bytemuck::bytes_of(&rob_header));
 
-                for segment in &rob_file.segments {
-                    let (has_model, model_data) = if segment.has_embedded_3d_data() {
-                        let model = segment.parse_embedded_3d_data()?;
-                        (
-                            1u8,
-                            Some(serialize_model_3d(&model, palette.as_ref(), Some(cache))?),
-                        )
-                    } else {
-                        (0u8, None)
-                    };
+                let seg_header = RobSegmentHeader {
+                    segment_name: segment.segment_name,
+                    has_model,
+                    _pad: [0; 3],
+                    model_data_size: model_data
+                        .as_ref()
+                        .map(|d| usize_to_i32(d.len(), "model_data_size"))
+                        .transpose()?
+                        .unwrap_or(0),
+                };
+                out.extend_from_slice(bytemuck::bytes_of(&seg_header));
 
-                    let seg_header = RobSegmentHeader {
-                        segment_name: segment.segment_name,
-                        has_model,
-                        _pad: [0; 3],
-                        model_data_size: model_data
-                            .as_ref()
-                            .map(|d| usize_to_i32(d.len(), "model_data_size"))
-                            .transpose()?
-                            .unwrap_or(0),
-                    };
-                    out.extend_from_slice(bytemuck::bytes_of(&seg_header));
-
-                    if let Some(data) = &model_data {
-                        out.extend_from_slice(data);
-                    }
+                if let Some(data) = &model_data {
+                    out.extend_from_slice(data);
                 }
+            }
 
-                Ok(out)
-            })
+            Ok(out)
         })
     })();
 
@@ -383,120 +392,107 @@ pub unsafe extern "C" fn rg_parse_rob_data(
 
 /// # Safety
 ///
-/// `assets_dir` must be a valid null-terminated UTF-8 string.
+/// `world` must be a valid pointer returned by `rg_open_world`.
+/// `file_path` must be a valid null-terminated UTF-8 string.
 /// The returned pointer must be released with `rg_free_buffer`.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn rg_decode_texture(
-    assets_dir: *const c_char,
-    texture_id: u16,
-    image_id: u8,
+pub unsafe extern "C" fn rg_parse_model_data_world(
+    world: *mut WorldHandle,
+    file_path: *const c_char,
 ) -> *mut ByteBuffer {
-    let result = (|| -> crate::Result<Vec<u8>> {
-        let assets_dir = unsafe { read_c_str(assets_dir, "assets_dir") }?;
-        let assets_dir = PathBuf::from(assets_dir);
-        run_on_large_stack(move || {
-            with_texture_cache(&assets_dir, |cache| {
-                let (rgba, width, height, frame_count) = cache
-                    .get_image_rgba_with_frame_count(texture_id, image_id)
-                    .ok_or_else(|| {
-                        crate::error::Error::Parse(format!(
-                            "texture not found: TEXBSI.{texture_id:03} image {image_id}"
-                        ))
-                    })?;
-                let header = TextureHeader {
-                    width: i32::from(width),
-                    height: i32::from(height),
-                    frame_count: i32::from(frame_count),
-                    rgba_size: usize_to_i32(rgba.len(), "rgba_size")?,
-                };
-                let mut out = Vec::with_capacity(size_of::<TextureHeader>() + rgba.len());
-                out.extend_from_slice(bytemuck::bytes_of(&header));
-                out.extend_from_slice(&rgba);
-                Ok(out)
-            })
-        })
-    })();
-
-    into_ffi_result(result)
-}
-
-/// # Safety
-///
-/// `assets_dir` must be a valid null-terminated UTF-8 string.
-/// The returned pointer must be released with `rg_free_buffer`.
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn rg_decode_texture_all_frames(
-    assets_dir: *const c_char,
-    texture_id: u16,
-    image_id: u8,
-) -> *mut ByteBuffer {
-    let result = (|| -> crate::Result<Vec<u8>> {
-        let assets_dir = unsafe { read_c_str(assets_dir, "assets_dir") }?;
-        let assets_dir = PathBuf::from(assets_dir);
-        run_on_large_stack(move || {
-            with_texture_cache(&assets_dir, |cache| {
-                let info = cache
-                    .get_all_frames_by_image_id(texture_id, image_id)
-                    .ok_or_else(|| {
-                        crate::error::Error::Parse(format!(
-                            "texture not found: TEXBSI.{texture_id:03} image {image_id}"
-                        ))
-                    })?;
-                let header = AllFramesHeader {
-                    width: i32::from(info.width),
-                    height: i32::from(info.height),
-                    frame_count: i32::from(info.frame_count),
-                };
-                let mut out = Vec::new();
-                out.extend_from_slice(bytemuck::bytes_of(&header));
-                for frame in &info.frames {
-                    match frame {
-                        Some(rgba) => {
-                            out.extend_from_slice(
-                                &usize_to_i32(rgba.len(), "rgba_size")?.to_le_bytes(),
-                            );
-                            out.extend_from_slice(rgba);
-                        }
-                        None => {
-                            out.extend_from_slice(&0_i32.to_le_bytes());
-                        }
-                    }
-                }
-                Ok(out)
-            })
-        })
-    })();
-
-    into_ffi_result(result)
-}
-
-/// # Safety
-///
-/// `assets_dir` must be a valid null-terminated UTF-8 string.
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn rg_texbsi_image_count(assets_dir: *const c_char, texture_id: u16) -> i32 {
-    let result = (|| -> crate::Result<i32> {
-        let assets_dir = unsafe { read_c_str(assets_dir, "assets_dir") }?;
-        let assets_dir = PathBuf::from(assets_dir);
-        run_on_large_stack(move || {
-            with_texture_cache(&assets_dir, |cache| {
-                cache.ensure_bsi_available(texture_id);
-                let count = cache.image_count(texture_id).unwrap_or(0);
-                usize_to_i32(count, "image_count")
-            })
-        })
-    })();
-
-    match result {
-        Ok(count) => {
-            clear_last_error();
-            count
-        }
-        Err(err) => {
-            set_last_error(err);
-            -1
-        }
+    if world.is_null() {
+        set_last_error(crate::error::Error::Parse("world handle is null".into()));
+        return std::ptr::null_mut();
     }
+
+    let result = (|| -> crate::Result<Vec<u8>> {
+        let handle = unsafe { &mut *world };
+        let file_path = unsafe { read_c_str(file_path, "file_path") }?;
+        let file_path = PathBuf::from(file_path);
+        let model_bytes = std::fs::read(&file_path)?;
+        let palette = Palette {
+            colors: handle.palette().colors,
+        };
+
+        run_on_large_stack(move || {
+            let model = model3d::parse_3d_file(&model_bytes)?;
+            serialize_model_3d(&model, Some(&palette), Some(handle.texture_cache_mut()))
+        })
+    })();
+
+    into_ffi_result(result)
+}
+
+/// # Safety
+///
+/// `world` must be a valid pointer returned by `rg_open_world`.
+/// `file_path` must be a valid null-terminated UTF-8 string.
+/// The returned pointer must be released with `rg_free_buffer`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn rg_parse_rob_data_world(
+    world: *mut WorldHandle,
+    file_path: *const c_char,
+) -> *mut ByteBuffer {
+    if world.is_null() {
+        set_last_error(crate::error::Error::Parse("world handle is null".into()));
+        return std::ptr::null_mut();
+    }
+
+    let result = (|| -> crate::Result<Vec<u8>> {
+        let handle = unsafe { &mut *world };
+        let file_path = unsafe { read_c_str(file_path, "file_path") }?;
+        let file_path = PathBuf::from(file_path);
+        let rob_bytes = std::fs::read(&file_path)?;
+        let palette = Palette {
+            colors: handle.palette().colors,
+        };
+
+        run_on_large_stack(move || {
+            let rob_file = rob::parse_rob_file(&rob_bytes)?;
+
+            let rob_header = RobHeader {
+                segment_count: usize_to_i32(rob_file.segments.len(), "segment_count")?,
+            };
+            let mut out = Vec::new();
+            out.extend_from_slice(bytemuck::bytes_of(&rob_header));
+
+            for segment in &rob_file.segments {
+                let (has_model, model_data) = if segment.has_embedded_3d_data() {
+                    let model = segment.parse_embedded_3d_data()?;
+                    (
+                        1u8,
+                        Some(serialize_model_3d(
+                            &model,
+                            Some(&palette),
+                            Some(handle.texture_cache_mut()),
+                        )?),
+                    )
+                } else {
+                    (0u8, None)
+                };
+
+                let seg_header = RobSegmentHeader {
+                    segment_name: segment.segment_name,
+                    has_model,
+                    _pad: [0; 3],
+                    model_data_size: model_data
+                        .as_ref()
+                        .map(|d| usize_to_i32(d.len(), "model_data_size"))
+                        .transpose()?
+                        .unwrap_or(0),
+                };
+                out.extend_from_slice(bytemuck::bytes_of(&seg_header));
+
+                if let Some(data) = &model_data {
+                    out.extend_from_slice(data);
+                }
+            }
+
+            Ok(out)
+        })
+    })();
+
+    into_ffi_result(result)
 }
 
 /// # Safety
@@ -711,7 +707,7 @@ pub unsafe extern "C" fn rg_decode_gxa(file_path: *const c_char, frame: i32) -> 
     into_ffi_result(result)
 }
 
-fn serialize_terrain_primitives(
+pub(crate) fn serialize_terrain_primitives(
     primitives: Vec<crate::gltf::UnrolledPrimitive>,
 ) -> crate::Result<Vec<u8>> {
     let total_vertex_count: usize = primitives.iter().map(|p| p.positions.len()).sum();
@@ -774,7 +770,7 @@ fn serialize_terrain_primitives(
     Ok(out)
 }
 
-fn serialize_rgm_placements(
+pub(crate) fn serialize_rgm_placements(
     placements: &[rgm::Placement],
     lights: &[rgm::PositionedLight],
 ) -> crate::Result<Vec<u8>> {
@@ -854,7 +850,7 @@ pub unsafe extern "C" fn rg_parse_rgm_placements(file_path: *const c_char) -> *m
     into_ffi_result(result)
 }
 
-fn scan_rgm_sections<'a>(data: &'a [u8], target_tag: &[u8; 4]) -> Vec<&'a [u8]> {
+pub(crate) fn scan_rgm_sections<'a>(data: &'a [u8], target_tag: &[u8; 4]) -> Vec<&'a [u8]> {
     let mut results = Vec::new();
     let mut offset = 0;
     while offset + 8 <= data.len() {
@@ -872,70 +868,4 @@ fn scan_rgm_sections<'a>(data: &'a [u8], target_tag: &[u8; 4]) -> Vec<&'a [u8]> 
         }
     }
     results
-}
-
-fn read_section_tag(tag_ptr: *const c_char) -> crate::Result<[u8; 4]> {
-    let tag_str = unsafe { read_c_str(tag_ptr, "section_tag") }?;
-    let bytes = tag_str.as_bytes();
-    if bytes.len() != 4 {
-        return Err(crate::error::Error::Parse(format!(
-            "section_tag must be exactly 4 bytes, got {}",
-            bytes.len()
-        )));
-    }
-    Ok([bytes[0], bytes[1], bytes[2], bytes[3]])
-}
-
-/// # Safety
-/// `file_path` and `section_tag` must be valid null-terminated UTF-8 strings.
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn rg_rgm_section_count(
-    file_path: *const c_char,
-    section_tag: *const c_char,
-) -> i32 {
-    let result = (|| -> crate::Result<i32> {
-        let file_path = unsafe { read_c_str(file_path, "file_path") }?;
-        let tag = read_section_tag(section_tag)?;
-        let data = std::fs::read(file_path)?;
-        let count = scan_rgm_sections(&data, &tag).len();
-        i32::try_from(count).map_err(|_| {
-            crate::error::Error::Parse(format!("section count exceeds i32::MAX: {count}"))
-        })
-    })();
-    match result {
-        Ok(count) => count,
-        Err(err) => {
-            set_last_error(err);
-            -1
-        }
-    }
-}
-
-/// # Safety
-/// `file_path` and `section_tag` must be valid null-terminated UTF-8 strings.
-/// The returned pointer must be released with `rg_free_buffer`.
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn rg_get_rgm_section(
-    file_path: *const c_char,
-    section_tag: *const c_char,
-    section_index: i32,
-) -> *mut ByteBuffer {
-    let result = (|| -> crate::Result<Vec<u8>> {
-        let file_path = unsafe { read_c_str(file_path, "file_path") }?;
-        let tag = read_section_tag(section_tag)?;
-        let idx = i32_to_usize(section_index, "section_index")?;
-        let data = std::fs::read(file_path)?;
-        let sections = scan_rgm_sections(&data, &tag);
-        let payload = sections.get(idx).ok_or_else(|| {
-            crate::error::Error::Parse(format!(
-                "section '{}' index {} out of range (found {})",
-                String::from_utf8_lossy(&tag),
-                idx,
-                sections.len()
-            ))
-        })?;
-        Ok(payload.to_vec())
-    })();
-
-    into_ffi_result(result)
 }
