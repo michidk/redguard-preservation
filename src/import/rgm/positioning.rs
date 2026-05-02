@@ -1136,13 +1136,6 @@ pub(super) fn extract_placements(
     let mut placements = Vec::new();
     let mut lights = Vec::new();
 
-    let rahd_data = first_section_payload(input, *b"RAHD");
-    let raan_data = first_section_payload(input, *b"RAAN");
-    let rahd_index = rahd_data.map(parse_rahd_raan_index).unwrap_or_default();
-    let rahd_texture_overrides = rahd_data
-        .map(parse_rahd_texture_overrides)
-        .unwrap_or_default();
-
     for section in &rgm_file.sections {
         match section {
             RgmSection::Mps(_, mps_records) => {
@@ -1158,23 +1151,6 @@ pub(super) fn extract_placements(
                         transform: mps_transform(record),
                         object_type: PlacementType::Mesh,
                         texture_id: 0,
-                        image_id: 0,
-                    });
-                }
-            }
-            RgmSection::MpobParsed(_, mpob_records) => {
-                for (idx, record) in mpob_records.iter().enumerate() {
-                    let script_name = record.script_name();
-                    let resolved_name =
-                        resolve_mpob_model_name(record, &script_name, raan_data, &rahd_index);
-                    let stem = strip_extension(&resolved_name).to_owned();
-                    let texture_override = rahd_texture_overrides.get(&script_name).copied();
-                    placements.push(Placement {
-                        model_name: stem,
-                        source_id: format!("B_{idx:03}_{script_name}"),
-                        transform: mpob_transform(record),
-                        object_type: PlacementType::Mesh,
-                        texture_id: texture_override.unwrap_or(0),
                         image_id: 0,
                     });
                 }
