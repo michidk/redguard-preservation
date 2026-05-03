@@ -224,7 +224,7 @@ impl Model3DFile {
     }
 }
 
-use crate::{error::Error, Result};
+use crate::{Result, error::Error};
 use log::warn;
 
 fn parse_data_internal(input: &[u8], kind: &str) -> Result<Model3DFile> {
