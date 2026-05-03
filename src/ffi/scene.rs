@@ -9,6 +9,7 @@ use crate::geometry::{
 use crate::gltf::{
     build_wld_unrolled_primitives, MaterialKey, ENGINE_UNIT_SCALE, UV_FIXED_POINT_SCALE,
 };
+use crate::import::model3d::VertexCoord;
 use crate::import::palette::Palette;
 use crate::import::rtx::RtxEntry;
 use crate::import::{fnt, fnt_ttf, gxa, rgm, rob, rtx, sfx, wld};
@@ -54,12 +55,22 @@ fn usize_to_u32(value: usize, name: &str) -> crate::Result<u32> {
         .map_err(|_| crate::error::Error::Parse(format!("{name} exceeds u32::MAX: {value}")))
 }
 
+/// Extended submesh data that also tracks source vertex indices for animation delta emission.
+#[derive(Debug, Default)]
+struct SubmeshDataEx {
+    inner: SubmeshData,
+    /// Original vertex index (into `Model3DFile::vertex_coords`) for each emitted vertex.
+    vertex_indices: Vec<usize>,
+    /// Per-emitted-vertex face normal (for delta normal computation).
+    face_normals_per_vertex: Vec<[f32; 3]>,
+}
+
 pub(crate) fn serialize_model_3d(
     model: &Model3DFile,
     palette: Option<&Palette>,
     mut texture_cache: Option<&mut crate::gltf::TextureCache>,
 ) -> crate::Result<Vec<u8>> {
-    let mut submeshes: BTreeMap<SubmeshKey, SubmeshData> = BTreeMap::new();
+    let mut submeshes: BTreeMap<SubmeshKey, SubmeshDataEx> = BTreeMap::new();
     let mut cumulative_fv_base: usize = 0;
 
     for (face_index, face) in model.face_data.iter().enumerate() {
@@ -108,7 +119,7 @@ pub(crate) fn serialize_model_3d(
                 let pos = &model.vertex_coords[idx];
                 let [px, py, pz] =
                     transform_position(pos.x, pos.y, pos.z, ENGINE_UNIT_SCALE, SCENE_CONVENTION);
-                submesh.positions.push([px, py, pz]);
+                submesh.inner.positions.push([px, py, pz]);
 
                 let normal = resolve_vertex_normal(
                     model,
@@ -117,13 +128,15 @@ pub(crate) fn serialize_model_3d(
                     face_normal,
                     SCENE_CONVENTION,
                 );
-                submesh.normals.push(normal);
+                submesh.inner.normals.push(normal);
 
-                submesh.uvs.push([f32::from(fv.u), f32::from(fv.v)]);
-                submesh.indices.push(usize_to_u32(
-                    submesh.positions.len() - 1,
+                submesh.inner.uvs.push([f32::from(fv.u), f32::from(fv.v)]);
+                submesh.inner.indices.push(usize_to_u32(
+                    submesh.inner.positions.len() - 1,
                     "submesh_vertex_index",
                 )?);
+                submesh.vertex_indices.push(idx);
+                submesh.face_normals_per_vertex.push(face_normal);
             }
         }
 
@@ -132,10 +145,10 @@ pub(crate) fn serialize_model_3d(
 
     let mut populated_submeshes: Vec<_> = submeshes
         .into_iter()
-        .filter(|(_, submesh)| !submesh.indices.is_empty())
+        .filter(|(_, s)| !s.inner.indices.is_empty())
         .collect();
 
-    for (key, submesh) in &mut populated_submeshes {
+    for (key, s) in &mut populated_submeshes {
         let (tex_w, tex_h) = match key {
             SubmeshKey::Textured(texture_id, image_id) => {
                 let cache = texture_cache.as_mut().expect("texture_cache required");
@@ -146,7 +159,7 @@ pub(crate) fn serialize_model_3d(
             }
             SubmeshKey::SolidColor(_) => (8.0, 8.0),
         };
-        for uv in &mut submesh.uvs {
+        for uv in &mut s.inner.uvs {
             uv[0] /= UV_FIXED_POINT_SCALE * tex_w;
             uv[1] = 1.0 - uv[1] / (UV_FIXED_POINT_SCALE * tex_h);
         }
@@ -154,18 +167,21 @@ pub(crate) fn serialize_model_3d(
 
     let total_vertex_count = populated_submeshes
         .iter()
-        .map(|(_, submesh)| submesh.positions.len())
+        .map(|(_, s)| s.inner.positions.len())
         .sum::<usize>();
     let total_index_count = populated_submeshes
         .iter()
-        .map(|(_, submesh)| submesh.indices.len())
+        .map(|(_, s)| s.inner.indices.len())
         .sum::<usize>();
+
+    // Number of animation frames to emit (0 = static model)
+    let anim_frame_count = model.frame_vertex_data.len();
 
     let header = RgmdHeader {
         magic: *b"RGMD",
         version: [1, 0, 0, 0],
         submesh_count: usize_to_i32(populated_submeshes.len(), "submesh_count")?,
-        frame_count: 1,
+        frame_count: usize_to_i32(anim_frame_count, "frame_count")?,
         total_vertex_count: usize_to_i32(total_vertex_count, "total_vertex_count")?,
         total_index_count: usize_to_i32(total_index_count, "total_index_count")?,
         radius: model.header.radius as f32 / ENGINE_UNIT_SCALE,
@@ -174,17 +190,18 @@ pub(crate) fn serialize_model_3d(
     let estimated_size = size_of::<RgmdHeader>()
         + populated_submeshes.len() * size_of::<RgmdSubmeshHeader>()
         + total_vertex_count * size_of::<RgmdVertex>()
-        + total_index_count * size_of::<u32>();
+        + total_index_count * size_of::<u32>()
+        + anim_frame_count * (4 + total_vertex_count * size_of::<RgmdDeltaVertex>());
     let mut out = Vec::with_capacity(estimated_size);
     out.extend_from_slice(bytemuck::bytes_of(&header));
 
-    for (key, submesh) in populated_submeshes {
+    for (key, s) in &populated_submeshes {
         let (textured, color_rgb, texture_id, image_id) = match key {
             SubmeshKey::SolidColor(ci) => {
-                let rgb = palette.map_or([128, 128, 128], |pal| pal.colors[usize::from(ci)]);
+                let rgb = palette.map_or([128, 128, 128], |pal| pal.colors[usize::from(*ci)]);
                 (0u8, rgb, 0u16, 0u8)
             }
-            SubmeshKey::Textured(tid, iid) => (1u8, [0u8; 3], tid, iid),
+            SubmeshKey::Textured(tid, iid) => (1u8, [0u8; 3], *tid, *iid),
         };
 
         let sub_header = RgmdSubmeshHeader {
@@ -195,16 +212,17 @@ pub(crate) fn serialize_model_3d(
             texture_id,
             image_id,
             _pad: 0,
-            vertex_count: usize_to_i32(submesh.positions.len(), "submesh_vertex_count")?,
-            index_count: usize_to_i32(submesh.indices.len(), "submesh_index_count")?,
+            vertex_count: usize_to_i32(s.inner.positions.len(), "submesh_vertex_count")?,
+            index_count: usize_to_i32(s.inner.indices.len(), "submesh_index_count")?,
         };
         out.extend_from_slice(bytemuck::bytes_of(&sub_header));
 
-        let vertices: Vec<RgmdVertex> = submesh
+        let vertices: Vec<RgmdVertex> = s
+            .inner
             .positions
             .iter()
-            .zip(&submesh.normals)
-            .zip(&submesh.uvs)
+            .zip(&s.inner.normals)
+            .zip(&s.inner.uvs)
             .map(|((pos, norm), uv)| RgmdVertex {
                 position: *pos,
                 normal: *norm,
@@ -212,7 +230,84 @@ pub(crate) fn serialize_model_3d(
             })
             .collect();
         out.extend_from_slice(bytemuck::cast_slice::<RgmdVertex, u8>(&vertices));
-        out.extend_from_slice(bytemuck::cast_slice::<u32, u8>(&submesh.indices));
+        out.extend_from_slice(bytemuck::cast_slice::<u32, u8>(&s.inner.indices));
+    }
+
+    // Emit animation frame delta blocks
+    let frames_use_i32 = !model.frame_data.is_empty()
+        && matches!(
+            model.frame_data[0].frame_type,
+            crate::import::model3d::FrameType::AnimatedI32
+        );
+    for frame_idx in 0..anim_frame_count {
+        let frame_verts = &model.frame_vertex_data[frame_idx].coords;
+        let frame_face_normals = model
+            .frame_normal_data
+            .get(frame_idx)
+            .map(|fnd| fnd.face_normals.as_slice())
+            .unwrap_or(&[]);
+
+        for (_, s) in &populated_submeshes {
+            let delta_count = s.inner.positions.len();
+            let count_i32 = usize_to_i32(delta_count, "delta_vertex_count")?;
+            out.extend_from_slice(&count_i32.to_le_bytes());
+
+            for (emit_idx, &model_idx) in s.vertex_indices.iter().enumerate() {
+                let frame_coord = frame_verts.get(model_idx).copied().unwrap_or(VertexCoord {
+                    x: 0.0,
+                    y: 0.0,
+                    z: 0.0,
+                });
+                let base_coord = model.vertex_coords.get(model_idx).copied().unwrap_or(VertexCoord {
+                    x: 0.0,
+                    y: 0.0,
+                    z: 0.0,
+                });
+
+                // Match rgunity-main RG3DStore frame delta math exactly.
+                let (dx, dy, dz) = if frame_idx == 0 || frames_use_i32 {
+                    let ddx = (frame_coord.x - base_coord.x) / ENGINE_UNIT_SCALE;
+                    let ddy = (frame_coord.y - base_coord.y) / ENGINE_UNIT_SCALE;
+                    let ddz = (frame_coord.z - base_coord.z) / ENGINE_UNIT_SCALE;
+                    // Old path then applies MESH_VERT_FLIP=(1,-1,1), and Unity deserializer later negates X.
+                    (-ddx, -ddy, ddz)
+                } else {
+                    let scale = 1.0 / 5120.0;
+                    // frame_coord stores raw i16 delta values from parser
+                    (
+                        frame_coord.x * scale,
+                        frame_coord.y * scale,
+                        -frame_coord.z * scale,
+                    )
+                };
+
+                // Normal delta: frame face normal - base face normal
+                let base_fn = s
+                    .face_normals_per_vertex
+                    .get(emit_idx)
+                    .copied()
+                    .unwrap_or([0.0, 0.0, 1.0]);
+                let (dnx, dny, dnz) = if let Some(fn_) = frame_face_normals.get(emit_idx) {
+                    let [fnx, fny, fnz] = transform_normal(fn_.x, fn_.y, fn_.z, SCENE_CONVENTION);
+                    let ndx = fnx - base_fn[0];
+                    let ndy = fny - base_fn[1];
+                    let ndz = fnz - base_fn[2];
+                    (-ndx, ndy, ndz)
+                } else {
+                    (0.0, 0.0, 0.0)
+                };
+
+                let delta = RgmdDeltaVertex {
+                    dx,
+                    dy,
+                    dz,
+                    dnx,
+                    dny,
+                    dnz,
+                };
+                out.extend_from_slice(bytemuck::bytes_of(&delta));
+            }
+        }
     }
 
     Ok(out)

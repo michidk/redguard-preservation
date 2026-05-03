@@ -61,6 +61,20 @@ pub struct RgmdVertex {
 }
 // 32 bytes, align 4. Followed by index_count × u32 indices.
 
+#[derive(Clone, Copy, Pod, Zeroable)]
+#[repr(C)]
+pub struct RgmdDeltaVertex {
+    pub dx: f32,
+    pub dy: f32,
+    pub dz: f32,
+    pub dnx: f32,
+    pub dny: f32,
+    pub dnz: f32,
+}
+// 24 bytes, align 4.
+// After all base submesh data, frame delta blocks follow:
+// For each animation frame: i32 total_delta_count, then per-submesh: i32 delta_count, then delta_count × RgmdDeltaVertex
+
 // --- RGPL (placements + lights) ---
 
 #[derive(Clone, Copy, Pod, Zeroable)]
