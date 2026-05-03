@@ -1,6 +1,6 @@
 use crate::{
     geometry::{
-        GLB_CONVENTION, resolve_vertex_normal, transform_normal, transform_position,
+        SCENE_CONVENTION, resolve_vertex_normal, transform_normal, transform_position,
         triangle_vertex_offsets,
     },
     import::palette::Palette,
@@ -15,6 +15,7 @@ pub(crate) enum MaterialKey {
     SolidColor([u8; 3]),
     PaletteTexture([u8; 3]),
     Textured(u16, u8),
+    TerrainTextured(u16, u8),
     White,
 }
 
@@ -89,7 +90,7 @@ pub(crate) fn build_unrolled_primitives(
 
         let face_normal = if face_index < model.face_normals.len() {
             let fn_ = &model.face_normals[face_index];
-            transform_normal(fn_.x, fn_.y, fn_.z, GLB_CONVENTION)
+            transform_normal(fn_.x, fn_.y, fn_.z, SCENE_CONVENTION)
         } else {
             [0.0, 0.0, 1.0]
         };
@@ -110,7 +111,7 @@ pub(crate) fn build_unrolled_primitives(
             });
 
         for i in 1..(face.face_vertices.len() - 1) {
-            let tri_fv_indices = triangle_vertex_offsets(i, GLB_CONVENTION.winding);
+            let tri_fv_indices = triangle_vertex_offsets(i);
             let tri_fv = [
                 &face.face_vertices[tri_fv_indices[0]],
                 &face.face_vertices[tri_fv_indices[1]],
@@ -130,7 +131,7 @@ pub(crate) fn build_unrolled_primitives(
                 };
                 let pos = &model.vertex_coords[idx];
                 let [x, y, z] =
-                    transform_position(pos.x, pos.y, pos.z, ENGINE_UNIT_SCALE, GLB_CONVENTION);
+                    transform_position(pos.x, pos.y, pos.z, ENGINE_UNIT_SCALE, SCENE_CONVENTION);
                 group.positions.push([x, y, z]);
 
                 group.min[0] = group.min[0].min(x);
@@ -145,7 +146,7 @@ pub(crate) fn build_unrolled_primitives(
                     idx,
                     cumulative_fv_base + fv_idx,
                     face_normal,
-                    GLB_CONVENTION,
+                    SCENE_CONVENTION,
                 );
                 group.normals.push(normal);
 

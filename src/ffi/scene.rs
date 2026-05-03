@@ -3,7 +3,7 @@ use super::types::*;
 use super::world::WorldHandle;
 use super::{i32_to_usize, read_c_str};
 use crate::geometry::{
-    FFI_CONVENTION, resolve_vertex_normal, transform_normal, transform_position,
+    SCENE_CONVENTION, resolve_vertex_normal, transform_normal, transform_position,
     triangle_vertex_offsets,
 };
 use crate::gltf::{
@@ -70,7 +70,7 @@ pub(crate) fn serialize_model_3d(
 
         let face_normal = if face_index < model.face_normals.len() {
             let fn_ = &model.face_normals[face_index];
-            transform_normal(fn_.x, fn_.y, fn_.z, FFI_CONVENTION)
+            transform_normal(fn_.x, fn_.y, fn_.z, SCENE_CONVENTION)
         } else {
             [0.0, 0.0, 1.0]
         };
@@ -85,7 +85,7 @@ pub(crate) fn serialize_model_3d(
         let submesh = submeshes.entry(submesh_key).or_default();
 
         for i in 1..(face.face_vertices.len() - 1) {
-            let tri_fv_indices = triangle_vertex_offsets(i, FFI_CONVENTION.winding);
+            let tri_fv_indices = triangle_vertex_offsets(i);
             let tri_fv = [
                 &face.face_vertices[tri_fv_indices[0]],
                 &face.face_vertices[tri_fv_indices[1]],
@@ -107,7 +107,7 @@ pub(crate) fn serialize_model_3d(
 
                 let pos = &model.vertex_coords[idx];
                 let [px, py, pz] =
-                    transform_position(pos.x, pos.y, pos.z, ENGINE_UNIT_SCALE, FFI_CONVENTION);
+                    transform_position(pos.x, pos.y, pos.z, ENGINE_UNIT_SCALE, SCENE_CONVENTION);
                 submesh.positions.push([px, py, pz]);
 
                 let normal = resolve_vertex_normal(
@@ -115,7 +115,7 @@ pub(crate) fn serialize_model_3d(
                     idx,
                     cumulative_fv_base + fv_idx,
                     face_normal,
-                    FFI_CONVENTION,
+                    SCENE_CONVENTION,
                 );
                 submesh.normals.push(normal);
 
@@ -702,7 +702,9 @@ pub(crate) fn serialize_terrain_primitives(
 
     for primitive in &primitives {
         let (textured, color_rgb, texture_id, image_id) = match primitive.material_key {
-            MaterialKey::Textured(tid, iid) => (1u8, [0u8; 3], tid, iid),
+            MaterialKey::Textured(tid, iid) | MaterialKey::TerrainTextured(tid, iid) => {
+                (1u8, [0u8; 3], tid, iid)
+            }
             MaterialKey::SolidColor(rgb) | MaterialKey::PaletteTexture(rgb) => {
                 (0u8, rgb, 0u16, 0u8)
             }

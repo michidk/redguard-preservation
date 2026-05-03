@@ -1,31 +1,16 @@
 use crate::model3d::Model3DFile;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum TriangleWinding {
-    Forward,
-    Reversed,
-}
-
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct GeometryConvention {
     pub(crate) x_sign: f32,
     pub(crate) y_sign: f32,
     pub(crate) z_sign: f32,
-    pub(crate) winding: TriangleWinding,
 }
 
-pub(crate) const GLB_CONVENTION: GeometryConvention = GeometryConvention {
+pub(crate) const SCENE_CONVENTION: GeometryConvention = GeometryConvention {
     x_sign: -1.0,
     y_sign: -1.0,
     z_sign: 1.0,
-    winding: TriangleWinding::Forward,
-};
-
-pub(crate) const FFI_CONVENTION: GeometryConvention = GeometryConvention {
-    x_sign: 1.0,
-    y_sign: -1.0,
-    z_sign: 1.0,
-    winding: TriangleWinding::Reversed,
 };
 
 #[must_use]
@@ -89,9 +74,6 @@ pub(crate) fn resolve_vertex_normal(
 }
 
 #[must_use]
-pub(crate) const fn triangle_vertex_offsets(i: usize, winding: TriangleWinding) -> [usize; 3] {
-    match winding {
-        TriangleWinding::Forward => [0, i, i + 1],
-        TriangleWinding::Reversed => [0, i + 1, i],
-    }
+pub(crate) const fn triangle_vertex_offsets(i: usize) -> [usize; 3] {
+    [0, i, i + 1]
 }

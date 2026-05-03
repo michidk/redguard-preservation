@@ -9,7 +9,7 @@ fn approx_eq(a: f32, b: f32) {
 fn decode_position_applies_fixed_point_scaling_on_all_axes() {
     let pos = positioning::decode_position(1, -2, 3);
 
-    approx_eq(pos[0], -256.0 / 5120.0);
+    approx_eq(pos[0], -(256.0 / 5120.0));
     approx_eq(pos[1], 512.0 / 5120.0);
     approx_eq(pos[2], -((0x00FF_FFFF_i64 - (3_i64 * 256)) as f32) / 5120.0);
 }
