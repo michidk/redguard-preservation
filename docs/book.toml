@@ -10,5 +10,5 @@ build-dir = "book"
 
 [output.html]
 default-theme = "redguard"
-preferred-dark-theme = "coal"
+preferred-dark-theme = "redguard"
 additional-css = ["theme/redguard.css"]
