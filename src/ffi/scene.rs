@@ -3,11 +3,11 @@ use super::types::*;
 use super::world::WorldHandle;
 use super::{i32_to_usize, read_c_str};
 use crate::geometry::{
-    SCENE_CONVENTION, resolve_vertex_normal, transform_normal, transform_position,
-    triangle_vertex_offsets,
+    resolve_vertex_normal, transform_normal, transform_position, triangle_vertex_offsets,
+    SCENE_CONVENTION,
 };
 use crate::gltf::{
-    ENGINE_UNIT_SCALE, MaterialKey, UV_FIXED_POINT_SCALE, build_wld_unrolled_primitives,
+    build_wld_unrolled_primitives, MaterialKey, ENGINE_UNIT_SCALE, UV_FIXED_POINT_SCALE,
 };
 use crate::import::palette::Palette;
 use crate::import::rtx::RtxEntry;
@@ -237,9 +237,11 @@ fn pcm_to_wav_bytes(
 
     if audio_type.bits_per_sample() == 8 {
         for &sample in pcm_data {
-            writer.write_sample(sample.cast_signed()).map_err(|e| {
-                crate::error::Error::Conversion(format!("failed to write WAV sample: {e}"))
-            })?;
+            writer
+                .write_sample((sample as i16 - 128) as i8)
+                .map_err(|e| {
+                    crate::error::Error::Conversion(format!("failed to write WAV sample: {e}"))
+                })?;
         }
     } else {
         debug_assert!(
