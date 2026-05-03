@@ -20,36 +20,36 @@ pub(super) const WLD_HEIGHT_TABLE: [u16; 128] = [
 
 const UV_ROTATIONS: [[[f32; 2]; 6]; 4] = [
     [
-        [1.0, 1.0],
         [1.0, 0.0],
-        [0.0, 0.0],
-        [0.0, 0.0],
-        [0.0, 1.0],
         [1.0, 1.0],
-    ],
-    [
         [0.0, 1.0],
-        [1.0, 1.0],
-        [1.0, 0.0],
-        [1.0, 0.0],
+        [0.0, 1.0],
         [0.0, 0.0],
-        [0.0, 1.0],
+        [1.0, 0.0],
     ],
     [
         [0.0, 0.0],
-        [0.0, 1.0],
-        [1.0, 1.0],
-        [1.0, 1.0],
         [1.0, 0.0],
+        [1.0, 1.0],
+        [1.0, 1.0],
+        [0.0, 1.0],
         [0.0, 0.0],
     ],
     [
-        [1.0, 0.0],
+        [0.0, 1.0],
         [0.0, 0.0],
-        [0.0, 1.0],
-        [0.0, 1.0],
-        [1.0, 1.0],
         [1.0, 0.0],
+        [1.0, 0.0],
+        [1.0, 1.0],
+        [0.0, 1.0],
+    ],
+    [
+        [1.0, 1.0],
+        [0.0, 1.0],
+        [0.0, 0.0],
+        [0.0, 0.0],
+        [1.0, 0.0],
+        [1.0, 1.0],
     ],
 ];
 
@@ -154,7 +154,7 @@ fn resolve_wld_material(
     texbsi_id: u16,
     tex_id: u8,
 ) -> &mut UnrolledPrimitive {
-    let material_key = MaterialKey::Textured(texbsi_id, tex_id);
+    let material_key = MaterialKey::TerrainTextured(texbsi_id, tex_id);
     primitive_groups
         .entry(material_key)
         .or_insert_with(|| UnrolledPrimitive {
@@ -189,9 +189,9 @@ fn append_wld_cell(
     let normal_bottom_right = normal_at(x + 1, y + 1);
 
     push_terrain_vertex(primitive, top_left, normal_top_left, uv[2]);
-    push_terrain_vertex(primitive, bottom_right, normal_bottom_right, uv[0]);
-    push_terrain_vertex(primitive, top_right, normal_top_right, uv[1]);
     push_terrain_vertex(primitive, bottom_right, normal_bottom_right, uv[5]);
+    push_terrain_vertex(primitive, top_right, normal_top_right, uv[1]);
+    push_terrain_vertex(primitive, bottom_right, normal_bottom_right, uv[0]);
     push_terrain_vertex(primitive, top_left, normal_top_left, uv[3]);
     push_terrain_vertex(primitive, bottom_left, normal_bottom_left, uv[4]);
     Ok(())
@@ -270,7 +270,6 @@ pub(crate) fn build_wld_unrolled_primitives(
             let tex_id = tex_byte & 0x3F;
             let tex_rot = usize::from((tex_byte & 0xC0) >> 6);
             let primitive = resolve_wld_material(&mut primitive_groups, texbsi_id, tex_id);
-
             append_wld_cell(
                 primitive,
                 &heightmap,

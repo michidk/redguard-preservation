@@ -28,6 +28,18 @@ use std::collections::HashMap;
 /// Engine-to-export coordinate divisor. Engine coordinates are 20x export units.
 pub(crate) const ENGINE_UNIT_SCALE: f32 = 20.0;
 
+const IDENTITY_MATRIX: [f32; 16] = [
+    1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0,
+];
+
+fn non_identity_matrix(matrix: [f32; 16]) -> Option<[f32; 16]> {
+    if matrix == IDENTITY_MATRIX {
+        None
+    } else {
+        Some(matrix)
+    }
+}
+
 /// UV coordinates in the 3D format are stored as i16 values in 4-bit fixed-point
 /// (1/16th pixel precision). The engine multiplies raw values by 1/16.0 to get
 /// pixel-space texture coordinates, then scales by texture dimensions for rendering.
@@ -129,7 +141,7 @@ fn add_positioned_models(
         {
             builder.add_node(Node {
                 mesh: Some(Index::new(cached_mesh)),
-                matrix: Some(pm.transform),
+                matrix: non_identity_matrix(pm.transform),
                 name: Some(pm.model_name.clone()),
                 ..Default::default()
             });
@@ -148,7 +160,7 @@ fn add_positioned_models(
 
         if unrolled.is_empty() {
             builder.add_node(Node {
-                matrix: Some(pm.transform),
+                matrix: non_identity_matrix(pm.transform),
                 name: Some(pm.model_name.clone()),
                 ..Default::default()
             });
@@ -161,7 +173,7 @@ fn add_positioned_models(
         }
         builder.add_node(Node {
             mesh: Some(Index::new(index_u32(mesh_index))),
-            matrix: Some(pm.transform),
+            matrix: non_identity_matrix(pm.transform),
             name: Some(pm.model_name.clone()),
             ..Default::default()
         });
@@ -248,9 +260,6 @@ pub fn convert_wld_scene_to_gltf(
         let mesh_index = builder.append_mesh(terrain_primitives);
         builder.add_node(Node {
             mesh: Some(Index::new(index_u32(mesh_index))),
-            matrix: Some([
-                1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0,
-            ]),
             name: Some("Terrain".to_string()),
             ..Default::default()
         });

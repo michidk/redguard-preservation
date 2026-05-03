@@ -30,10 +30,12 @@ pub(super) struct GltfBuilder<'a> {
     solid_material_cache: HashMap<[u8; 3], usize>,
     palette_texture_material_cache: HashMap<[u8; 3], usize>,
     textured_material_cache: HashMap<(u16, u8), usize>,
+    terrain_textured_material_cache: HashMap<(u16, u8), usize>,
     white_material_index: Option<usize>,
     palette_texture_index_cache: HashMap<[u8; 3], Option<usize>>,
-    texture_index_cache: HashMap<(u16, u8), Option<(usize, bool)>>,
+    texture_index_cache: HashMap<(u16, u8, bool), Option<(usize, bool)>>,
     nearest_sampler_index: Option<usize>,
+    mirrored_sampler_index: Option<usize>,
     compress_textures: bool,
     texture_cache_available: bool,
 }
@@ -70,10 +72,12 @@ impl<'a> GltfBuilder<'a> {
             solid_material_cache: HashMap::new(),
             palette_texture_material_cache: HashMap::new(),
             textured_material_cache: HashMap::new(),
+            terrain_textured_material_cache: HashMap::new(),
             white_material_index: None,
             palette_texture_index_cache: HashMap::new(),
             texture_index_cache: HashMap::new(),
             nearest_sampler_index: None,
+            mirrored_sampler_index: None,
             compress_textures,
             texture_cache_available,
         }
@@ -243,6 +247,23 @@ impl<'a> GltfBuilder<'a> {
         index
     }
 
+    fn mirrored_sampler(&mut self) -> usize {
+        if let Some(index) = self.mirrored_sampler_index {
+            return index;
+        }
+
+        let index = self.samplers.len();
+        self.samplers.push(json::texture::Sampler {
+            mag_filter: Some(Checked::Valid(json::texture::MagFilter::Nearest)),
+            min_filter: Some(Checked::Valid(json::texture::MinFilter::Nearest)),
+            wrap_s: Checked::Valid(json::texture::WrappingMode::MirroredRepeat),
+            wrap_t: Checked::Valid(json::texture::WrappingMode::MirroredRepeat),
+            ..Default::default()
+        });
+        self.mirrored_sampler_index = Some(index);
+        index
+    }
+
     fn create_solid_material(rgb: [u8; 3]) -> json::Material {
         json::Material {
             pbr_metallic_roughness: PbrMetallicRoughness {
@@ -379,12 +400,15 @@ impl<'a> GltfBuilder<'a> {
         &mut self,
         texture_id: u16,
         image_id: u8,
+        sampler_index: usize,
+        mirrored: bool,
     ) -> Option<(usize, bool)> {
-        if let Some(cached) = self.texture_index_cache.get(&(texture_id, image_id)) {
+        if let Some(cached) = self
+            .texture_index_cache
+            .get(&(texture_id, image_id, mirrored))
+        {
             return *cached;
         }
-
-        let sampler_index = self.nearest_sampler();
         let texture_png = if let Some(cache) = self.texture_cache.as_deref_mut() {
             cache.get_image_png(texture_id, image_id, self.compress_textures)
         } else {
@@ -395,7 +419,7 @@ impl<'a> GltfBuilder<'a> {
         });
 
         self.texture_index_cache
-            .insert((texture_id, image_id), resolved);
+            .insert((texture_id, image_id, mirrored), resolved);
         resolved
     }
 
@@ -404,8 +428,9 @@ impl<'a> GltfBuilder<'a> {
             return *index;
         }
 
+        let sampler_index = self.nearest_sampler();
         let index = if let Some((texture_index, has_alpha)) =
-            self.resolve_textured_texture_index(texture_id, image_id)
+            self.resolve_textured_texture_index(texture_id, image_id, sampler_index, false)
         {
             let new_index = self.materials.len();
             self.materials
@@ -420,12 +445,40 @@ impl<'a> GltfBuilder<'a> {
         index
     }
 
+    fn resolve_terrain_textured_material(&mut self, texture_id: u16, image_id: u8) -> usize {
+        if let Some(index) = self
+            .terrain_textured_material_cache
+            .get(&(texture_id, image_id))
+        {
+            return *index;
+        }
+
+        let sampler_index = self.mirrored_sampler();
+        let index = if let Some((texture_index, has_alpha)) =
+            self.resolve_textured_texture_index(texture_id, image_id, sampler_index, true)
+        {
+            let new_index = self.materials.len();
+            self.materials
+                .push(Self::create_textured_material(texture_index, has_alpha));
+            new_index
+        } else {
+            self.resolve_white_material()
+        };
+
+        self.terrain_textured_material_cache
+            .insert((texture_id, image_id), index);
+        index
+    }
+
     fn resolve_material(&mut self, material_key: MaterialKey) -> usize {
         match material_key {
             MaterialKey::SolidColor(rgb) => self.resolve_solid_color_material(rgb),
             MaterialKey::PaletteTexture(rgb) => self.resolve_palette_texture_material(rgb),
             MaterialKey::Textured(texture_id, image_id) => {
                 self.resolve_textured_material(texture_id, image_id)
+            }
+            MaterialKey::TerrainTextured(texture_id, image_id) => {
+                self.resolve_terrain_textured_material(texture_id, image_id)
             }
             MaterialKey::White => self.resolve_white_material(),
         }
@@ -438,6 +491,7 @@ impl<'a> GltfBuilder<'a> {
         for primitive in unrolled_primitives {
             let scaled_uvs: Vec<[f32; 2]> = match primitive.material_key {
                 MaterialKey::Textured(texture_id, image_id)
+                | MaterialKey::TerrainTextured(texture_id, image_id)
                     if primitive.scale_uv_by_texture_dimensions =>
                 {
                     let texture_dims = self
@@ -463,7 +517,9 @@ impl<'a> GltfBuilder<'a> {
                             .collect()
                     }
                 }
-                MaterialKey::Textured(_, _) => primitive.uvs.clone(),
+                MaterialKey::Textured(_, _) | MaterialKey::TerrainTextured(_, _) => {
+                    primitive.uvs.clone()
+                }
                 _ => {
                     // PaletteTexture / SolidColor faces use a tiny 8×8 solid-colour
                     // texture, so UVs must be normalised by (8 × 16) = 128 to match
