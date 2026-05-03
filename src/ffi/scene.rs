@@ -3,11 +3,11 @@ use super::types::*;
 use super::world::WorldHandle;
 use super::{i32_to_usize, read_c_str};
 use crate::geometry::{
-    resolve_vertex_normal, transform_normal, transform_position, triangle_vertex_offsets,
-    SCENE_CONVENTION,
+    SCENE_CONVENTION, resolve_vertex_normal, transform_normal, transform_position,
+    triangle_vertex_offsets,
 };
 use crate::gltf::{
-    build_wld_unrolled_primitives, MaterialKey, ENGINE_UNIT_SCALE, UV_FIXED_POINT_SCALE,
+    ENGINE_UNIT_SCALE, MaterialKey, UV_FIXED_POINT_SCALE, build_wld_unrolled_primitives,
 };
 use crate::import::model3d::VertexCoord;
 use crate::import::palette::Palette;
@@ -258,11 +258,16 @@ pub(crate) fn serialize_model_3d(
                     y: 0.0,
                     z: 0.0,
                 });
-                let base_coord = model.vertex_coords.get(model_idx).copied().unwrap_or(VertexCoord {
-                    x: 0.0,
-                    y: 0.0,
-                    z: 0.0,
-                });
+                let base_coord =
+                    model
+                        .vertex_coords
+                        .get(model_idx)
+                        .copied()
+                        .unwrap_or(VertexCoord {
+                            x: 0.0,
+                            y: 0.0,
+                            z: 0.0,
+                        });
 
                 // Match rgunity-main RG3DStore frame delta math exactly.
                 let (dx, dy, dz) = if frame_idx == 0 || frames_use_i32 {
