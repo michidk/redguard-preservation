@@ -480,14 +480,14 @@ pub unsafe extern "C" fn rg_get_world_terrain(world: *mut WorldHandle) -> *mut B
 
     let result = (|| -> crate::Result<Vec<u8>> {
         let handle = unsafe { &mut *world };
-        let wld_bytes = handle.wld_bytes()?;
-        let wld_file = wld::parse_wld_file(wld_bytes)?;
-        let texbsi_id = u16::from_le_bytes([
-            wld_file.sections[0].header[6],
-            wld_file.sections[0].header[7],
-        ]);
+        let wld_bytes = handle.wld_bytes()?.to_vec();
 
         run_on_large_stack(move || {
+            let wld_file = wld::parse_wld_file(&wld_bytes)?;
+            let texbsi_id = u16::from_le_bytes([
+                wld_file.sections[0].header[6],
+                wld_file.sections[0].header[7],
+            ]);
             let primitives = build_wld_unrolled_primitives(&wld_file, texbsi_id)?;
             serialize_terrain_primitives(primitives)
         })

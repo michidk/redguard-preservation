@@ -95,7 +95,7 @@ pub fn into_ffi_result(result: crate::Result<Vec<u8>>) -> *mut ByteBuffer {
     }
 }
 
-/// Runs the given closure on a dedicated thread with an 8 MiB stack.
+/// Runs the given closure on a dedicated thread with a large stack.
 ///
 /// FFI callers (e.g. Unity/C# via P/Invoke) often run Rust code on threads
 /// whose stacks are much smaller than Rust's default 8 MiB (Unity worker
@@ -111,7 +111,7 @@ where
     F: FnOnce() -> crate::Result<T> + Send,
     T: Send,
 {
-    const STACK_SIZE: usize = 8 * 1024 * 1024; // 8 MiB
+    const STACK_SIZE: usize = 64 * 1024 * 1024; // 64 MiB
 
     std::thread::scope(|scope| {
         std::thread::Builder::new()
