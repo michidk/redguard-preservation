@@ -37,7 +37,7 @@ Each `RgWorldHandle` owns its resolved palette, world metadata, and `TextureCach
 
 ## Conventions
 
-**Coordinate system:** Right-handed, Y-up. Matches glTF. Positions are in scaled units (original engine units ÷ 20). The engine's Y axis is negated during conversion; triangle winding is reversed to preserve CCW front faces.
+**Coordinate system:** Right-handed, Y-up. Matches glTF. Positions are in scaled units (original engine units ÷ 20). Scene/model conversion negates the engine X/Y axes, while RGM placement decoding negates X/Y/Z to match the current runtime/export convention. Exported faces use CCW front faces.
 
 **Winding order:** Counter-clockwise (CCW) front faces. Standard OpenGL/glTF convention.
 
