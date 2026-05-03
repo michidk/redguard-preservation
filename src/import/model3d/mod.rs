@@ -76,7 +76,7 @@ impl FaceData {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 /// Vertex position in model space.
 pub struct VertexCoord {
     pub x: f32,
@@ -119,8 +119,20 @@ pub struct FrameDataEntry {
     pub frame_type: FrameType,
 }
 
+/// Parsed per-frame vertex positions (absolute f32 or scaled i16 depending on frame type).
 #[derive(Debug, Clone)]
+pub struct FrameVertexData {
+    pub coords: Vec<VertexCoord>,
+}
+
+/// Parsed per-frame face normals.
+#[derive(Debug, Clone)]
+pub struct FrameNormalData {
+    pub face_normals: Vec<FaceNormal>,
+}
+
 /// Parsed 3D/3DC model including geometry and frame metadata.
+#[derive(Debug, Clone)]
 pub struct Model3DFile {
     pub header: Model3DHeader,
     pub version: ModelVersion,
@@ -130,6 +142,10 @@ pub struct Model3DFile {
     pub face_normals: Vec<FaceNormal>,
     pub normal_indices: Vec<u32>,
     pub vertex_normals: Vec<VertexNormal>,
+    /// Per-frame vertex positions. Empty if no animation frames.
+    pub frame_vertex_data: Vec<FrameVertexData>,
+    /// Per-frame face normals. Empty if no animation frames.
+    pub frame_normal_data: Vec<FrameNormalData>,
 }
 
 impl Model3DHeader {
@@ -208,7 +224,7 @@ impl Model3DFile {
     }
 }
 
-use crate::{Result, error::Error};
+use crate::{error::Error, Result};
 use log::warn;
 
 fn parse_data_internal(input: &[u8], kind: &str) -> Result<Model3DFile> {

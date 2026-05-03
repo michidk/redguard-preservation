@@ -485,6 +485,8 @@ fn build_flat_model(texture_id: u16, image_id: u8) -> Model3DFile {
         }],
         normal_indices: vec![],
         vertex_normals: flat_model_normals(),
+        frame_vertex_data: vec![],
+        frame_normal_data: vec![],
     }
 }
 
@@ -607,6 +609,8 @@ fn build_empty_model() -> Model3DFile {
         face_normals: vec![],
         normal_indices: vec![],
         vertex_normals: vec![],
+        frame_vertex_data: vec![],
+        frame_normal_data: vec![],
     }
 }
 
