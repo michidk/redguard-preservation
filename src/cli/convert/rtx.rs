@@ -24,12 +24,11 @@ fn sanitize_filename(name: &str) -> String {
                 result.push(c);
                 prev_underscore = false;
             }
-            ' ' | '_' | '-' => {
-                if !prev_underscore && !result.is_empty() {
-                    result.push('_');
-                    prev_underscore = true;
-                }
+            ' ' | '_' | '-' if !prev_underscore && !result.is_empty() => {
+                result.push('_');
+                prev_underscore = true;
             }
+            ' ' | '_' | '-' => {}
             _ => {}
         }
     }
