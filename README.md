@@ -2,11 +2,6 @@
 
 Preserving *The Elder Scrolls Adventures: Redguard* (1998) — reverse-engineered file format specifications, engine documentation, and a Rust CLI for parsing and converting game assets.
 
-[![Docs](https://img.shields.io/badge/docs-michidk.github.io-2EA44F?style=flat-square&logo=mdbook&logoColor=white)](https://michidk.github.io/redguard-preservation/)
-[![CI](https://img.shields.io/github/actions/workflow/status/michidk/redguard-preservation/ci.yml?branch=main&style=flat-square&label=CI)](https://github.com/michidk/redguard-preservation/actions/workflows/ci.yml)
-[![Crates.io](https://img.shields.io/crates/v/redguard-preservation?style=flat-square)](https://crates.io/crates/redguard-preservation)
-[![License: MIT](https://img.shields.io/crates/l/redguard-preservation?style=flat-square)](Cargo.toml)
-
 > **📖 Full documentation** — file format specifications, engine internals, INI references, and more — is published at **<https://michidk.github.io/redguard-preservation/>**. This README is the CLI / library / FFI quick reference.
 
 ## Conversion Matrix
