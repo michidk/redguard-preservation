@@ -955,8 +955,8 @@ mod tests {
     #[test]
     fn pcm_to_wav_bytes_round_trips_unsigned_8bit_pcm() {
         let pcm = [0u8, 64, 128, 192, 255];
-        let wav = pcm_to_wav_bytes(AudioType::Mono8, 11_025, &pcm)
-            .expect("wav export should succeed");
+        let wav =
+            pcm_to_wav_bytes(AudioType::Mono8, 11_025, &pcm).expect("wav export should succeed");
 
         let mut reader = WavReader::new(Cursor::new(wav)).expect("wav reader should open");
         let spec = reader.spec();
