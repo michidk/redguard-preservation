@@ -126,7 +126,25 @@ Texture decode in the FFI API is world-handle based. Open a world first, then de
 
 ## Audio Functions
 
-RTX files interleave audio and text entries. Use `rg_convert_rtx_entry_to_wav` for audio entries and `rg_get_rtx_subtitle` for subtitle text. `rg_get_rtx_subtitle` returns a UTF-8 byte buffer (no null terminator).
+SFX files are path-based: `rg_sfx_effect_count` and `rg_convert_sfx_to_wav` take a file path on every call.
+
+RTX files use the **handle pattern** because they contain many entries and the engine looks them up by tag at runtime. Path-based access re-parsed the file on every query, which scaled badly for files like `ENGLISH.RTX` with hundreds of entries.
+
+```
+RgRtxHandle *h = rg_open_rtx("/path/to/ENGLISH.RTX");
+int32_t count = rg_rtx_handle_entry_count(h);
+for (int32_t i = 0; i < count; ++i) {
+    int32_t tag = rg_rtx_handle_entry_tag(h, i);      /* engine SOUPDEF lookup key */
+    ByteBuffer *sub = rg_rtx_handle_get_subtitle(h, i); /* always populated      */
+    ByteBuffer *wav = rg_rtx_handle_convert_entry_to_wav(h, i); /* NULL for text */
+    /* ... use sub/wav, then rg_free_buffer them ... */
+}
+rg_close_rtx(h);
+```
+
+Entries are either text-only or audio-with-embedded-subtitle. `rg_rtx_handle_get_subtitle` returns the text for either kind as a UTF-8 byte buffer (no null terminator). `rg_rtx_handle_convert_entry_to_wav` returns `NULL` for text-only entries.
+
+The tag is the four ASCII bytes of the entry label reinterpreted as a little-endian `int32`. This is the lookup key the original engine's SOUPDEF scripts pass to `RTX(stringId)`, so the Unity side typically stores entries keyed by tag rather than by sequential index.
 
 ## Other Functions
 

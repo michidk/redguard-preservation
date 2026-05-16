@@ -596,31 +596,6 @@ pub unsafe extern "C" fn rg_sfx_effect_count(file_path: *const c_char) -> i32 {
 /// # Safety
 /// `file_path` must be a valid null-terminated UTF-8 string.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn rg_rtx_entry_count(file_path: *const c_char) -> i32 {
-    let result = (|| -> crate::Result<i32> {
-        let file_path = unsafe { read_c_str(file_path, "file_path") }?;
-        let rtx_bytes = std::fs::read(file_path)?;
-        run_on_large_stack(move || {
-            let parsed = rtx::parse_rtx_file(&rtx_bytes)?;
-            usize_to_i32(parsed.entries.len(), "entry_count")
-        })
-    })();
-
-    match result {
-        Ok(count) => {
-            clear_last_error();
-            count
-        }
-        Err(err) => {
-            set_last_error(err);
-            -1
-        }
-    }
-}
-
-/// # Safety
-/// `file_path` must be a valid null-terminated UTF-8 string.
-#[unsafe(no_mangle)]
 pub unsafe extern "C" fn rg_convert_sfx_to_wav(
     file_path: *const c_char,
     effect_index: i32,
@@ -642,62 +617,186 @@ pub unsafe extern "C" fn rg_convert_sfx_to_wav(
     into_ffi_result(result)
 }
 
+// ─── RTX handle API ─────────────────────────────────────────────────────────
+//
+// Path-based RTX FFI re-parsed the file on every call, which made eager
+// loading of an entry-rich file (e.g. ENGLISH.RTX) prohibitively slow. Use
+// `rg_open_rtx` once per file, then issue cheap handle-based queries until
+// closed.
+
+/// Opaque RTX handle exposed to FFI consumers.
+///
+/// Owns the parsed RTX file so subsequent entry queries do not re-read or
+/// re-parse the on-disk file.
+pub struct RtxHandle {
+    file: rtx::RtxFile,
+}
+
+/// Opens an RTX file and returns an opaque handle. On parse failure returns
+/// `NULL` and the error is available via `rg_last_error`. The returned handle
+/// must be freed with `rg_close_rtx`.
+///
 /// # Safety
 /// `file_path` must be a valid null-terminated UTF-8 string.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn rg_convert_rtx_entry_to_wav(
-    file_path: *const c_char,
-    entry_index: i32,
-) -> *mut ByteBuffer {
-    let result = (|| -> crate::Result<Vec<u8>> {
+pub unsafe extern "C" fn rg_open_rtx(file_path: *const c_char) -> *mut RtxHandle {
+    let result = (|| -> crate::Result<RtxHandle> {
         let file_path = unsafe { read_c_str(file_path, "file_path") }?;
         let rtx_bytes = std::fs::read(file_path)?;
         run_on_large_stack(move || {
-            let parsed = rtx::parse_rtx_file(&rtx_bytes)?;
-            let entry_idx = i32_to_usize(entry_index, "entry_index")?;
-            let entry = parsed.entries.get(entry_idx).ok_or_else(|| {
-                crate::error::Error::Parse(format!("entry_index out of range: {entry_index}"))
-            })?;
-
-            match entry {
-                RtxEntry::Audio {
-                    header, pcm_data, ..
-                } => pcm_to_wav_bytes(header.audio_type, header.sample_rate, pcm_data),
-                RtxEntry::Text { .. } => Err(crate::error::Error::Parse(
-                    "entry is text, not audio".to_string(),
-                )),
-            }
+            let file = rtx::parse_rtx_file(&rtx_bytes)?;
+            Ok(RtxHandle { file })
         })
+    })();
+
+    match result {
+        Ok(handle) => {
+            clear_last_error();
+            Box::into_raw(Box::new(handle))
+        }
+        Err(err) => {
+            set_last_error(err);
+            std::ptr::null_mut()
+        }
+    }
+}
+
+/// # Safety
+/// `handle` must be either null or a pointer previously returned by `rg_open_rtx`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn rg_close_rtx(handle: *mut RtxHandle) {
+    if handle.is_null() {
+        return;
+    }
+    let _ = unsafe { Box::from_raw(handle) };
+}
+
+/// Returns the number of entries in the opened RTX file. Returns `-1` on error.
+///
+/// # Safety
+/// `handle` must be a valid pointer returned by `rg_open_rtx`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn rg_rtx_handle_entry_count(handle: *const RtxHandle) -> i32 {
+    if handle.is_null() {
+        set_last_error(crate::error::Error::Parse("rtx handle is null".into()));
+        return -1;
+    }
+    let handle = unsafe { &*handle };
+    match usize_to_i32(handle.file.entries.len(), "entry_count") {
+        Ok(count) => {
+            clear_last_error();
+            count
+        }
+        Err(err) => {
+            set_last_error(err);
+            -1
+        }
+    }
+}
+
+/// Returns the 4-byte ASCII tag of the entry at `entry_index` interpreted as
+/// a little-endian `i32`. This matches the historical lookup key used by the
+/// engine's SOUPDEF scripts. Returns `0` on error and sets `rg_last_error`;
+/// real tags are 4 printable ASCII bytes so `0` is not a legal tag value.
+///
+/// # Safety
+/// `handle` must be a valid pointer returned by `rg_open_rtx`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn rg_rtx_handle_entry_tag(
+    handle: *const RtxHandle,
+    entry_index: i32,
+) -> i32 {
+    if handle.is_null() {
+        set_last_error(crate::error::Error::Parse("rtx handle is null".into()));
+        return 0;
+    }
+    let handle = unsafe { &*handle };
+    let result = (|| -> crate::Result<i32> {
+        let entry_idx = i32_to_usize(entry_index, "entry_index")?;
+        let entry = handle.file.entries.get(entry_idx).ok_or_else(|| {
+            crate::error::Error::Parse(format!("entry_index out of range: {entry_index}"))
+        })?;
+        let tag = match entry {
+            RtxEntry::Text { tag, .. } | RtxEntry::Audio { tag, .. } => *tag,
+        };
+        Ok(i32::from_le_bytes(tag))
+    })();
+
+    match result {
+        Ok(tag) => {
+            clear_last_error();
+            tag
+        }
+        Err(err) => {
+            set_last_error(err);
+            0
+        }
+    }
+}
+
+/// Converts the audio payload of the entry at `entry_index` to a WAV blob.
+/// Returns `NULL` if the entry is text-only (use `rg_rtx_handle_get_subtitle`
+/// for the subtitle), or on error — the message is available via
+/// `rg_last_error`.
+///
+/// # Safety
+/// `handle` must be a valid pointer returned by `rg_open_rtx`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn rg_rtx_handle_convert_entry_to_wav(
+    handle: *const RtxHandle,
+    entry_index: i32,
+) -> *mut ByteBuffer {
+    if handle.is_null() {
+        set_last_error(crate::error::Error::Parse("rtx handle is null".into()));
+        return std::ptr::null_mut();
+    }
+    let handle = unsafe { &*handle };
+    let result = (|| -> crate::Result<Vec<u8>> {
+        let entry_idx = i32_to_usize(entry_index, "entry_index")?;
+        let entry = handle.file.entries.get(entry_idx).ok_or_else(|| {
+            crate::error::Error::Parse(format!("entry_index out of range: {entry_index}"))
+        })?;
+
+        match entry {
+            RtxEntry::Audio {
+                header, pcm_data, ..
+            } => pcm_to_wav_bytes(header.audio_type, header.sample_rate, pcm_data),
+            RtxEntry::Text { .. } => Err(crate::error::Error::Parse(
+                "entry is text, not audio".to_string(),
+            )),
+        }
     })();
 
     into_ffi_result(result)
 }
 
+/// Returns the subtitle text of the entry at `entry_index` as a UTF-8 byte
+/// buffer (no null terminator). For `Audio` entries the embedded `label`
+/// string is returned — it is the on-screen subtitle that accompanies the
+/// voice clip in-engine. Returns `NULL` on error.
+///
 /// # Safety
-/// `file_path` must be a valid null-terminated UTF-8 string.
-/// The returned buffer contains UTF-8 subtitle text (no null terminator).
+/// `handle` must be a valid pointer returned by `rg_open_rtx`.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn rg_get_rtx_subtitle(
-    file_path: *const c_char,
+pub unsafe extern "C" fn rg_rtx_handle_get_subtitle(
+    handle: *const RtxHandle,
     entry_index: i32,
 ) -> *mut ByteBuffer {
+    if handle.is_null() {
+        set_last_error(crate::error::Error::Parse("rtx handle is null".into()));
+        return std::ptr::null_mut();
+    }
+    let handle = unsafe { &*handle };
     let result = (|| -> crate::Result<Vec<u8>> {
-        let file_path = unsafe { read_c_str(file_path, "file_path") }?;
-        let rtx_bytes = std::fs::read(file_path)?;
-        run_on_large_stack(move || {
-            let parsed = rtx::parse_rtx_file(&rtx_bytes)?;
-            let entry_idx = i32_to_usize(entry_index, "entry_index")?;
-            let entry = parsed.entries.get(entry_idx).ok_or_else(|| {
-                crate::error::Error::Parse(format!("entry_index out of range: {entry_index}"))
-            })?;
+        let entry_idx = i32_to_usize(entry_index, "entry_index")?;
+        let entry = handle.file.entries.get(entry_idx).ok_or_else(|| {
+            crate::error::Error::Parse(format!("entry_index out of range: {entry_index}"))
+        })?;
 
-            match entry {
-                RtxEntry::Text { text, .. } => Ok(text.as_bytes().to_vec()),
-                RtxEntry::Audio { .. } => Err(crate::error::Error::Parse(
-                    "entry is audio, not text".to_string(),
-                )),
-            }
-        })
+        let text = match entry {
+            RtxEntry::Text { text, .. } | RtxEntry::Audio { label: text, .. } => text,
+        };
+        Ok(text.as_bytes().to_vec())
     })();
 
     into_ffi_result(result)

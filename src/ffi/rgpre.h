@@ -27,6 +27,7 @@ typedef struct ByteBuffer {
 } ByteBuffer;
 
 typedef struct RgWorldHandle RgWorldHandle;
+typedef struct RgRtxHandle   RgRtxHandle;
 
 void        rg_free_buffer(ByteBuffer *buffer);
 ByteBuffer *rg_last_error(void);
@@ -189,9 +190,22 @@ ByteBuffer *rg_decode_gxa(const char *file_path, int32_t frame);
 
 ByteBuffer *rg_convert_sfx_to_wav(const char *file_path, int32_t effect_index);
 int32_t     rg_sfx_effect_count(const char *file_path);
-ByteBuffer *rg_convert_rtx_entry_to_wav(const char *file_path, int32_t entry_index);
-int32_t     rg_rtx_entry_count(const char *file_path);
-ByteBuffer *rg_get_rtx_subtitle(const char *file_path, int32_t entry_index);
+
+/* RTX handle API — open once, query many times. The handle owns the parsed
+ * RTX file so per-entry queries do not re-parse the on-disk file. */
+RgRtxHandle *rg_open_rtx(const char *file_path);
+void         rg_close_rtx(RgRtxHandle *handle);
+int32_t      rg_rtx_handle_entry_count(const RgRtxHandle *handle);
+/* Returns the 4-byte ASCII tag of `entry_index` as a little-endian int32.
+ * Returns 0 on error (real tags are 4 printable ASCII bytes, so 0 cannot
+ * collide with a valid tag). */
+int32_t      rg_rtx_handle_entry_tag(const RgRtxHandle *handle, int32_t entry_index);
+/* Returns NULL for text-only entries (use rg_rtx_handle_get_subtitle) or on
+ * error — see rg_last_error. */
+ByteBuffer  *rg_rtx_handle_convert_entry_to_wav(const RgRtxHandle *handle, int32_t entry_index);
+/* Returns the subtitle text (UTF-8, no null terminator). For audio entries
+ * this is the embedded subtitle label rendered alongside the voice clip. */
+ByteBuffer  *rg_rtx_handle_get_subtitle(const RgRtxHandle *handle, int32_t entry_index);
 
 /* ── Other ─────────────────────────────────────────────────────────── */
 
