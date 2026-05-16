@@ -59,11 +59,25 @@ Reading an RGMD buffer:
 
 ```
 read RgmdHeader
+
+# Static submesh data
 for i in 0..submesh_count:
     read RgmdSubmeshHeader
     read vertex_count × RgmdVertex
     read index_count × uint32_t (indices)
+
+# Animation frame deltas (only when RgmdHeader.frame_count > 0)
+for frame in 0..frame_count:
+    for i in 0..submesh_count:
+        read int32_t delta_vertex_count   # equals submeshes[i].vertex_count
+        read delta_vertex_count × RgmdDeltaVertex
 ```
+
+For animated models (`frame_count > 0`) each frame supplies per-vertex position
+and face-normal deltas in the same submesh order as the static block. Add the
+deltas to the static `RgmdVertex` positions/normals to obtain the displayed
+geometry for that frame. Static models report `frame_count == 0` and have no
+delta block. Terrain meshes use `frame_count == 0`.
 
 Reading an RGPL buffer:
 
@@ -117,3 +131,23 @@ RTX files interleave audio and text entries. Use `rg_convert_rtx_entry_to_wav` f
 ## Other Functions
 
 `rg_convert_fnt_to_ttf` converts a bitmap FNT file to a TrueType font in memory.
+
+## Maintaining the C header
+
+[`rgpre.h`](rgpre.h) is **hand-maintained**. It was originally seeded with `cbindgen` and has since been hand-curated for readable section dividers, byte-size comments, and a consistent `typedef` style. The project has no `build.rs`, no `cbindgen.toml`, and no CI step that regenerates it — running raw `cbindgen` today would not reproduce the current layout.
+
+When you add or change anything in [`mod.rs`](mod.rs), [`scene.rs`](scene.rs), or [`types.rs`](types.rs), update `rgpre.h` by hand to match. Checklist:
+
+- **New `#[unsafe(no_mangle)] pub unsafe extern "C" fn rg_*`** → add a matching prototype in the relevant `── … ──` section of `rgpre.h`.
+- **New or changed `#[repr(C)]` / `#[repr(C, packed)]` struct** → mirror the field layout, update or add the `/* N bytes */` size comment, and slot it under the matching section.
+- **Removed or renamed FFI symbol** → remove or rename it in `rgpre.h` too.
+- **Argument added / removed / reordered on an existing function** → update the prototype.
+
+For a quick reference dump of what `cbindgen` would expose today, run:
+
+```bash
+cargo install cbindgen
+cbindgen --crate redguard-preservation --lang c > /tmp/cbindgen-reference.h
+```
+
+Use the output as a sanity check (e.g. to confirm a new struct is `pub` and `#[repr(C)]`), not as a drop-in replacement.

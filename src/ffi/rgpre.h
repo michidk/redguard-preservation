@@ -1,8 +1,12 @@
 /*
  * rgpre.h — C header for the Redguard Preservation native plugin.
  *
- * Generated from src/ffi/ (types.rs, scene.rs, mod.rs).
- * Keep in sync with the Rust source when adding or changing FFI functions.
+ * Hand-maintained. Originally seeded from `cbindgen` and curated by hand
+ * since (section dividers, byte-size comments, typedef style). When you
+ * add or change an FFI export, an extern type, or a #[repr(C)] struct in
+ * src/ffi/ (types.rs, scene.rs, mod.rs), update this file to match.
+ *
+ * See src/ffi/README.md → "Maintaining the C header" for the checklist.
  */
 
 #ifndef RGPRE_H
