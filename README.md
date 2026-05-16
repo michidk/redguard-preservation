@@ -2,6 +2,13 @@
 
 Preserving *The Elder Scrolls Adventures: Redguard* (1998) — reverse-engineered file format specifications, engine documentation, and a Rust CLI for parsing and converting game assets.
 
+[![Docs](https://img.shields.io/badge/docs-michidk.github.io-2EA44F?style=flat-square&logo=mdbook&logoColor=white)](https://michidk.github.io/redguard-preservation/)
+[![CI](https://img.shields.io/github/actions/workflow/status/michidk/redguard-preservation/ci.yml?branch=main&style=flat-square&label=CI)](https://github.com/michidk/redguard-preservation/actions/workflows/ci.yml)
+[![Crates.io](https://img.shields.io/crates/v/redguard-preservation?style=flat-square)](https://crates.io/crates/redguard-preservation)
+[![License: MIT](https://img.shields.io/crates/l/redguard-preservation?style=flat-square)](Cargo.toml)
+
+> **📖 Full documentation** — file format specifications, engine internals, INI references, and more — is published at **<https://michidk.github.io/redguard-preservation/>**. This README is the CLI / library / FFI quick reference.
+
 ## Conversion Matrix
 
 | Input Type | Input Extension(s) | Output File(s) |
@@ -43,11 +50,11 @@ Each format has its own subcommand with scoped flags. `convert <FILE>` auto-dete
 
 ## Documentation
 
-The [`docs/`](docs/README.md) directory is organized into three sections:
+The full documentation is published at **<https://michidk.github.io/redguard-preservation/>** (rendered with `mdBook`). The Markdown sources live under [`docs/`](docs/README.md) and are organised into three sections:
 
-- [**File Formats**](docs/formats/README.md) — binary format specifications for models, textures, audio, maps, palettes, and other game assets
-- [**Engine Details**](docs/engine/README.md) — reverse-engineered engine internals: cheat system, item attachment, and SOUP scripting
-- [**Configuration**](docs/config/README.md) — text-based INI files shipped with the game (surface types, combat, keys, etc.)
+- [**File Formats**](https://michidk.github.io/redguard-preservation/formats/) ([source](docs/formats/README.md)) — binary format specifications for models, textures, audio, maps, palettes, and other game assets
+- [**Engine Details**](https://michidk.github.io/redguard-preservation/engine/) ([source](docs/engine/README.md)) — reverse-engineered engine internals: cheat system, item attachment, SOUP scripting, sky renderer, water waves
+- [**Configuration**](https://michidk.github.io/redguard-preservation/config/) ([source](docs/config/README.md)) — text-based INI files shipped with the game (surface types, combat, keys, etc.)
 
 ## Repository Layout
 
