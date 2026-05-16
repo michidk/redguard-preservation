@@ -344,11 +344,12 @@ fn pcm_to_wav_bytes(
                 })?;
         }
     } else {
-        debug_assert!(
-            pcm_data.len().is_multiple_of(2),
-            "16-bit PCM data has odd byte count: {}",
-            pcm_data.len()
-        );
+        if !pcm_data.len().is_multiple_of(2) {
+            return Err(crate::error::Error::Parse(format!(
+                "16-bit PCM data has odd byte count: {}",
+                pcm_data.len()
+            )));
+        }
         for chunk in pcm_data.chunks_exact(2) {
             let sample = i16::from_le_bytes([chunk[0], chunk[1]]);
             writer.write_sample(sample).map_err(|e| {
@@ -942,4 +943,75 @@ pub(crate) fn scan_rgm_sections<'a>(data: &'a [u8], target_tag: &[u8; 4]) -> Vec
         }
     }
     results
+}
+
+#[cfg(test)]
+mod tests {
+    use super::pcm_to_wav_bytes;
+    use crate::import::sfx::AudioType;
+    use hound::WavReader;
+    use std::io::Cursor;
+
+    #[test]
+    fn pcm_to_wav_bytes_round_trips_unsigned_8bit_pcm() {
+        let pcm = [0u8, 64, 128, 192, 255];
+        let wav = pcm_to_wav_bytes(AudioType::Mono8, 11_025, &pcm)
+            .expect("wav export should succeed");
+
+        let mut reader = WavReader::new(Cursor::new(wav)).expect("wav reader should open");
+        let spec = reader.spec();
+        assert_eq!(spec.channels, 1);
+        assert_eq!(spec.sample_rate, 11_025);
+        assert_eq!(spec.bits_per_sample, 8);
+
+        let samples = reader
+            .samples::<i8>()
+            .map(|sample| sample.expect("sample should decode") as i16 + 128)
+            .map(|sample| u8::try_from(sample).expect("sample should stay in u8 range"))
+            .collect::<Vec<_>>();
+        assert_eq!(samples, pcm);
+    }
+
+    #[test]
+    fn pcm_to_wav_bytes_preserves_8bit_sample_values() {
+        let wav = pcm_to_wav_bytes(AudioType::Mono8, 22_050, &[0, 127, 128, 255])
+            .expect("wav export should succeed");
+
+        let mut reader = WavReader::new(Cursor::new(wav)).expect("wav reader should open");
+        let spec = reader.spec();
+        assert_eq!(spec.channels, 1);
+        assert_eq!(spec.sample_rate, 22_050);
+        assert_eq!(spec.bits_per_sample, 8);
+
+        let samples: Vec<i8> = reader
+            .samples::<i8>()
+            .map(|sample| sample.expect("sample should decode"))
+            .collect();
+        assert_eq!(samples, vec![-128, -1, 0, 127]);
+    }
+
+    #[test]
+    fn pcm_to_wav_bytes_preserves_16bit_sample_values() {
+        let wav = pcm_to_wav_bytes(AudioType::Mono16, 11_025, &[0x00, 0x80, 0xff, 0x7f])
+            .expect("wav export should succeed");
+
+        let mut reader = WavReader::new(Cursor::new(wav)).expect("wav reader should open");
+        let spec = reader.spec();
+        assert_eq!(spec.channels, 1);
+        assert_eq!(spec.sample_rate, 11_025);
+        assert_eq!(spec.bits_per_sample, 16);
+
+        let samples: Vec<i16> = reader
+            .samples::<i16>()
+            .map(|sample| sample.expect("sample should decode"))
+            .collect();
+        assert_eq!(samples, vec![-32_768, 32_767]);
+    }
+
+    #[test]
+    fn pcm_to_wav_bytes_rejects_odd_length_16bit_pcm() {
+        let err = pcm_to_wav_bytes(AudioType::Mono16, 22_050, &[0x00, 0x01, 0x02])
+            .expect_err("odd-length 16-bit PCM should fail");
+        assert!(err.to_string().contains("odd byte count: 3"));
+    }
 }

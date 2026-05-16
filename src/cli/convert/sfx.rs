@@ -35,11 +35,12 @@ pub(crate) fn handle_sfx_convert(file: &Path, output_path: &Path) -> Result<()> 
                     writer.write_sample((sample as i16 - 128) as i8)?;
                 }
             } else {
-                debug_assert!(
-                    effect.pcm_data.len().is_multiple_of(2),
-                    "16-bit PCM data has odd byte count: {}",
-                    effect.pcm_data.len()
-                );
+                if !effect.pcm_data.len().is_multiple_of(2) {
+                    return Err(color_eyre::eyre::eyre!(
+                        "16-bit PCM data has odd byte count: {}",
+                        effect.pcm_data.len()
+                    ));
+                }
                 for chunk in effect.pcm_data.chunks_exact(2) {
                     let sample = i16::from_le_bytes([chunk[0], chunk[1]]);
                     writer.write_sample(sample)?;
