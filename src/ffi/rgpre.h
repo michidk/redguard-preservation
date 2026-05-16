@@ -75,6 +75,27 @@ typedef struct RgmdVertex {         /* 32 bytes */
 } RgmdVertex;
 /* Followed by index_count × uint32_t indices. */
 
+/*
+ * If `RgmdHeader.frame_count > 0` the buffer is an animated model, and
+ * `frame_count` delta blocks follow all of the submesh vertex/index data.
+ * Each block is:
+ *
+ *   for each submesh (in the same order as above):
+ *     int32_t delta_vertex_count      (== that submesh's vertex_count)
+ *     delta_vertex_count × RgmdDeltaVertex
+ *
+ * Add the deltas to the base submesh vertices to obtain the per-frame
+ * positions and normals.
+ */
+typedef struct RgmdDeltaVertex {    /* 24 bytes */
+    float dx;
+    float dy;
+    float dz;
+    float dnx;
+    float dny;
+    float dnz;
+} RgmdDeltaVertex;
+
 /* ── RGPL (placements + lights) ────────────────────────────────────── */
 
 typedef struct RgplHeader {         /* 12 bytes */
