@@ -3,6 +3,7 @@
 /// Extracts the per-world palette mapping so the CLI can auto-resolve
 /// `--palette` when converting RGM or WLD files.
 use std::collections::HashMap;
+use std::path::{Path, PathBuf};
 
 /// A single world entry from `WORLD.INI`.
 #[derive(Debug, Clone)]
@@ -116,6 +117,61 @@ impl WorldIni {
             .filter(|e| e.world.as_ref().is_some_and(|w| stem_lower(w) == needle))
             .collect()
     }
+}
+
+/// Known filenames for the WORLD.INI file, in priority order. Case variants
+/// are explicit because Linux/macOS filesystems are case-sensitive.
+pub const WORLD_INI_NAMES: [&str; 2] = ["WORLD.INI", "world.ini"];
+
+/// Locates the WORLD.INI file under `asset_root`, trying both common case
+/// variants. Returns `None` if no matching file exists.
+#[must_use]
+pub fn find_world_ini(asset_root: &Path) -> Option<PathBuf> {
+    for name in &WORLD_INI_NAMES {
+        let path = asset_root.join(name);
+        if path.is_file() {
+            return Some(path);
+        }
+    }
+    None
+}
+
+/// Resolves a WORLD.INI palette reference (e.g. `"FXART\ISLAND.COL"`) to an
+/// actual file on disk.
+///
+/// The reference's directory prefix is discarded — only the filename matters —
+/// and the lookup walks the conventional palette directories (`fxart/`,
+/// `3dart/`) case-insensitively. Returns `None` if no matching file exists.
+#[must_use]
+pub fn find_palette_on_disk(asset_root: &Path, ini_palette_path: &str) -> Option<PathBuf> {
+    let filename = ini_palette_path
+        .trim()
+        .rsplit(['\\', '/'])
+        .next()
+        .unwrap_or_else(|| ini_palette_path.trim());
+    let filename_lower = filename.to_ascii_lowercase();
+
+    for dir_name in &["fxart", "3dart", "FXART", "3DART"] {
+        let dir = asset_root.join(dir_name);
+        if !dir.is_dir() {
+            continue;
+        }
+
+        let exact = dir.join(filename);
+        if exact.is_file() {
+            return Some(exact);
+        }
+
+        let Ok(entries) = std::fs::read_dir(&dir) else {
+            continue;
+        };
+        for entry in entries.filter_map(Result::ok) {
+            if entry.file_name().to_string_lossy().to_ascii_lowercase() == filename_lower {
+                return Some(entry.path());
+            }
+        }
+    }
+    None
 }
 
 /// Parses `prefix[N]` and returns `N`, or `None` if the key doesn't match.

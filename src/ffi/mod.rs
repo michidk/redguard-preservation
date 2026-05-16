@@ -14,7 +14,12 @@ use crate::gltf::{
     TextureCache, convert_models_to_gltf, convert_positioned_models_to_gltf,
     convert_wld_scene_to_gltf, to_glb,
 };
-use crate::import::{FileType, palette::Palette, registry, rgm, rob, wld, world_ini::WorldIni};
+use crate::import::{
+    FileType,
+    palette::Palette,
+    registry, rgm, rob, wld,
+    world_ini::{self, WorldIni},
+};
 use crate::model3d;
 use std::ffi::CStr;
 use std::os::raw::c_char;
@@ -38,66 +43,23 @@ pub(crate) unsafe fn read_c_str(ptr: *const c_char, name: &str) -> crate::Result
         .map_err(|e| crate::error::Error::Parse(format!("{name} is not valid UTF-8: {e}")))
 }
 
-const WORLD_INI_NAMES: [&str; 2] = ["WORLD.INI", "world.ini"];
-
-pub(crate) fn find_world_ini(asset_root: &Path) -> Option<PathBuf> {
-    for name in &WORLD_INI_NAMES {
-        let path = asset_root.join(name);
-        if path.is_file() {
-            return Some(path);
-        }
-    }
-    None
-}
-
-pub(crate) fn find_palette_on_disk(asset_root: &Path, ini_palette_path: &str) -> Option<PathBuf> {
-    let filename = ini_palette_path
-        .trim()
-        .rsplit(['\\', '/'])
-        .next()
-        .unwrap_or_else(|| ini_palette_path.trim());
-    let filename_lower = filename.to_ascii_lowercase();
-
-    for dir_name in &["fxart", "3dart", "FXART", "3DART"] {
-        let dir = asset_root.join(dir_name);
-        if !dir.is_dir() {
-            continue;
-        }
-
-        let exact = dir.join(filename);
-        if exact.is_file() {
-            return Some(exact);
-        }
-
-        let Ok(entries) = std::fs::read_dir(&dir) else {
-            continue;
-        };
-        for entry in entries.filter_map(Result::ok) {
-            if entry.file_name().to_string_lossy().to_ascii_lowercase() == filename_lower {
-                return Some(entry.path());
-            }
-        }
-    }
-    None
-}
-
 pub(crate) fn auto_resolve_palette(
     asset_root: &Path,
     input_file: &Path,
     file_type: FileType,
 ) -> Option<Palette> {
-    let ini_path = find_world_ini(asset_root)?;
+    let ini_path = world_ini::find_world_ini(asset_root)?;
     let content = std::fs::read_to_string(ini_path).ok()?;
-    let world_ini = WorldIni::parse(&content);
+    let parsed_ini = WorldIni::parse(&content);
 
     let file_stem = input_file.file_stem()?.to_str().unwrap_or("");
     let matches = match file_type {
-        FileType::Rgm => world_ini.find_by_map_stem(file_stem),
-        FileType::Wld => world_ini.find_by_world_stem(file_stem),
+        FileType::Rgm => parsed_ini.find_by_map_stem(file_stem),
+        FileType::Wld => parsed_ini.find_by_world_stem(file_stem),
         _ => Vec::new(),
     };
     let entry = matches.first().copied()?;
-    let palette_path = find_palette_on_disk(asset_root, &entry.palette)?;
+    let palette_path = world_ini::find_palette_on_disk(asset_root, &entry.palette)?;
     let bytes = std::fs::read(palette_path).ok()?;
     Palette::parse(&bytes).ok()
 }
@@ -399,7 +361,7 @@ pub unsafe extern "C" fn rg_world_count(assets_dir: *const c_char) -> i32 {
     let result = (|| -> crate::Result<i32> {
         let assets_dir = unsafe { read_c_str(assets_dir, "assets_dir") }?;
         let assets_dir = PathBuf::from(assets_dir);
-        let ini_path = find_world_ini(&assets_dir).ok_or_else(|| {
+        let ini_path = world_ini::find_world_ini(&assets_dir).ok_or_else(|| {
             crate::error::Error::Parse(format!("WORLD.INI not found in: {}", assets_dir.display()))
         })?;
         let content = std::fs::read_to_string(ini_path)?;

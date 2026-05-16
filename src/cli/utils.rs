@@ -5,7 +5,7 @@ use color_eyre::eyre::eyre;
 use log::{info, warn};
 use rgpre::import::FileType;
 use rgpre::import::palette::Palette;
-use rgpre::import::world_ini::WorldIni;
+use rgpre::import::world_ini::{self, WorldIni};
 use std::path::{Path, PathBuf};
 
 const KNOWN_GAME_SUBDIRS: [&str; 4] = ["3dart", "fxart", "input", "maps"];
@@ -100,46 +100,6 @@ pub fn parse_file(
     }
 }
 
-const WORLD_INI_NAMES: [&str; 2] = ["WORLD.INI", "world.ini"];
-
-fn find_world_ini(asset_root: &Path) -> Option<PathBuf> {
-    for name in &WORLD_INI_NAMES {
-        let path = asset_root.join(name);
-        if path.is_file() {
-            return Some(path);
-        }
-    }
-    None
-}
-
-fn find_palette_on_disk(asset_root: &Path, ini_palette_path: &str) -> Option<PathBuf> {
-    let filename = ini_palette_path
-        .trim()
-        .rsplit(['\\', '/'])
-        .next()
-        .unwrap_or_else(|| ini_palette_path.trim());
-    let filename_lower = filename.to_ascii_lowercase();
-
-    for dir_name in &["fxart", "3dart", "FXART", "3DART"] {
-        let dir = asset_root.join(dir_name);
-        if !dir.is_dir() {
-            continue;
-        }
-        let exact = dir.join(filename);
-        if exact.is_file() {
-            return Some(exact);
-        }
-        if let Ok(entries) = std::fs::read_dir(&dir) {
-            for entry in entries.filter_map(Result::ok) {
-                if entry.file_name().to_string_lossy().to_ascii_lowercase() == filename_lower {
-                    return Some(entry.path());
-                }
-            }
-        }
-    }
-    None
-}
-
 pub fn auto_resolve_palette(
     asset_root: &Path,
     input_file: &Path,
@@ -149,7 +109,7 @@ pub fn auto_resolve_palette(
         return Ok(None);
     }
 
-    let Some(ini_path) = find_world_ini(asset_root) else {
+    let Some(ini_path) = world_ini::find_world_ini(asset_root) else {
         return Ok(None);
     };
 
@@ -184,7 +144,8 @@ pub fn auto_resolve_palette(
         );
     }
 
-    let Some(palette_path) = find_palette_on_disk(asset_root, &matches[0].palette) else {
+    let Some(palette_path) = world_ini::find_palette_on_disk(asset_root, &matches[0].palette)
+    else {
         warn!(
             "WORLD.INI specifies palette '{}' for world {}, but file not found under {}",
             matches[0].palette,

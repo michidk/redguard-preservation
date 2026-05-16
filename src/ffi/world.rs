@@ -5,7 +5,7 @@
 
 use crate::gltf::TextureCache;
 use crate::import::palette::Palette;
-use crate::import::world_ini::{WorldEntry, WorldIni};
+use crate::import::world_ini::{self, WorldEntry, WorldIni};
 use std::fmt;
 use std::path::{Path, PathBuf};
 
@@ -51,7 +51,7 @@ impl WorldHandle {
     /// Resolves the palette and initializes the texture cache. Returns an error
     /// if the world index doesn't exist or the palette cannot be loaded.
     pub fn open(assets_dir: PathBuf, world_id: u32) -> crate::Result<Self> {
-        let ini_path = super::find_world_ini(&assets_dir).ok_or_else(|| {
+        let ini_path = world_ini::find_world_ini(&assets_dir).ok_or_else(|| {
             crate::error::Error::Parse(format!(
                 "WORLD.INI not found in assets_dir: {}",
                 assets_dir.display()
@@ -69,8 +69,8 @@ impl WorldHandle {
                 crate::error::Error::Parse(format!("world_id {} not found in WORLD.INI", world_id))
             })?;
 
-        let palette_path =
-            super::find_palette_on_disk(&assets_dir, &entry.palette).ok_or_else(|| {
+        let palette_path = world_ini::find_palette_on_disk(&assets_dir, &entry.palette)
+            .ok_or_else(|| {
                 crate::error::Error::Parse(format!(
                     "palette not found for world {}: {}",
                     world_id, entry.palette
@@ -276,7 +276,7 @@ fn resolve_ini_path(assets_dir: &Path, ini_path: &str) -> Option<PathBuf> {
 #[cfg(test)]
 mod tests {
     use super::WorldHandle;
-    use std::path::PathBuf;
+    use std::path::{Path, PathBuf};
 
     #[test]
     fn ini_path_backslash_normalization() {
@@ -350,7 +350,7 @@ mod tests {
         dir
     }
 
-    fn touch(dir: &PathBuf, name: &str) -> PathBuf {
+    fn touch(dir: &Path, name: &str) -> PathBuf {
         let path = dir.join(name);
         std::fs::write(&path, b"").expect("touch should succeed");
         path
@@ -359,7 +359,7 @@ mod tests {
     /// Writes the smallest byte sequence accepted by `Palette::parse` so that
     /// "good palette" paths exist for negative-path tests without depending on
     /// a real COL file.
-    fn touch_palette(dir: &PathBuf) -> PathBuf {
+    fn touch_palette(dir: &Path) -> PathBuf {
         // Palette::parse expects 256 RGB triplets = 768 bytes.
         let path = dir.join("dummy.COL");
         std::fs::write(&path, vec![0u8; 768]).expect("palette write should succeed");
