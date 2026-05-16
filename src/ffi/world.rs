@@ -6,6 +6,7 @@
 use crate::gltf::TextureCache;
 use crate::import::palette::Palette;
 use crate::import::world_ini::{WorldEntry, WorldIni};
+use std::fmt;
 use std::path::{Path, PathBuf};
 
 /// Opaque world handle exposed to FFI consumers.
@@ -25,6 +26,23 @@ pub struct WorldHandle {
     rgm_bytes: Option<Vec<u8>>,
     /// Cached WLD file bytes (loaded on first access).
     wld_bytes: Option<Vec<u8>>,
+}
+
+/// Manual `Debug` implementation that surfaces useful metadata only.
+///
+/// A derived `Debug` would recurse into `TextureCache` (which holds decoded
+/// TEXBSI byte buffers) and the cached `rgm_bytes`/`wld_bytes`, producing
+/// many MB of formatter output. This impl shows the world identity and
+/// load-state and elides the heavy fields with `finish_non_exhaustive`.
+impl fmt::Debug for WorldHandle {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("WorldHandle")
+            .field("assets_dir", &self.assets_dir)
+            .field("entry", &self.entry)
+            .field("rgm_bytes_loaded", &self.rgm_bytes.is_some())
+            .field("wld_bytes_loaded", &self.wld_bytes.is_some())
+            .finish_non_exhaustive()
+    }
 }
 
 impl WorldHandle {
@@ -79,20 +97,31 @@ impl WorldHandle {
         })
     }
 
+    /// Opens a world using caller-supplied asset paths instead of a `WORLD.INI` entry.
+    ///
+    /// All path arguments must be absolute and refer to existing files. The
+    /// function does not perform extension fallback, case-insensitive directory
+    /// scans, or any other lookup heuristics: it loads exactly what the caller
+    /// names. For WORLD.INI-relative path resolution, use
+    /// [`WorldHandle::open`](Self::open) instead.
+    ///
+    /// `wld_path` is optional — pass `None` for worlds without a terrain layer.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::Parse`](crate::error::Error::Parse) if any required
+    /// path is missing on disk, or if the palette bytes fail to parse.
     pub fn open_explicit(
         assets_dir: PathBuf,
         rgm_path: String,
         wld_path: Option<String>,
         palette_path: String,
     ) -> crate::Result<Self> {
-        let palette_disk_path = super::find_palette_on_disk(&assets_dir, &palette_path)
-            .or_else(|| {
-                let candidate = PathBuf::from(&palette_path);
-                candidate.is_file().then_some(candidate)
-            })
-            .ok_or_else(|| {
-                crate::error::Error::Parse(format!("palette not found: {palette_path}"))
-            })?;
+        let palette_disk_path = require_existing_file(&palette_path, "palette_path")?;
+        require_existing_file(&rgm_path, "rgm_path")?;
+        if let Some(ref wld) = wld_path {
+            require_existing_file(wld, "wld_path")?;
+        }
 
         let palette_bytes = std::fs::read(&palette_disk_path)?;
         let palette = Palette::parse(&palette_bytes)?;
@@ -193,6 +222,20 @@ impl WorldHandle {
     }
 }
 
+/// Validates that `path` names an existing file on disk and returns the
+/// resolved [`PathBuf`]. Used by [`WorldHandle::open_explicit`] to enforce the
+/// "caller passes absolute paths" contract — no fuzzy lookup, no extension
+/// guessing, no asset-tree walking.
+fn require_existing_file(path: &str, label: &str) -> crate::Result<PathBuf> {
+    let candidate = PathBuf::from(path);
+    if !candidate.is_file() {
+        return Err(crate::error::Error::Parse(format!(
+            "{label}: not an existing file: {path}"
+        )));
+    }
+    Ok(candidate)
+}
+
 fn resolve_ini_path(assets_dir: &Path, ini_path: &str) -> Option<PathBuf> {
     let normalized = ini_path.replace('\\', "/");
     let absolute = PathBuf::from(&normalized);
@@ -232,10 +275,94 @@ fn resolve_ini_path(assets_dir: &Path, ini_path: &str) -> Option<PathBuf> {
 
 #[cfg(test)]
 mod tests {
+    use super::WorldHandle;
+    use std::path::PathBuf;
+
     #[test]
     fn ini_path_backslash_normalization() {
         let path = "MAPS\\ISLAND.RGM";
         let normalized = path.replace('\\', "/");
         assert_eq!(normalized, "MAPS/ISLAND.RGM");
+    }
+
+    #[test]
+    fn open_explicit_rejects_missing_palette() {
+        let tmp = tempdir();
+        let rgm = touch(&tmp, "scene.RGM");
+        let err = WorldHandle::open_explicit(
+            tmp.clone(),
+            rgm.to_string_lossy().into_owned(),
+            None,
+            tmp.join("does-not-exist.COL")
+                .to_string_lossy()
+                .into_owned(),
+        )
+        .expect_err("missing palette path must fail");
+        let message = err.to_string();
+        assert!(
+            message.contains("palette_path"),
+            "error should reference palette_path argument, got: {message}"
+        );
+    }
+
+    #[test]
+    fn open_explicit_rejects_missing_rgm() {
+        let tmp = tempdir();
+        let palette = touch_palette(&tmp);
+        let err = WorldHandle::open_explicit(
+            tmp.clone(),
+            tmp.join("missing.RGM").to_string_lossy().into_owned(),
+            None,
+            palette.to_string_lossy().into_owned(),
+        )
+        .expect_err("missing rgm path must fail");
+        assert!(err.to_string().contains("rgm_path"));
+    }
+
+    #[test]
+    fn open_explicit_rejects_missing_wld_when_supplied() {
+        let tmp = tempdir();
+        let palette = touch_palette(&tmp);
+        let rgm = touch(&tmp, "scene.RGM");
+        let err = WorldHandle::open_explicit(
+            tmp.clone(),
+            rgm.to_string_lossy().into_owned(),
+            Some(tmp.join("missing.WLD").to_string_lossy().into_owned()),
+            palette.to_string_lossy().into_owned(),
+        )
+        .expect_err("missing wld path must fail when supplied");
+        assert!(err.to_string().contains("wld_path"));
+    }
+
+    /// Creates a unique temp directory under the OS temp root. Avoids pulling
+    /// the `tempfile` crate dependency for two tests.
+    fn tempdir() -> PathBuf {
+        let unique = format!(
+            "rgpre-test-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_nanos())
+                .unwrap_or(0)
+        );
+        let dir = std::env::temp_dir().join(unique);
+        std::fs::create_dir_all(&dir).expect("temp dir creation should succeed");
+        dir
+    }
+
+    fn touch(dir: &PathBuf, name: &str) -> PathBuf {
+        let path = dir.join(name);
+        std::fs::write(&path, b"").expect("touch should succeed");
+        path
+    }
+
+    /// Writes the smallest byte sequence accepted by `Palette::parse` so that
+    /// "good palette" paths exist for negative-path tests without depending on
+    /// a real COL file.
+    fn touch_palette(dir: &PathBuf) -> PathBuf {
+        // Palette::parse expects 256 RGB triplets = 768 bytes.
+        let path = dir.join("dummy.COL");
+        std::fs::write(&path, vec![0u8; 768]).expect("palette write should succeed");
+        path
     }
 }

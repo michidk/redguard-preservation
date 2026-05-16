@@ -89,6 +89,17 @@ After opening a handle, Unity can request terrain (`rg_get_world_terrain`), plac
 
 Release the handle with `rg_close_world` when finished.
 
+### Path conventions
+
+The two world-handle constructors take paths in different forms — pick the one that matches what the caller has:
+
+| Function | Path arguments | Resolution |
+|---|---|---|
+| `rg_open_world(assets_dir, world_id)` | None — paths come from `WORLD.INI` | Native resolves relative paths (e.g. `FXART\ISLAND.COL`) under `assets_dir`, case-insensitive. |
+| `rg_open_world_explicit(assets_dir, rgm_path, wld_path, palette_path)` | All three paths supplied by the caller | **Strict**: each path must be an absolute path to an existing file. No extension fallback, no asset-tree walking. Returns `NULL` + `rg_last_error` on missing files. |
+
+`assets_dir` is still required for the explicit constructor because the texture cache and other lookups need the game root (`3dart/`/`fxart/`, `WORLD.INI`, ...). Only the per-world scene/palette paths are caller-resolved.
+
 ## Scene Data Functions
 
 Return pre-transformed mesh data for direct engine consumption (RGMD binary format). Vertices are in right-handed Y-up coordinates (see Conventions above), faces are fan-triangulated with CCW winding, and geometry is grouped by submesh/material. `assets_dir` is used to resolve the palette for solid-color materials. Solid-color submeshes carry resolved RGB values; no separate palette lookup is needed on the engine side.

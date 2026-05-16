@@ -325,10 +325,21 @@ pub unsafe extern "C" fn rg_open_world(
     }
 }
 
+/// Opens a world from caller-supplied asset paths.
+///
+/// All three path arguments (`rgm_path`, `wld_path`, `palette_path`) must be
+/// absolute paths to existing files on disk. The function does not perform
+/// lookup heuristics, extension fallback, or case-insensitive directory walks
+/// — it loads exactly what the caller names. For WORLD.INI-relative lookup,
+/// use [`rg_open_world`] with the world id instead.
+///
+/// On invalid input (missing file, parse failure, ...) returns `NULL` and the
+/// error is available via [`rg_last_error`].
+///
 /// # Safety
 ///
-/// `assets_dir`, `rgm_path`, and `palette_path` must be valid null-terminated UTF-8 strings.
-/// `wld_path` may be null.
+/// `assets_dir`, `rgm_path`, and `palette_path` must be valid null-terminated
+/// UTF-8 strings. `wld_path` may be null (for worlds without a terrain layer).
 /// The returned handle must be freed with `rg_close_world`.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn rg_open_world_explicit(
