@@ -99,26 +99,29 @@ impl WorldHandle {
 
     /// Opens a world using caller-supplied asset paths instead of a `WORLD.INI` entry.
     ///
-    /// All path arguments must be absolute and refer to existing files. The
-    /// function does not perform extension fallback, case-insensitive directory
-    /// scans, or any other lookup heuristics: it loads exactly what the caller
-    /// names. For WORLD.INI-relative path resolution, use
+    /// `palette_path` must be an absolute path to an existing file; `rgm_path`
+    /// and `wld_path` are optional — pass `None` for palette-only contexts
+    /// (e.g. the ModelViewer needs a palette to decode 3D model textures but
+    /// has no scene) or for worlds without a terrain layer. When supplied,
+    /// the paths must refer to existing files; the function does not perform
+    /// extension fallback, case-insensitive directory scans, or any other
+    /// lookup heuristics. For WORLD.INI-relative path resolution, use
     /// [`WorldHandle::open`](Self::open) instead.
-    ///
-    /// `wld_path` is optional — pass `None` for worlds without a terrain layer.
     ///
     /// # Errors
     ///
-    /// Returns [`Error::Parse`](crate::error::Error::Parse) if any required
+    /// Returns [`Error::Parse`](crate::error::Error::Parse) if any supplied
     /// path is missing on disk, or if the palette bytes fail to parse.
     pub fn open_explicit(
         assets_dir: PathBuf,
-        rgm_path: String,
+        rgm_path: Option<String>,
         wld_path: Option<String>,
         palette_path: String,
     ) -> crate::Result<Self> {
         let palette_disk_path = require_existing_file(&palette_path, "palette_path")?;
-        require_existing_file(&rgm_path, "rgm_path")?;
+        if let Some(ref rgm) = rgm_path {
+            require_existing_file(rgm, "rgm_path")?;
+        }
         if let Some(ref wld) = wld_path {
             require_existing_file(wld, "wld_path")?;
         }
@@ -137,7 +140,7 @@ impl WorldHandle {
             assets_dir,
             entry: WorldEntry {
                 index: u32::MAX,
-                map: rgm_path,
+                map: rgm_path.unwrap_or_default(),
                 world: wld_path,
                 palette: palette_path,
             },
@@ -172,8 +175,12 @@ impl WorldHandle {
         &self.entry.palette
     }
 
-    /// Resolves the RGM file path on disk.
+    /// Resolves the RGM file path on disk. Returns `None` for palette-only
+    /// handles (those opened with no `rgm_path`).
     pub fn resolve_rgm_path(&self) -> Option<PathBuf> {
+        if self.entry.map.is_empty() {
+            return None;
+        }
         resolve_ini_path(&self.assets_dir, &self.entry.map)
     }
 
@@ -186,8 +193,15 @@ impl WorldHandle {
     }
 
     /// Returns the cached RGM bytes, loading from disk on first access.
+    /// Errors when the handle was opened in palette-only mode (no `rgm_path`
+    /// supplied), since there is no scene data to return.
     pub fn rgm_bytes(&mut self) -> crate::Result<&[u8]> {
         if self.rgm_bytes.is_none() {
+            if self.entry.map.is_empty() {
+                return Err(crate::error::Error::Parse(
+                    "world handle has no RGM (palette-only context)".to_string(),
+                ));
+            }
             let path = self.resolve_rgm_path().ok_or_else(|| {
                 crate::error::Error::Parse(format!("RGM file not found: {}", self.entry.map))
             })?;
@@ -291,7 +305,7 @@ mod tests {
         let rgm = touch(&tmp, "scene.RGM");
         let err = WorldHandle::open_explicit(
             tmp.clone(),
-            rgm.to_string_lossy().into_owned(),
+            Some(rgm.to_string_lossy().into_owned()),
             None,
             tmp.join("does-not-exist.COL")
                 .to_string_lossy()
@@ -306,16 +320,16 @@ mod tests {
     }
 
     #[test]
-    fn open_explicit_rejects_missing_rgm() {
+    fn open_explicit_rejects_missing_rgm_when_supplied() {
         let tmp = tempdir();
         let palette = touch_palette(&tmp);
         let err = WorldHandle::open_explicit(
             tmp.clone(),
-            tmp.join("missing.RGM").to_string_lossy().into_owned(),
+            Some(tmp.join("missing.RGM").to_string_lossy().into_owned()),
             None,
             palette.to_string_lossy().into_owned(),
         )
-        .expect_err("missing rgm path must fail");
+        .expect_err("missing rgm path must fail when supplied");
         assert!(err.to_string().contains("rgm_path"));
     }
 
@@ -326,12 +340,47 @@ mod tests {
         let rgm = touch(&tmp, "scene.RGM");
         let err = WorldHandle::open_explicit(
             tmp.clone(),
-            rgm.to_string_lossy().into_owned(),
+            Some(rgm.to_string_lossy().into_owned()),
             Some(tmp.join("missing.WLD").to_string_lossy().into_owned()),
             palette.to_string_lossy().into_owned(),
         )
         .expect_err("missing wld path must fail when supplied");
         assert!(err.to_string().contains("wld_path"));
+    }
+
+    #[test]
+    fn open_explicit_accepts_palette_only() {
+        // ModelViewer's OpenPaletteContext: no scene, no terrain, just a
+        // palette so 3D model textures can be decoded.
+        let tmp = tempdir();
+        let palette = touch_palette(&tmp);
+        let handle = WorldHandle::open_explicit(
+            tmp.clone(),
+            None,
+            None,
+            palette.to_string_lossy().into_owned(),
+        )
+        .expect("palette-only open should succeed");
+        assert_eq!(handle.rgm_path_raw(), "");
+        assert!(handle.wld_path_raw().is_none());
+        assert!(handle.resolve_rgm_path().is_none());
+    }
+
+    #[test]
+    fn rgm_bytes_errors_on_palette_only_handle() {
+        let tmp = tempdir();
+        let palette = touch_palette(&tmp);
+        let mut handle = WorldHandle::open_explicit(
+            tmp.clone(),
+            None,
+            None,
+            palette.to_string_lossy().into_owned(),
+        )
+        .expect("palette-only open should succeed");
+        let err = handle
+            .rgm_bytes()
+            .expect_err("rgm_bytes must error on palette-only handle");
+        assert!(err.to_string().contains("palette-only"));
     }
 
     /// Creates a unique temp directory under the OS temp root. Avoids pulling
@@ -360,9 +409,10 @@ mod tests {
     /// "good palette" paths exist for negative-path tests without depending on
     /// a real COL file.
     fn touch_palette(dir: &Path) -> PathBuf {
-        // Palette::parse expects 256 RGB triplets = 768 bytes.
+        // Palette::parse expects an 8-byte header + 256 RGB triplets = 776
+        // bytes. The header content is ignored; only the size matters.
         let path = dir.join("dummy.COL");
-        std::fs::write(&path, vec![0u8; 768]).expect("palette write should succeed");
+        std::fs::write(&path, vec![0u8; 776]).expect("palette write should succeed");
         path
     }
 }

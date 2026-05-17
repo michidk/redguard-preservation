@@ -43,6 +43,25 @@ pub(crate) unsafe fn read_c_str(ptr: *const c_char, name: &str) -> crate::Result
         .map_err(|e| crate::error::Error::Parse(format!("{name} is not valid UTF-8: {e}")))
 }
 
+/// Reads an optional C string argument. Treats null pointers and
+/// whitespace-only strings as `None` so FFI callers can pass either an
+/// honest null or the empty string they get from default-marshalled C# /
+/// .NET interop.
+pub(crate) unsafe fn read_optional_c_str(
+    ptr: *const c_char,
+    name: &str,
+) -> crate::Result<Option<String>> {
+    if ptr.is_null() {
+        return Ok(None);
+    }
+    let value = unsafe { read_c_str(ptr, name) }?;
+    if value.trim().is_empty() {
+        Ok(None)
+    } else {
+        Ok(Some(value))
+    }
+}
+
 pub(crate) fn auto_resolve_palette(
     asset_root: &Path,
     input_file: &Path,
@@ -289,20 +308,24 @@ pub unsafe extern "C" fn rg_open_world(
 
 /// Opens a world from caller-supplied asset paths.
 ///
-/// All three path arguments (`rgm_path`, `wld_path`, `palette_path`) must be
-/// absolute paths to existing files on disk. The function does not perform
-/// lookup heuristics, extension fallback, or case-insensitive directory walks
-/// — it loads exactly what the caller names. For WORLD.INI-relative lookup,
-/// use [`rg_open_world`] with the world id instead.
+/// `palette_path` must be an absolute path to an existing file. `rgm_path`
+/// and `wld_path` may each be null or an empty string — pass null/empty for
+/// palette-only contexts (e.g. the ModelViewer needs a palette to decode 3D
+/// model textures but has no scene) or for worlds without a terrain layer.
+/// When supplied, all paths must refer to existing files. The function does
+/// not perform lookup heuristics, extension fallback, or case-insensitive
+/// directory walks — it loads exactly what the caller names. For WORLD.INI-
+/// relative lookup, use [`rg_open_world`] with the world id instead.
 ///
 /// On invalid input (missing file, parse failure, ...) returns `NULL` and the
 /// error is available via [`rg_last_error`].
 ///
 /// # Safety
 ///
-/// `assets_dir`, `rgm_path`, and `palette_path` must be valid null-terminated
-/// UTF-8 strings. `wld_path` may be null (for worlds without a terrain layer).
-/// The returned handle must be freed with `rg_close_world`.
+/// `assets_dir` and `palette_path` must be valid null-terminated UTF-8
+/// strings. `rgm_path` and `wld_path` may each be null or point to a
+/// null-terminated UTF-8 string. The returned handle must be freed with
+/// `rg_close_world`.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn rg_open_world_explicit(
     assets_dir: *const c_char,
@@ -312,17 +335,8 @@ pub unsafe extern "C" fn rg_open_world_explicit(
 ) -> *mut WorldHandle {
     let result = (|| -> crate::Result<WorldHandle> {
         let assets_dir = unsafe { read_c_str(assets_dir, "assets_dir") }?;
-        let rgm_path = unsafe { read_c_str(rgm_path, "rgm_path") }?;
-        let wld_path = if wld_path.is_null() {
-            None
-        } else {
-            let value = unsafe { read_c_str(wld_path, "wld_path") }?;
-            if value.trim().is_empty() {
-                None
-            } else {
-                Some(value)
-            }
-        };
+        let rgm_path = unsafe { read_optional_c_str(rgm_path, "rgm_path") }?;
+        let wld_path = unsafe { read_optional_c_str(wld_path, "wld_path") }?;
         let palette_path = unsafe { read_c_str(palette_path, "palette_path") }?;
 
         WorldHandle::open_explicit(PathBuf::from(assets_dir), rgm_path, wld_path, palette_path)

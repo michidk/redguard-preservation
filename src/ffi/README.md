@@ -110,7 +110,7 @@ The two world-handle constructors take paths in different forms — pick the one
 | Function | Path arguments | Resolution |
 |---|---|---|
 | `rg_open_world(assets_dir, world_id)` | None — paths come from `WORLD.INI` | Native resolves relative paths (e.g. `FXART\ISLAND.COL`) under `assets_dir`, case-insensitive. |
-| `rg_open_world_explicit(assets_dir, rgm_path, wld_path, palette_path)` | All three paths supplied by the caller | **Strict**: each path must be an absolute path to an existing file. No extension fallback, no asset-tree walking. Returns `NULL` + `rg_last_error` on missing files. |
+| `rg_open_world_explicit(assets_dir, rgm_path, wld_path, palette_path)` | Palette path required; `rgm_path` and `wld_path` may each be null or an empty string for palette-only contexts (e.g. ModelViewer) or worlds without terrain | **Strict for supplied paths**: each non-null/non-empty path must be an absolute path to an existing file. No extension fallback, no asset-tree walking. Returns `NULL` + `rg_last_error` on missing files. Calling `rg_get_world_placements`, `rg_rgm_section_*`, etc. on a handle without an RGM yields a clear error. |
 
 `assets_dir` is still required for the explicit constructor because the texture cache and other lookups need the game root (`3dart/`/`fxart/`, `WORLD.INI`, ...). Only the per-world scene/palette paths are caller-resolved.
 
