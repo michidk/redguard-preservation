@@ -41,8 +41,8 @@ pub(crate) fn handle_sfx_convert(file: &Path, output_path: &Path) -> Result<()> 
                         effect.pcm_data.len()
                     ));
                 }
-                for chunk in effect.pcm_data.chunks_exact(2) {
-                    let sample = i16::from_le_bytes([chunk[0], chunk[1]]);
+                for chunk in effect.pcm_data.as_chunks::<2>().0 {
+                    let sample = i16::from_le_bytes(*chunk);
                     writer.write_sample(sample)?;
                 }
             }

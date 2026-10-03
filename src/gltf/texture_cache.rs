@@ -323,7 +323,7 @@ impl TextureCache {
         compress: bool,
     ) -> Option<(Vec<u8>, u16, u16, bool)> {
         let (rgba, width, height) = self.get_image_rgba(texture_id, image_id)?;
-        let has_alpha = rgba.chunks_exact(4).any(|pixel| pixel[3] == 0);
+        let has_alpha = rgba.as_chunks::<4>().0.iter().any(|pixel| pixel[3] == 0);
         let Some(png_bytes) = encode_rgba_png(u32::from(width), u32::from(height), &rgba, compress)
         else {
             self.warn_missing_once(
