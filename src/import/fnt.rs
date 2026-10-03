@@ -110,10 +110,7 @@ fn parse_palette(tag: [u8; 4], data: &[u8]) -> Result<FntPalette, Error> {
         )));
     }
 
-    let colors = data
-        .chunks_exact(3)
-        .map(|c| [c[0], c[1], c[2]])
-        .collect::<Vec<_>>();
+    let colors = data.as_chunks::<3>().0.to_vec();
 
     Ok(FntPalette { tag, colors })
 }

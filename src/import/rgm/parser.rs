@@ -585,7 +585,7 @@ pub fn parse_rgm_file(input: &[u8]) -> IResult<&[u8], RgmFile> {
     while remaining.len() >= 8 {
         match section_header(remaining) {
             Ok((input, header)) => {
-                if header.name == [b'E', b'N', b'D', b' '] {
+                if header.name == *b"END " {
                     sections.push(RgmSection::End(header));
                     remaining = input;
                     break;

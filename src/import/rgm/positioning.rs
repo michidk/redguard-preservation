@@ -885,7 +885,7 @@ pub(super) fn first_section_payload(input: &[u8], target: [u8; 4]) -> Option<&[u
         .unwrap_or_default();
         cursor += 8;
 
-        if name == [b'E', b'N', b'D', b' '] {
+        if name == *b"END " {
             break;
         }
         if cursor + length > input.len() {

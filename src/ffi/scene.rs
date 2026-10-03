@@ -350,8 +350,8 @@ fn pcm_to_wav_bytes(
                 pcm_data.len()
             )));
         }
-        for chunk in pcm_data.chunks_exact(2) {
-            let sample = i16::from_le_bytes([chunk[0], chunk[1]]);
+        for chunk in pcm_data.as_chunks::<2>().0 {
+            let sample = i16::from_le_bytes(*chunk);
             writer.write_sample(sample).map_err(|e| {
                 crate::error::Error::Conversion(format!("failed to write WAV sample: {e}"))
             })?;
