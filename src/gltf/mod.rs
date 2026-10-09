@@ -1,3 +1,6 @@
+// Struct updates on gltf-json extension types are needed when a downstream crate
+// enables gltf-json's `extensions` feature, which adds fields.
+#![allow(clippy::needless_update)]
 mod builder;
 mod primitives;
 mod terrain;
