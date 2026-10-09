@@ -132,10 +132,6 @@ All under `Assets/Scripts/RGFileImport/RGGFXImport/` (or `RGMData/` for script-r
 - Decompilation details (function addresses, binary offsets) are fine in RGUnity PR descriptions — the "no decomp references" rule applies only to `docs/` in *this* repo.
 - Keep PRs focused: one logical fix per PR.
 
-### Existing PR
-
-- [#59 — fix terrain constants](https://github.com/RGUnity/redguard-unity/pull/59): grid scale 12.8, zero offsets, 128-entry height lookup table (open)
-
 ## External references
 
 ### Code references
