@@ -1,6 +1,5 @@
 use gltf_json as json;
 use gltf_json::extensions::scene::khr_lights_punctual;
-use json::extras::Void;
 use json::validation::{Checked, USize64};
 use json::{
     Asset, Index, Root, Scene,
@@ -121,7 +120,7 @@ impl<'a> GltfBuilder<'a> {
             name: None,
             target: Some(Checked::Valid(target)),
             extensions: None,
-            extras: Void::default(),
+            extras: Default::default(),
         });
 
         let accessor_index = self.accessors.len();
@@ -137,7 +136,7 @@ impl<'a> GltfBuilder<'a> {
             normalized: false,
             sparse: None,
             extensions: None,
-            extras: Void::default(),
+            extras: Default::default(),
         });
 
         accessor_index
@@ -224,7 +223,7 @@ impl<'a> GltfBuilder<'a> {
             name: None,
             target: None,
             extensions: None,
-            extras: Void::default(),
+            extras: Default::default(),
         });
 
         view_index
@@ -288,7 +287,7 @@ impl<'a> GltfBuilder<'a> {
                     index: Index::new(Self::index_u32(texture_index)),
                     tex_coord: 0,
                     extensions: None,
-                    extras: Void::default(),
+                    extras: Default::default(),
                 }),
                 metallic_factor: json::material::StrengthFactor(0.0),
                 roughness_factor: json::material::StrengthFactor(1.0),
@@ -352,7 +351,7 @@ impl<'a> GltfBuilder<'a> {
             uri: None,
             name: None,
             extensions: None,
-            extras: Void::default(),
+            extras: Default::default(),
         });
         let texture_index = self.textures.len();
         self.textures.push(json::Texture {
@@ -360,7 +359,7 @@ impl<'a> GltfBuilder<'a> {
             source: Index::new(Self::index_u32(image_index)),
             name: None,
             extensions: None,
-            extras: Void::default(),
+            extras: Default::default(),
         });
 
         texture_index
@@ -566,7 +565,7 @@ impl<'a> GltfBuilder<'a> {
                 mode: Checked::Valid(json::mesh::Mode::Triangles),
                 targets: None,
                 extensions: None,
-                extras: Void::default(),
+                extras: Default::default(),
             });
         }
 
@@ -575,7 +574,7 @@ impl<'a> GltfBuilder<'a> {
             weights: None,
             name: None,
             extensions: None,
-            extras: Void::default(),
+            extras: Default::default(),
         });
 
         mesh_index
@@ -610,7 +609,7 @@ impl<'a> GltfBuilder<'a> {
             nodes: vec![Index::new(root_node_index)],
             name: None,
             extensions: None,
-            extras: Void::default(),
+            extras: Default::default(),
         };
 
         let buffer = Buffer {
@@ -618,7 +617,7 @@ impl<'a> GltfBuilder<'a> {
             uri: None,
             name: None,
             extensions: None,
-            extras: Void::default(),
+            extras: Default::default(),
         };
 
         let mut root = Root {
@@ -651,6 +650,7 @@ impl<'a> GltfBuilder<'a> {
                 khr_lights_punctual: Some(gltf_json::extensions::root::KhrLightsPunctual {
                     lights,
                 }),
+                ..Default::default()
             });
             root.extensions_used = vec!["KHR_lights_punctual".to_string()];
         }

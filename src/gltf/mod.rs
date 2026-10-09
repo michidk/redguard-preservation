@@ -17,7 +17,6 @@ use crate::{
 use gltf::binary::{Glb, Header};
 use gltf_json as json;
 use gltf_json::extensions::scene::khr_lights_punctual;
-use json::extras::Void;
 use json::scene::Node;
 use json::validation::Checked;
 use json::{Index, Root};
@@ -219,7 +218,7 @@ pub fn convert_positioned_models_to_gltf(
             name: Some(light.name.clone()),
             spot: None,
             extensions: None,
-            extras: Void::default(),
+            extras: Default::default(),
         });
 
         builder.add_node(Node {
@@ -229,6 +228,7 @@ pub fn convert_positioned_models_to_gltf(
                 khr_lights_punctual: Some(khr_lights_punctual::KhrLightsPunctual {
                     light: Index::new(index_u32(light_index)),
                 }),
+                ..Default::default()
             }),
             ..Default::default()
         });
