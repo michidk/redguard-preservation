@@ -95,6 +95,32 @@ pub fn into_ffi_result(result: crate::Result<Vec<u8>>) -> *mut ByteBuffer {
     }
 }
 
+pub fn into_ffi_ptr_result<T>(result: crate::Result<T>) -> *mut T {
+    match result {
+        Ok(value) => {
+            clear_last_error();
+            Box::into_raw(Box::new(value))
+        }
+        Err(err) => {
+            set_last_error(err);
+            ptr::null_mut()
+        }
+    }
+}
+
+pub fn into_ffi_i32_result(result: crate::Result<i32>, error_value: i32) -> i32 {
+    match result {
+        Ok(value) => {
+            clear_last_error();
+            value
+        }
+        Err(err) => {
+            set_last_error(err);
+            error_value
+        }
+    }
+}
+
 /// Runs the given closure on a dedicated thread with a large stack.
 ///
 /// FFI callers (e.g. Unity/C# via P/Invoke) often run Rust code on threads

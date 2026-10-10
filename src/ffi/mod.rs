@@ -9,7 +9,10 @@ pub mod scene;
 pub mod types;
 pub mod world;
 
-use self::buffer::{into_ffi_result, last_error_message, run_on_large_stack};
+use self::buffer::{
+    into_ffi_i32_result, into_ffi_ptr_result, into_ffi_result, last_error_message,
+    run_on_large_stack,
+};
 use crate::gltf::{
     TextureCache, convert_models_to_gltf, convert_positioned_models_to_gltf,
     convert_wld_scene_to_gltf, to_glb,
@@ -31,6 +34,23 @@ pub use self::buffer::ByteBuffer;
 pub(crate) fn i32_to_usize(value: i32, name: &str) -> crate::Result<usize> {
     usize::try_from(value)
         .map_err(|_| crate::error::Error::Parse(format!("{name} must be >= 0, got {value}")))
+}
+
+pub(crate) fn fixed_string<const N: usize>(value: &str) -> [u8; N] {
+    let mut buffer = [0; N];
+    let length = value.len().min(N.saturating_sub(1));
+    buffer[..length].copy_from_slice(&value.as_bytes()[..length]);
+    buffer
+}
+
+pub(crate) unsafe fn with_world<T>(
+    world: *mut WorldHandle,
+    f: impl FnOnce(&mut WorldHandle) -> crate::Result<T>,
+) -> crate::Result<T> {
+    if world.is_null() {
+        return Err(crate::error::Error::Parse("world handle is null".into()));
+    }
+    f(unsafe { &mut *world })
 }
 
 pub(crate) unsafe fn read_c_str(ptr: *const c_char, name: &str) -> crate::Result<String> {
@@ -271,7 +291,6 @@ pub unsafe extern "C" fn rg_convert_wld_from_path(
     into_ffi_result(result)
 }
 
-use self::buffer::{clear_last_error, set_last_error};
 use self::scene::{scan_rgm_sections, serialize_rgm_placements, serialize_terrain_primitives};
 use self::types::RgWorldDescriptor;
 use self::world::WorldHandle;
@@ -294,16 +313,7 @@ pub unsafe extern "C" fn rg_open_world(
         WorldHandle::open(PathBuf::from(assets_dir), world_id)
     })();
 
-    match result {
-        Ok(handle) => {
-            clear_last_error();
-            Box::into_raw(Box::new(handle))
-        }
-        Err(err) => {
-            set_last_error(err);
-            ptr::null_mut()
-        }
-    }
+    into_ffi_ptr_result(result)
 }
 
 /// Opens a world from caller-supplied asset paths.
@@ -342,16 +352,7 @@ pub unsafe extern "C" fn rg_open_world_explicit(
         WorldHandle::open_explicit(PathBuf::from(assets_dir), rgm_path, wld_path, palette_path)
     })();
 
-    match result {
-        Ok(handle) => {
-            clear_last_error();
-            Box::into_raw(Box::new(handle))
-        }
-        Err(err) => {
-            set_last_error(err);
-            ptr::null_mut()
-        }
-    }
+    into_ffi_ptr_result(result)
 }
 
 /// # Safety
@@ -388,24 +389,7 @@ pub unsafe extern "C" fn rg_world_count(assets_dir: *const c_char) -> i32 {
         })
     })();
 
-    match result {
-        Ok(count) => {
-            clear_last_error();
-            count
-        }
-        Err(err) => {
-            set_last_error(err);
-            -1
-        }
-    }
-}
-
-fn fixed_path_string<const N: usize>(s: &str) -> [u8; N] {
-    let mut buf = [0u8; N];
-    let bytes = s.as_bytes();
-    let len = bytes.len().min(N - 1);
-    buf[..len].copy_from_slice(&bytes[..len]);
-    buf
+    into_ffi_i32_result(result, -1)
 }
 
 /// # Safety
@@ -414,41 +398,36 @@ fn fixed_path_string<const N: usize>(s: &str) -> [u8; N] {
 /// The returned buffer must be freed with `rg_free_buffer`.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn rg_get_world_descriptor(world: *mut WorldHandle) -> *mut ByteBuffer {
-    if world.is_null() {
-        set_last_error(crate::error::Error::Parse("world handle is null".into()));
-        return ptr::null_mut();
-    }
+    let result = unsafe {
+        with_world(world, |handle| {
+            let wld_bytes = handle.wld_bytes().ok();
+            let texbsi_id = wld_bytes
+                .and_then(|bytes| wld::parse_wld_file(bytes).ok())
+                .map(|wld_file| {
+                    u16::from_le_bytes([
+                        wld_file.sections[0].header[6],
+                        wld_file.sections[0].header[7],
+                    ])
+                })
+                .unwrap_or(0);
 
-    let result: crate::Result<Vec<u8>> = {
-        let handle = unsafe { &mut *world };
+            let descriptor = RgWorldDescriptor {
+                world_id: i32::try_from(handle.world_id()).unwrap_or(-1),
+                has_wld: if handle.wld_path_raw().is_some() {
+                    1
+                } else {
+                    0
+                },
+                _pad: [0; 3],
+                texbsi_id,
+                _pad2: [0; 2],
+                rgm_path: fixed_string::<64>(handle.rgm_path_raw()),
+                wld_path: fixed_string::<64>(handle.wld_path_raw().unwrap_or("")),
+                palette_path: fixed_string::<64>(handle.palette_path_raw()),
+            };
 
-        let wld_bytes = handle.wld_bytes().ok();
-        let texbsi_id = wld_bytes
-            .and_then(|bytes| wld::parse_wld_file(bytes).ok())
-            .map(|wld_file| {
-                u16::from_le_bytes([
-                    wld_file.sections[0].header[6],
-                    wld_file.sections[0].header[7],
-                ])
-            })
-            .unwrap_or(0);
-
-        let descriptor = RgWorldDescriptor {
-            world_id: i32::try_from(handle.world_id()).unwrap_or(-1),
-            has_wld: if handle.wld_path_raw().is_some() {
-                1
-            } else {
-                0
-            },
-            _pad: [0; 3],
-            texbsi_id,
-            _pad2: [0; 2],
-            rgm_path: fixed_path_string::<64>(handle.rgm_path_raw()),
-            wld_path: fixed_path_string::<64>(handle.wld_path_raw().unwrap_or("")),
-            palette_path: fixed_path_string::<64>(handle.palette_path_raw()),
-        };
-
-        Ok(bytemuck::bytes_of(&descriptor).to_vec())
+            Ok(bytemuck::bytes_of(&descriptor).to_vec())
+        })
     };
 
     into_ffi_result(result)
@@ -460,25 +439,21 @@ pub unsafe extern "C" fn rg_get_world_descriptor(world: *mut WorldHandle) -> *mu
 /// The returned buffer must be freed with `rg_free_buffer`.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn rg_get_world_terrain(world: *mut WorldHandle) -> *mut ByteBuffer {
-    if world.is_null() {
-        set_last_error(crate::error::Error::Parse("world handle is null".into()));
-        return ptr::null_mut();
-    }
+    let result = unsafe {
+        with_world(world, |handle| {
+            let wld_bytes = handle.wld_bytes()?.to_vec();
 
-    let result = (|| -> crate::Result<Vec<u8>> {
-        let handle = unsafe { &mut *world };
-        let wld_bytes = handle.wld_bytes()?.to_vec();
-
-        run_on_large_stack(move || {
-            let wld_file = wld::parse_wld_file(&wld_bytes)?;
-            let texbsi_id = u16::from_le_bytes([
-                wld_file.sections[0].header[6],
-                wld_file.sections[0].header[7],
-            ]);
-            let primitives = build_wld_unrolled_primitives(&wld_file, texbsi_id)?;
-            serialize_terrain_primitives(primitives)
+            run_on_large_stack(move || {
+                let wld_file = wld::parse_wld_file(&wld_bytes)?;
+                let texbsi_id = u16::from_le_bytes([
+                    wld_file.sections[0].header[6],
+                    wld_file.sections[0].header[7],
+                ]);
+                let primitives = build_wld_unrolled_primitives(&wld_file, texbsi_id)?;
+                serialize_terrain_primitives(primitives)
+            })
         })
-    })();
+    };
 
     into_ffi_result(result)
 }
@@ -489,20 +464,16 @@ pub unsafe extern "C" fn rg_get_world_terrain(world: *mut WorldHandle) -> *mut B
 /// The returned buffer must be freed with `rg_free_buffer`.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn rg_get_world_placements(world: *mut WorldHandle) -> *mut ByteBuffer {
-    if world.is_null() {
-        set_last_error(crate::error::Error::Parse("world handle is null".into()));
-        return ptr::null_mut();
-    }
+    let result = unsafe {
+        with_world(world, |handle| {
+            let rgm_bytes = handle.rgm_bytes()?;
 
-    let result = (|| -> crate::Result<Vec<u8>> {
-        let handle = unsafe { &mut *world };
-        let rgm_bytes = handle.rgm_bytes()?;
-
-        run_on_large_stack(move || {
-            let (placements, lights) = rgm::extract_rgm_placements(rgm_bytes)?;
-            serialize_rgm_placements(&placements, &lights)
+            run_on_large_stack(move || {
+                let (placements, lights) = rgm::extract_rgm_placements(rgm_bytes)?;
+                serialize_rgm_placements(&placements, &lights)
+            })
         })
-    })();
+    };
 
     into_ffi_result(result)
 }
@@ -517,41 +488,37 @@ pub unsafe extern "C" fn rg_decode_texture_world(
     texture_id: u16,
     image_id: u8,
 ) -> *mut ByteBuffer {
-    if world.is_null() {
-        set_last_error(crate::error::Error::Parse("world handle is null".into()));
-        return ptr::null_mut();
-    }
+    let result = unsafe {
+        with_world(world, |handle| {
+            let cache = handle.texture_cache_mut();
 
-    let result: crate::Result<Vec<u8>> = {
-        let handle = unsafe { &mut *world };
-        let cache = handle.texture_cache_mut();
+            run_on_large_stack(move || {
+                let (rgba, width, height, frame_count) = cache
+                    .get_image_rgba_with_frame_count(texture_id, image_id)
+                    .ok_or_else(|| {
+                        crate::error::Error::Parse(format!(
+                            "texture not found: TEXBSI.{texture_id:03} image {image_id}"
+                        ))
+                    })?;
 
-        run_on_large_stack(move || {
-            let (rgba, width, height, frame_count) = cache
-                .get_image_rgba_with_frame_count(texture_id, image_id)
-                .ok_or_else(|| {
-                    crate::error::Error::Parse(format!(
-                        "texture not found: TEXBSI.{texture_id:03} image {image_id}"
-                    ))
-                })?;
+                let header = types::TextureHeader {
+                    width: i32::from(width),
+                    height: i32::from(height),
+                    frame_count: i32::from(frame_count),
+                    rgba_size: i32::try_from(rgba.len()).map_err(|_| {
+                        crate::error::Error::Parse(format!(
+                            "rgba_size exceeds i32::MAX: {}",
+                            rgba.len()
+                        ))
+                    })?,
+                };
 
-            let header = types::TextureHeader {
-                width: i32::from(width),
-                height: i32::from(height),
-                frame_count: i32::from(frame_count),
-                rgba_size: i32::try_from(rgba.len()).map_err(|_| {
-                    crate::error::Error::Parse(format!(
-                        "rgba_size exceeds i32::MAX: {}",
-                        rgba.len()
-                    ))
-                })?,
-            };
-
-            let mut out =
-                Vec::with_capacity(std::mem::size_of::<types::TextureHeader>() + rgba.len());
-            out.extend_from_slice(bytemuck::bytes_of(&header));
-            out.extend_from_slice(&rgba);
-            Ok(out)
+                let mut out =
+                    Vec::with_capacity(std::mem::size_of::<types::TextureHeader>() + rgba.len());
+                out.extend_from_slice(bytemuck::bytes_of(&header));
+                out.extend_from_slice(&rgba);
+                Ok(out)
+            })
         })
     };
 
@@ -568,50 +535,46 @@ pub unsafe extern "C" fn rg_decode_texture_all_frames_world(
     texture_id: u16,
     image_id: u8,
 ) -> *mut ByteBuffer {
-    if world.is_null() {
-        set_last_error(crate::error::Error::Parse("world handle is null".into()));
-        return ptr::null_mut();
-    }
+    let result = unsafe {
+        with_world(world, |handle| {
+            let cache = handle.texture_cache_mut();
 
-    let result: crate::Result<Vec<u8>> = {
-        let handle = unsafe { &mut *world };
-        let cache = handle.texture_cache_mut();
+            run_on_large_stack(move || {
+                let info = cache
+                    .get_all_frames_by_image_id(texture_id, image_id)
+                    .ok_or_else(|| {
+                        crate::error::Error::Parse(format!(
+                            "texture not found: TEXBSI.{texture_id:03} image {image_id}"
+                        ))
+                    })?;
 
-        run_on_large_stack(move || {
-            let info = cache
-                .get_all_frames_by_image_id(texture_id, image_id)
-                .ok_or_else(|| {
-                    crate::error::Error::Parse(format!(
-                        "texture not found: TEXBSI.{texture_id:03} image {image_id}"
-                    ))
-                })?;
+                let header = types::AllFramesHeader {
+                    width: i32::from(info.width),
+                    height: i32::from(info.height),
+                    frame_count: i32::from(info.frame_count),
+                };
 
-            let header = types::AllFramesHeader {
-                width: i32::from(info.width),
-                height: i32::from(info.height),
-                frame_count: i32::from(info.frame_count),
-            };
-
-            let mut out = Vec::new();
-            out.extend_from_slice(bytemuck::bytes_of(&header));
-            for frame in &info.frames {
-                match frame {
-                    Some(rgba) => {
-                        let size = i32::try_from(rgba.len()).map_err(|_| {
-                            crate::error::Error::Parse(format!(
-                                "rgba_size exceeds i32::MAX: {}",
-                                rgba.len()
-                            ))
-                        })?;
-                        out.extend_from_slice(&size.to_le_bytes());
-                        out.extend_from_slice(rgba);
-                    }
-                    None => {
-                        out.extend_from_slice(&0_i32.to_le_bytes());
+                let mut out = Vec::new();
+                out.extend_from_slice(bytemuck::bytes_of(&header));
+                for frame in &info.frames {
+                    match frame {
+                        Some(rgba) => {
+                            let size = i32::try_from(rgba.len()).map_err(|_| {
+                                crate::error::Error::Parse(format!(
+                                    "rgba_size exceeds i32::MAX: {}",
+                                    rgba.len()
+                                ))
+                            })?;
+                            out.extend_from_slice(&size.to_le_bytes());
+                            out.extend_from_slice(rgba);
+                        }
+                        None => {
+                            out.extend_from_slice(&0_i32.to_le_bytes());
+                        }
                     }
                 }
-            }
-            Ok(out)
+                Ok(out)
+            })
         })
     };
 
@@ -627,31 +590,18 @@ pub unsafe extern "C" fn rg_rgm_section_count_world(
     world: *mut WorldHandle,
     section_tag: *const c_char,
 ) -> i32 {
-    if world.is_null() {
-        set_last_error(crate::error::Error::Parse("world handle is null".into()));
-        return -1;
-    }
-
-    let result = (|| -> crate::Result<i32> {
-        let handle = unsafe { &mut *world };
-        let tag = read_section_tag(section_tag)?;
-        let rgm_bytes = handle.rgm_bytes()?;
-        let count = scan_rgm_sections(rgm_bytes, &tag).len();
-        i32::try_from(count).map_err(|_| {
-            crate::error::Error::Parse(format!("section count exceeds i32::MAX: {count}"))
+    let result = unsafe {
+        with_world(world, |handle| {
+            let tag = read_section_tag(section_tag)?;
+            let rgm_bytes = handle.rgm_bytes()?;
+            let count = scan_rgm_sections(rgm_bytes, &tag).len();
+            i32::try_from(count).map_err(|_| {
+                crate::error::Error::Parse(format!("section count exceeds i32::MAX: {count}"))
+            })
         })
-    })();
+    };
 
-    match result {
-        Ok(count) => {
-            clear_last_error();
-            count
-        }
-        Err(err) => {
-            set_last_error(err);
-            -1
-        }
-    }
+    into_ffi_i32_result(result, -1)
 }
 
 fn read_section_tag(tag_ptr: *const c_char) -> crate::Result<[u8; 4]> {
@@ -677,27 +627,23 @@ pub unsafe extern "C" fn rg_get_rgm_section_world(
     section_tag: *const c_char,
     section_index: i32,
 ) -> *mut ByteBuffer {
-    if world.is_null() {
-        set_last_error(crate::error::Error::Parse("world handle is null".into()));
-        return ptr::null_mut();
-    }
-
-    let result = (|| -> crate::Result<Vec<u8>> {
-        let handle = unsafe { &mut *world };
-        let tag = read_section_tag(section_tag)?;
-        let idx = i32_to_usize(section_index, "section_index")?;
-        let rgm_bytes = handle.rgm_bytes()?;
-        let sections = scan_rgm_sections(rgm_bytes, &tag);
-        let payload = sections.get(idx).ok_or_else(|| {
-            crate::error::Error::Parse(format!(
-                "section '{}' index {} out of range (found {})",
-                String::from_utf8_lossy(&tag),
-                idx,
-                sections.len()
-            ))
-        })?;
-        Ok(payload.to_vec())
-    })();
+    let result = unsafe {
+        with_world(world, |handle| {
+            let tag = read_section_tag(section_tag)?;
+            let idx = i32_to_usize(section_index, "section_index")?;
+            let rgm_bytes = handle.rgm_bytes()?;
+            let sections = scan_rgm_sections(rgm_bytes, &tag);
+            let payload = sections.get(idx).ok_or_else(|| {
+                crate::error::Error::Parse(format!(
+                    "section '{}' index {} out of range (found {})",
+                    String::from_utf8_lossy(&tag),
+                    idx,
+                    sections.len()
+                ))
+            })?;
+            Ok(payload.to_vec())
+        })
+    };
 
     into_ffi_result(result)
 }

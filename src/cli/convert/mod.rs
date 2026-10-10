@@ -18,12 +18,14 @@ use crate::opts::{
 };
 use color_eyre::Result;
 use color_eyre::eyre::{WrapErr, bail};
+use hound::{SampleFormat, WavSpec, WavWriter};
+use image::{DynamicImage, Rgba, RgbaImage};
 use log::{info, warn};
 use rgpre::gltf::{
     TextureCache, convert_models_to_gltf, convert_positioned_models_to_gltf, to_glb,
 };
 use rgpre::import::FileType;
-use rgpre::import::{palette::Palette, registry};
+use rgpre::import::{palette::Palette, png::save_png, registry, sfx::AudioType};
 use std::path::{Path, PathBuf};
 
 fn resolve_output(io: &ConvertFileArgs, filetype: FileType) -> PathBuf {
@@ -67,6 +69,66 @@ pub(super) fn ensure_parent_dir(path: &Path) -> Result<(), color_eyre::eyre::Err
             )
         })?;
     }
+    Ok(())
+}
+
+fn rgba_image(width: u32, height: u32, rgba: &[u8]) -> RgbaImage {
+    RgbaImage::from_fn(width, height, |x, y| {
+        let index = (y * width + x) as usize * 4;
+        Rgba([
+            rgba[index],
+            rgba[index + 1],
+            rgba[index + 2],
+            rgba[index + 3],
+        ])
+    })
+}
+
+pub(super) fn rgba_to_image(width: u16, height: u16, rgba: &[u8]) -> RgbaImage {
+    rgba_image(u32::from(width), u32::from(height), rgba)
+}
+
+pub(super) fn save_rgba_png(
+    path: &Path,
+    width: u32,
+    height: u32,
+    rgba: &[u8],
+    compress: bool,
+) -> Result<()> {
+    save_png(
+        &DynamicImage::ImageRgba8(rgba_image(width, height, rgba)),
+        path,
+        compress,
+    )?;
+    Ok(())
+}
+
+pub(super) fn write_wav(
+    path: &Path,
+    audio_type: AudioType,
+    sample_rate: u32,
+    pcm_data: &[u8],
+) -> Result<()> {
+    let spec = WavSpec {
+        channels: audio_type.channels(),
+        sample_rate,
+        bits_per_sample: audio_type.bits_per_sample(),
+        sample_format: SampleFormat::Int,
+    };
+    let mut writer = WavWriter::create(path, spec)?;
+    if audio_type.bits_per_sample() == 8 {
+        for &sample in pcm_data {
+            writer.write_sample((i16::from(sample) - 128) as i8)?;
+        }
+    } else {
+        if !pcm_data.len().is_multiple_of(2) {
+            bail!("16-bit PCM data has odd byte count: {}", pcm_data.len());
+        }
+        for chunk in pcm_data.as_chunks::<2>().0 {
+            writer.write_sample(i16::from_le_bytes(*chunk))?;
+        }
+    }
+    writer.finalize()?;
     Ok(())
 }
 

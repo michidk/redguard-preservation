@@ -163,21 +163,13 @@ impl<'a> GltfBuilder<'a> {
             ComponentType::F32,
             Type::Vec3,
             Target::ArrayBuffer,
-            min.map(|v| {
-                Value::Array(vec![
-                    Value::from(v[0]),
-                    Value::from(v[1]),
-                    Value::from(v[2]),
-                ])
-            }),
-            max.map(|v| {
-                Value::Array(vec![
-                    Value::from(v[0]),
-                    Value::from(v[1]),
-                    Value::from(v[2]),
-                ])
-            }),
+            min.map(Self::vec3_value),
+            max.map(Self::vec3_value),
         )
+    }
+
+    fn vec3_value(value: [f32; 3]) -> Value {
+        Value::Array(value.into_iter().map(Value::from).collect())
     }
 
     fn push_vec2_accessor(&mut self, data: &[[f32; 2]]) -> usize {
@@ -232,37 +224,34 @@ impl<'a> GltfBuilder<'a> {
         view_index
     }
 
-    fn nearest_sampler(&mut self) -> usize {
-        if let Some(index) = self.nearest_sampler_index {
+    fn sampler(&mut self, mirrored: bool) -> usize {
+        let cached = if mirrored {
+            self.mirrored_sampler_index
+        } else {
+            self.nearest_sampler_index
+        };
+        if let Some(index) = cached {
             return index;
         }
 
         let index = self.samplers.len();
+        let wrapping = if mirrored {
+            json::texture::WrappingMode::MirroredRepeat
+        } else {
+            json::texture::WrappingMode::Repeat
+        };
         self.samplers.push(json::texture::Sampler {
             mag_filter: Some(Checked::Valid(json::texture::MagFilter::Nearest)),
             min_filter: Some(Checked::Valid(json::texture::MinFilter::Nearest)),
-            wrap_s: Checked::Valid(json::texture::WrappingMode::Repeat),
-            wrap_t: Checked::Valid(json::texture::WrappingMode::Repeat),
+            wrap_s: Checked::Valid(wrapping),
+            wrap_t: Checked::Valid(wrapping),
             ..Default::default()
         });
-        self.nearest_sampler_index = Some(index);
-        index
-    }
-
-    fn mirrored_sampler(&mut self) -> usize {
-        if let Some(index) = self.mirrored_sampler_index {
-            return index;
+        if mirrored {
+            self.mirrored_sampler_index = Some(index);
+        } else {
+            self.nearest_sampler_index = Some(index);
         }
-
-        let index = self.samplers.len();
-        self.samplers.push(json::texture::Sampler {
-            mag_filter: Some(Checked::Valid(json::texture::MagFilter::Nearest)),
-            min_filter: Some(Checked::Valid(json::texture::MinFilter::Nearest)),
-            wrap_s: Checked::Valid(json::texture::WrappingMode::MirroredRepeat),
-            wrap_t: Checked::Valid(json::texture::WrappingMode::MirroredRepeat),
-            ..Default::default()
-        });
-        self.mirrored_sampler_index = Some(index);
         index
     }
 
@@ -312,15 +301,7 @@ impl<'a> GltfBuilder<'a> {
     }
 
     fn create_white_material() -> json::Material {
-        json::Material {
-            pbr_metallic_roughness: PbrMetallicRoughness {
-                base_color_factor: json::material::PbrBaseColorFactor([1.0, 1.0, 1.0, 1.0]),
-                metallic_factor: json::material::StrengthFactor(0.0),
-                roughness_factor: json::material::StrengthFactor(1.0),
-                ..Default::default()
-            },
-            ..Default::default()
-        }
+        Self::create_solid_material([255; 3])
     }
 
     fn resolve_white_material(&mut self) -> usize {
@@ -373,7 +354,7 @@ impl<'a> GltfBuilder<'a> {
             return *cached;
         }
 
-        let sampler_index = self.nearest_sampler();
+        let sampler_index = self.sampler(false);
         let resolved = create_palette_color_png(rgb, self.compress_textures)
             .map(|png_bytes| self.push_png_texture(&png_bytes, sampler_index));
         self.palette_texture_index_cache.insert(rgb, resolved);
@@ -425,14 +406,20 @@ impl<'a> GltfBuilder<'a> {
         resolved
     }
 
-    fn resolve_textured_material(&mut self, texture_id: u16, image_id: u8) -> usize {
-        if let Some(index) = self.textured_material_cache.get(&(texture_id, image_id)) {
+    fn resolve_textured_material(&mut self, texture_id: u16, image_id: u8, terrain: bool) -> usize {
+        let key = (texture_id, image_id);
+        let cached = if terrain {
+            self.terrain_textured_material_cache.get(&key)
+        } else {
+            self.textured_material_cache.get(&key)
+        };
+        if let Some(index) = cached {
             return *index;
         }
 
-        let sampler_index = self.nearest_sampler();
+        let sampler_index = self.sampler(terrain);
         let index = if let Some((texture_index, has_alpha)) =
-            self.resolve_textured_texture_index(texture_id, image_id, sampler_index, false)
+            self.resolve_textured_texture_index(texture_id, image_id, sampler_index, terrain)
         {
             let new_index = self.materials.len();
             self.materials
@@ -442,33 +429,11 @@ impl<'a> GltfBuilder<'a> {
             self.resolve_white_material()
         };
 
-        self.textured_material_cache
-            .insert((texture_id, image_id), index);
-        index
-    }
-
-    fn resolve_terrain_textured_material(&mut self, texture_id: u16, image_id: u8) -> usize {
-        if let Some(index) = self
-            .terrain_textured_material_cache
-            .get(&(texture_id, image_id))
-        {
-            return *index;
-        }
-
-        let sampler_index = self.mirrored_sampler();
-        let index = if let Some((texture_index, has_alpha)) =
-            self.resolve_textured_texture_index(texture_id, image_id, sampler_index, true)
-        {
-            let new_index = self.materials.len();
-            self.materials
-                .push(Self::create_textured_material(texture_index, has_alpha));
-            new_index
+        if terrain {
+            self.terrain_textured_material_cache.insert(key, index);
         } else {
-            self.resolve_white_material()
-        };
-
-        self.terrain_textured_material_cache
-            .insert((texture_id, image_id), index);
+            self.textured_material_cache.insert(key, index);
+        }
         index
     }
 
@@ -477,10 +442,10 @@ impl<'a> GltfBuilder<'a> {
             MaterialKey::SolidColor(rgb) => self.resolve_solid_color_material(rgb),
             MaterialKey::PaletteTexture(rgb) => self.resolve_palette_texture_material(rgb),
             MaterialKey::Textured(texture_id, image_id) => {
-                self.resolve_textured_material(texture_id, image_id)
+                self.resolve_textured_material(texture_id, image_id, false)
             }
             MaterialKey::TerrainTextured(texture_id, image_id) => {
-                self.resolve_terrain_textured_material(texture_id, image_id)
+                self.resolve_textured_material(texture_id, image_id, true)
             }
             MaterialKey::White => self.resolve_white_material(),
         }

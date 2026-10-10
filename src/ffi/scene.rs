@@ -1,7 +1,7 @@
 use super::buffer::*;
 use super::types::*;
 use super::world::WorldHandle;
-use super::{i32_to_usize, read_c_str};
+use super::{fixed_string, i32_to_usize, read_c_str, with_world};
 use crate::geometry::{
     SCENE_CONVENTION, resolve_vertex_normal, transform_normal, transform_position,
     triangle_vertex_offsets,
@@ -22,14 +22,6 @@ use std::io::Cursor;
 use std::mem::size_of;
 use std::os::raw::c_char;
 use std::path::PathBuf;
-
-fn fixed_string<const N: usize>(s: &str) -> [u8; N] {
-    let mut buf = [0u8; N];
-    let bytes = s.as_bytes();
-    let len = bytes.len().min(N - 1);
-    buf[..len].copy_from_slice(&bytes[..len]);
-    buf
-}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 enum SubmeshKey {
@@ -318,6 +310,44 @@ pub(crate) fn serialize_model_3d(
     Ok(out)
 }
 
+fn serialize_rob(
+    bytes: &[u8],
+    palette: Option<&Palette>,
+    texture_cache: &mut crate::gltf::TextureCache,
+) -> crate::Result<Vec<u8>> {
+    let rob_file = rob::parse_rob_file(bytes)?;
+    let header = RobHeader {
+        segment_count: usize_to_i32(rob_file.segments.len(), "segment_count")?,
+    };
+    let mut out = bytemuck::bytes_of(&header).to_vec();
+
+    for segment in &rob_file.segments {
+        let model_data = segment
+            .has_embedded_3d_data()
+            .then(|| {
+                let model = segment.parse_embedded_3d_data()?;
+                serialize_model_3d(&model, palette, Some(texture_cache))
+            })
+            .transpose()?;
+        let segment_header = RobSegmentHeader {
+            segment_name: segment.segment_name,
+            has_model: u8::from(model_data.is_some()),
+            _pad: [0; 3],
+            model_data_size: model_data
+                .as_ref()
+                .map(|data| usize_to_i32(data.len(), "model_data_size"))
+                .transpose()?
+                .unwrap_or(0),
+        };
+        out.extend_from_slice(bytemuck::bytes_of(&segment_header));
+        if let Some(data) = model_data {
+            out.extend_from_slice(&data);
+        }
+    }
+
+    Ok(out)
+}
+
 fn pcm_to_wav_bytes(
     audio_type: sfx::AudioType,
     sample_rate: u32,
@@ -415,49 +445,7 @@ pub unsafe extern "C" fn rg_parse_rob_data(
             assets_dir.clone(),
             palette.as_ref().map(|pal| Palette { colors: pal.colors }),
         );
-        run_on_large_stack(move || {
-            let rob_file = rob::parse_rob_file(&rob_bytes)?;
-
-            let rob_header = RobHeader {
-                segment_count: usize_to_i32(rob_file.segments.len(), "segment_count")?,
-            };
-            let mut out = Vec::new();
-            out.extend_from_slice(bytemuck::bytes_of(&rob_header));
-
-            for segment in &rob_file.segments {
-                let (has_model, model_data) = if segment.has_embedded_3d_data() {
-                    let model = segment.parse_embedded_3d_data()?;
-                    (
-                        1u8,
-                        Some(serialize_model_3d(
-                            &model,
-                            palette.as_ref(),
-                            Some(&mut texture_cache),
-                        )?),
-                    )
-                } else {
-                    (0u8, None)
-                };
-
-                let seg_header = RobSegmentHeader {
-                    segment_name: segment.segment_name,
-                    has_model,
-                    _pad: [0; 3],
-                    model_data_size: model_data
-                        .as_ref()
-                        .map(|d| usize_to_i32(d.len(), "model_data_size"))
-                        .transpose()?
-                        .unwrap_or(0),
-                };
-                out.extend_from_slice(bytemuck::bytes_of(&seg_header));
-
-                if let Some(data) = &model_data {
-                    out.extend_from_slice(data);
-                }
-            }
-
-            Ok(out)
-        })
+        run_on_large_stack(move || serialize_rob(&rob_bytes, palette.as_ref(), &mut texture_cache))
     })();
 
     into_ffi_result(result)
@@ -473,25 +461,21 @@ pub unsafe extern "C" fn rg_parse_model_data_world(
     world: *mut WorldHandle,
     file_path: *const c_char,
 ) -> *mut ByteBuffer {
-    if world.is_null() {
-        set_last_error(crate::error::Error::Parse("world handle is null".into()));
-        return std::ptr::null_mut();
-    }
+    let result = unsafe {
+        with_world(world, |handle| {
+            let file_path = read_c_str(file_path, "file_path")?;
+            let file_path = PathBuf::from(file_path);
+            let model_bytes = std::fs::read(&file_path)?;
+            let palette = Palette {
+                colors: handle.palette().colors,
+            };
 
-    let result = (|| -> crate::Result<Vec<u8>> {
-        let handle = unsafe { &mut *world };
-        let file_path = unsafe { read_c_str(file_path, "file_path") }?;
-        let file_path = PathBuf::from(file_path);
-        let model_bytes = std::fs::read(&file_path)?;
-        let palette = Palette {
-            colors: handle.palette().colors,
-        };
-
-        run_on_large_stack(move || {
-            let model = model3d::parse_3d_file(&model_bytes)?;
-            serialize_model_3d(&model, Some(&palette), Some(handle.texture_cache_mut()))
+            run_on_large_stack(move || {
+                let model = model3d::parse_3d_file(&model_bytes)?;
+                serialize_model_3d(&model, Some(&palette), Some(handle.texture_cache_mut()))
+            })
         })
-    })();
+    };
 
     into_ffi_result(result)
 }
@@ -506,64 +490,20 @@ pub unsafe extern "C" fn rg_parse_rob_data_world(
     world: *mut WorldHandle,
     file_path: *const c_char,
 ) -> *mut ByteBuffer {
-    if world.is_null() {
-        set_last_error(crate::error::Error::Parse("world handle is null".into()));
-        return std::ptr::null_mut();
-    }
-
-    let result = (|| -> crate::Result<Vec<u8>> {
-        let handle = unsafe { &mut *world };
-        let file_path = unsafe { read_c_str(file_path, "file_path") }?;
-        let file_path = PathBuf::from(file_path);
-        let rob_bytes = std::fs::read(&file_path)?;
-        let palette = Palette {
-            colors: handle.palette().colors,
-        };
-
-        run_on_large_stack(move || {
-            let rob_file = rob::parse_rob_file(&rob_bytes)?;
-
-            let rob_header = RobHeader {
-                segment_count: usize_to_i32(rob_file.segments.len(), "segment_count")?,
+    let result = unsafe {
+        with_world(world, |handle| {
+            let file_path = read_c_str(file_path, "file_path")?;
+            let file_path = PathBuf::from(file_path);
+            let rob_bytes = std::fs::read(&file_path)?;
+            let palette = Palette {
+                colors: handle.palette().colors,
             };
-            let mut out = Vec::new();
-            out.extend_from_slice(bytemuck::bytes_of(&rob_header));
 
-            for segment in &rob_file.segments {
-                let (has_model, model_data) = if segment.has_embedded_3d_data() {
-                    let model = segment.parse_embedded_3d_data()?;
-                    (
-                        1u8,
-                        Some(serialize_model_3d(
-                            &model,
-                            Some(&palette),
-                            Some(handle.texture_cache_mut()),
-                        )?),
-                    )
-                } else {
-                    (0u8, None)
-                };
-
-                let seg_header = RobSegmentHeader {
-                    segment_name: segment.segment_name,
-                    has_model,
-                    _pad: [0; 3],
-                    model_data_size: model_data
-                        .as_ref()
-                        .map(|d| usize_to_i32(d.len(), "model_data_size"))
-                        .transpose()?
-                        .unwrap_or(0),
-                };
-                out.extend_from_slice(bytemuck::bytes_of(&seg_header));
-
-                if let Some(data) = &model_data {
-                    out.extend_from_slice(data);
-                }
-            }
-
-            Ok(out)
+            run_on_large_stack(move || {
+                serialize_rob(&rob_bytes, Some(&palette), handle.texture_cache_mut())
+            })
         })
-    })();
+    };
 
     into_ffi_result(result)
 }
@@ -581,16 +521,7 @@ pub unsafe extern "C" fn rg_sfx_effect_count(file_path: *const c_char) -> i32 {
         })
     })();
 
-    match result {
-        Ok(count) => {
-            clear_last_error();
-            count
-        }
-        Err(err) => {
-            set_last_error(err);
-            -1
-        }
-    }
+    into_ffi_i32_result(result, -1)
 }
 
 /// # Safety
@@ -632,6 +563,32 @@ pub struct RtxHandle {
     file: rtx::RtxFile,
 }
 
+unsafe fn with_rtx_handle<T>(
+    handle: *const RtxHandle,
+    f: impl FnOnce(&RtxHandle) -> crate::Result<T>,
+) -> crate::Result<T> {
+    if handle.is_null() {
+        return Err(crate::error::Error::Parse("rtx handle is null".into()));
+    }
+    f(unsafe { &*handle })
+}
+
+unsafe fn with_rtx_entry<T>(
+    handle: *const RtxHandle,
+    entry_index: i32,
+    f: impl FnOnce(&RtxEntry) -> crate::Result<T>,
+) -> crate::Result<T> {
+    unsafe {
+        with_rtx_handle(handle, |handle| {
+            let index = i32_to_usize(entry_index, "entry_index")?;
+            let entry = handle.file.entries.get(index).ok_or_else(|| {
+                crate::error::Error::Parse(format!("entry_index out of range: {entry_index}"))
+            })?;
+            f(entry)
+        })
+    }
+}
+
 /// Opens an RTX file and returns an opaque handle. On parse failure returns
 /// `NULL` and the error is available via `rg_last_error`. The returned handle
 /// must be freed with `rg_close_rtx`.
@@ -649,16 +606,7 @@ pub unsafe extern "C" fn rg_open_rtx(file_path: *const c_char) -> *mut RtxHandle
         })
     })();
 
-    match result {
-        Ok(handle) => {
-            clear_last_error();
-            Box::into_raw(Box::new(handle))
-        }
-        Err(err) => {
-            set_last_error(err);
-            std::ptr::null_mut()
-        }
-    }
+    into_ffi_ptr_result(result)
 }
 
 /// # Safety
@@ -677,21 +625,12 @@ pub unsafe extern "C" fn rg_close_rtx(handle: *mut RtxHandle) {
 /// `handle` must be a valid pointer returned by `rg_open_rtx`.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn rg_rtx_handle_entry_count(handle: *const RtxHandle) -> i32 {
-    if handle.is_null() {
-        set_last_error(crate::error::Error::Parse("rtx handle is null".into()));
-        return -1;
-    }
-    let handle = unsafe { &*handle };
-    match usize_to_i32(handle.file.entries.len(), "entry_count") {
-        Ok(count) => {
-            clear_last_error();
-            count
-        }
-        Err(err) => {
-            set_last_error(err);
-            -1
-        }
-    }
+    let result = unsafe {
+        with_rtx_handle(handle, |handle| {
+            usize_to_i32(handle.file.entries.len(), "entry_count")
+        })
+    };
+    into_ffi_i32_result(result, -1)
 }
 
 /// Returns the 4-byte ASCII tag of the entry at `entry_index` interpreted as
@@ -706,32 +645,15 @@ pub unsafe extern "C" fn rg_rtx_handle_entry_tag(
     handle: *const RtxHandle,
     entry_index: i32,
 ) -> i32 {
-    if handle.is_null() {
-        set_last_error(crate::error::Error::Parse("rtx handle is null".into()));
-        return 0;
-    }
-    let handle = unsafe { &*handle };
-    let result = (|| -> crate::Result<i32> {
-        let entry_idx = i32_to_usize(entry_index, "entry_index")?;
-        let entry = handle.file.entries.get(entry_idx).ok_or_else(|| {
-            crate::error::Error::Parse(format!("entry_index out of range: {entry_index}"))
-        })?;
-        let tag = match entry {
-            RtxEntry::Text { tag, .. } | RtxEntry::Audio { tag, .. } => *tag,
-        };
-        Ok(i32::from_le_bytes(tag))
-    })();
-
-    match result {
-        Ok(tag) => {
-            clear_last_error();
-            tag
-        }
-        Err(err) => {
-            set_last_error(err);
-            0
-        }
-    }
+    let result = unsafe {
+        with_rtx_entry(handle, entry_index, |entry| {
+            let tag = match entry {
+                RtxEntry::Text { tag, .. } | RtxEntry::Audio { tag, .. } => *tag,
+            };
+            Ok(i32::from_le_bytes(tag))
+        })
+    };
+    into_ffi_i32_result(result, 0)
 }
 
 /// Converts the audio payload of the entry at `entry_index` to a WAV blob.
@@ -746,26 +668,16 @@ pub unsafe extern "C" fn rg_rtx_handle_convert_entry_to_wav(
     handle: *const RtxHandle,
     entry_index: i32,
 ) -> *mut ByteBuffer {
-    if handle.is_null() {
-        set_last_error(crate::error::Error::Parse("rtx handle is null".into()));
-        return std::ptr::null_mut();
-    }
-    let handle = unsafe { &*handle };
-    let result = (|| -> crate::Result<Vec<u8>> {
-        let entry_idx = i32_to_usize(entry_index, "entry_index")?;
-        let entry = handle.file.entries.get(entry_idx).ok_or_else(|| {
-            crate::error::Error::Parse(format!("entry_index out of range: {entry_index}"))
-        })?;
-
-        match entry {
+    let result = unsafe {
+        with_rtx_entry(handle, entry_index, |entry| match entry {
             RtxEntry::Audio {
                 header, pcm_data, ..
             } => pcm_to_wav_bytes(header.audio_type, header.sample_rate, pcm_data),
             RtxEntry::Text { .. } => Err(crate::error::Error::Parse(
                 "entry is text, not audio".to_string(),
             )),
-        }
-    })();
+        })
+    };
 
     into_ffi_result(result)
 }
@@ -782,22 +694,14 @@ pub unsafe extern "C" fn rg_rtx_handle_get_subtitle(
     handle: *const RtxHandle,
     entry_index: i32,
 ) -> *mut ByteBuffer {
-    if handle.is_null() {
-        set_last_error(crate::error::Error::Parse("rtx handle is null".into()));
-        return std::ptr::null_mut();
-    }
-    let handle = unsafe { &*handle };
-    let result = (|| -> crate::Result<Vec<u8>> {
-        let entry_idx = i32_to_usize(entry_index, "entry_index")?;
-        let entry = handle.file.entries.get(entry_idx).ok_or_else(|| {
-            crate::error::Error::Parse(format!("entry_index out of range: {entry_index}"))
-        })?;
-
-        let text = match entry {
-            RtxEntry::Text { text, .. } | RtxEntry::Audio { label: text, .. } => text,
-        };
-        Ok(text.as_bytes().to_vec())
-    })();
+    let result = unsafe {
+        with_rtx_entry(handle, entry_index, |entry| {
+            let text = match entry {
+                RtxEntry::Text { text, .. } | RtxEntry::Audio { label: text, .. } => text,
+            };
+            Ok(text.as_bytes().to_vec())
+        })
+    };
 
     into_ffi_result(result)
 }
@@ -834,16 +738,7 @@ pub unsafe extern "C" fn rg_gxa_frame_count(file_path: *const c_char) -> i32 {
             ))
         })
     })();
-    match result {
-        Ok(count) => {
-            clear_last_error();
-            count
-        }
-        Err(err) => {
-            set_last_error(err);
-            -1
-        }
-    }
+    into_ffi_i32_result(result, -1)
 }
 
 /// # Safety
