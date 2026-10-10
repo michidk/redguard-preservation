@@ -95,7 +95,8 @@ The seven outdoor world entries are 0, 1, 6, 14, 27, 28, and 30.
 ### Scrolling and rotation
 
 Raw `world_skyspeed[N]` is an unsigned byte converted to texels
-per timer tick by dividing by 16. The initial scrolling direction is selected
+per BIOS timer tick by dividing by 16. The timer runs at
+`1193182 / 65536` ticks per second. The initial scrolling direction is selected
 randomly from 2048 angle steps. Scroll offsets start at zero, advance with the
 shared engine sine/cosine table, and wrap at plus/minus 256 texels. A frame
 processes at most 36 elapsed ticks. The plane can also tilt around a
