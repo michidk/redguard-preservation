@@ -66,7 +66,7 @@ For symmetric models: `bbox_positive == bbox_negative` (center at origin). For a
 | Type | Description |
 |---|---|
 | 0 | Embedded 3D model data. Payload is a complete [3D file](models/3d.md) (v5.0 format). |
-| 256 | Embedded 3D model data (menu-specific). Only in `MENU.ROB`. Structurally identical to type 0 — payload is a complete [3D file](models/3d.md). Uses versions v4.0 and v4.02 (v4.02 is unique to these segments). |
+| 256 | Embedded 3D model data (menu-specific). Only in `MENU.ROB`. Structurally identical to type 0 — payload is a complete [3D file](models/3d.md). Uses version v4.0. |
 | 512 | External reference. `name` is the `.3DC` filename stem (e.g. `"CYRSA001"` → `CYRSA001.3DC`). `data_size` is 0. |
 
 ### Segment Flags (0x0E)
@@ -107,12 +107,12 @@ For `segment_type == 512` (external reference): no data payload. Load the refere
 |---|---|---|---|---|---|
 | 0 | MENUA001 | 256 | 79,328 | v4.0 | Menu character model (also exists as standalone `MENUA001.3DC` in `/fxart`) |
 | 1 | MB_TABLE | 0 | 886 | v5.0 | Small prop |
-| 2 | MB_PG01 | 256 | 42,208 | v4.02 | Menu page model |
-| 3 | MB_PG02 | 256 | 42,208 | v4.02 | Menu page model (same size as PG01) |
-| 4 | MB_PG03 | 256 | 42,208 | v4.02 | Menu page model (same size as PG01) |
+| 2 | MB_PG01 | 256 | 42,208 | v4.0 | Menu page model |
+| 3 | MB_PG02 | 256 | 42,208 | v4.0 | Menu page model (same size as PG01) |
+| 4 | MB_PG03 | 256 | 42,208 | v4.0 | Menu page model (same size as PG01) |
 | 5 | SCROLL | 0 | 8,136 | v5.0 | Scroll decoration prop |
 
-Version `v4.02` appears only in these three MB_PG segments — it is not found in any other ROB file or standalone 3D/3DC file.
+The three MB_PG segments have the four-byte version `v4.0`; the following byte belongs to the vertex count, not the version.
 
 ## Footer
 

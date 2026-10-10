@@ -724,6 +724,7 @@ fn parse_all_frame_data(
     header: &Model3DHeader,
     frame_data: &[FrameDataEntry],
     frames_use_i32: bool,
+    uncompressed_frames: bool,
 ) -> (Vec<FrameVertexData>, Vec<FrameNormalData>) {
     let num_verts = header.num_vertices as usize;
     let num_faces = header.num_faces as usize;
@@ -737,7 +738,21 @@ fn parse_all_frame_data(
             parse_i16_frame_vertices(input, entry.vertex_offset as usize, num_verts)
         };
 
-        let face_normals = if frame_index > 0 && entry.normal_offset > 0 {
+        let face_normals = if uncompressed_frames && entry.normal_offset > 0 {
+            input
+                .get(entry.normal_offset as usize..)
+                .map_or_else(Vec::new, |mut bytes| {
+                    let mut normals = Vec::with_capacity(num_faces);
+                    for _ in 0..num_faces {
+                        let Ok((remaining, normal)) = parse_face_normal(bytes) else {
+                            break;
+                        };
+                        normals.push(normal);
+                        bytes = remaining;
+                    }
+                    normals
+                })
+        } else if frame_index > 0 && entry.normal_offset > 0 {
             parse_packed_frame_normals(input, entry.normal_offset as usize, num_faces)
         } else {
             Vec::new()
@@ -778,12 +793,21 @@ pub fn parse_3d_file(input: &[u8]) -> IResult<&[u8], Model3DFile> {
 
     let normal_indices = convert_normal_indices(raw_normal_indices, adjusted_offset_normals);
 
-    // Determine if frames use i32 (type==4) or i16 (all others)
-    let frames_use_i32 =
-        !frame_data.is_empty() && matches!(frame_data[0].frame_type, FrameType::AnimatedI32);
+    // v4.0/v5.0 frame tables reference complete i32 positions and normals.
+    let uncompressed_frames = matches!(
+        header.parse_version(),
+        ModelVersion::V40 | ModelVersion::V50
+    );
+    let frames_use_i32 = uncompressed_frames
+        || !frame_data.is_empty() && matches!(frame_data[0].frame_type, FrameType::AnimatedI32);
 
-    let (frame_vertex_data, frame_normal_data) =
-        parse_all_frame_data(input, &header, &frame_data, frames_use_i32);
+    let (frame_vertex_data, frame_normal_data) = parse_all_frame_data(
+        input,
+        &header,
+        &frame_data,
+        frames_use_i32,
+        uncompressed_frames,
+    );
 
     let remaining = &[];
 
@@ -807,6 +831,37 @@ pub fn parse_3d_file(input: &[u8]) -> IResult<&[u8], Model3DFile> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn v40_later_frames_keep_full_fixed_point_positions_and_normals() {
+        let mut bytes = vec![0u8; 154];
+        bytes[..4].copy_from_slice(b"v4.0");
+        let words = [1u32, 1, 1, 2, 74, 0, 0, 0, 0, 0, 0, 106, 118, 0, 64];
+        for (index, word) in words.into_iter().enumerate() {
+            bytes[4 + index * 4..8 + index * 4].copy_from_slice(&word.to_le_bytes());
+        }
+        for (index, (vertex, normal)) in [(106u32, 118u32), (130, 142)].into_iter().enumerate() {
+            let offset = 74 + index * 16;
+            bytes[offset..offset + 4].copy_from_slice(&vertex.to_le_bytes());
+            bytes[offset + 4..offset + 8].copy_from_slice(&normal.to_le_bytes());
+        }
+        for (offset, values) in [
+            (106, [256i32, 512, -768]),
+            (118, [0, 0, 256]),
+            (130, [1024, -640, 128]),
+            (142, [0, -256, 0]),
+        ] {
+            for (axis, value) in values.into_iter().enumerate() {
+                bytes[offset + axis * 4..offset + axis * 4 + 4]
+                    .copy_from_slice(&value.to_le_bytes());
+            }
+        }
+        let model = super::super::parse_3d_file(&bytes).unwrap();
+        let vertex = model.frame_vertex_data[1].coords[0];
+        assert_eq!([vertex.x, vertex.y, vertex.z], [4.0, -2.5, 0.5]);
+        let normal = &model.frame_normal_data[1].face_normals[0];
+        assert_eq!([normal.x, normal.y, normal.z], [0.0, -1.0, 0.0]);
+    }
 
     fn make_v27_face_bytes(u1: u8, texture_data: u16, vertex_count: u8) -> Vec<u8> {
         let mut buf = Vec::new();

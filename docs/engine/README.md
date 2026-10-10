@@ -13,3 +13,5 @@ Findings from engine analysis that go beyond file format documentation.
 Player movement units, ground-turn arithmetic, and coverage limits are documented in [player.md](player.md).
 
 [Startup presentation](startup.md) covers the original splash assets, projection, lighting, and screen sequence.
+
+[Book menu](menu.md) covers MENU.INI-driven surfaces, model placement, fonts, selection, and Quit.
