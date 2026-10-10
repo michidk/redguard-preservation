@@ -59,6 +59,40 @@ can use an FPS-derived scale with the configured normal, minimum and maximum
 frame rates and smoothing settings. A nominal frame rate of 12 does not mean
 the game runs a fixed 12 Hz simulation.
 
+### Heading-based translation
+
+Horizontal translation uses the floating-point [shared rotation table](water.md#wave-lookup-table),
+not the separate integer sine table. Negate the actor heading and mask it to
+2047 to select the sine sample; cosine uses the sample 512 entries later.
+Multiply the integer movement distance by each sample and add it to the current
+X or Z position converted to single precision. Store the sum at single
+precision, then truncate it to the runtime integer coordinate. Rounding the
+sum before integer conversion is observable at ordinary world coordinates.
+
+For heading 2036, distance 680, and initial X/Z `(10446802, 10818615)`, the result
+is `(10446827, 10819295)`. Keeping the sum at double precision until truncation
+would give a different Z result. At distance 1360, the following six updates
+advance X/Z by `(50, 1359)` each in the sampled route.
+
+### Direction recovered from displacement
+
+Collision response derives a movement heading from the integer X/Z displacement.
+Take the absolute components and repeatedly halve both, discarding remainders,
+until neither exceeds 511. Axis-aligned vectors select the corresponding quarter
+revolution directly. For two nonzero components, equal magnitudes select 256;
+otherwise index a first-octant table with
+`floor(512 × smaller_component / larger_component)`. When X is larger, subtract
+the table result from 512. Reflect this first-quadrant angle according to the
+original component signs, negate it for the actor-heading convention, and mask
+to 2047.
+
+The 512 used first-octant entries are
+`truncate(atan(index / 512) × 65536 / 3.141592654) >> 6`.
+All used entries match the captured integer table. The diagonal case uses its
+explicit value rather than indexing an extra endpoint. The observed displacement
+`(−3341, 1893)` yields movement heading 345. Directly rounding a continuous
+`atan2` angle produces a different result.
+
 ## Forward-walking startup
 
 Ordinary forward walking keeps a startup phase from zero through three.
@@ -89,6 +123,15 @@ Each resulting position was retained as the previous position in the following
 update in this case. This sample does not establish collision behavior elsewhere,
 the complete animation eligibility rules.
 
+A further ISLAND route used heading 2036, walking speed 8 and frame scale 170.
+Requesting walk group 20 from idle immediately selected the group's first frame
+with its movement marker set. The first two completed updates advanced startup
+without moving. The third update cleared the marker and moved 680 runtime units
+before heading projection; subsequent updates used 1360. Nine complete actor
+updates matched the group countdown, marker, startup, and final X/Z positions.
+The group is type 1, while idle group zero is type 0. A player animation adapter
+restricted to type 0 cannot reproduce this route.
+
 ### Ending a walking update
 
 The actor update tracks whether it accepted forward movement. At the end of an
@@ -101,6 +144,37 @@ an update ended at phase zero with idle animation and equal current and previous
 positions. The following update retained that position and phase. This verifies
 the ordinary release case, not the timing of host keyboard event delivery or
 all movement interruptions.
+
+### Continuation after input release
+
+Accepted movement is not equivalent to a held input. The actor update can
+continue movement from its current animation group after the input has cleared.
+The run-group continuation still passes through the animation marker gate and
+counts as accepted forward movement when that marker suppresses translation.
+
+In an ISLAND release sample, all eight sampled player inputs were zero while
+group 18 remained current with its marker set. The update invoked forward
+continuation, retained startup phase three, and left position unchanged. The
+next update selected idle group zero and reset the phase to zero. Eight
+consecutive idle updates retained that position and cleared phase.
+
+For ordinary type-1 walking, a pending default-group request does not immediately
+replace the current group. A `GoToFuture` command takes its exit target when a
+different pending group exists, or when exit processing is already active. The
+taken jump marks exit processing active and clears the movement marker; a
+`BreakPoint` at the target can set the marker again. A pending default remains
+pending through these exit frames until `EndAnimation` starts it in the same
+advancement call, using that call's tick input.
+
+An ISLAND walk-stop trace began with group 20 at command 12 and idle group zero
+pending, with all sampled inputs released. A one-tick update took command 13's
+exit to command 31 and selected frame command 32 with the movement marker set.
+The group retained that marker through its exit frames. On reaching End, the
+same update selected idle group zero and reset the forward startup phase.
+Thirteen complete updates retained position `(10447527, −190464, 10838321)` and
+matched the group, pending request, cursor, countdown, exit state and marker.
+This establishes the default-exit path for walking type 1, not every interruption
+or group type.
 
 ## Ordinary forward-walk support checks
 
@@ -139,7 +213,20 @@ and walking attribute was 8, giving a 19-map-unit probe at raw Z `10526387`.
 The obstacle and slope checks allowed it. Ground support selected terrain with
 normal `(−39, −250, −39)`, classification 4, and actor-height result `−190976`.
 The player's position remained unchanged by these checks. This sample verifies
-an accepted terrain probe; it does not establish blocked-wall or ledge behavior.
+an accepted terrain probe; it does not establish ledge behavior.
+
+A separate ISLAND wall attempt at runtime position
+`(10432684, -191744, 10739172)`, heading 26, rejected the sphere probe.
+Walking returned without translating or advancing its zero startup phase.
+The later ground response in the same update retained that position and the
+equal previous position. The frame scale was 170 and idle group zero had no
+translation-suppression marker. This verifies rejection before translation for
+that wall contact; it does not establish swept correction or sliding.
+
+An unsuccessful sphere, steep-surface, or ground-support probe marks the
+forward attempt blocked and returns failure. Subsequent checks in that probe
+are skipped. The blocked-attempt marker is transient; it is not a permanent
+collision state.
 
 ### Converting support height to actor position
 
@@ -250,6 +337,141 @@ running actor. An additional support sphere is stored separately and is excluded
 from the ordinary obstacle-query count. X- and Z-dominant shapes use different
 construction rules.
 
+### Model-distance candidate test
+
+An ordinary actor's collision query converts its runtime origin to integer map
+units by arithmetic right shift by eight. If the actor has a model, the search
+radius is twice the model radius, truncated to an integer. Without a model, the
+search radius is 200 map units. The actor's own model is excluded.
+
+A model passes the distance test when the squared distance from the query origin
+to the model placement is no greater than the square of the sum of the query
+radius and the model radius. Model placement coordinates and radii are floating
+point. The coordinate differences, squared-distance sum, and combined radius
+are stored at single precision before the final comparison. Equality passes.
+
+In an ISLAND query, the player model radius 78.3671875 produced search radius
+156, not the nearest integer 157. The query origin was `(40807, −744, 42260)`.
+The current spatial list contained 224 static objects. Applying their runtime
+collision flags and the distance test selected the same four models, in order,
+as the original candidate list. Their model radii were 585.80078125,
+435.22265625, 55.421875, and 55.421875 map units.
+
+### Sphere contact with model faces
+
+The forward obstacle query converts the proposed actor origin to integer map
+units by arithmetic right shift by eight. Actor orientation transforms each
+local collision-sphere center; the model's inverse placement transform then
+expresses the center in model coordinates. The face test uses the model's
+stored face normal and polygon vertices, rather than a rendered triangle mesh.
+
+For a sphere center C, radius r, a face vertex V, and face normal N, the signed
+plane distance is `(V − C) · N`. When collision sidedness is enabled, a distance
+greater than 4 map units rejects the face. Independently, a squared distance
+greater than `r²` rejects it. The candidate contact point is the perpendicular
+projection `C + N × distance` onto the face plane.
+
+A face passes the remaining test when any polygon vertex is within the sphere,
+any polygon edge segment intersects the sphere, or the projected contact lies
+inside every oriented polygon edge. Boundary equality counts as contact.
+For the inside test, each consecutive vertex pair A/B must satisfy
+`((A − contact) × (B − contact)) · N >= 0`. A face that passed for one sphere
+is not added again for another sphere in the same model query.
+
+The reported contact remains the plane projection even when a vertex or edge
+intersection accepted the face. The model placement transform returns the
+contact point and normal to world coordinates. The obstacle probe needs only
+whether any model reported a contact; it does not move the actor to that point.
+
+In the blocked ISLAND sample above, the first contacting sphere had radius 24
+and the face-plane distance was −19.6171875 map units. The projection was inside
+the polygon. The reported world contact was
+`(40751, −791, 41987.6171875)` with normal `(0, 0, −1)` before integer contact
+conversion. Recomputing the plane projection from the observed model geometry
+reproduced that contact. A radius of 19 rejects it at the plane-distance test.
+The following forward-probe result was failure and the player remained at the
+same position. This sample verifies a face-interior contact; edge-only and
+vertex-only contacts still need independent live samples.
+
+These are the narrow face-contact rules. Model and collision-group broad-phase
+selection, transformed/scaled models, swept correction, moving geometry, and
+non-upright actor shapes require their own coverage before claiming a complete
+collision implementation.
+
+### Horizontal body-contact response
+
+Body contacts are processed after the movement and ground-support response.
+For an ordinary grounded actor, the response uses the displacement from the
+previous position to the attempted position, including its vertical component.
+It normalizes that displacement to length 65536. The length divided by 65536 is
+stored at single precision before dividing the displacement components. Each
+quotient is stored at single precision before nearest-integer conversion.
+
+For an eligible facing wall contact, the horizontal dot product is
+`(movement_x × normal_x + movement_z × normal_z) >> 8`, using the normalized
+movement and the contact's integer normal. The comparison threshold is
+`SYSTEM.INI` `slide_range`, which is −60000 in the installed configuration.
+When the dot product is strictly greater than the threshold, the response
+subtracts the normal component from the normalized horizontal movement. Each
+projected component is shifted arithmetically right by four and added to the
+previous X or Z position. Otherwise, an actor outside the sliding state restores
+its previous X and Z. This step leaves Y unchanged.
+
+A direct ISLAND wall approach had displacement `(−4274, 0, 960)`, normalized
+movement `(−63943, 0, 14362)`, and contact normal `(256, 0, 0)`. Its dot product
+−63943 selects rollback. Both the body-response result and the completed actor
+update retain the previous position `(10449205, −190464, 10770526)`.
+
+An oblique approach had displacement `(−3341, 0, 1893)`, normalized movement
+`(−57019, 0, 32307)`, and the same normal. Its dot product −57019 selects
+projection. From previous position `(10447534, −190464, 10771472)`, the result is
+`(10447534, −190464, 10773491)`: no X displacement and 2019 runtime units along Z.
+The completed actor update retains this position.
+
+### Grounded wall-facing adjustment
+
+After a projected wall response, an ordinary grounded actor whose current
+position differs from its previous position adjusts its heading. This branch
+requires no active sliding, airborne, or special movement state. The starting
+heading for this calculation is the attempted displacement's quantized heading,
+not the actor's current facing. Convert the contact normal to the opposing
+actor-facing heading by adding half a turn to its negated quantized heading
+and masking to 2047.
+
+Subtract the movement heading from that normal-facing heading. Differences
+below −1024 add 2047; differences above 1024 subtract 2047. A positive difference
+subtracts up to 32 from the movement heading; a negative difference adds up to
+32. Zero leaves the movement heading unchanged. This difference correction uses
+2047, unlike the ordinary 2048-unit turn wrap.
+
+Separately compare the actor's pre-response heading with the movement heading,
+masking both to 2047 and wrapping their difference to the interval −1024 through
+1024 using a full 2048-unit turn. When the absolute difference is greater than
+512, add 1024 to the adjusted heading and mask the result to 2047.
+
+For the oblique wall approach above, actor heading 344 and movement heading 345
+meet a normal-facing heading of 512. The completed update has heading 313.
+The following update has movement heading 314 and completes at heading 282.
+
+### Residual static-contact separation
+
+After the primary body response, the actor queries static face contacts again.
+The separation distance is the current horizontal displacement length shifted
+right by eight, with a minimum from `SYSTEM.INI` `poly_push_units`. The installed
+minimum is 16. For remaining contacts, sum their integer normals, divide each
+component by the contact count with truncation toward zero, and normalize the
+result to length 65536 using the body-response normalization above. Shift each
+normalized component arithmetically right by eight. Add its X and Z components
+multiplied by the separation distance to the actor position. Y is unchanged.
+A nonempty contact set marks the residual-separation result even when its
+averaged normal has no horizontal component.
+
+A stationary ISLAND overlap at `(10444931, −190464, 10771486)` had
+one remaining contact with normal `(256, 0, 0)` and no held inputs. Previous and
+current positions were equal. The minimum distance 16 produced an X correction
+of 4096, reaching `(10449027, −190464, 10771486)` at the end of the actor update.
+Height and heading remained unchanged.
+
 ## FPS-derived frame scale
 
 The normal FPS measurement path counts one frame per update and accumulates
@@ -311,6 +533,44 @@ measured FPS rose from 18 to 19 and the scale changed directly from 170 to 161.
 This describes the FPS-derived path after timing startup. It does not establish
 selection of that path in every game state, alternate-timer behavior, or the
 mapping from host elapsed time to original timer ticks.
+
+### Whole nominal ticks
+
+The computed frame scale is accumulated in units of 1/256 nominal tick. Each
+update's whole-tick increment is the difference between the accumulated whole
+ticks after and before adding the new scale. The fractional remainder carries
+to the next update. A movement update can therefore receive zero animation
+and script ticks while still having a nonzero movement scale. Rounding each
+update's scale independently, or forcing at least one animation tick per
+movement update, changes behavior.
+
+A separate counter uses the same accumulation in units of 1/32 nominal tick;
+its update increment is the corresponding difference of whole counter values.
+
+Eight consecutive ordinary ISLAND timing updates began with a scale
+accumulator of 173332 and produced:
+
+| Frame scale | Accumulator after addition | Whole nominal ticks |
+| --- | --- | --- |
+| 170 | 173502 | 0 |
+| 176 | 173678 | 1 |
+| 178 | 173856 | 1 |
+| 180 | 174036 | 0 |
+| 180 | 174216 | 1 |
+| 180 | 174396 | 1 |
+| 180 | 174576 | 0 |
+| 180 | 174756 | 1 |
+
+All eight increments matched the accumulated differences, including the three
+zero-tick updates. This sample used the FPS-derived path after startup.
+
+Clock reset initializes a twelve-update startup countdown. During that
+countdown, the exposed movement scale is 256, the whole nominal-tick increment
+is 1, and the finer counter increment is 8. The underlying FPS calculation
+and accumulation still run, with FPS and scale smoothing disabled during the
+countdown. Once it expires, the exposed values use the calculated scale and
+accumulated increments. These reset rules are instruction-verified; the table
+above does not test the reset period.
 
 ## Remaining coverage
 
