@@ -338,8 +338,8 @@ Dialog menu layout, line limits, and speech settings.
 | `menu_start_x` | `35` | Dialog menu X start position in screen pixels. |
 | `menu_start_y` | `25` | Dialog menu Y start position in screen pixels. |
 | `dialog_max_menu_items` | `20` | Maximum number of items in a dialog menu. |
-| `dialog_max_dialog_lines` | `20` | Maximum number of lines in a dialog text block. |
-| `dialog_max_text_width` | `500` | Maximum width of dialog text in pixels. |
+| `dialog_max_dialog_lines` | `20` | Number of [subtitle](../engine/subtitles.md) slots (minimum 16), not a line limit. |
+| `dialog_max_text_width` | `500` | Subtitle wrap width in 640-wide screen pixels (minimum 150). |
 | `dialog_print_text` | `1` | Display dialog as on-screen text. `1` = on. |
 | `dialog_use_speech` | `1` | Play voiced speech audio during dialog. `1` = on. |
 | `dialog_max_distance` | `1600` | Maximum distance at which dialog audio is played. |
