@@ -151,3 +151,23 @@ jobs:
           name: ${{ env.VERSION }}
           body: ${{ steps.changelog.outputs.content }}
           files: artifacts/*
+
+  publish-cratesio:
+    name: Publish to crates.io
+    needs: ['publish-release']
+    runs-on: ubuntu-26.04
+    environment: publish-crates.io
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Install toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Upload to crates.io
+        run: cargo publish
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
