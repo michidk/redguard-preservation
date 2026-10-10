@@ -1,65 +1,77 @@
 # Water Wave Animation
 
-Per-frame vertex displacement system that animates water surfaces on the terrain grid. Water cells are identified by texture index, then their height values are replaced with a sine-table lookup producing radial concentric ripples.
+Per-frame vertex displacement system that animates water surfaces on the terrain grid. Selected terrain vertices receive a shared rotation-table displacement producing radial concentric ripples.
 
-## Water Tile Detection
+## Water vertex selection
 
-A grid cell is classified as water when **all four corner vertices** have a texture index (lower 6 bits of [Map 3](../formats/WLD.md#texture-selection-map-3)) in the set **{0, 5, 30, 31}**. The check runs per-cell inside the wave renderer — only cells passing all four corners receive wave displacement. Non-water cells retain their static [height-table](../formats/WLD.md#height-lookup-table) value.
+**Verified:** wave displacement tests a vertex and the three corners toward
+negative grid X and positive engine Z. The selected vertex must have texture
+index **{0, 30, 31}**; the other three may have **{0, 5, 30, 31}**. Each index is
+masked to its lower six bits. Only the selected vertex moves. Texture 5 can
+border an animated vertex but is never itself selected for displacement.
 
-## Wave Parameters
+The engine reverses WLD source rows when loading the terrain. In the raw
+row-major grid returned by `WldFile::combined_map`, the selected vertex is
+`(x, row)` and its neighbours are `(x-1, row)`, `(x, row-1)` and
+`(x-1, row-1)`. The first raw row and first column have no such complete cell.
 
-Three values configure the wave system per world, set via [`world_wave[N]`](../config/world-ini.md) in `WORLD.INI`:
+## Wave parameters and enablement
 
-| Parameter | INI position | Console command | Description |
-|---|---|---|---|
-| Amplitude | 1st | `fxwaveamp` | Vertical scale of wave displacement. Multiplies the sine-table value. |
-| Speed | 2nd | `fxwavespeed` | Rate of phase advance per frame. Higher values = faster ripple animation. |
-| Spatial frequency | 3rd | `fxwavefreq` | Controls ripple density. Multiplies the squared-distance term in the phase calculation. |
+**Verified:** `world_wave[N]` contains amplitude, speed and spatial frequency,
+in that order. The world loader parses integers and converts them to floats.
+Terrain setup truncates speed and frequency toward zero into integers.
+Amplitude remains floating point. There is no additional speed multiplier.
+A zero amplitude disables displacement; `world_scapeshift` does not enable it.
 
-The setup function stores amplitude and spatial frequency directly; speed passes through a conversion function before storage.
-
-## Displacement Formula
-
-For each water vertex at grid position (x, z), the engine computes:
-
-```
-distance_sq = x_offset² + z_offset²
-phase       = (distance_sq * spatial_freq + frame_count * speed) & 0x7FF
-wave_offset = sine_table[phase] * amplitude
-bias        = amplitude * centering_constant
-
-vertex.y    = wave_offset + height_table[heightmap_byte] - bias
-```
-
-Where:
-- **x_offset, z_offset** — grid-relative coordinates from the center of the visible terrain window
-- **frame_count** — global frame counter, advances each tick
-- **`& 0x7FF`** — wraps the phase to 2048 entries (the sine table length)
-- **height_table** — the same 128-entry [height lookup table](../formats/WLD.md#height-lookup-table) used for all terrain
-- **bias** — centers the oscillation so waves ripple symmetrically around the base water level
-
-The squared-distance term produces **concentric circular ripples** radiating outward. This is not a planar wave — the phase depends on radial distance from the grid center, so ripples form rings rather than parallel lines.
-
-## Sine Lookup Table
-
-The wave animation indexes a **2048-entry float table** allocated at runtime. The table is addressed as:
-
-```
-value = table[(phase & 0x7FF) * 4]    (byte offset; effectively table[phase & 0x7FF] as float)
-```
-
-The table stores one full period of a periodic waveform across 2048 samples. Multiple engine systems share this table — it is also used for camera rotation interpolation and sky animation, confirming it is a general-purpose sine/cosine lookup rather than a water-specific waveform.
-
-## Water Level Initialization
-
-The terrain height table has two initialization modes:
-
-| Mode | Formula | When used |
+| Parameter | Console command | Meaning |
 |---|---|---|
-| Default | `height[i] = -ABS(source[i])` | No water level specified |
-| Water-relative | `height[i] = water_level - ABS(source[i])` | Water level parameter is non-zero |
+| Amplitude | `fxwaveamp` | Vertical displacement scale in engine units. |
+| Speed | `fxwavespeed` | Phase advance per BIOS timer tick. |
+| Spatial frequency | `fxwavefreq` | Multiplier for squared grid distance. |
 
-When a non-zero water level is provided, a secondary rendering flag is set that enables the wave displacement pass. The same 128-entry source table is used in both modes — only the sign/offset changes.
+## Displacement and clock
+
+**Verified:** for selected engine-grid vertex `(x, z)`, width `W`, height `H`,
+integer speed `S`, integer frequency `F`, amplitude `A`, and BIOS tick count `T`:
+
+```
+distance_sq = (x - floor(W/2))² + (z - floor(H/2))²
+phase       = (distance_sq * F + T * S) & 2047
+height      = base_height + wave_table[phase] * A - A * 0.5
+```
+
+The BIOS timer count is independent of rendered frames. The standard PC BIOS
+clock advances approximately 18.2065 times per second. The absolute phase
+depends on that clock's initial value, not on scene loading. The spatial origin
+is the **whole terrain midpoint**, not the camera or the visible-window center.
+
+`base_height` is the [height-table](../formats/WLD.md#height-lookup-table)
+value, `world_scapeshift - abs(source_height)`, in engine coordinates with
+positive Y down. Exporters using positive Y up must negate the displacement
+and apply their engine-unit scale. The half-amplitude subtraction is a vertical
+bias; the range for positive amplitude is approximately `[-1.5*A, 0.5*A]`.
+It does not center the oscillation on the base height.
+
+## Wave lookup table
+
+**Verified:** the shared rotation table contains samples of
+`sin(n * 6.2831852 / 2048)`, stored as 32-bit floats. Water addresses the table
+starting at sample 512, so `wave_table[p]` is the float sample
+`sin((p + 512) * 6.2831852 / 2048)`. The 2048 wave phases therefore start near
+one, zero, minus one, and zero at phases 0, 512, 1024, and 1536 respectively.
+The decimal full-period constant is part of the table construction.
+
+**Inferred:** for amplitude 24 and zero base height, engine heights at those
+four phases are approximately 12, -12, -36, and -12. At speed 28, phase advances
+by 28 per BIOS tick; its continuous period is approximately 4.02 seconds.
+
+## Terrain window
+
+**Verified:** the engine fills a 34-by-34 storage grid around its terrain
+camera-grid coordinates, from `camera-17` through `camera+16`. The wave loop
+selects the inner 32-by-32 vertices, from `camera-16` through `camera+15` on
+each axis, and reads the four corners described above from that storage.
+This is an original rendering window, not a moving ripple origin.
 
 ## Rendering Pipeline
 
@@ -67,13 +79,13 @@ The wave renderer runs each frame as part of the terrain update:
 
 ```
 1. Build vertex grid
-   └─ 33×33 vertices, each with X, Y (height), Z, texture index
+   └─ 34×34 storage vertices, each with X, Y (height), Z, texture index
    └─ stride: 76 bytes per vertex, 2584 bytes per row
 
 2. Wave displacement
    ├─ Clear dirty flags
    ├─ For each grid cell:
-   │   ├─ Check all 4 corners for water texture indices {0, 5, 30, 31}
+   │   ├─ Check the selected corner {0, 30, 31} and its three neighbours {0, 5, 30, 31}
    │   ├─ If water: replace vertex.y with sine_table[phase] * amplitude + height - bias
    │   └─ Set dirty flags on affected cells and neighbors
    └─ Recompute normals on displaced geometry:
@@ -91,7 +103,7 @@ The normal recomputation after displacement ensures water surfaces receive corre
 
 ## Terrain Vertex Layout
 
-Each vertex in the 33×33 grid occupies 76 bytes:
+Each storage vertex occupies 76 bytes:
 
 | Offset | Size | Type | Name | Description |
 |---|---|---|---|---|
@@ -117,6 +129,8 @@ Three runtime console commands allow tuning wave parameters without restarting:
 These modify the same globals as the INI parameters and take effect on the next frame.
 
 ## External References
+
+- [PC BIOS timer ticks](https://www.delorie.com/djgpp/doc/rbinter/id/80/22.html) — standard BIOS timer clock
 
 - [WLD § Water Tiles](../formats/WLD.md#water-tiles) — texture-index detection criteria for water cells
 - [WLD § Height Lookup Table](../formats/WLD.md#height-lookup-table) — the 128-entry height table shared by terrain and water base heights

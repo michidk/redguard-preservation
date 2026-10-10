@@ -155,7 +155,7 @@ No origin offset is applied to vertex positions. A separate world→grid reverse
 
 Each Map 1 byte is masked to 7 bits (`& 0x7F`) at load time, producing height values in the range 0–127. These values index into a 128-entry float lookup table to produce world-space Y coordinates.
 
-The engine stores a static source table of positive float values and negates them at initialization (`-ABS(source)`), so terrain heights are negative — the terrain surface sits below a reference plane. A second initialization mode computes `water_level - ABS(source)`, adjusting heights relative to a configurable water-level parameter.
+The engine stores a static source table of positive float values and negates them at initialization (`-ABS(source)`), so terrain heights are negative — the terrain surface sits below a reference plane. A second initialization mode computes `world_scapeshift - ABS(source)`, adjusting heights relative to a terrain height offset.
 
 #### Height Lookup Table
 
@@ -202,7 +202,7 @@ The engine loads a [`SURFACE.INI`](../config/surface-ini.md) configuration file 
 
 ### Water Tiles
 
-The terrain renderer treats certain texture indices as water or special tiles. When all four corners of a grid cell have texture indices in the set {0, 5, 30, 31}, the cell is rendered as a water surface instead of normal terrain geometry. This applies water-plane rendering with wave animation effects. See [Water Waves](../engine/water.md) for the per-frame displacement formula and rendering pipeline.
+**Verified:** wave displacement selects a corner with texture index {0, 30, 31} when its three neighbours toward negative engine X and positive engine Z are in {0, 5, 30, 31}. Indices use the lower six bits. Only that corner moves; texture 5 is a permitted neighbour. See [Water Waves](../engine/water.md#water-vertex-selection) for raw-row orientation, timing, and the displacement formula.
 
 ### Terrain Normals
 

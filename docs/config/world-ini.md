@@ -72,7 +72,7 @@ Each world is identified by an integer index `N`. Keys follow the pattern `key_n
 
 | Key | Type | Description |
 |---|---|---|
-| `world_wave[N]` | a, b, c | Wave animation parameters for water surfaces. Three integers: **a** = amplitude (vertical displacement scale), **b** = speed (phase advance per frame), **c** = spatial frequency (ripple density, multiplies the squared-distance term). See [Water Waves](../engine/water.md) for the displacement formula. |
+| `world_wave[N]` | a, b, c | Wave animation parameters for water surfaces. Three integers: **a** = amplitude (vertical displacement scale), **b** = speed (phase advance per BIOS timer tick), **c** = spatial frequency (ripple density, multiplies the squared-distance term). See [Water Waves](../engine/water.md) for the displacement formula. |
 
 #### PVO Visibility
 
