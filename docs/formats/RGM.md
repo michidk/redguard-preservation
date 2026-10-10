@@ -369,7 +369,7 @@ All fields little-endian.
 | 0x0C | 2 | `i16` | v_vertex | Vertex-related field. |
 | 0x0E | 2 | `i16` | v_size | Size-related field. |
 | 0x10 | 2 | `i16` | taunt_id | First taunt animation id; additional taunts count up from this value. |
-| 0x12 | 2 | `i16` | field_12 | Set only on large creatures (dragon, gremlin). |
+| 0x12 | 2 | `i16` | collision_sphere_scale | Eight-fractional-bit radius scale for actor collision spheres; nonpositive values select 256. |
 | 0x14 | 2 | `i16` | field_14 | Source value for RAHD `raex_stat` at 0x97. Set on combat actors. |
 | 0x16 | 2 | `i16` | field_16 | Set on some combat actors. |
 | 0x18 | 2 | `i16` | range_min | Combat engagement minimum range. Multiply by 256 for world units. Only set on dragon, golem, serpent. |

@@ -141,7 +141,45 @@ normal `(−39, −250, −39)`, classification 4, and actor-height result `−1
 The player's position remained unchanged by these checks. This sample verifies
 an accepted terrain probe; it does not establish blocked-wall or ledge behavior.
 
+### Upright actor collision spheres
+
+For bounds whose X and Z totals are not strictly greater than both other totals,
+the ordinary collision shape is a vertical series of spheres. Its unscaled
+radius is half the larger X/Z total, truncated, with a minimum of 4 map units.
+The sphere spacing is three times half that radius, with the division performed
+first. The available height is total Y minus `SYSTEM.INI` `post_collide_height`;
+a negative available height is replaced by `post_collide_height`. The sphere
+count is the available height divided by the spacing, truncated, with a minimum
+of two.
+
+The radius scale comes from the signed RAEX field at 0x12. Nonpositive scales
+select 256; the scaled radius is the integer product of radius and scale shifted
+right by eight. All spheres have X and Z centers zero. All except the last start
+at Y = radius minus the negative Y extent, increasing by the spacing. The last
+center is positive Y extent minus `post_collide_height` minus scaled radius.
+
+For ISLAND Cyrus, totals `(48, 128, 49)`, positive Y extent 62, negative Y extent
+66, post-collision height 50 and the default radius scale produce two radius-24
+spheres at local Y −42 and −12. Both spheres and their count were observed in the
+running actor. An additional support sphere is stored separately and is excluded
+from the ordinary obstacle-query count. X- and Z-dominant shapes use different
+construction rules.
+
 ## FPS-derived frame scale
+
+The normal FPS measurement path counts one frame per update and accumulates
+elapsed BIOS ticks. A measurement window contains 18 BIOS ticks. Once at least
+one complete window has elapsed, measured FPS becomes the frame count divided
+by the number of complete windows, using integer division. The frame count
+resets to zero; the tick remainder is retained. A negative accumulated tick
+count is clamped to zero. This uses the BIOS clock, not exactly one wall-clock
+second; see the [water clock](water.md) for its frequency.
+
+A live nine-update sample advanced the accumulated tick remainder from 7 to 17
+while the frame count advanced from 6 to 14. The next update added one tick,
+produced measured FPS 15, and reset both frame count and tick remainder to zero.
+The intermediate updates included two-tick increments. Debugger pauses were
+excluded by using the original clock values as inputs.
 
 The FPS-derived timing path keeps a measured FPS and a smoothed FPS. On each
 update, the smoothed value moves toward the measured value by one. If their
