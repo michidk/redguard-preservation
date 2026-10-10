@@ -64,12 +64,13 @@ The full documentation is published at **<https://michidk.github.io/redguard-pre
 
 ## Quick Start
 
-Requirements:
+Install the CLI from [crates.io](https://crates.io/crates/redguard-preservation):
 
-- Rust stable toolchain
-- Cargo
+```bash
+cargo install redguard-preservation
+```
 
-Build:
+To build from source, install the stable Rust toolchain, then run:
 
 ```bash
 cargo build
