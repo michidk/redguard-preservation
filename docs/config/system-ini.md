@@ -58,7 +58,7 @@ Core engine paths, audio configuration, physics constants, HUD element positions
 | `fast_sound` | `1` | Fast sound mixing mode. `1` = on. |
 | `fidelity` | `0` | Sound fidelity level. |
 | `redbook` | `on` | CD audio (Red Book) playback enabled. |
-| `redbook_volume` | `200` | CD audio volume level. |
+| `redbook_volume` | `200` | CD audio volume. Only 0–127 is accepted, so the shipped `200` is ignored; see [music](../engine/music.md). |
 | `sound_distance` | `64` | Maximum distance at which sounds are audible. |
 | `post_collide_height` | `50` | Post-collision step height for ground snapping. |
 | `hpost_collide_height` | `50` | Post-collision step height for hanging/climbing. |
