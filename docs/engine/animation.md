@@ -73,3 +73,23 @@ past those frames and selects the next one when no skips remain. It does not
 interpolate vertex positions between model frames. These rules describe a
 forward current group; reverse playback, pending-group eligibility, delays,
 and event dispatch have additional state.
+
+## Breakpoints and walking translation
+
+`BreakPoint`, opcode five, sets a marker in the current animation state and
+continues interpreting commands. It does not pause the game or the animation.
+Ordinary forward walking checks this marker after advancing its startup phase;
+a set marker suppresses that update's translation. A native ISLAND walking trace
+confirmed the marker set during a suppressed startup update, followed by a
+later update that translated after the marker cleared.
+
+For forward playback, advancing the command cursor when its frame countdown
+expires clears the marker. Skipping a `ShowFrame`, taking a `GoToPrevious`
+backward jump, or taking a `GoToFuture` exit jump also clears it. A zero-tick
+update or a countdown decrement that keeps the same cursor does not clear it.
+A later `BreakPoint` can set it again before the selected frame is returned.
+Selecting a new group resets the marker before interpreting its commands.
+
+These rules establish the marker's lifetime and its ordinary walking use.
+They do not establish all movement gates, actor eligibility, or pending-group
+transition scheduling.
