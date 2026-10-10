@@ -31,6 +31,34 @@ The group header currently called `anim_id` supplies the animation's byte
 frame countdown. An animation request adds its speed modifier to that value.
 This is separate from the task's loop countdown.
 
+## Ordinary requests and default groups
+
+An actor keeps a current group, one pending group, and a default group. Ordinary
+requests do not form a queue. When the current group is the default, requesting
+the default again returns without restarting it. Requesting another group
+clears the current group so that the new request can start immediately.
+
+Otherwise, an ordinary request replaces the pending group when there is no
+current group, no pending group, the pending group number is less than or equal
+to the requested number, or the pending group is the current group. A lower
+number cannot replace a higher pending number outside those cases.
+
+An absent requested group falls back to the actor's default group if that group
+exists. If neither exists, the pending request is cleared. The accepted group's
+low header byte plus the request modifier becomes its byte countdown, with
+byte wrapping. A request with no current group invokes animation advancement
+immediately using the existing shared tick input; it does not invent a tick.
+
+When neither a current nor pending group exists, advancement requests the
+default group with modifier zero. `EndAnimation` clears the current group and
+invokes advancement again, so a pending request or the default can start in
+the same update. Treating End as a permanently stopped actor loses this behavior.
+
+These facts describe ordinary request arbitration and the default fallback.
+Forced requests, group-type interruption rules, actor eligibility, and the
+number of advancement calls made by a complete actor update require separate
+handling. They do not authorize automatic activation of placed actors.
+
 ## Timing boundary
 
 Animation consumes the shared whole nominal-tick increment. The normal timing
