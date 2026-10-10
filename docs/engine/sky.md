@@ -102,7 +102,7 @@ the Glide renderer applies them.
 
 ## Sun disc
 
-A separate billboard renders the sun as a textured sprite in the sky, independent of both sky layers:
+A separate billboard renders the sun as a textured sprite in the sky, independent of the BSI sky plane:
 
 | Key | Description |
 |---|---|
