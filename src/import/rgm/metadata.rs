@@ -495,14 +495,14 @@ fn parse_mpm_records(data: &[u8]) -> Vec<serde_json::Value> {
         return Vec::new();
     };
     let count = usize::try_from(count_u32).unwrap_or_default();
+    if count > (data.len() - 4) / 13 {
+        return Vec::new();
+    }
+    let auxiliary_start = 4 + count * 12;
     let mut out = Vec::with_capacity(count);
     let mut cursor = 4usize;
 
-    for _ in 0..count {
-        if cursor + 13 > data.len() {
-            break;
-        }
-
+    for index in 0..count {
         let Some(pos_x) = read_i24_le_signed(data, cursor) else {
             break;
         };
@@ -513,14 +513,14 @@ fn parse_mpm_records(data: &[u8]) -> Vec<serde_json::Value> {
             break;
         };
         let pos_z = (pos_z_signed as u32) & 0x00FF_FFFF;
-        let reserved = read_u8(data, cursor + 12).unwrap_or_default();
+        let reserved = data[auxiliary_start + index];
 
         out.push(serde_json::json!({
             "position": positioning::decode_position(pos_x, pos_y, pos_z),
             "reserved": reserved,
         }));
 
-        cursor += 13;
+        cursor += 12;
     }
 
     out
