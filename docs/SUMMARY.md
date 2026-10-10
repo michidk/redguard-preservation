@@ -32,6 +32,7 @@
   - [Item Attachment System](engine/attachment.md)
   - [SOUP Scripting](engine/SOUP.md)
   - [Music](engine/music.md)
+  - [Positional Sound](engine/sound.md)
   - [Sky Renderer](engine/sky.md)
   - [Glide fog and clipping](engine/fog.md)
   - [Water Waves](engine/water.md)
