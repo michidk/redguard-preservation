@@ -46,6 +46,36 @@ can use an FPS-derived scale with the configured normal, minimum and maximum
 frame rates and smoothing settings. A nominal frame rate of 12 does not mean
 the game runs a fixed 12 Hz simulation.
 
+## Forward-walking startup
+
+Ordinary forward walking keeps a startup phase from zero through three.
+The selected walking speed is converted to runtime position units by multiplying
+it by 256. For `attr_step_type = 1`, phases zero, one, and two use one quarter,
+one third, and one half of that speed respectively, with integer division.
+Phase three uses the full speed. A walking speed of 8 therefore gives startup
+amounts 512, 682, 1024, and then 2048.
+
+An eligible walking update advances the startup phase before testing whether
+the current animation permits translation. Suppressed translation does not undo
+that phase advance. Consequently the first visible displacement need not use
+phase zero. Two observed ISLAND starts first translated at phase one and phase
+two respectively. Resetting the phase whenever translation is suppressed would
+change the observed startup behavior.
+
+When animation permits translation, the startup amount is multiplied by the
+frame scale and shifted right by eight bits before heading-based displacement.
+One observed heading-zero sequence began at raw Z `10502144` and produced:
+
+| Startup phase used | Frame scale | Raw Z displacement | Resulting raw Z |
+| --- | --- | --- | --- |
+| 1 | 161 | 428 | 10502572 |
+| 2 | 161 | 644 | 10503216 |
+| 3 | 153 | 1224 | 10504440 |
+
+Each resulting position was retained as the previous position in the following
+update in this case. This sample does not establish collision behavior elsewhere,
+the complete animation eligibility rules, or the timing of phase reset on release.
+
 ## FPS-derived frame scale
 
 The FPS-derived timing path keeps a measured FPS and a smoothed FPS. On each
@@ -87,7 +117,7 @@ mapping from host elapsed time to original timer ticks.
 
 ## Remaining coverage
 
-Complete animation eligibility, collision, startup and stop movement, timer-mode
+Complete animation eligibility, collision, other startup paths and stop movement, timer-mode
 selection, jumping, gravity, combat, swimming, climbing, and follow-camera behavior
 are not specified here. Reproducing only the arithmetic above does not establish
 controller parity.
