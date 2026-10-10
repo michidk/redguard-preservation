@@ -19,6 +19,8 @@ pub struct RtxIndexEntry {
 pub struct RtxAudioHeader {
     pub audio_type: AudioType,
     pub sample_rate: u32,
+    /// Header byte 0x0C: the volume (0..=127) a voice clip starts at.
+    pub base_volume: u8,
     pub loop_flag: i8,
     pub loop_offset: u32,
     pub loop_end: u32,
@@ -160,6 +162,7 @@ fn parse_audio_header(data: &[u8]) -> Result<RtxAudioHeader> {
         .ok_or_else(|| Error::Parse("audio header: failed to read sample_rate".into()))?;
     #[allow(clippy::cast_possible_wrap)] // Engine stores this as a signed flag byte in binary data.
     let loop_flag = data[13] as i8;
+    let base_volume = data[12];
     let loop_offset = read_u32_le(data, 14)
         .ok_or_else(|| Error::Parse("audio header: failed to read loop_offset".into()))?;
     let loop_end = read_u32_le(data, 18)
@@ -173,6 +176,7 @@ fn parse_audio_header(data: &[u8]) -> Result<RtxAudioHeader> {
     Ok(RtxAudioHeader {
         audio_type,
         sample_rate,
+        base_volume,
         loop_flag,
         loop_offset,
         loop_end,
@@ -455,6 +459,7 @@ mod tests {
                 assert_eq!(label, "Cyrus speaks");
                 assert_eq!(header.audio_type, AudioType::Mono16);
                 assert_eq!(header.sample_rate, 22050);
+                assert_eq!(header.base_volume, 100);
                 assert_eq!(pcm_data.len(), 100);
             }
             RtxEntry::Text { .. } => panic!("expected audio entry"),

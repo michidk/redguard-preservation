@@ -45,6 +45,8 @@ impl AudioType {
 pub struct SfxEffect {
     pub audio_type: AudioType,
     pub sample_rate: u32,
+    /// Header byte 0x0C: the volume (0..=127) of non-positional starts; 64 in every shipped effect.
+    pub base_volume: u8,
     pub loop_flag: i8,
     pub loop_offset: u32,
     pub loop_end: u32,
@@ -141,6 +143,7 @@ pub fn parse_sfx_file(input: &[u8]) -> Result<SfxFile> {
         #[allow(clippy::cast_possible_wrap)]
         // Engine stores this as a signed flag byte in binary data.
         let loop_flag = input[cursor + 13] as i8;
+        let base_volume = input[cursor + 12];
         let loop_offset = read_u32_le(input, cursor + 14)
             .ok_or_else(|| Error::Parse(format!("effect {i}: failed to read loop_offset")))?;
         let loop_end = read_u32_le(input, cursor + 18)
@@ -168,6 +171,7 @@ pub fn parse_sfx_file(input: &[u8]) -> Result<SfxFile> {
         effects.push(SfxEffect {
             audio_type,
             sample_rate,
+            base_volume,
             loop_flag,
             loop_offset,
             loop_end,
@@ -224,6 +228,7 @@ mod tests {
         assert_eq!(file.effects.len(), 1);
         assert_eq!(file.effects[0].audio_type, AudioType::Mono16);
         assert_eq!(file.effects[0].sample_rate, 22050);
+        assert_eq!(file.effects[0].base_volume, 64);
         assert_eq!(file.effects[0].pcm_data.len(), 100);
     }
 
