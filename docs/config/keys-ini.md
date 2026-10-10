@@ -23,26 +23,26 @@ Action-to-scancode bindings. Two binding slots exist per directional/action key 
 | `key_down[0]` | `31` (S) | Move backward (keyboard). |
 | `key_left[0]` | `30` (A) | Turn left (keyboard). |
 | `key_right[0]` | `32` (D) | Turn right (keyboard). |
-| `key_a[0]` | `42` (L Shift) | Action / Use (keyboard). |
+| `key_a[0]` | `42` (L Shift) | Walk/run modifier (keyboard). |
 | `key_b[0]` | `57` (Space) | Jump (keyboard). |
 | `key_c[0]` | `56` (Alt) | View / Look (keyboard). |
-| `key_d[0]` | `18` (E) | Walk toggle (keyboard). |
+| `key_d[0]` | `18` (E) | Activate / Attack (keyboard). |
 | `key_up[1]` | `138` | Move forward (joystick). |
 | `key_down[1]` | `139` | Move backward (joystick). |
 | `key_left[1]` | `136` | Turn left (joystick). |
 | `key_right[1]` | `137` | Turn right (joystick). |
-| `key_a[1]` | `135` | Action / Use (joystick button 4). |
+| `key_a[1]` | `135` | Walk/run modifier (joystick button 4). |
 | `key_b[1]` | `133` | Jump (joystick button 2). |
 | `key_c[1]` | `134` | View / Look (joystick button 3). |
-| `key_d[1]` | `132` | Walk toggle (joystick button 1). |
+| `key_d[1]` | `132` | Activate / Attack (joystick button 1). |
 | `user_key_up` | `0` | User-remapped forward key. |
 | `user_key_down` | `0` | User-remapped backward key. |
 | `user_key_left` | `0` | User-remapped left key. |
 | `user_key_right` | `0` | User-remapped right key. |
-| `user_key_a` | `0` | User-remapped action key. |
+| `user_key_a` | `0` | User-remapped walk/run modifier. |
 | `user_key_b` | `0` | User-remapped jump key. |
 | `user_key_c` | `0` | User-remapped view key. |
-| `user_key_d` | `0` | User-remapped walk key. |
+| `user_key_d` | `0` | User-remapped activate/attack key. |
 
 A value of `0` in user remap fields means no override (use default binding).
 
@@ -106,6 +106,13 @@ Scancodes 128–139 are mouse/joystick inputs:
 | 132–135 | `button 1` through `button 4` (joystick) |
 | 136–137 | `joy left`, `joy right` |
 | 138–139 | `joy up`, `joy down` |
+
+## Action semantics
+
+The shipped manual, User's Guide page 1, identifies Shift as Walk/Run and
+Ctrl as Activate/Attack. These correspond to `key_a` and `key_d`, respectively,
+in the GOG keyboard layout. The example bindings above describe one layout;
+read the installed file rather than assuming those codes are universal.
 
 ## External References
 
