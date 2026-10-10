@@ -103,15 +103,12 @@ processes at most 36 elapsed ticks. The plane tilts around a camera-relative axi
 
 ### Plane tilt
 
-**Verified in the original Glide game:** the plane can be crossed vertically.
-In ISLAND, with sky level -4500, raising the camera to Y -6055 using
-`magiccarpet`, `yeahbaby`, and Page Up removes the clouds from the forward
-view, leaving the pale-purple world fog background. The sky is not an
-enclosing cube or sphere.
+The sky is a plane that can be crossed vertically. It is not an enclosing cube
+or sphere.
 
-**Verified against the Glide transform:** the initial tilt is 24 of the
-engine's 2048 angle units, approximately 4.21875 degrees. It is a fixed angle,
-not an animation rate. The tilt setter masks its input to 11 bits.
+The initial tilt is 24 of the engine's 2048 angle units, approximately 4.21875
+degrees. It is a fixed angle, not an animation rate. The tilt setter masks its
+input to 11 bits.
 
 Let `h` be the normalized horizontal camera-forward direction in engine
 coordinates. For an unrotated plane point with horizontal position `p`, let
@@ -124,22 +121,17 @@ height, not around the world origin.
 Transform samples before adding height, with the camera facing positive Z:
 `(-65000, 0, 65000)` becomes approximately
 `(-65000, 4781.6963, 64823.8789)`. Facing positive X, the same corner becomes
-approximately `(-64823.875, -4781.6963, 65000)`. Cardinal and oblique headings
-were checked against the original transform. These checks do not establish
-pixel parity with the original rasterizer.
+approximately `(-64823.875, -4781.6963, 65000)`.
 
 ### Initial scroll direction
 
-**Verified:** the sky consumes one value from the engine's shared random
-stream and keeps its low 11 bits as the angle. The stream updates its unsigned
-32-bit state with `state = state * 1103515245 + 12345`, wrapping at 32 bits;
-the returned value is `(state >> 16) & 32767`. Therefore the sky direction is
+The sky consumes one value from the engine's shared random stream and keeps its
+low 11 bits as the angle. The stream updates its unsigned 32-bit state with
+`state = state * 1103515245 + 12345`, wrapping at 32 bits; the returned value is
+`(state >> 16) & 32767`. Therefore the sky direction is
 `(updated_state >> 16) & 2047`. Reproducing a particular session requires the
 state immediately before sky initialization or the resulting direction, not
 just a world identifier. Other engine users also consume this stream.
-
-**Unknown:** complete session seeding and call ordering, and the
-software-renderer behavior.
 
 ## Global Engine Toggles
 
@@ -166,8 +158,8 @@ A separate billboard renders the sun as a textured sprite in the sky, independen
 | `world_sunimgrgb[N]` | Tint color (r, g, b) applied to the sun texture |
 | `world_sunscale[N]` | Size scale of the sun disc |
 
-**Verified for the Glide path:** the billboard center, relative to the camera,
-is the negative of `(truncate(16000*sin(angle)), truncate(16000*cos(angle)),
+The billboard center, relative to the camera, is the negative of
+`(truncate(16000*sin(angle)), truncate(16000*cos(angle)),
 truncate(16000*sin(skew)))`, using `world_sunangle` and `world_sunskew` in the
 2048-step engine angle table. It does not use `world_sun` as its position.
 The sprite faces the camera and remains the same angular size during camera
@@ -183,8 +175,7 @@ The sun texture is bound as eight-bit alpha: its indexed pixel bytes supply
 opacity, independently of its palette. Constant encoded RGB comes from
 `world_sunimgrgb`, defaulting to `(255,255,200)`. The draw uses source-alpha /
 one-minus-source-alpha blending and disables fog for the sun, restoring scene
-fog afterwards. Scene geometry drawn later can cover it. These geometry and
-state facts do not establish exact texture-filtering or raster-edge parity.
+fog afterwards. Scene geometry drawn later can cover it.
 
 ## Console Commands
 

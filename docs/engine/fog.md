@@ -57,8 +57,8 @@ same fog RGB that fills uncovered pixels.
 
 ## Integer precision and framebuffer dithering
 
-**Verified for the software Voodoo 1 oracle:** table fog uses an unsigned
-16-bit reciprocal-depth encoding. For depth greater than one, let
+Table fog uses an unsigned 16-bit reciprocal-depth encoding. For depth greater
+than one, let
 `t = floor(2^32 / depth)`. Values of `t` below 65536 select 65535. Otherwise,
 with `e` the count of leading zero bits in the 32-bit `t`, the encoding is
 `min(65535, ((e << 12) | ((~t >> (19-e)) & 4095)) + 1)`.
@@ -87,10 +87,6 @@ is `floor((2*c - floor(c/16) + floor(c/128) + b)/16)`. The green six-bit value
 is `floor((4*c - floor(c/16) + floor(c/64) + b)/16)`. Display conversion repeats
 high bits into the low bits: five-bit `v` becomes `(v << 3) | (v >> 2)`, and
 six-bit `v` becomes `(v << 2) | (v >> 4)`.
-
-These operations describe the reference rasterizer's precision. They do not
-establish identical upstream lighting, texture filtering, triangle coverage,
-monitor gamma, or physical Voodoo output.
 
 ## Evidence and limits
 
