@@ -4,8 +4,22 @@ The GOG DOS Glide startup presents the animated 3dfx splash, `system/STARTUP2.GX
 
 The New Game introduction is separate from this startup sequence. The title
 image is a single 640×480 frame. The original also draws small version and
-loading labels along its bottom edge; exact font selection and placement are
-not yet documented here.
+loading labels along its bottom edge.
+
+## Title labels
+
+The title redraw selects the `[system] gui_low_font` entry from `SYSTEM.INI`.
+The GOG configuration points to `fonts\\arialvb.fnt`, a 9-pixel line-height
+font. The version label starts at `(10,467)` in RGB `(32,32,32)`. Its format is
+`Version %s.%s`; the observed GOG release displays `Version 1.0.1.0`. Loading
+text is right-aligned to `(630,467)` in RGB `(50,0,0)`. The map-registration
+stage supplies `Loading Map %d`.
+
+Glyph bitmaps use their FNT left and top offsets. Each active character
+advances by its bitmap width plus one pixel. Space additionally advances by
+the width of the next glyph, the exclamation mark. Text-width measurement
+uses the same advances. These rules follow the title caller, text-width
+routine, and glyph-drawing path, independently of the font-file fields.
 
 ## 3dfx splash
 
