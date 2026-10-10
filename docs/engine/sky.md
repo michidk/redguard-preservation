@@ -4,7 +4,7 @@ Outdoor sky configuration and the Glide renderer's BSI sky plane and sun disc.
 
 ## Overview
 
-**Verified for the shipped Glide build:** the sky uses `world_skyfx[N]` and a
+In the shipped Glide build, the sky uses `world_skyfx[N]` and a
 matching `.COL` file. The texture is projected onto a horizontal quad before
 scene geometry. A separate billboard draws the sun. The GXA file named by
 `world_sky[N]` is not loaded by this renderer's sky setup.
@@ -22,7 +22,7 @@ interpreted as an equirectangular map without evidence for that renderer.
 
 ## Background Fill
 
-**Verified from WORLD.INI:** `world_background[N]` selects these legacy background modes.
+`world_background[N]` selects these legacy background modes in `WORLD.INI`.
 **Unknown:** how the special sky-color mode is derived and whether these modes
 affect the Glide sky path.
 
@@ -40,8 +40,8 @@ Glide sky is supplied by the BSI asset instead.
 
 ## Glide sky plane
 
-The following geometry and texture mapping are **Verified** for the shipped
-Glide build. Coordinates use engine units, with positive Y pointing down.
+The shipped Glide build uses the following geometry and texture mapping.
+Coordinates use engine units, with positive Y pointing down.
 
 - The plane is centered horizontally on the camera. Its four relative X/Z
   corners are `(-65000, 65000)`, `(65000, 65000)`, `(65000, -65000)`, and
@@ -62,13 +62,13 @@ Glide build. Coordinates use engine units, with positive Y pointing down.
   Its matching `.COL` file supplies the colors independently of the world's
   terrain/model palette. Sky sampling is opaque, including palette index 0.
 
-**Verified installed samples:** `SKY888.BSI`, `SKY899.BSI`, `SKYNIT.BSI`, and
+The installed samples `SKY888.BSI`, `SKY899.BSI`, `SKYNIT.BSI`, and
 `SKYNEC.BSI` each contain one 256 by 256 frame and have matching COL files.
 The seven outdoor world entries are 0, 1, 6, 14, 27, 28, and 30.
 
 ### Scrolling and rotation
 
-**Verified:** raw `world_skyspeed[N]` is an unsigned byte converted to texels
+Raw `world_skyspeed[N]` is an unsigned byte converted to texels
 per timer tick by dividing by 16. The initial scrolling direction is selected
 randomly from 2048 angle steps. Scroll offsets start at zero, advance with the
 shared engine sine/cosine table, and wrap at plus/minus 256 texels. A frame

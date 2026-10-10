@@ -16,7 +16,7 @@ or record-size envelope. It begins directly with tagged chunks:
 ```
 
 Chunk headers and BHDR fields follow [TEXBSI](TEXBSI.md#subrecord-structure).
-`IFHD` alone does not imply multiple frames. **Verified:** the four installed
+`IFHD` alone does not imply multiple frames. The four installed
 sky textures have `IFHD`, a frame count of 1, and raw 256 by 256 indexed pixels.
 The Glide sky uses the matching external COL palette, including index 0 as
 an opaque color. General sprite decoding treats index 0 as transparent.
