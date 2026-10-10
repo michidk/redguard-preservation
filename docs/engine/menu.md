@@ -24,7 +24,7 @@ The Glide viewport has horizontal half-field tangent `0.788`. At 640 by 480, scr
 
 At width 640 the menu uses `FONTS/FONTNORM.FNT` for normal and grayed text, and `FONTS/FONTSEL.FNT` for the current selection. At other widths it can select the smaller `FONTNORS.FNT` and `FONTSELS.FNT` glyphs. `hi_res_menu` affects that font-switch path. The `HINORMAL`/`HISELECT` files are not these book-menu fonts.
 
-Each enabled glyph advances by its width plus one texel. Space also adds the width of the next glyph. Center/right alignment subtracts half/all of that accumulated width before painting; glyph left/top offsets still apply. Zero pixels are transparent. In the normal font, the normal text blitter adds five to each nonzero palette index. Grayed text uses the low four bits plus four. Selected text copies the selected-font indices. Nonselectable text uses the low four bits plus 144. These styles come from the menu font brightness/blitter settings, not the FNT palette alone.
+Each enabled glyph advances by its width plus one texel. Space also adds the width of the next glyph. Center/right alignment subtracts half/all of that accumulated width before painting; glyph left/top offsets still apply. Zero pixels are transparent. In the normal font, the normal text blitter adds five to each nonzero palette index. For each nonzero glyph pixel, grayed text adds four to the existing destination page index, preserving the paper shading. Selected text copies the selected-font indices. Nonselectable text uses the low four bits plus 144. These styles come from the menu font brightness/blitter settings, not the FNT palette alone.
 
 ## Selection and actions
 
