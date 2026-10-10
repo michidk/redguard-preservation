@@ -59,6 +59,21 @@ can use an FPS-derived scale with the configured normal, minimum and maximum
 frame rates and smoothing settings. A nominal frame rate of 12 does not mean
 the game runs a fixed 12 Hz simulation.
 
+### Heading-based translation
+
+Horizontal translation uses the floating-point [shared rotation table](water.md#wave-lookup-table),
+not the separate integer sine table. Negate the actor heading and mask it to
+2047 to select the sine sample; cosine uses the sample 512 entries later.
+Multiply the integer movement distance by each sample and add it to the current
+X or Z position converted to single precision. Store the sum at single
+precision, then truncate it to the runtime integer coordinate. Rounding the
+sum before integer conversion is observable at ordinary world coordinates.
+
+For heading 2036, distance 680, and initial X/Z `(10446802, 10818615)`, the result
+is `(10446827, 10819295)`. Keeping the sum at double precision until truncation
+would give a different Z result. At distance 1360, the following six updates
+advance X/Z by `(50, 1359)` each in the sampled route.
+
 ## Forward-walking startup
 
 Ordinary forward walking keeps a startup phase from zero through three.
@@ -88,6 +103,15 @@ One observed heading-zero sequence began at raw Z `10502144` and produced:
 Each resulting position was retained as the previous position in the following
 update in this case. This sample does not establish collision behavior elsewhere,
 the complete animation eligibility rules.
+
+A further ISLAND route used heading 2036, walking speed 8 and frame scale 170.
+Requesting walk group 20 from idle immediately selected the group's first frame
+with its movement marker set. The first two completed updates advanced startup
+without moving. The third update cleared the marker and moved 680 runtime units
+before heading projection; subsequent updates used 1360. Nine complete actor
+updates matched the group countdown, marker, startup, and final X/Z positions.
+The group is type 1, while idle group zero is type 0. A player animation adapter
+restricted to type 0 cannot reproduce this route.
 
 ### Ending a walking update
 
@@ -343,8 +367,8 @@ Body contacts are processed after the movement and ground-support response.
 For an ordinary grounded actor, the response uses the displacement from the
 previous position to the attempted position, including its vertical component.
 It normalizes that displacement to length 65536. The length divided by 65536 is
-stored at single precision before dividing the displacement components; the
-components use nearest-integer conversion.
+stored at single precision before dividing the displacement components. Each
+quotient is stored at single precision before nearest-integer conversion.
 
 For an eligible facing wall contact, the horizontal dot product is
 `(movement_x × normal_x + movement_z × normal_z) >> 8`, using the normalized
