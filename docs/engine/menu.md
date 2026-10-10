@@ -48,7 +48,13 @@ The Glide executable omits actions 501, 502, and 503 when constructing Display e
 
 Options turns MB_PG01 and MB_PG02 to their last frames. MB_PG01 moves four units farther along Z when passing its middle frame. The settled camera is at the origin. Display uses camera `(336, -128, 0)` and Sound uses `(336, 176, 0)`, retaining those page frames. Controls additionally turns MB_PG03 to its last frame, moving it four units nearer along Z; the camera returns to the origin. Returning reverses those changes. Camera pitch changes during the transition cancel at the settled endpoint.
 
-Left and Right subtract or add one within the installed slider bounds without wrapping. Enter or the primary activation key toggles actions 504, 505, and 603. These preferences map to SYSTEM.INI `[dialog] dialog_print_text`, `[screen] smk_interlace`, and `[dialog] dialog_use_speech`. Sound and Music actions 601 and 602 initialize from `[system] volume` and `redbook_volume`, divided by 12.8 and rounded. Updates multiply the menu value by 12.8 and round to the engine volume. Sound controls range from zero to twenty in the examined install.
+Left and Right subtract or add one within the installed slider bounds without wrapping. Enter or the primary activation key toggles actions 504, 505, and 603. These preferences map to SYSTEM.INI `[dialog] dialog_print_text`, `[screen] smk_interlace`, and `[dialog] dialog_use_speech`. Sound and Music actions 601 and 602 initialize from `[system] volume` and `redbook_volume`, divided by 12.8 and truncated toward zero. Updates multiply the menu value by 12.8 and truncate to the engine volume. Sound controls range from zero to twenty in the examined install, giving these engine volumes:
+
+| Slider | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Volume | 0 | 12 | 25 | 38 | 51 | 64 | 76 | 89 | 102 | 115 | 128 | 140 | 153 | 166 | 179 | 192 | 204 | 217 | 230 | 243 | 256 |
+
+The shipped `volume=255` opens at 19, not 20, and `redbook_volume=200` at 15. Because both directions truncate, most values reopen one notch lower (slider 1 writes 12, which reads back as 0). Whether exact multiples of 64 (64, 128, 192, 256) read back as 5, 10, 15, 20 or one lower depends on the floating-point precision in effect and has not been observed. The Sound volume becomes the master volume of [positional sound](sound.md#starting-a-sound); the Music value is described in [music](music.md).
 
 Checkboxes use MM_CHECK.GXA frames indexed by the toggle value. Sound sliders use MM_SLIDE.GXA, selecting the rounded product of the value and `(frame_count - 1) / (slider_max - slider_min)`, clamped at the endpoints. Widgets paint at output coordinates; their labels retain normal text without a numeric suffix.
 
@@ -58,4 +64,23 @@ Movies action 3 turns MB_PG01 to its last frame with the same four-unit depth ch
 
 Configuration lookup matches section/key names without case and returns the first matching occurrence. Settings outside the requested section do not override that section.
 
-These settings and submenu facts were verified from MENU.INI, KEYS.INI, SYSTEM.INI, the three MM_ GXA assets, and the Glide menu initialization, painting, dispatch, traversal, binding-capture, binding-validation, and camera/frame update routines. Engine volume scaling was checked against the stored floating-point constants.
+## Frame and camera transitions
+
+Page turns use the authored frame arrays, not an independent hinge rotation. A turn request supplies an initial frame, a target frame, and an update delay. The delay counts down first; at zero it selects the initial frame. Later menu updates move one integer frame toward the target. There is no geometric interpolation between those authored frames in this path.
+
+MB_PG01 changes Z by +4 when a forward turn reaches frame four, and by -4 when a reverse turn reaches frame four. MB_PG03 applies the opposite depth changes. These shifts happen at the middle-frame crossing, not at the final frame. Returning to Main reverses the appropriate page turns. Cover motion and page-turn start can also dispatch menu sound cues; those cues require the existing effect playback path.
+
+Camera requests form an ordered queue. Each request specifies a target position, angle changes, and a fractional step. Position interpolates linearly from the previous settled position; angles interpolate from their previous values by the supplied changes. The first rendered sample uses the request's fractional step, rather than zero. Each update adds that same step; a value greater than one settles the target and advances to the next request. Rendering converts the interpolated values to engine integers.
+
+The submenu requests use these camera paths. Each row's targets execute in order. Angle values are changes in the first camera angle, in 2048 units per revolution; the other two angles do not change.
+
+| Navigation | Ordered camera targets | Angle changes | Fractional steps |
+|---|---|---|---|
+| Main to Movies | `(192, 284, -160)`, `(192, 284, -160)`, `(336, 0, 0)` | `-152`, `0`, `+152` | `0.15`, `0.12`, `0.15` |
+| Main to Options, Movies or Options to Main, Options to Controls, Controls to Options | `(192, 284, -160)`, `(192, 284, -160)`, `(0, 0, 0)` | `-152`, `0`, `+152` | `0.15`, `0.12`, `0.15` |
+| Options to Display | `(336, -128, 0)` | `0` | `0.15` |
+| Options to Sound | `(336, 176, 0)` | `0` | `0.15` |
+| Display or Sound to Options | `(0, 0, 0)` | `0` | `0.15` |
+| Quit | `(232, 284, -96)`, `(232, 284, -96)`, `(408, 0, 0)` | `-152`, `0`, `+152` | `0.15`, `0.12`, `0.15` |
+
+The repeated target holds the position while the request fraction advances. Main to Movies delays the first page turn by four menu updates. Main to Options delays MB_PG01 by three and MB_PG02 by five; its return delays them by five and three respectively. Options to Controls and back delay MB_PG03 by four. Quit delays the cover turn by two. Normal menu direction, activation, and Escape handling wait until the camera queue and page turns finish, including the update that settles their final targets.

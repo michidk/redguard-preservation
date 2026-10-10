@@ -38,8 +38,8 @@ All fields little-endian unless noted.
 | 0x00 | 4 | u32 | type_id | Audio type: 0 = 8-bit mono, 1 = 16-bit mono, 2 = 8-bit stereo (unused), 3 = 16-bit stereo |
 | 0x04 | 4 | u32 | bit_depth | 0 = 8-bit, 1 = 16-bit |
 | 0x08 | 4 | u32 | sample_rate | Always 11025 or 22050 Hz |
-| 0x0C | 1 | u8 | unused_0c | Always 64. Runtime behavior is driven by the surrounding 26-byte header block (`0x00`–`0x19`), with no separate per-field behavior for this byte. Likely a vestigial default volume value (64/127 ≈ 50% on the Miles Sound System scale). |
-| 0x0D | 1 | i8 | loop_flag | 0 = no loop, non-zero = enable looping. The engine checks only `!= 0`; values -1 (0xFF) and -31 (0xE1) are functionally identical. |
+| 0x0C | 1 | u8 | base_volume | Always 64 (all 118 effects). Base volume (Miles 0..127 scale) of every start: the caller's volume is added and the sum clamped to 0..127. Positional callers pass the distance volume relative to this base; `FlatSound(e, 0, 0)` plays at 64. See [positional sound](../engine/sound.md). |
+| 0x0D | 1 | u8 | loop_flag | 0 = play once. Non-zero enables looping; 0xFF loops forever, any other value is passed as the Miles loop count (see Loop Behavior). |
 | 0x0E | 4 | u32 | loop_offset | Byte offset into PCM data for loop restart point (always 0) |
 | 0x12 | 4 | u32 | loop_end | Sample count before looping (always 0xFFFFFFFF) |
 | 0x16 | 4 | u32 | data_length | Byte count of raw PCM data following this header |
@@ -48,11 +48,13 @@ All fields little-endian unless noted.
 
 ### Loop Behavior
 
-The engine checks only whether `loop_flag` is non-zero — the specific value is not interpreted.
+From static analysis of the engine's sample start (not yet observed in the running game):
 
 - `loop_flag = 0`: play once (non-looping effects)
-- `loop_flag = -1 (0xFF)`: enable looping (used for ambient loops like fire, water, wind)
-- `loop_flag = -31 (0xE1)`: enable looping (functionally identical to -1; only used on effect 117, the snake charmer tune)
+- `loop_flag = 0xFF`: Miles loop count 0, i.e. loop until stopped (ambient loops like fire, water, wind)
+- any other non-zero value: passed unchanged as the Miles loop count. The only shipped case is effect 117 (the snake charmer tune), flag `0xE1`, which therefore plays 225 times rather than indefinitely. Whether this is audible in practice has not been checked.
+
+When looping is enabled the engine also passes `loop_offset` and `loop_end` as the Miles loop block.
 
 `loop_offset` and `loop_end` appear to be unused features — always `loop_offset = 0` and `loop_end = 0xFFFFFFFF`.
 

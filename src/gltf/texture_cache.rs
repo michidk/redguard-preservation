@@ -199,20 +199,25 @@ impl TextureCache {
         self.bsi_files.get(&texture_id).map(|bsi| bsi.images.len())
     }
 
-    pub fn get_image_rgba(&mut self, texture_id: u16, image_id: u8) -> Option<(Vec<u8>, u16, u16)> {
+    fn image_index(&mut self, texture_id: u16, image_id: u8) -> Option<usize> {
         if !self.ensure_bsi_loaded(texture_id, image_id) {
             return None;
         }
-
-        let bsi = self.bsi_files.get(&texture_id)?;
-        let Some(image) = bsi
+        let index = self
+            .bsi_files
+            .get(&texture_id)?
             .images
             .iter()
-            .find(|entry| entry.image_index == u16::from(image_id))
-        else {
+            .position(|entry| entry.image_index == u16::from(image_id));
+        if index.is_none() {
             self.warn_missing_once(texture_id, image_id, "image id not present in TEXBSI file");
-            return None;
-        };
+        }
+        index
+    }
+
+    pub fn get_image_rgba(&mut self, texture_id: u16, image_id: u8) -> Option<(Vec<u8>, u16, u16)> {
+        let index = self.image_index(texture_id, image_id)?;
+        let image = &self.bsi_files.get(&texture_id)?.images[index];
         let rgba = flip_rows_vertical(image.decode_rgba(self.palette.as_ref()), image.width);
         Some((rgba, image.width, image.height))
     }
@@ -222,19 +227,8 @@ impl TextureCache {
         texture_id: u16,
         image_id: u8,
     ) -> Option<(Vec<u8>, u16, u16, u16)> {
-        if !self.ensure_bsi_loaded(texture_id, image_id) {
-            return None;
-        }
-
-        let bsi = self.bsi_files.get(&texture_id)?;
-        let Some(image) = bsi
-            .images
-            .iter()
-            .find(|entry| entry.image_index == u16::from(image_id))
-        else {
-            self.warn_missing_once(texture_id, image_id, "image id not present in TEXBSI file");
-            return None;
-        };
+        let index = self.image_index(texture_id, image_id)?;
+        let image = &self.bsi_files.get(&texture_id)?.images[index];
         let rgba = flip_rows_vertical(image.decode_rgba(self.palette.as_ref()), image.width);
         Some((rgba, image.width, image.height, image.frame_count))
     }
@@ -244,19 +238,8 @@ impl TextureCache {
         texture_id: u16,
         image_id: u8,
     ) -> Option<AllFramesInfo> {
-        if !self.ensure_bsi_loaded(texture_id, image_id) {
-            return None;
-        }
-
-        let bsi = self.bsi_files.get(&texture_id)?;
-        let Some(image) = bsi
-            .images
-            .iter()
-            .find(|entry| entry.image_index == u16::from(image_id))
-        else {
-            self.warn_missing_once(texture_id, image_id, "image id not present in TEXBSI file");
-            return None;
-        };
+        let index = self.image_index(texture_id, image_id)?;
+        let image = &self.bsi_files.get(&texture_id)?.images[index];
 
         let mut frames = Vec::with_capacity(usize::from(image.frame_count));
         for frame_idx in 0..usize::from(image.frame_count) {
@@ -276,19 +259,8 @@ impl TextureCache {
 
     /// Returns dimensions for a texture/image pair without decoding PNG bytes.
     pub fn get_image_dimensions(&mut self, texture_id: u16, image_id: u8) -> Option<(u16, u16)> {
-        if !self.ensure_bsi_loaded(texture_id, image_id) {
-            return None;
-        }
-
-        let bsi = self.bsi_files.get(&texture_id)?;
-        let Some(image) = bsi
-            .images
-            .iter()
-            .find(|entry| entry.image_index == u16::from(image_id))
-        else {
-            self.warn_missing_once(texture_id, image_id, "image id not present in TEXBSI file");
-            return None;
-        };
+        let index = self.image_index(texture_id, image_id)?;
+        let image = &self.bsi_files.get(&texture_id)?.images[index];
 
         Some((image.width, image.height))
     }
@@ -296,15 +268,8 @@ impl TextureCache {
     /// Returns the effective `tex_scale` factor for a texture/image pair.
     /// The raw BHDR `tex_scale` is 8.8 fixed-point; `0` is treated as `0x0100` (1.0).
     pub fn get_image_tex_scale(&mut self, texture_id: u16, image_id: u8) -> Option<f32> {
-        if !self.ensure_bsi_loaded(texture_id, image_id) {
-            return None;
-        }
-
-        let bsi = self.bsi_files.get(&texture_id)?;
-        let image = bsi
-            .images
-            .iter()
-            .find(|entry| entry.image_index == u16::from(image_id))?;
+        let index = self.image_index(texture_id, image_id)?;
+        let image = &self.bsi_files.get(&texture_id)?.images[index];
 
         let raw = if image.tex_scale == 0 {
             0x0100

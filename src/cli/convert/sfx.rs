@@ -1,5 +1,5 @@
+use super::write_wav;
 use color_eyre::Result;
-use hound::{SampleFormat, WavSpec, WavWriter};
 use log::info;
 use rayon::prelude::*;
 use rgpre::import::sfx;
@@ -21,33 +21,12 @@ pub(crate) fn handle_sfx_convert(file: &Path, output_path: &Path) -> Result<()> 
             let wav_filename = format!("{i:03}.wav");
             let wav_path = output_path.join(&wav_filename);
 
-            let spec = WavSpec {
-                channels: effect.audio_type.channels(),
-                sample_rate: effect.sample_rate,
-                bits_per_sample: effect.audio_type.bits_per_sample(),
-                sample_format: SampleFormat::Int,
-            };
-
-            let mut writer = WavWriter::create(&wav_path, spec)?;
-
-            if effect.audio_type.bits_per_sample() == 8 {
-                for &sample in &effect.pcm_data {
-                    writer.write_sample((sample as i16 - 128) as i8)?;
-                }
-            } else {
-                if !effect.pcm_data.len().is_multiple_of(2) {
-                    return Err(color_eyre::eyre::eyre!(
-                        "16-bit PCM data has odd byte count: {}",
-                        effect.pcm_data.len()
-                    ));
-                }
-                for chunk in effect.pcm_data.as_chunks::<2>().0 {
-                    let sample = i16::from_le_bytes(*chunk);
-                    writer.write_sample(sample)?;
-                }
-            }
-
-            writer.finalize()?;
+            write_wav(
+                &wav_path,
+                effect.audio_type,
+                effect.sample_rate,
+                &effect.pcm_data,
+            )?;
 
             info!(
                 "  [{i:03}] {:?} {}Hz {:.3}s -> {}",

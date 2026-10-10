@@ -92,36 +92,26 @@ struct RecordChunks<'a> {
 
 type BhdrFields = (i16, i16, u16, u16, u16, i16, u16, i16);
 
-fn read_be_u32(data: &[u8], offset: usize) -> Result<u32> {
-    let bytes: [u8; 4] = data
-        .get(offset..offset + 4)
+fn read_array<const N: usize>(data: &[u8], offset: usize) -> Result<[u8; N]> {
+    data.get(offset..offset + N)
         .and_then(|slice| slice.try_into().ok())
-        .ok_or_else(|| Error::Parse(format!("BSI: truncated data at offset 0x{offset:X}")))?;
-    Ok(u32::from_be_bytes(bytes))
+        .ok_or_else(|| Error::Parse(format!("BSI: truncated data at offset 0x{offset:X}")))
+}
+
+fn read_be_u32(data: &[u8], offset: usize) -> Result<u32> {
+    Ok(u32::from_be_bytes(read_array(data, offset)?))
 }
 
 fn read_le_u32(data: &[u8], offset: usize) -> Result<u32> {
-    let bytes: [u8; 4] = data
-        .get(offset..offset + 4)
-        .and_then(|slice| slice.try_into().ok())
-        .ok_or_else(|| Error::Parse(format!("BSI: truncated data at offset 0x{offset:X}")))?;
-    Ok(u32::from_le_bytes(bytes))
+    Ok(u32::from_le_bytes(read_array(data, offset)?))
 }
 
 fn read_le_i16(data: &[u8], offset: usize) -> Result<i16> {
-    let bytes: [u8; 2] = data
-        .get(offset..offset + 2)
-        .and_then(|slice| slice.try_into().ok())
-        .ok_or_else(|| Error::Parse(format!("BSI: truncated data at offset 0x{offset:X}")))?;
-    Ok(i16::from_le_bytes(bytes))
+    Ok(i16::from_le_bytes(read_array(data, offset)?))
 }
 
 fn read_le_u16(data: &[u8], offset: usize) -> Result<u16> {
-    let bytes: [u8; 2] = data
-        .get(offset..offset + 2)
-        .and_then(|slice| slice.try_into().ok())
-        .ok_or_else(|| Error::Parse(format!("BSI: truncated data at offset 0x{offset:X}")))?;
-    Ok(u16::from_le_bytes(bytes))
+    Ok(u16::from_le_bytes(read_array(data, offset)?))
 }
 
 fn parse_record_header(data: &[u8], pos: usize) -> Result<Option<(String, usize, usize)>> {
@@ -199,31 +189,28 @@ fn non_negative_i16_to_u16(value: i16) -> u16 {
 }
 
 fn parse_bhdr_fields(bhdr_data: Option<&[u8]>) -> Result<BhdrFields> {
-    if let Some(bhdr) = bhdr_data {
-        if bhdr.len() >= 26 {
-            return Ok((
-                read_le_i16(bhdr, 0)?,
-                read_le_i16(bhdr, 2)?,
-                non_negative_i16_to_u16(read_le_i16(bhdr, 4)?),
-                non_negative_i16_to_u16(read_le_i16(bhdr, 6)?),
-                non_negative_i16_to_u16(read_le_i16(bhdr, 14)?.max(1)),
+    if let Some(bhdr) = bhdr_data
+        && bhdr.len() >= 16
+    {
+        let extended = if bhdr.len() >= 26 {
+            (
                 read_le_i16(bhdr, 16)?,
                 read_le_u16(bhdr, 22)?,
                 read_le_i16(bhdr, 24)?,
-            ));
-        }
-        if bhdr.len() >= 16 {
-            return Ok((
-                read_le_i16(bhdr, 0)?,
-                read_le_i16(bhdr, 2)?,
-                non_negative_i16_to_u16(read_le_i16(bhdr, 4)?),
-                non_negative_i16_to_u16(read_le_i16(bhdr, 6)?),
-                non_negative_i16_to_u16(read_le_i16(bhdr, 14)?.max(1)),
-                0,
-                0,
-                0,
-            ));
-        }
+            )
+        } else {
+            (0, 0, 0)
+        };
+        return Ok((
+            read_le_i16(bhdr, 0)?,
+            read_le_i16(bhdr, 2)?,
+            non_negative_i16_to_u16(read_le_i16(bhdr, 4)?),
+            non_negative_i16_to_u16(read_le_i16(bhdr, 6)?),
+            non_negative_i16_to_u16(read_le_i16(bhdr, 14)?.max(1)),
+            extended.0,
+            extended.1,
+            extended.2,
+        ));
     }
 
     Ok((0, 0, 0, 0, 1, 0, 0, 0))

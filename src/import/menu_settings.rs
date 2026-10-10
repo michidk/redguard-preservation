@@ -7,7 +7,10 @@ pub struct MenuSettings {
     pub subtitles: bool,
     pub movie_interlace: bool,
     pub voice: bool,
-    /// Rounded from the engine's 0..256 volume using a factor of 12.8.
+    /// The engine's 0..256 volume divided by 12.8 and truncated.
+    ///
+    /// Open question: exact multiples of 64 divide to just under a whole number
+    /// in extended precision; whether the original then shows one step lower is unverified.
     pub sound_volume: u8,
     pub music_volume: u8,
     /// Held-direction repeat delay in BIOS timer ticks.
@@ -48,8 +51,8 @@ impl MenuSettings {
             subtitles: number("dialog", "dialog_print_text", 1)? != 0,
             movie_interlace: number("screen", "smk_interlace", 1)? != 0,
             voice: number("dialog", "dialog_use_speech", 1)? != 0,
-            sound_volume: (f64::from(number("system", "volume", 256)?) / 12.8).round() as u8,
-            music_volume: (f64::from(number("system", "redbook_volume", 256)?) / 12.8).round()
+            sound_volume: (f64::from(number("system", "volume", 256)?) / 12.8).trunc() as u8,
+            music_volume: (f64::from(number("system", "redbook_volume", 256)?) / 12.8).trunc()
                 as u8,
             repeat_ticks,
         })
@@ -68,8 +71,8 @@ mod tests {
                 subtitles: true,
                 movie_interlace: true,
                 voice: false,
-                sound_volume: 20,
-                music_volume: 16,
+                sound_volume: 19,
+                music_volume: 15,
                 repeat_ticks: 4,
             }
         );
