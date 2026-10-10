@@ -95,16 +95,43 @@ The seven outdoor world entries are 0, 1, 6, 14, 27, 28, and 30.
 ### Scrolling and rotation
 
 Raw `world_skyspeed[N]` is an unsigned byte converted to texels
-per timer tick by dividing by 16. The initial scrolling direction is selected
+per BIOS timer tick by dividing by 16. The timer runs at
+`1193182 / 65536` ticks per second. The initial scrolling direction is selected
 randomly from 2048 angle steps. Scroll offsets start at zero, advance with the
 shared engine sine/cosine table, and wrap at plus/minus 256 texels. A frame
-processes at most 36 elapsed ticks. The plane can also tilt around a
-camera-relative axis.
+processes at most 36 elapsed ticks. The plane tilts around a camera-relative axis as described below.
 
-**Unknown:** a reproducible initial random state for a particular saved scene,
-the rotation controls' complete mapping, and the software-renderer behavior.
-A static initial sky frame is useful for checking asset selection and projection;
-it does not verify sky movement or sun rendering.
+### Plane tilt
+
+The sky is a plane that can be crossed vertically. It is not an enclosing cube
+or sphere.
+
+The initial tilt is 24 of the engine's 2048 angle units, approximately 4.21875
+degrees. It is a fixed angle, not an animation rate. The tilt setter masks its
+input to 11 bits.
+
+Let `h` be the normalized horizontal camera-forward direction in engine
+coordinates. For an unrotated plane point with horizontal position `p`, let
+`q = dot(p, h)` and `a = 24 * 6.2831852 / 2048`. Its tilted horizontal position
+is `p + (cos(a) - 1) * q * h`, and its relative vertical position is
+`sin(a) * q + world_skylevel - camera_y`. Texture coordinates stay attached to
+the unrotated corners. The camera-relative tilt is applied before adding the
+height, not around the world origin.
+
+Transform samples before adding height, with the camera facing positive Z:
+`(-65000, 0, 65000)` becomes approximately
+`(-65000, 4781.6963, 64823.8789)`. Facing positive X, the same corner becomes
+approximately `(-64823.875, -4781.6963, 65000)`.
+
+### Initial scroll direction
+
+The sky consumes one value from the engine's shared random stream and keeps its
+low 11 bits as the angle. The stream updates its unsigned 32-bit state with
+`state = state * 1103515245 + 12345`, wrapping at 32 bits; the returned value is
+`(state >> 16) & 32767`. Therefore the sky direction is
+`(updated_state >> 16) & 2047`. Reproducing a particular session requires the
+state immediately before sky initialization or the resulting direction, not
+just a world identifier. Other engine users also consume this stream.
 
 ## Global Engine Toggles
 
@@ -131,7 +158,24 @@ A separate billboard renders the sun as a textured sprite in the sky, independen
 | `world_sunimgrgb[N]` | Tint color (r, g, b) applied to the sun texture |
 | `world_sunscale[N]` | Size scale of the sun disc |
 
-The sun disc position is derived from the world's sun direction vector (`world_sun[N]`) and sun angle/skew parameters. It is a visual element only — the lighting system uses the sun direction independently.
+The billboard center, relative to the camera, is the negative of
+`(truncate(16000*sin(angle)), truncate(16000*cos(angle)),
+truncate(16000*sin(skew)))`, using `world_sunangle` and `world_sunskew` in the
+2048-step engine angle table. It does not use `world_sun` as its position.
+The sprite faces the camera and remains the same angular size during camera
+translation. Its near/far range is 1/65535 engine units.
+
+Each billboard half-size is the corresponding BSI image dimension multiplied
+by `0.5 * (tex_scale / 256) * (world_sunscale / 100)`. A zero or omitted sun
+scale defaults to 12800. The installed `SUN001.BSI` is a single 256 by 256
+frame with texture scale 256, so the installed sun scale 4000 gives half-size
+5120 engine units. Missing sun image names suppress the disc.
+
+The sun texture is bound as eight-bit alpha: its indexed pixel bytes supply
+opacity, independently of its palette. Constant encoded RGB comes from
+`world_sunimgrgb`, defaulting to `(255,255,200)`. The draw uses source-alpha /
+one-minus-source-alpha blending and disables fog for the sun, restoring scene
+fog afterwards. Scene geometry drawn later can cover it.
 
 ## Console Commands
 

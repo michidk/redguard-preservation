@@ -55,6 +55,39 @@ entry through 240 at entry 62, followed by 255 at entry 63. Its density reaches
 255 while approaching the finite sky boundary, so the texture blends into the
 same fog RGB that fills uncovered pixels.
 
+## Integer precision and framebuffer dithering
+
+Table fog uses an unsigned 16-bit reciprocal-depth encoding. For depth greater
+than one, let
+`t = floor(2^32 / depth)`. Values of `t` below 65536 select 65535. Otherwise,
+with `e` the count of leading zero bits in the 32-bit `t`, the encoding is
+`min(65535, ((e << 12) | ((~t >> (19-e)) & 4095)) + 1)`.
+Depth at or below one selects zero. The table index is the encoding divided
+by 1024; its interpolation fraction is bits 2 through 9.
+
+The density is the table byte plus
+`floor(delta_byte * fraction_byte / 1024)`. Voodoo 1 does not apply fog-density
+dithering; the fog-dither switch is a Voodoo 2 feature. For incoming encoded
+8-bit channel `c`, fog channel `f` and density `d`, the resulting channel is
+`clamp(c + floor((f-c)*(d+1)/256), 0, 255)`.
+
+Glide initializes framebuffer dithering to 4 by 4. The shipped game has no
+call to change that mode. The threshold matrix, indexed by framebuffer Y then
+X modulo four, is:
+
+```
+ 0  8  2 10
+12  4 14  6
+ 3 11  1  9
+15  7 13  5
+```
+
+For threshold `b` and encoded channel `c`, the stored red/blue five-bit value
+is `floor((2*c - floor(c/16) + floor(c/128) + b)/16)`. The green six-bit value
+is `floor((4*c - floor(c/16) + floor(c/64) + b)/16)`. Display conversion repeats
+high bits into the low bits: five-bit `v` becomes `(v << 3) | (v >> 2)`, and
+six-bit `v` becomes `(v << 2) | (v >> 4)`.
+
 ## Evidence and limits
 
 Installed `SYSTEM.INI`, all 29 `WORLD.INI` entries and the 18-record `FOG.INI`
