@@ -1,6 +1,6 @@
 # Subtitles
 
-Spoken dialogue, combat taunts and movies draw their text in
+Spoken dialogue and combat taunts draw their text in
 `FONTS\REDSEL.FNT` on a virtual 640×480 screen, which the Glide renderer
 scales to the output size. Facts below come from engine analysis; those
 marked *observed* were also checked against the running original (DOSBox-X,
@@ -13,11 +13,11 @@ Glide).
   are not drawn.
 - A glyph is drawn at (pen x + `offset_left`, line top + `offset_top`).
   Palette index 0 is transparent.
-- Each glyph is drawn twice: first a shadow copy offset by (1, 1) for dialogue
-  and (2, 2) for movies, then the main copy.
-- Three in-memory copies of REDSEL differ only in a value pair `A,B`:
-  NPC lines use `SYSTEM.INI [3dfx] font_sel` (shipped `255,255`), Cyrus' lines
-  `font_norm` (`125,255`), movies a fixed `255,180`. The main copy is drawn
+- Each glyph is drawn twice: first a shadow copy offset by (1, 1), then the
+  main copy.
+- Copies of REDSEL differ only in a value pair `A,B`: NPC lines use
+  `SYSTEM.INI [3dfx] font_sel` (shipped `255,255`), Cyrus' lines `font_norm`
+  (`125,255`). The main copy is drawn
   with alpha `B`, the shadow copy with alpha `A × 200 / 256` (integer).
 - *Observed* (NPC line, `font_sel`): main glyphs are opaque in the font's own
   palette colours (BPAL entries are 6-bit; index 195 `39,3,14` shows as the
@@ -72,22 +72,16 @@ spanning x 73–565, y 423–439, matching these rules with REDSEL's metrics.
 
 ## Movies
 
-MENU.INI `movieM_text[N]` lines (see [MENU.INI](../config/menu-ini.md)) are
-frame-locked to the Smacker file: a line is visible on frames `start_frame`
-to `stop_frame − 1`, one line at a time, in file order. It is drawn when
-`dialog_print_text ≠ 0` or its leading flag is non-zero (the 12 flagged lines
-are in INTRO.SMK). The stored colour is parsed but not used; every line uses
-the movie copy.
-
-Wrapping counts characters: a line breaks at the first space at or after its
-35th character (0-based), and the space is removed. With `n` lines the first
-top is `470 − 26 × n`, so the last line always sits at y 444. The skip key
-jumps to the next `movie_keys` frame and clears the current line.
+Movie subtitles are documented in [movies](movies.md).
 
 ## Open questions
 
-- Colour of Cyrus' lines and of movie lines (the alpha reading is observed
-  for the NPC copy only).
+- Colour of Cyrus' lines (the alpha reading is observed for the NPC copy
+  only).
+- Static analysis for this page also found a REDSEL copy with values
+  `255,180` and a (2, 2) shadow used during movie playback, which disagrees
+  with the low-resolution GUI font described in [movies](movies.md). A capture
+  of a movie subtitle in the original would settle it.
 - The game tick rate behind the text-only countdown (12 per second is
   inferred from the timing accumulator).
 - Which input clears all subtitles, whether `ambientrtx` draws text, and
