@@ -15,7 +15,7 @@ Global menu system flags:
 | `preload_sprites` | `1` | Preload menu sprite textures at startup. |
 | `hi_res_menu` | `1` | Use high-resolution menu rendering. |
 | `ignore_autosave` | `0` | Skip auto-save slot handling. |
-| `force_movies` | `0` | Force movie playback (skip user-skip). |
+| `force_movies` | `0` | Mark all configured cinematics unlocked for Movies browsing. |
 
 ### `[pageN]` (pages 0–7)
 

@@ -1,6 +1,36 @@
 //! Data-defined book-menu pages; see `docs/config/menu-ini.md`.
 use std::collections::BTreeMap;
 
+/// Global menu flags relevant to cinematic visibility.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct MenuGeneral {
+    pub force_movies: bool,
+}
+
+impl MenuGeneral {
+    /// Missing force_movies is zero; later case-insensitive duplicates win.
+    pub fn parse(content: &str) -> Result<Self, String> {
+        let mut general = false;
+        let mut force_movies = false;
+        for line in content.lines() {
+            let line = line.split(';').next().unwrap_or_default().trim();
+            if line.starts_with('[') {
+                general = line.eq_ignore_ascii_case("[general]");
+            } else if general
+                && let Some((key, value)) = line.split_once('=')
+                && key.trim().eq_ignore_ascii_case("force_movies")
+            {
+                force_movies = match value.trim() {
+                    "0" => false,
+                    "1" => true,
+                    _ => return Err("MENU.INI [general] force_movies: expected 0 or 1".into()),
+                };
+            }
+        }
+        Ok(Self { force_movies })
+    }
+}
+
 /// A TEXBSI archive and image index used as a page surface.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct MenuTexture {
@@ -143,6 +173,17 @@ impl MenuPage {
 mod tests {
     use super::*;
     const PAGE: &str = "[page0]\ntexture_set[0]=9\ntexture_set[1]=8\ntexture_index[0]=3\ntexture_index[1]=2\ntext[0]=Changed label\ntext_x[0]=71\ntext_y[0]=24\ntexture[0]=1\naction[0]=-2\nselectable[0]=1\ntext[1]=Other\n[page1]\ntext[0]=Different page\n";
+
+    #[test]
+    fn cinematic_visibility_flag_is_section_scoped() {
+        assert!(
+            MenuGeneral::parse("[general]\nforce_movies=1\n[page3]\nforce_movies=0")
+                .unwrap()
+                .force_movies
+        );
+        assert!(!MenuGeneral::parse("").unwrap().force_movies);
+        assert!(MenuGeneral::parse("[general]\nforce_movies=bad").is_err());
+    }
 
     #[test]
     fn reads_labels_layout_actions_and_zero_defaults_from_data() {
