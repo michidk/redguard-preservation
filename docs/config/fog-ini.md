@@ -1,29 +1,54 @@
 # FOG.INI
 
-Fog density ramp table defining distance-based fog intensity for the terrain renderer.
+Glide scene fog density table for models and terrain.
 
-Shipped path: `fxart/FOG.INI` (inside the Glide asset directory).
+## Selection and format
 
-## Format
+**Verified:** the Glide renderer first reads `fxart/FOG<world ID>.INI`, then
+falls back to `fxart/FOG.INI`. If neither exists, all 64 entries remain zero.
+This selection is independent of the software renderer's `world_haze` field.
+The installed GOG data contains only the fallback file.
 
-Comma-separated `index,value` pairs defining a piecewise fog density curve. The engine interpolates between entries to fill a 64-entry fog table.
+Comma-separated index/value pairs fill a zero-initialized 64-entry table.
+Each value fills its index through the index before the next pair. This file
+expansion does not interpolate values. Semicolon comments are ignored.
 
-- `index`: fog table position (0–63), corresponding to distance bands.
-- `value`: fog intensity (0–255), where 0 = fully clear and 255 = fully opaque.
+- Index is a table position from 0 through 63.
+- Value is a density byte from 0 through 255.
+- The final index `63` has no value and remains zero.
 
-The final entry (`63`) has no value — it marks the end of the table and uses the last specified density.
+## Shipped values
 
-## Shipped Values
+**Verified:** the installed fallback contains these 18 index records.
 
-| Index | Value | Description |
-|---|---|---|
-| 0 | 0 | No fog at close range. |
-| 33 | 1 | Fog begins at index 33. |
-| 34–48 | 2–255 | Rapid ramp from barely visible to fully opaque. |
-| 63 | — | End marker (holds value 255 from index 48). |
+| Index | Value |
+|---|---|
+| 0 | 0 |
+| 33 | 1 |
+| 34 | 2 |
+| 35 | 4 |
+| 36 | 6 |
+| 37 | 8 |
+| 38 | 10 |
+| 39 | 12 |
+| 40 | 14 |
+| 41 | 16 |
+| 42 | 18 |
+| 43 | 22 |
+| 44 | 38 |
+| 45 | 76 |
+| 46 | 136 |
+| 47 | 196 |
+| 48 | 255 |
+| 63 | End marker, remains zero |
 
-From the shipped comments: "46 is the final value for 3800 render distance" — this ties the fog ramp to the `back_plane=3800` setting in [SYSTEM.INI](system-ini.md) `[xngine]`.
+Entries 0 through 32 are zero; entries 48 through 62 are 255.
+The shipped comment says "46 is the final value for 3800 render distance".
+The actual density at distance 3800 uses entries 47 and 48, as described in
+[Glide fog and clipping](../engine/fog.md). Changing the clipping distance
+does not rescale this table.
 
 ## External References
 
 - [UESP: Redguard:Glide Differences](https://en.uesp.net/wiki/Redguard:Glide_Differences)
+- [Glide fog and clipping](../engine/fog.md)

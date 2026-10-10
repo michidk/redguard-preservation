@@ -30,7 +30,8 @@ Each world is identified by an integer index `N`. Keys follow the pattern `key_n
 | `world_redbook[N]` | integer | CD audio track number for background music. |
 | `world_palette[N]` | path | [COL](../formats/COL.md) palette file. |
 | `world_shade[N]` | integer | Shade table index. |
-| `world_haze[N]` | integer | Haze/distance-fog table index. |
+| `world_haze[N]` | integer | Software-renderer haze table index; Glide selects FOG.INI by world ID. |
+| `world_back_plane[N]` | integer | Nonzero scene far-distance override in engine units; zero or omitted keeps SYSTEM.INI back_plane. |
 | `world_background[N]` | integer | Legacy background fill mode. `0` = black, `2` = sky color, other values are palette indices. The shipped Glide build does not read this key; see [sky background fill](../engine/sky.md#background-fill). |
 | `world_compass[N]` | integer | Compass heading offset (fixed-point). Omitted for most worlds; present where the player can see a compass. |
 | `world_flash_filename[N]` | path | GXA file used for screen-flash transitions when entering or leaving this world. |

@@ -48,10 +48,10 @@ scene fog table afterwards. The sky draw does not disable fog. Its 64-entry
 table contains zero in entries 0 through 32, increases by eight from 8 through
 240 in entries 33 through 62, and ends at 255 in entry 63.
 
-The sky raster supplies reciprocal camera-space depth to Glide. **Unknown:**
-the complete fog-coordinate lookup and interpolation needed to reproduce the
-sky-to-background blend independently of Glide. A raw texture projection and
-correct clear color alone do not establish the original horizon's appearance.
+The sky raster supplies reciprocal camera-space depth to Glide. The
+[Glide fog lookup](fog.md#fog-lookup) describes table interpolation and RGB
+blending. A raw texture projection and correct clear color alone do not
+establish the original horizon's appearance.
 
 ## GXA assets
 
