@@ -73,8 +73,9 @@ persistent actor list. The active update list combines nearby cell actors with
 that persistent list. A zero activation byte therefore does not mean that an
 actor can never animate.
 
-The cell window starts nine 512-unit cells before the player in both horizontal
-axes, clamped at the map edge. It spans eighteen cells per axis, omitting its
+The cell window starts nine 512-unit cells before the supplied horizontal
+center, clamped at the map edge. The main loop supplies the current view
+coordinates, not the actor body position. It spans eighteen cells per axis, omitting its
 four corners. The inner sixteen by sixteen cells include ordinary actors.
 On the outer border, actors with a nonzero attribute byte 113 are excluded.
 Debug and global object-processing switches can further restrict this list.
