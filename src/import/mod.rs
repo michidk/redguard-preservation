@@ -8,6 +8,8 @@ pub mod fnt;
 pub mod fnt_export;
 /// FNT to TrueType font conversion.
 pub mod fnt_ttf;
+/// Parser for Glide FOG.INI density tables.
+pub mod fog_ini;
 /// Extract authored splash data from the installed Glide overlay.
 pub mod glide_splash;
 /// Parser for GXA bitmap archives.

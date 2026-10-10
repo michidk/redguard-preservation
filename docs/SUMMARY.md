@@ -32,5 +32,6 @@
   - [Item Attachment System](engine/attachment.md)
   - [SOUP Scripting](engine/SOUP.md)
   - [Sky Renderer](engine/sky.md)
+  - [Glide fog and clipping](engine/fog.md)
   - [Water Waves](engine/water.md)
   - [Startup presentation](engine/startup.md)
