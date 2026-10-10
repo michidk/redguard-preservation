@@ -141,6 +141,27 @@ normal `(−39, −250, −39)`, classification 4, and actor-height result `−1
 The player's position remained unchanged by these checks. This sample verifies
 an accepted terrain probe; it does not establish blocked-wall or ledge behavior.
 
+### Converting support height to actor position
+
+The selected ground surface height is not the actor origin height. For ordinary
+support, truncate the selected surface height toward zero in map units, subtract
+the actor's positive Y extent, multiply by 256, and add the configured
+`standing_height` converted to runtime units. Ground-query eligibility and the
+later movement response remain separate from this conversion.
+
+A fresh ISLAND marker-zero entry settled at runtime position
+`(10448896, -190464, 10502144)`. Its ground query selected a flat terrain triangle
+with map-unit vertices `(40704, -680, 41216)`, `(40704, -680, 40960)` and
+`(40960, -680, 40960)`. The returned surface height was −680 and its normalized
+normal was `(0, −1, 0)`. The integer contact normal was `(0, −256, 0)`, classified
+as ordinary terrain ground.
+
+Cyrus's positive Y extent was 62 and the standing offset was −512 runtime units.
+The conversion gives `(−680 − 62) × 256 − 512 = −190464`, or −744 map units.
+The query returned that actor height while preserving its current and previous
+positions. Treating the terrain height as the actor origin would place the body
+64 map units too low in this case.
+
 ### Upright actor collision spheres
 
 For bounds whose X and Z totals are not strictly greater than both other totals,
