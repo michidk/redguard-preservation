@@ -2,9 +2,7 @@
 
 Spoken dialogue and combat taunts draw their text in
 `FONTS\REDSEL.FNT` on a virtual 640×480 screen, which the Glide renderer
-scales to the output size. Facts below come from engine analysis; those
-marked *observed* were also checked against the running original (DOSBox-X,
-Glide).
+scales to the output size.
 
 ## Glyphs
 
@@ -19,10 +17,10 @@ Glide).
   `SYSTEM.INI [3dfx] font_sel` (shipped `255,255`), Cyrus' lines `font_norm`
   (`125,255`). The main copy is drawn
   with alpha `B`, the shadow copy with alpha `A × 200 / 256` (integer).
-- *Observed* (NPC line, `font_sel`): main glyphs are opaque in the font's own
-  palette colours (BPAL entries are 6-bit; index 195 `39,3,14` shows as the
-  crimson edge, index 81 `60,59,11` as yellow). The shadow is the glyph shape
-  in black, blended over the scene at alpha 199/255.
+- For NPC lines using `font_sel`, main glyphs are opaque in the font's own
+  palette colours. BPAL entries are 6-bit; index 195 `39,3,14` is crimson and
+  index 81 `60,59,11` is yellow. The shadow is the glyph shape in black,
+  blended over the scene at alpha 199/255.
 - A line is centred on x = 320: it starts at `320 + trunc(−width / 2)`.
 - Subtitles ignore `[system] disable_text`.
 
@@ -55,9 +53,6 @@ With `breaks` line breaks, the block height is `26 × (max(breaks, 1) + 1)`
 and the first line's top is `470 − height`; each next line is 26 lower. One
 line therefore sits at y 418, two lines at 418 and 444.
 
-*Observed*: "YOU TWO DANCE VERY WELL, BUT, ALAS --" (one line) has glyph pixels
-spanning x 73–565, y 423–439, matching these rules with REDSEL's metrics.
-
 ### Timing
 
 - `dialog_use_speech = 1`: a voiced line shows while its clip plays and is
@@ -73,16 +68,3 @@ spanning x 73–565, y 423–439, matching these rules with REDSEL's metrics.
 ## Movies
 
 Movie subtitles are documented in [movies](movies.md).
-
-## Open questions
-
-- Colour of Cyrus' lines (the alpha reading is observed for the NPC copy
-  only).
-- Static analysis for this page also found a REDSEL copy with values
-  `255,180` and a (2, 2) shadow used during movie playback, which disagrees
-  with the low-resolution GUI font described in [movies](movies.md). A capture
-  of a movie subtitle in the original would settle it.
-- The game tick rate behind the text-only countdown (12 per second is
-  inferred from the timing accumulator).
-- Which input clears all subtitles, whether `ambientrtx` draws text, and
-  how inventory voice lines show theirs.
