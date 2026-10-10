@@ -8,10 +8,11 @@ pub struct MenuGeneral {
 }
 
 impl MenuGeneral {
-    /// Missing force_movies is zero; later case-insensitive duplicates win.
+    /// Missing force_movies is zero; the first case-insensitive occurrence wins.
     pub fn parse(content: &str) -> Result<Self, String> {
         let mut general = false;
         let mut force_movies = false;
+        let mut seen = false;
         for line in content.lines() {
             let line = line.split(';').next().unwrap_or_default().trim();
             if line.starts_with('[') {
@@ -19,7 +20,9 @@ impl MenuGeneral {
             } else if general
                 && let Some((key, value)) = line.split_once('=')
                 && key.trim().eq_ignore_ascii_case("force_movies")
+                && !seen
             {
+                seen = true;
                 force_movies = match value.trim() {
                     "0" => false,
                     "1" => true,
@@ -80,7 +83,9 @@ impl MenuPage {
             if line.starts_with('[') {
                 active = line.eq_ignore_ascii_case(&section);
             } else if active && let Some((key, value)) = line.split_once('=') {
-                fields.insert(key.trim().to_ascii_lowercase(), value.trim());
+                fields
+                    .entry(key.trim().to_ascii_lowercase())
+                    .or_insert(value.trim());
             }
         }
         let number = |name: &str, index: usize, required: bool| -> Result<i32, String> {
@@ -222,9 +227,12 @@ mod tests {
         assert_eq!(page.entries[0].output_position, [20, -4]);
         assert_eq!(page.entries[0].output_justify, 2);
         assert_eq!(page.entries[0].slider, [-10, 10]);
-        for extra in ["texture[0]=1", "texture_set[1]=289", "slider_min[0]=11"] {
+        for extra in ["texture[0]=1", "texture_set[1]=289"] {
             assert!(MenuPage::parse(&format!("{text}{extra}\n"), 5).is_err());
         }
+        assert!(
+            MenuPage::parse(&text.replace("slider_min[0]=-10", "slider_min[0]=11"), 5).is_err()
+        );
     }
 
     #[test]

@@ -25,6 +25,8 @@ pub struct KeysIni {
     pub extra: [u8; 7],
     /// Installed display names indexed by raw input code.
     pub names: Vec<Option<String>>,
+    /// Configured capture prompt; the executable initializes its buffer to WAITING.
+    pub waiting_message: String,
 }
 
 impl KeysIni {
@@ -39,6 +41,8 @@ impl KeysIni {
         let mut section = String::new();
         let mut extra = [0; 7];
         let mut names = vec![None; 140];
+        let mut waiting_message = "WAITING".to_owned();
+        let mut seen = std::collections::BTreeSet::new();
         for (line_number, line) in content.lines().enumerate() {
             let line = line.split(';').next().unwrap_or_default().trim();
             if line.starts_with('[') {
@@ -49,6 +53,12 @@ impl KeysIni {
                 continue;
             };
             let key = key.trim().to_ascii_lowercase();
+            if !seen.insert((section.clone(), key.clone())) {
+                continue;
+            }
+            if section == "[misc]" && key == "waiting_message" {
+                waiting_message = value.trim().to_owned();
+            }
             if section == "[defined]" {
                 if let Some(index) = key.strip_prefix("key[").and_then(|s| s.strip_suffix(']')) {
                     let index = index
@@ -90,6 +100,7 @@ impl KeysIni {
             user,
             extra,
             names,
+            waiting_message,
         };
         for (index, code) in keyboard.into_iter().enumerate() {
             result.keyboard[index] = code.ok_or_else(|| {
@@ -143,15 +154,16 @@ mod tests {
     }
 
     #[test]
-    fn reads_installed_key_names_and_last_duplicate_binding() {
+    fn reads_installed_key_names_and_first_duplicate_binding() {
         let text = format!(
-            "{INPUT}next_key=52\nNEXT_KEY=37\nquick_sword_key=31\n[defined]\nkey[37]=custom name\nkey[128]=mouse\n"
+            "{INPUT}next_key=52\nNEXT_KEY=37\nquick_sword_key=31\n[misc]\nwaiting_message=Custom prompt\n[defined]\nkey[37]=custom name\nkey[128]=mouse\n"
         );
         let keys = KeysIni::parse(&text).unwrap();
-        assert_eq!(keys.control_codes()[13], 37);
+        assert_eq!(keys.control_codes()[13], 52);
         assert_eq!(keys.control_codes()[9], 31);
         assert_eq!(keys.names[37].as_deref(), Some("custom name"));
         assert_eq!(keys.names[128].as_deref(), Some("mouse"));
+        assert_eq!(keys.waiting_message, "Custom prompt");
     }
 
     #[test]

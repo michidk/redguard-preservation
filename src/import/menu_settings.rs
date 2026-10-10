@@ -15,7 +15,7 @@ pub struct MenuSettings {
 }
 
 impl MenuSettings {
-    /// Parse required settings from their original sections; later duplicates win.
+    /// Parse required settings from their original sections; the first occurrence wins.
     pub fn parse(content: &str) -> Result<Self, String> {
         let mut section = String::new();
         let mut fields = BTreeMap::new();
@@ -24,10 +24,9 @@ impl MenuSettings {
             if line.starts_with('[') && line.ends_with(']') {
                 section = line[1..line.len() - 1].to_ascii_lowercase();
             } else if let Some((key, value)) = line.split_once('=') {
-                fields.insert(
-                    (section.clone(), key.trim().to_ascii_lowercase()),
-                    value.trim(),
-                );
+                fields
+                    .entry((section.clone(), key.trim().to_ascii_lowercase()))
+                    .or_insert(value.trim());
             }
         }
         let number = |section: &str, key: &str, max: u32| -> Result<u32, String> {

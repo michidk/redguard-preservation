@@ -46,13 +46,13 @@ Action-to-scancode bindings. Two binding slots exist per directional/action key 
 
 A value of `0` in user remap fields means no override (use default binding).
 
-The file footer also contains uppercase duplicates `NEXT_KEY = 37` and `PREV_KEY = 38` that appear to be runtime-written values (the engine writes updated bindings back to the file).
+The examined file footer contains `NEXT_KEY = 37` and `PREV_KEY = 38` inside `[defined]`. These do not override bindings in `[input]`. Numeric configuration lookup returns the first matching key in the requested section.
 
 ### `[misc]`
 
 | Key | Default | Description |
 |---|---|---|
-| `waiting_message` | `HIT KEY` | Generic input prompt; the book Controls page uses its own blinking WAITING label. |
+| `waiting_message` | `HIT KEY` | Prompt inside the Controls page capture brackets. |
 
 ### `[defined]`
 
@@ -116,7 +116,7 @@ read the installed file rather than assuming those codes are universal.
 
 ## Parser
 
-`import::keys_ini::KeysIni` exposes the eight keyboard bindings and user overrides, seven additional gameplay keys, and the installed key-name table. Section/key matching ignores case, and the last duplicate field wins. `control_codes()` returns bindings in menu-action order 710 through 724.
+`import::keys_ini::KeysIni` exposes the eight keyboard bindings and user overrides, seven additional gameplay keys, and the installed key-name table. Section/key matching ignores case, and the first occurrence wins. `control_codes()` returns bindings in menu-action order 710 through 724.
 
 ## External References
 
