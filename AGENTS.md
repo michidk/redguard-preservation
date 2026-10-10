@@ -49,6 +49,7 @@ Release notes are auto-generated from these prefixes via `cliff.toml`.
 ## Working style for agents
 
 - Verify claims from code or sample files before writing docs.
+- In published docs, state only established behavior. Do not include verification methods, research notes, or topics that still need investigation.
 - Use neutral field names (`field_xx`, `unknown_xx`) when meaning is unproven.
 - Do not promote hypotheses to facts.
 - Keep edits focused and consistent with local style.

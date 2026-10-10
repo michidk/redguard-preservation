@@ -64,8 +64,6 @@ Movies action 3 turns MB_PG01 to its last frame with the same four-unit depth ch
 
 Configuration lookup matches section/key names without case and returns the first matching occurrence. Settings outside the requested section do not override that section.
 
-These settings and submenu facts were verified from MENU.INI, KEYS.INI, SYSTEM.INI, the three MM_ GXA assets, and the Glide menu initialization, painting, dispatch, traversal, binding-capture, binding-validation, and camera/frame update routines. Engine volume scaling was checked against the stored floating-point constants.
-
 ## Frame and camera transitions
 
 Page turns use the authored frame arrays, not an independent hinge rotation. A turn request supplies an initial frame, a target frame, and an update delay. The delay counts down first; at zero it selects the initial frame. Later menu updates move one integer frame toward the target. There is no geometric interpolation between those authored frames in this path.
@@ -74,7 +72,7 @@ MB_PG01 changes Z by +4 when a forward turn reaches frame four, and by -4 when a
 
 Camera requests form an ordered queue. Each request specifies a target position, angle changes, and a fractional step. Position interpolates linearly from the previous settled position; angles interpolate from their previous values by the supplied changes. The first rendered sample uses the request's fractional step, rather than zero. Each update adds that same step; a value greater than one settles the target and advances to the next request. Rendering converts the interpolated values to engine integers.
 
-The examined submenu requests use these camera paths. Each row's targets execute in order. Angle values are changes in the first camera angle, in 2048 units per revolution; the other two angles do not change.
+The submenu requests use these camera paths. Each row's targets execute in order. Angle values are changes in the first camera angle, in 2048 units per revolution; the other two angles do not change.
 
 | Navigation | Ordered camera targets | Angle changes | Fractional steps |
 |---|---|---|---|
@@ -86,5 +84,3 @@ The examined submenu requests use these camera paths. Each row's targets execute
 | Quit | `(232, 284, -96)`, `(232, 284, -96)`, `(408, 0, 0)` | `-152`, `0`, `+152` | `0.15`, `0.12`, `0.15` |
 
 The repeated target holds the position while the request fraction advances. Main to Movies delays the first page turn by four menu updates. Main to Options delays MB_PG01 by three and MB_PG02 by five; its return delays them by five and three respectively. Options to Controls and back delay MB_PG03 by four. Quit delays the cover turn by two. Normal menu direction, activation, and Escape handling wait until the camera queue and page turns finish, including the update that settles their final targets.
-
-These rules were verified from the menu's camera enqueue/update and page-turn request/update routines, including the symmetric middle-frame depth changes. Complete camera-angle conventions, transition interruption, menu audio, and matched motion recordings still require investigation before claiming complete animated presentation.
