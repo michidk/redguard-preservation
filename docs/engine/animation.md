@@ -53,3 +53,23 @@ engine facts; they do not establish a matched visible-playback comparison.
 
 The shipped island FLAG2 program contains finite `PushAnimation` requests.
 Replacing it with an endless automatic idle loop changes the authored behavior.
+
+## Forward frame countdown
+
+For a newly selected group, the command cursor starts at zero and the byte
+countdown starts at the group's low header byte plus the request's speed
+modifier. With zero input ticks, neither cursor nor countdown advances, but
+control commands are still interpreted until a frame is selected.
+
+With nonzero input ticks and a zero countdown, the cursor advances one command,
+the countdown reloads, and the remaining tick count minus one becomes a frame
+skip count. The countdown then decrements once, with byte wrapping. With a
+nonzero countdown, it only decrements once and the current frame remains
+selected. Thus the countdown and multi-tick frame skipping are separate inputs.
+
+Control commands do not consume that frame skip count. Each encountered
+`ShowFrame` consumes one skip while a skip remains. The interpreter advances
+past those frames and selects the next one when no skips remain. It does not
+interpolate vertex positions between model frames. These rules describe a
+forward current group; reverse playback, pending-group eligibility, delays,
+and event dispatch have additional state.
