@@ -460,7 +460,9 @@ Position fields use the same i24+pad encoding as MPOB/MPSO.
 
 ## MPMK (Markers)
 
-`MPMK` starts with a little-endian record count, followed by 13-byte records.
+`MPMK` starts with a little-endian record count, followed by a contiguous array of
+12-byte position records, then a separate array of one auxiliary byte per marker.
+The payload length is `4 + count * 12 + count`. The arrays are not interleaved.
 
 All fields little-endian.
 
@@ -472,9 +474,11 @@ All fields little-endian.
 | 0x07 | 1 | `u8` | pad_y | Alignment byte |
 | 0x08 | 3 | `i24` | pos_z | Position Z |
 | 0x0B | 1 | `u8` | pad_z | Alignment byte |
-| 0x0C | 1 | `u8` | reserved | Not read by the engine at runtime. Engine uses bytes 0x04 (type) and 0x05 (subtype) from the runtime marker struct for processing. |
 
-Position fields use the same i24+pad encoding as MPOB/MPSO. No explicit record ID field. The engine branches on marker type (byte +0x04 in runtime struct) with values 0x02 and 0x06 triggering distinct paths.
+Position fields use the same i24+pad encoding as MPOB/MPSO. No explicit record ID field.
+The auxiliary table begins at `4 + count * 12`; byte `i` belongs to position
+record `i`. Its meaning is not established. The metadata exporter retains it
+as `reserved` for compatibility.
 
 ## MPSZ (Bounding Volumes)
 

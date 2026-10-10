@@ -65,3 +65,47 @@ fn ragr_command_opcode_6_does_not_set_attachment() {
     assert_eq!(cmd.opcode, 6);
     assert!(!cmd.sets_attachment());
 }
+
+#[test]
+fn marker_metadata_reads_positions_before_auxiliary_bytes() {
+    let mut data = 2u32.to_le_bytes().to_vec();
+    for coordinate in [20i32, -40, 65536, 100, 60, 65536] {
+        data.extend_from_slice(&coordinate.to_le_bytes());
+    }
+    data.extend_from_slice(&[7, 9]);
+    let rgm = RgmFile {
+        sections: vec![RgmSection::Mpm(
+            RgmSectionHeader {
+                name: *b"MPMK",
+                data_length: 30,
+                record_count: None,
+            },
+            data,
+        )],
+    };
+    let metadata = export_rgm_metadata_json(&rgm, None);
+    let markers = metadata["markers"].as_array().unwrap();
+    assert_eq!(markers.len(), 2);
+    assert_eq!(markers[0]["position"][0], -1.0);
+    assert_eq!(markers[0]["position"][1], 2.0);
+    assert_eq!(markers[1]["position"][0], -5.0);
+    assert_eq!(markers[1]["position"][1], -3.0);
+    assert_eq!(markers[0]["reserved"], 7);
+    assert_eq!(markers[1]["reserved"], 9);
+}
+
+#[test]
+fn marker_metadata_rejects_truncated_tables_before_allocating() {
+    let rgm = RgmFile {
+        sections: vec![RgmSection::Mpm(
+            RgmSectionHeader {
+                name: *b"MPMK",
+                data_length: 4,
+                record_count: None,
+            },
+            u32::MAX.to_le_bytes().to_vec(),
+        )],
+    };
+    let metadata = export_rgm_metadata_json(&rgm, None);
+    assert_eq!(metadata["markers"], serde_json::json!([]));
+}
