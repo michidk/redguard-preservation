@@ -62,6 +62,11 @@ Glide build. Coordinates use engine units, with positive Y pointing down.
   Its matching `.COL` file supplies the colors independently of the world's
   terrain/model palette. Sky sampling is opaque, including palette index 0.
 
+**Verified:** Glide renderer initialization selects bilinear minification and
+magnification on texture unit 0. The sky texture binding and draw path do not
+change the filter mode. **Inferred:** the initial sky uses this bilinear setting;
+filter-state interactions with other draw paths have not been compared visually.
+
 **Verified installed samples:** `SKY888.BSI`, `SKY899.BSI`, `SKYNIT.BSI`, and
 `SKYNEC.BSI` each contain one 256 by 256 frame and have matching COL files.
 The seven outdoor world entries are 0, 1, 6, 14, 27, 28, and 30.
