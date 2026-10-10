@@ -29,7 +29,7 @@ Semantics from engine analysis. Names from UESP where available.
 | **1** | EndAnimation | 20-bit | (unused, always 0) | Set animation handle to −1; stop associated sound; call playback recursively for next animation. |
 | **2** | GoToPrevious | 20-bit | target_frame | Jump backward to an earlier frame in this group. Used for walk/run loops. |
 | **3** | GoToFuture | 20-bit | target_frame | Jump forward to a later frame. Conditional — checks animation state flags and pending transitions. |
-| **4** | PlaySound | 10 + 10 | sound_param, volume_shift | Play SFX. Calls sound system with `sound_param` as setup and `volume_shift << 6` as volume. Same bit layout as opcode 0 but params are NOT handle/vertex. |
+| **4** | PlaySound | 10 + 10 | effect, rate_offset | Play SFX positioned at the animated object. Both fields are signed. `effect` is the effect index after [SURFACE.INI](../config/surface-ini.md#sound-remap-records) remapping; `rate_offset × 64` Hz is added to the effect's sample rate (result clamped to 512..44000 Hz). Volume and pan come from the [positional sound](sound.md#animation-playsound) rules, not from this command. Same bit layout as opcode 0 but params are NOT handle/vertex. |
 | **5** | BreakPoint | 20-bit | (unused, always 0) | Set the animation breakpoint flag. Often the target of GoToFuture jumps. |
 | **6** | SetRotationXYZ | 6 + 6 + 6 | rot_x, rot_y, rot_z | Set 3-axis rotation (each param × 256). Actor orientation override. |
 | **7** | SetRotationAxis | 2 + 18 | axis (0=X, 1=Y, 2=Z), value | Set rotation on a single axis. Finer precision than opcode 6. |

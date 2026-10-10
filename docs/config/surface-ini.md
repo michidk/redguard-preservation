@@ -32,7 +32,9 @@ Each sound section contains entries of the form:
 
 Behavior/constraints from shipped comments and runtime validation strings:
 
-- Sound ids are 0..255 at animation-system call sites; remaps may point to other effect ids.
+- Keys and values must be integers; a key outside 0..255 is a fatal configuration error (`Sound out of range in SURFACE.INI`). Remaps may point to other effect ids.
+- At startup the engine builds one 256-entry table per surface type, each initialised to identity, in this order: `unknown` (0), `water` (1), `deepwater` (2), `scapewater` (3), `scapedeepwater` (4), `lava` (5), `sand` (6), `wood` (7), `tile` (8), `scape` (9), `rock` (10), `gloop` (11).
+- The remap applies **only** to animation PlaySound commands (RAGR opcode 4): when the animated object's surface value is non-zero, the command's effect id is replaced by `table[surface][effect]`. Script sounds (`Sound`, `FlatSound`, `AmbientSound`), combat hit sounds and speech are not remapped. With the shipped file, effect 4 plays 108 on sand, 89 on wood, 112 on tile, 102 on rock and 69 on water. How the object's surface value is set has not been traced. (Static analysis; see [positional sound](../engine/sound.md#surfaceini-remap).)
 - Separate `water`/`scapewater` and `deepwater`/`scapedeepwater` sections are expected.
 - Empty sections are valid (for example `[unknown]`, `[lava]`, `[scape]` in shipped sample).
 - The file is parser-tolerant regarding token case (`WOOD` and `wood` both appear).

@@ -48,7 +48,13 @@ The Glide executable omits actions 501, 502, and 503 when constructing Display e
 
 Options turns MB_PG01 and MB_PG02 to their last frames. MB_PG01 moves four units farther along Z when passing its middle frame. The settled camera is at the origin. Display uses camera `(336, -128, 0)` and Sound uses `(336, 176, 0)`, retaining those page frames. Controls additionally turns MB_PG03 to its last frame, moving it four units nearer along Z; the camera returns to the origin. Returning reverses those changes. Camera pitch changes during the transition cancel at the settled endpoint.
 
-Left and Right subtract or add one within the installed slider bounds without wrapping. Enter or the primary activation key toggles actions 504, 505, and 603. These preferences map to SYSTEM.INI `[dialog] dialog_print_text`, `[screen] smk_interlace`, and `[dialog] dialog_use_speech`. Sound and Music actions 601 and 602 initialize from `[system] volume` and `redbook_volume`, divided by 12.8 and rounded. Updates multiply the menu value by 12.8 and round to the engine volume. Sound controls range from zero to twenty in the examined install.
+Left and Right subtract or add one within the installed slider bounds without wrapping. Enter or the primary activation key toggles actions 504, 505, and 603. These preferences map to SYSTEM.INI `[dialog] dialog_print_text`, `[screen] smk_interlace`, and `[dialog] dialog_use_speech`. Sound and Music actions 601 and 602 initialize from `[system] volume` and `redbook_volume`, divided by 12.8 and truncated toward zero. Updates multiply the menu value by 12.8 and truncate to the engine volume. Sound controls range from zero to twenty in the examined install, giving these engine volumes:
+
+| Slider | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Volume | 0 | 12 | 25 | 38 | 51 | 64 | 76 | 89 | 102 | 115 | 128 | 140 | 153 | 166 | 179 | 192 | 204 | 217 | 230 | 243 | 256 |
+
+The shipped `volume=255` opens at 19, not 20, and `redbook_volume=200` at 15. Because both directions truncate, most values reopen one notch lower (slider 1 writes 12, which reads back as 0). Whether exact multiples of 64 (64, 128, 192, 256) read back as 5, 10, 15, 20 or one lower depends on the floating-point precision in effect and has not been observed. The Sound volume becomes the master volume of [positional sound](sound.md#starting-a-sound); the Music value is described in [music](music.md).
 
 Checkboxes use MM_CHECK.GXA frames indexed by the toggle value. Sound sliders use MM_SLIDE.GXA, selecting the rounded product of the value and `(frame_count - 1) / (slider_max - slider_min)`, clamped at the endpoints. Widgets paint at output coordinates; their labels retain normal text without a numeric suffix.
 
