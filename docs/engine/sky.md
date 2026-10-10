@@ -160,7 +160,25 @@ A separate billboard renders the sun as a textured sprite in the sky, independen
 | `world_sunimgrgb[N]` | Tint color (r, g, b) applied to the sun texture |
 | `world_sunscale[N]` | Size scale of the sun disc |
 
-The sun disc position is derived from the world's sun direction vector (`world_sun[N]`) and sun angle/skew parameters. It is a visual element only — the lighting system uses the sun direction independently.
+**Verified for the Glide path:** the billboard center, relative to the camera,
+is the negative of `(truncate(16000*sin(angle)), truncate(16000*cos(angle)),
+truncate(16000*sin(skew)))`, using `world_sunangle` and `world_sunskew` in the
+2048-step engine angle table. It does not use `world_sun` as its position.
+The sprite faces the camera and remains the same angular size during camera
+translation. Its near/far range is 1/65535 engine units.
+
+Each billboard half-size is the corresponding BSI image dimension multiplied
+by `0.5 * (tex_scale / 256) * (world_sunscale / 100)`. A zero or omitted sun
+scale defaults to 12800. The installed `SUN001.BSI` is a single 256 by 256
+frame with texture scale 256, so the installed sun scale 4000 gives half-size
+5120 engine units. Missing sun image names suppress the disc.
+
+The sun texture is bound as eight-bit alpha: its indexed pixel bytes supply
+opacity, independently of its palette. Constant encoded RGB comes from
+`world_sunimgrgb`, defaulting to `(255,255,200)`. The draw uses source-alpha /
+one-minus-source-alpha blending and disables fog for the sun, restoring scene
+fog afterwards. Scene geometry drawn later can cover it. These geometry and
+state facts do not establish exact texture-filtering or raster-edge parity.
 
 ## Console Commands
 
