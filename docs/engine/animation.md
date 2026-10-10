@@ -59,6 +59,55 @@ Forced requests, group-type interruption rules, actor eligibility, and the
 number of advancement calls made by a complete actor update require separate
 handling. They do not authorize automatic activation of placed actors.
 
+## Placed actor initialization and eligibility
+
+New actor animation state initializes its default group to zero. For a placed
+ordinary object with an animation model table, group setup builds the RAGR table
+and makes two ordinary requests for group zero with modifier zero. These requests
+use the existing shared nominal ticks. They do not establish an extra clock or
+an endless replacement script.
+
+The MPOB activation byte selects storage and update-list membership. Zero stores
+an ordinary placed actor in its spatial map cell; a nonzero value uses the
+persistent actor list. The active update list combines nearby cell actors with
+that persistent list. A zero activation byte therefore does not mean that an
+actor can never animate.
+
+The cell window starts nine 512-unit cells before the player in both horizontal
+axes, clamped at the map edge. It spans eighteen cells per axis, omitting its
+four corners. The inner sixteen by sixteen cells include ordinary actors.
+On the outer border, actors with a nonzero attribute byte 113 are excluded.
+Debug and global object-processing switches can further restrict this list.
+Membership alone does not establish eligibility for a complete actor update;
+its runtime exclusion, pause, state and script checks still apply.
+
+Ordinary default selection can use attribute byte 44, but combat, injury,
+attachment, movement and player-specific states can select other groups.
+Changing the default can force an immediate replacement when the old default
+was current and had not reached an exit. It is not safe to select attribute
+byte 44 unconditionally for every actor.
+
+The installed ISLAND map has three FLAG2 placements, all ordinary objects with
+a zero activation byte and no static model override. Their FLAG2 attribute
+record is all zero, including byte 44. This establishes their initial data,
+not their complete runtime script progression or visibility from a given view.
+
+## Forced requests
+
+A forced request for the current group, before its exit marker is set, clears
+the pending request without restarting the cursor, countdown or finite loop
+count. Otherwise it clears the current group, replaces the pending group, and
+resets cursor, direction, delays, markers and finite loop state. A missing group
+falls back to the existing default, using the same byte speed-modifier addition
+as an ordinary request. With an accepted group it immediately advances using
+the existing shared nominal ticks. Ordinary numeric pending priority does not
+apply to a forced request.
+
+These rules do not make an ineligible actor eligible. The original request and
+advance boundaries still reject globally disabled animation, an absent animation
+state, and actors using the static model shortcut. Cancellation requests and
+all group-type interruption rules require their own treatment.
+
 ## Timing boundary
 
 Animation consumes the shared whole nominal-tick increment. The normal timing
