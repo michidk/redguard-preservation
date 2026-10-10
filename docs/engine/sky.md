@@ -22,9 +22,18 @@ interpreted as an equirectangular map without evidence for that renderer.
 
 ## Background Fill
 
-`world_background[N]` selects these legacy background modes in `WORLD.INI`.
-**Unknown:** how the special sky-color mode is derived and whether these modes
-affect the Glide sky path.
+The shipped Glide build selects `world_fogrgb[N]` as the RGB color used to
+clear the next back buffer after presenting a normal game frame. An omitted
+value defaults to `(0, 0, 0)`. The finite sky plane draws over this fill;
+uncovered regions retain the fog color, including when the sky is disabled.
+
+Installed samples: world 0 uses `(200, 100, 100)`, world 1 uses
+`(200, 190, 250)`, world 6 uses `(57, 49, 49)`, world 27 uses `(0, 0, 10)`,
+and world 28 uses `(200, 100, 100)`.
+
+The shipped Glide world-settings reader does not read `world_background[N]`.
+WORLD.INI describes these legacy background modes; their software-renderer
+implementation and special sky-color derivation remain **Unknown**.
 
 | Value | Behavior |
 |---|---|

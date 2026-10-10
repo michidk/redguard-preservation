@@ -31,7 +31,7 @@ Each world is identified by an integer index `N`. Keys follow the pattern `key_n
 | `world_palette[N]` | path | [COL](../formats/COL.md) palette file. |
 | `world_shade[N]` | integer | Shade table index. |
 | `world_haze[N]` | integer | Haze/distance-fog table index. |
-| `world_background[N]` | integer | Background fill color index. `0` = black, `2` = sky color, other values are palette indices. |
+| `world_background[N]` | integer | Legacy background fill mode. `0` = black, `2` = sky color, other values are palette indices. The shipped Glide build does not read this key; see [sky background fill](../engine/sky.md#background-fill). |
 | `world_compass[N]` | integer | Compass heading offset (fixed-point). Omitted for most worlds; present where the player can see a compass. |
 | `world_flash_filename[N]` | path | GXA file used for screen-flash transitions when entering or leaving this world. |
 
@@ -46,7 +46,7 @@ Each world is identified by an integer index `N`. Keys follow the pattern `key_n
 | `world_sunangle[N]` | integer | Sun angle (fixed-point). Controls the horizontal rotation of the sun direction. |
 | `world_sunskew[N]` | integer | Sun skew (fixed-point). Controls the vertical tilt of the sun direction. |
 | `world_sunrgb[N]` | r, g, b, scale | Sun color as three 0..255 components plus a scale factor. |
-| `world_fogrgb[N]` | r, g, b | Distance fog color as three 0..255 components. |
+| `world_fogrgb[N]` | r, g, b | Distance fog and Glide background-clear color as three 0..255 components. Omitted values default to black. |
 
 #### Sky
 
