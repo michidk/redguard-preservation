@@ -263,6 +263,47 @@ running actor. An additional support sphere is stored separately and is excluded
 from the ordinary obstacle-query count. X- and Z-dominant shapes use different
 construction rules.
 
+### Sphere contact with model faces
+
+The forward obstacle query converts the proposed actor origin to integer map
+units by arithmetic right shift by eight. Actor orientation transforms each
+local collision-sphere center; the model's inverse placement transform then
+expresses the center in model coordinates. The face test uses the model's
+stored face normal and polygon vertices, rather than a rendered triangle mesh.
+
+For a sphere center C, radius r, a face vertex V, and face normal N, the signed
+plane distance is `(V − C) · N`. When collision sidedness is enabled, a distance
+greater than 4 map units rejects the face. Independently, a squared distance
+greater than `r²` rejects it. The candidate contact point is the perpendicular
+projection `C + N × distance` onto the face plane.
+
+A face passes the remaining test when any polygon vertex is within the sphere,
+any polygon edge segment intersects the sphere, or the projected contact lies
+inside every oriented polygon edge. Boundary equality counts as contact.
+For the inside test, each consecutive vertex pair A/B must satisfy
+`((A − contact) × (B − contact)) · N >= 0`. A face that passed for one sphere
+is not added again for another sphere in the same model query.
+
+The reported contact remains the plane projection even when a vertex or edge
+intersection accepted the face. The model placement transform returns the
+contact point and normal to world coordinates. The obstacle probe needs only
+whether any model reported a contact; it does not move the actor to that point.
+
+In the blocked ISLAND sample above, the first contacting sphere had radius 24
+and the face-plane distance was −19.6171875 map units. The projection was inside
+the polygon. The reported world contact was
+`(40751, −791, 41987.6171875)` with normal `(0, 0, −1)` before integer contact
+conversion. Recomputing the plane projection from the observed model geometry
+reproduced that contact. A radius of 19 rejects it at the plane-distance test.
+The following forward-probe result was failure and the player remained at the
+same position. This sample verifies a face-interior contact; edge-only and
+vertex-only contacts still need independent live samples.
+
+These are the narrow face-contact rules. Model and collision-group broad-phase
+selection, transformed/scaled models, swept correction, moving geometry, and
+non-upright actor shapes require their own coverage before claiming a complete
+collision implementation.
+
 ## FPS-derived frame scale
 
 The normal FPS measurement path counts one frame per update and accumulates
@@ -325,6 +366,44 @@ This describes the FPS-derived path after timing startup. It does not establish
 selection of that path in every game state, alternate-timer behavior, or the
 mapping from host elapsed time to original timer ticks.
 
+### Whole nominal ticks
+
+The computed frame scale is accumulated in units of 1/256 nominal tick. Each
+update's whole-tick increment is the difference between the accumulated whole
+ticks after and before adding the new scale. The fractional remainder carries
+to the next update. A movement update can therefore receive zero animation
+and script ticks while still having a nonzero movement scale. Rounding each
+update's scale independently, or forcing at least one animation tick per
+movement update, changes behavior.
+
+A separate counter uses the same accumulation in units of 1/32 nominal tick;
+its update increment is the corresponding difference of whole counter values.
+
+Eight consecutive ordinary ISLAND timing updates began with a scale
+accumulator of 173332 and produced:
+
+| Frame scale | Accumulator after addition | Whole nominal ticks |
+| --- | --- | --- |
+| 170 | 173502 | 0 |
+| 176 | 173678 | 1 |
+| 178 | 173856 | 1 |
+| 180 | 174036 | 0 |
+| 180 | 174216 | 1 |
+| 180 | 174396 | 1 |
+| 180 | 174576 | 0 |
+| 180 | 174756 | 1 |
+
+All eight increments matched the accumulated differences, including the three
+zero-tick updates. This sample used the FPS-derived path after startup.
+
+Clock reset initializes a twelve-update startup countdown. During that
+countdown, the exposed movement scale is 256, the whole nominal-tick increment
+is 1, and the finer counter increment is 8. The underlying FPS calculation
+and accumulation still run, with FPS and scale smoothing disabled during the
+countdown. Once it expires, the exposed values use the calculated scale and
+accumulated increments. These reset rules are instruction-verified; the table
+above does not test the reset period.
+
 ## Remaining coverage
 
 Complete animation eligibility, collision, other startup paths and stop movement, timer-mode
@@ -338,43 +417,3 @@ controller parity.
 - [System configuration](../config/system-ini.md)
 - [RGM markers and actor data](../formats/RGM.md)
 
-### Sphere contact with model faces
-
-The forward obstacle query converts the proposed actor origin to integer map
-units by arithmetic right shift by eight. Actor orientation transforms each
-local collision-sphere center; the model's inverse placement transform then
-expresses the center in model coordinates. The face test uses the model's
-stored face normal and polygon vertices, rather than a rendered triangle mesh.
-
-For a sphere center C, radius r, a face vertex V, and face normal N, the signed
-plane distance is `(V − C) · N`. When collision sidedness is enabled, a distance
-greater than 4 map units rejects the face. Independently, a squared distance
-greater than `r²` rejects it. The candidate contact point is the perpendicular
-projection `C + N × distance` onto the face plane.
-
-A face passes the remaining test when any polygon vertex is within the sphere,
-any polygon edge segment intersects the sphere, or the projected contact lies
-inside every oriented polygon edge. Boundary equality counts as contact.
-For the inside test, each consecutive vertex pair A/B must satisfy
-`((A − contact) × (B − contact)) · N >= 0`. A face that passed for one sphere
-is not added again for another sphere in the same model query.
-
-The reported contact remains the plane projection even when a vertex or edge
-intersection accepted the face. The model placement transform returns the
-contact point and normal to world coordinates. The obstacle probe needs only
-whether any model reported a contact; it does not move the actor to that point.
-
-In the blocked ISLAND sample above, the first contacting sphere had radius 24
-and the face-plane distance was −19.6171875 map units. The projection was inside
-the polygon. The reported world contact was
-`(40751, −791, 41987.6171875)` with normal `(0, 0, −1)` before integer contact
-conversion. Recomputing the plane projection from the observed model geometry
-reproduced that contact. A radius of 19 rejects it at the plane-distance test.
-The following forward-probe result was failure and the player remained at the
-same position. This sample verifies a face-interior contact; edge-only and
-vertex-only contacts still need independent live samples.
-
-These are the narrow face-contact rules. Model and collision-group broad-phase
-selection, transformed/scaled models, swept correction, moving geometry, and
-non-upright actor shapes require their own coverage before claiming a complete
-collision implementation.
