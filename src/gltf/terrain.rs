@@ -164,6 +164,7 @@ fn resolve_wld_material(
             normals: Vec::new(),
             uvs: Vec::new(),
             indices: Vec::new(),
+            source_vertices: Vec::new(),
             min: [f32::INFINITY, f32::INFINITY, f32::INFINITY],
             max: [f32::NEG_INFINITY, f32::NEG_INFINITY, f32::NEG_INFINITY],
         })

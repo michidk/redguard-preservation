@@ -27,6 +27,7 @@ pub(crate) struct UnrolledPrimitive {
     pub(crate) normals: Vec<[f32; 3]>,
     pub(crate) uvs: Vec<[f32; 2]>,
     pub(crate) indices: Vec<u32>,
+    pub(crate) source_vertices: Vec<[u32; 2]>,
     pub(crate) min: [f32; 3],
     pub(crate) max: [f32; 3],
 }
@@ -106,6 +107,7 @@ pub(crate) fn build_unrolled_primitives(
                 normals: Vec::new(),
                 uvs: Vec::new(),
                 indices: Vec::new(),
+                source_vertices: Vec::new(),
                 min: [f32::INFINITY, f32::INFINITY, f32::INFINITY],
                 max: [f32::NEG_INFINITY, f32::NEG_INFINITY, f32::NEG_INFINITY],
             });
@@ -133,6 +135,11 @@ pub(crate) fn build_unrolled_primitives(
                 let [x, y, z] =
                     transform_position(pos.x, pos.y, pos.z, ENGINE_UNIT_SCALE, SCENE_CONVENTION);
                 group.positions.push([x, y, z]);
+                if model.header.num_frames > 1 {
+                    group
+                        .source_vertices
+                        .push([fv.vertex_index, face_index as u32]);
+                }
 
                 group.min[0] = group.min[0].min(x);
                 group.min[1] = group.min[1].min(y);

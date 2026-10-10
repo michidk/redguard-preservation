@@ -13,6 +13,19 @@ Headings wrap after 2048 units per revolution. For ordinary ground movement with
 the sword sheathed, forward at heading zero increases Z. Right turning decreases
 heading; left turning increases it. Other player states must be checked separately.
 
+## Marker-based world entry
+
+A marker-based world load selects the requested map marker and uses its position
+for the initial player position. The marker coordinates are multiplied by 256
+for runtime storage. The requested heading is wrapped modulo 2048; the marker's
+auxiliary byte does not supply a heading. The player actor uses the map's `CYRUS`
+actor definition, including its attributes and animation data.
+
+Initial placement and ground settling are separate. In an observed ISLAND entry,
+marker zero supplied `(40816, -699, 41024)` with requested heading zero. The
+settled player position was `(40816, -744, 41024)`. Using the marker's Y coordinate
+as a permanent ground height would therefore be incorrect.
+
 ## Ground-turn arithmetic
 
 Left and right input have independent turn accumulators. Releasing one direction
@@ -46,13 +59,65 @@ can use an FPS-derived scale with the configured normal, minimum and maximum
 frame rates and smoothing settings. A nominal frame rate of 12 does not mean
 the game runs a fixed 12 Hz simulation.
 
+## Forward-walking startup
+
+Ordinary forward walking keeps a startup phase from zero through three.
+The selected walking speed is converted to runtime position units by multiplying
+it by 256. For `attr_step_type = 1`, phases zero, one, and two use one quarter,
+one third, and one half of that speed respectively, with integer division.
+Phase three uses the full speed. A walking speed of 8 therefore gives startup
+amounts 512, 682, 1024, and then 2048.
+
+An eligible walking update advances the startup phase before testing whether
+the current animation permits translation. Suppressed translation does not undo
+that phase advance. Consequently the first visible displacement need not use
+phase zero. Two observed ISLAND starts first translated at phase one and phase
+two respectively. Resetting the phase whenever translation is suppressed would
+change the observed startup behavior.
+
+When animation permits translation, the startup amount is multiplied by the
+frame scale and shifted right by eight bits before heading-based displacement.
+One observed heading-zero sequence began at raw Z `10502144` and produced:
+
+| Startup phase used | Frame scale | Raw Z displacement | Resulting raw Z |
+| --- | --- | --- | --- |
+| 1 | 161 | 428 | 10502572 |
+| 2 | 161 | 644 | 10503216 |
+| 3 | 153 | 1224 | 10504440 |
+
+Each resulting position was retained as the previous position in the following
+update in this case. This sample does not establish collision behavior elsewhere,
+the complete animation eligibility rules.
+
+### Ending a walking update
+
+The actor update tracks whether it accepted forward movement. At the end of an
+update without accepted forward movement, it resets the forward startup phase
+to zero. This differs from suppressing translation through animation: an accepted
+walking update can advance startup while producing no displacement.
+
+An observed ISLAND walk reached phase three. After forward input was released,
+an update ended at phase zero with idle animation and equal current and previous
+positions. The following update retained that position and phase. This verifies
+the ordinary release case, not the timing of host keyboard event delivery or
+all movement interruptions.
+
 ## FPS-derived frame scale
 
 The FPS-derived timing path keeps a measured FPS and a smoothed FPS. On each
 update, the smoothed value moves toward the measured value by one. If their
-initial difference exceeds five, it first moves by half that difference,
+initial difference is at least five, it first moves by half that difference,
 rounded down. Thus a measured change from 19 to 17 produces smoothed values
-18, then 17 on successive updates.
+18, then 17 on successive updates. At the acceleration boundary:
+
+| Smoothed FPS before update | Measured FPS | Smoothed FPS after update |
+| --- | --- | --- |
+| 10 | 14 | 11 |
+| 10 | 15 | 13 |
+| 14 | 10 | 13 |
+| 15 | 10 | 12 |
+
+The half-difference adjustment applies to a difference of five in both directions.
 
 `use_smooth_fps` selects the smoothed value instead of the measured value.
 The selected FPS is clamped to `min_frame_rate` and `max_frame_rate`. The target
@@ -87,7 +152,7 @@ mapping from host elapsed time to original timer ticks.
 
 ## Remaining coverage
 
-Complete animation eligibility, collision, startup and stop movement, timer-mode
+Complete animation eligibility, collision, other startup paths and stop movement, timer-mode
 selection, jumping, gravity, combat, swimming, climbing, and follow-camera behavior
 are not specified here. Reproducing only the arithmetic above does not establish
 controller parity.

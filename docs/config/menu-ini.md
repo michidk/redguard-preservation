@@ -94,6 +94,10 @@ Action ids follow a convention per page:
 | 600–601 | Confirm overwrite actions. |
 | 700–724 | Key binding page actions. |
 
+## Parser
+
+`import::menu_ini::MenuPage::parse(content, page)` reads a page's two texture references and ordered text entries. Missing numeric element fields default to zero; malformed values and nonsequential text indices report the page and field. It does not parse movie definitions, slider state, or runtime save labels. Rendering and traversal rules are documented in [Book menu](../engine/menu.md).
+
 ## External References
 
 - [UESP: Mod:Redguard File Formats](https://en.uesp.net/wiki/Mod:Redguard_File_Formats)
