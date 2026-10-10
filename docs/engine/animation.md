@@ -109,6 +109,26 @@ advance boundaries still reject globally disabled animation, an absent animation
 state, and actors using the static model shortcut. Cancellation requests and
 all group-type interruption rules require their own treatment.
 
+## Ordinary actor update order
+
+After the actor passes the update-list exclusions, its state-dependent default
+group is selected. For an actor whose animation-update exclusion is clear,
+the update then advances the current animation and makes an ordinary request
+for the selected default. The actor's main script stage comes later in that
+same update, after this advancement and the intervening movement handling.
+
+Within the enabled main script stage, the engine processes script entry work,
+then existing tasks. Task processing can leave the main script body eligible
+to continue in that update. Actor flags and global script switches can suppress
+these stages independently; nearby-cell membership does not bypass them.
+
+Consequently, a script animation request can follow an animation advancement
+in the same actor update. If the request clears the current default or starts
+an actor with no current group, its immediate advancement reuses the shared
+tick increment. A renderer that advances each actor exactly once before or
+after all script execution loses this ordering. These facts do not specify
+the complete script interpreter, movement handling, or every eligibility rule.
+
 ## Timing boundary
 
 Animation consumes the shared whole nominal-tick increment. The normal timing
