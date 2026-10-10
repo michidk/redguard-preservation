@@ -162,6 +162,40 @@ The query returned that actor height while preserving its current and previous
 positions. Treating the terrain height as the actor origin would place the body
 64 map units too low in this case.
 
+### Terrain support sampling
+
+The ground query converts actor coordinates to integer map units by arithmetic
+right shift by eight before sampling terrain. Fractional runtime coordinates
+therefore do not reach the terrain interpolator. This coordinate conversion is
+separate from truncating the resulting surface height toward zero.
+
+Terrain cell selection rounds `map_x / 256 - 0.5` and
+`map_z / 256 + 0.5` to the nearest integer, with ties going to the even integer.
+Let the selected cell coordinates be `i` and `j`. Its four horizontal corners
+are `(256i, 256j)`, `(256(i+1), 256j)`, `(256i, 256(j-1))` and
+`(256(i+1), 256(j-1))`. The diagonal joins the first and last corners.
+If `map_x - 256i` is strictly greater than `256j - map_z`, use the triangle
+containing the second corner; otherwise use the triangle containing the third.
+The surface height comes from that triangle's plane. Its normalized face normal
+is multiplied by 256 and rounded to nearest-even for the integer contact normal;
+it is not an interpolated shading normal.
+
+For the observed ISLAND interior cells, runtime grid row `j` corresponds to
+WLD source row `256-j`. All 65,280 height bytes in runtime rows 1 through 255
+matched that source mapping. This check does not establish out-of-grid behavior.
+Near-camera queries use the current terrain vertex cache; queries more than
+15 grid cells away on either axis use decoded heightmap values directly.
+The observed samples below use the near-camera path on dry terrain. They do not
+establish water-contact behavior or cache-update timing.
+
+At marker zero, map X 40816 and Z 41024 select cell `(159, 161)` and the flat
+triangle described above. A later forward probe at raw Z 10526387 samples integer
+map Z 41118 in the other triangle of the same cell. Its vertices are
+`(40704, -680, 41216)`, `(40960, -680, 40960)` and `(40960, -720, 41216)`.
+At X 40816, the plane height is −682.1875. Truncation and the actor-origin
+conversion produce −190976 runtime units, matching the observed ground result.
+Its integer normal is `(−39, −250, −39)`, also matching the observed contact.
+
 ### Upright actor collision spheres
 
 For bounds whose X and Z totals are not strictly greater than both other totals,
