@@ -103,6 +103,12 @@ processes at most 36 elapsed ticks. The plane tilts around a camera-relative axi
 
 ### Plane tilt
 
+**Verified in the original Glide game:** the plane can be crossed vertically.
+In ISLAND, with sky level -4500, raising the camera to Y -6055 using
+`magiccarpet`, `yeahbaby`, and Page Up removes the clouds from the forward
+view, leaving the pale-purple world fog background. The sky is not an
+enclosing cube or sphere.
+
 **Verified against the Glide transform:** the initial tilt is 24 of the
 engine's 2048 angle units, approximately 4.21875 degrees. It is a fixed angle,
 not an animation rate. The tilt setter masks its input to 11 bits.
