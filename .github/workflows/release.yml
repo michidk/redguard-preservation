@@ -1,154 +1,239 @@
+# @orcastrate
+# template: rust-release
+# params:
+#   bin_name: rgpre
+#   publish_release: true
+#   targets:
+#     - {os: ubuntu-26.04, target: x86_64-unknown-linux-gnu, lib_file: librgpre.so}
+#     - {os: ubuntu-26.04, target: arm-unknown-linux-gnueabihf, cross: true, lib_file: librgpre.so}
+#     - {os: macos-latest, target: x86_64-apple-darwin, lib_file: librgpre.dylib}
+#     - {os: macos-latest, target: aarch64-apple-darwin, lib_file: librgpre.dylib}
+#     - {os: windows-latest, target: x86_64-pc-windows-msvc, lib_file: rgpre.dll}
+# @end-orcastrate
+
 name: Release
 
 on:
   push:
-    tags:
-      - 'v[0-9]+.[0-9]+.[0-9]+'
+    tags: ["v*"]
+  workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  group: release-${{ github.repository }}-${{ github.ref }}
+  cancel-in-progress: false
 
 defaults:
   run:
     shell: bash
 
 env:
-  APP_NAME: rgpre
   BIN_NAME: rgpre
-  LIB_NAME: rgpre
+  TAG_NAME: ${{ github.ref_name }}
+  PUBLISH_RELEASE: "true"
+  RELEASE_TOKEN_SECRET: RELEASE_TOKEN
 
 jobs:
-  build-release:
-    name: Build release
-    runs-on: ${{ matrix.os }}
-    env:
-      CARGO: cargo
-      TARGET_FLAGS: ""
-      TARGET_DIR: ./target
-      RUST_BACKTRACE: 1
-    strategy:
-      matrix:
-        include:
-        - build: linux
-          os: ubuntu-latest
-          target: x86_64-unknown-linux-gnu
-          lib_file: librgpre.so
-        - build: linux-arm
-          os: ubuntu-latest
-          target: arm-unknown-linux-gnueabihf
-          lib_file: librgpre.so
-        - build: macos
-          os: macos-latest
-          target: x86_64-apple-darwin
-          lib_file: librgpre.dylib
-        - build: macos-arm
-          os: macos-latest
-          target: aarch64-apple-darwin
-          lib_file: librgpre.dylib
-        - build: win-msvc
-          os: windows-latest
-          target: x86_64-pc-windows-msvc
-          lib_file: rgpre.dll
+  verify:
+    name: Verify release
+    runs-on: ubuntu-26.04
+    timeout-minutes: 20
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v7
+      - name: Validate release tag and publishing token
+        env:
+          RELEASE_TOKEN: ${{ secrets[env.RELEASE_TOKEN_SECRET] }}
+        run: |
+          if [[ "$GITHUB_REF_TYPE" != "tag" || ! "$TAG_NAME" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo '::error::Select a stable vX.Y.Z release tag.'
+            exit 1
+          fi
+          if [[ "$PUBLISH_RELEASE" == "true" && -z "$RELEASE_TOKEN" ]]; then
+            printf '::error::Set %s to a token that can publish releases and trigger downstream workflows.\n' "$RELEASE_TOKEN_SECRET"
+            exit 1
+          fi
+
+      - name: Checkout sources
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
 
       - name: Install toolchain
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249 # stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
+
+      - name: Verify Cargo version matches tag
+        run: |
+          version="$(cargo metadata --locked --no-deps --format-version 1 |
+            jq -er '.packages[] | select(.manifest_path == (env.GITHUB_WORKSPACE + "/Cargo.toml")) | .version')"
+          if [[ "$version" != "${TAG_NAME#v}" ]]; then
+            printf '::error::Cargo version %s does not match tag %s.\n' "$version" "$TAG_NAME"
+            exit 1
+          fi
+
+      - name: Format, lint, and test
+        run: |
+          cargo fmt --all -- --check
+          cargo clippy --locked --all-targets --all-features -- -D warnings
+          cargo test --locked --all-features
+
+  build:
+    name: Build (${{ matrix.target }})
+    needs: verify
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+
+          - os: ubuntu-26.04
+            target: x86_64-unknown-linux-gnu
+            cross: false
+            lib_file: "librgpre.so"
+
+          - os: ubuntu-26.04
+            target: arm-unknown-linux-gnueabihf
+            cross: true
+            lib_file: "librgpre.so"
+
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            cross: false
+            lib_file: "librgpre.dylib"
+
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            cross: false
+            lib_file: "librgpre.dylib"
+
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            cross: false
+            lib_file: "rgpre.dll"
+
+    env:
+      TARGET: ${{ matrix.target }}
+      LIB_FILE: ${{ matrix.lib_file }}
+      BUILD_TOOL: cargo
+      CARGO_PROFILE_RELEASE_STRIP: debuginfo
+      CROSS_TARGET_ARM_UNKNOWN_LINUX_GNUEABIHF_IMAGE: ghcr.io/cross-rs/arm-unknown-linux-gnueabihf:0.2.5
+      CROSS_TARGET_X86_64_UNKNOWN_LINUX_MUSL_IMAGE: ghcr.io/cross-rs/x86_64-unknown-linux-musl:0.2.5
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Install toolchain
+        uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249 # stable
         with:
           targets: ${{ matrix.target }}
 
-      - name: Setup target
-        if: matrix.target != ''
+      - name: Cache
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
+        with:
+          key: release-${{ matrix.target }}
+
+      - name: Install cross
+        if: matrix.cross
+        uses: taiki-e/install-action@ab6895351a88b908e96a4697860d4ffea5e57dbe # v2
+        with:
+          tool: cross@0.2.5
+
+      - name: Select cross compiler
+        if: matrix.cross
+        run: echo 'BUILD_TOOL=cross' >> "$GITHUB_ENV"
+
+      - name: Build release
+        run: '"$BUILD_TOOL" build --release --locked --target "$TARGET"'
+
+      - name: Package archives
         run: |
-          echo "TARGET_FLAGS=--target ${{ matrix.target }}" >> $GITHUB_ENV
-          echo "TARGET_DIR=./target/${{ matrix.target }}" >> $GITHUB_ENV
-
-      - name: Setup Cross
-        if: matrix.build == 'linux-arm'
-        run: |
-          cargo install cross
-          echo "CARGO=cross" >> $GITHUB_ENV
-
-      - name: Build release binary
-        run: ${{ env.CARGO }} build --release --verbose ${{ env.TARGET_FLAGS }}
-
-      - name: Strip release binary (linux/macos)
-        if: matrix.build == 'linux' || matrix.build == 'macos' || matrix.build == 'macos-arm'
-        run: strip "${{ env.TARGET_DIR }}/release/${{ env.BIN_NAME }}"
-
-      - name: Strip release binary (arm)
-        if: matrix.build == 'linux-arm'
-        run: |
-          docker run --rm -v \
-            "$PWD/target:/target:Z" \
-            rustembedded/cross:arm-unknown-linux-gnueabihf \
-            arm-linux-gnueabihf-strip \
-            /target/arm-unknown-linux-gnueabihf/release/${{ env.BIN_NAME }}
-
-      - name: Build archives
-        run: |
-          cli_staging="${{ env.APP_NAME }}-${{ matrix.target }}"
-          lib_staging="lib${{ env.LIB_NAME }}-${{ matrix.target }}"
-          mkdir -p "$cli_staging" "$lib_staging"
-
-          if [[ "${{ matrix.os }}" = "windows-latest" ]]; then
-            cp "${{ env.TARGET_DIR }}/release/${{ env.BIN_NAME }}.exe" "$cli_staging/"
-            cp "${{ env.TARGET_DIR }}/release/${{ matrix.lib_file }}" "$lib_staging/"
-            7z a "$cli_staging.zip" "$cli_staging"
-            7z a "$lib_staging.zip" "$lib_staging"
-            echo "CLI_ASSET=$cli_staging.zip" >> $GITHUB_ENV
-            echo "LIB_ASSET=$lib_staging.zip" >> $GITHUB_ENV
-          else
-            cp "${{ env.TARGET_DIR }}/release/${{ env.BIN_NAME }}" "$cli_staging/"
-            cp "${{ env.TARGET_DIR }}/release/${{ matrix.lib_file }}" "$lib_staging/"
-            tar czf "$cli_staging.tar.gz" "$cli_staging"
-            tar czf "$lib_staging.tar.gz" "$lib_staging"
-            echo "CLI_ASSET=$cli_staging.tar.gz" >> $GITHUB_ENV
-            echo "LIB_ASSET=$lib_staging.tar.gz" >> $GITHUB_ENV
+          archive() {
+            if [[ "$RUNNER_OS" == "Windows" ]]; then
+              7z a "dist/$1.zip" "$1"
+            else
+              tar -czf "dist/$1.tar.gz" "$1"
+            fi
+          }
+          cli_dir="$BIN_NAME-$TARGET"
+          binary="$BIN_NAME"
+          if [[ "$RUNNER_OS" == "Windows" ]]; then binary="$binary.exe"; fi
+          mkdir -p dist "$cli_dir"
+          cp "target/$TARGET/release/$binary" "$cli_dir/"
+          archive "$cli_dir"
+          if [[ -n "$LIB_FILE" ]]; then
+            lib_dir="lib$BIN_NAME-$TARGET"
+            mkdir -p "$lib_dir"
+            cp "target/$TARGET/release/$LIB_FILE" "$lib_dir/"
+            archive "$lib_dir"
           fi
 
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v7
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: release-${{ matrix.target }}
-          path: |
-            ${{ env.CLI_ASSET }}
-            ${{ env.LIB_ASSET }}
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 7
 
-  create-release:
-    name: Create draft release
-    needs: ['build-release']
+  release:
+    name: Create GitHub release
+    needs: build
     runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      GH_REPO: ${{ github.repository }}
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v7
+      - name: Checkout full history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
+          persist-credentials: false
 
-      - name: Generate changelog
-        id: changelog
-        uses: orhun/git-cliff-action@v4
+      - name: Generate release changelog
+        uses: orhun/git-cliff-action@a9a95522b26fe6403f7bb24031f21fb573d0f5ff # v4
         with:
           config: cliff.toml
-          args: --latest --strip header
+          args: --current --strip header --output CHANGELOG.md
 
-      - name: Download all artifacts
-        uses: actions/download-artifact@v8
+      - name: Download build artifacts
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
+          pattern: release-*
           path: artifacts
           merge-multiple: true
 
-      - name: List artifacts
-        run: ls -lR artifacts/
+      - name: Generate checksums
+        working-directory: artifacts
+        run: sha256sum -- * > SHA256SUMS
 
-      - name: Get release version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
-
-      - name: Create draft release and upload assets
-        uses: softprops/action-gh-release@v3
-        with:
-          name: ${{ env.VERSION }}
-          body: ${{ steps.changelog.outputs.content }}
-          draft: true
-          files: artifacts/*
+      - name: Create or update draft, then publish if enabled
+        env:
+          # Publishing with GITHUB_TOKEN would suppress release-triggered workflows.
+          GH_TOKEN: ${{ env.PUBLISH_RELEASE == 'true' && secrets[env.RELEASE_TOKEN_SECRET] || github.token }}
+        run: |
+          release_state="$(gh api --paginate "repos/$GH_REPO/releases?per_page=100" |
+            jq -r --arg tag "$TAG_NAME" '.[] | select(.tag_name == $tag) | .draft')"
+          if [[ "$release_state" == "false" ]]; then
+            echo 'Release is already published; leaving it unchanged.'
+            exit 0
+          fi
+          if [[ "$release_state" == "true" ]]; then
+            gh release upload "$TAG_NAME" artifacts/* --clobber
+            gh release edit "$TAG_NAME" --notes-file CHANGELOG.md
+          else
+            gh release create "$TAG_NAME" artifacts/* --verify-tag --draft \
+              --title "${TAG_NAME#v}" --notes-file CHANGELOG.md
+          fi
+          if [[ "$PUBLISH_RELEASE" == "true" ]]; then
+            gh release edit "$TAG_NAME" --draft=false
+          fi
