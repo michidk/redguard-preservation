@@ -1,5 +1,7 @@
 # redguard-preservation
 
+[![Crates.io](https://img.shields.io/crates/v/redguard-preservation.svg)](https://crates.io/crates/redguard-preservation)
+
 Preserving *The Elder Scrolls Adventures: Redguard* (1998) — reverse-engineered file format specifications, engine documentation, and a Rust CLI for parsing and converting game assets.
 
 > **📖 Full documentation** — file format specifications, engine internals, INI references, and more — is published at **<https://michidk.github.io/redguard-preservation/>**. This README is the CLI / library / FFI quick reference.
