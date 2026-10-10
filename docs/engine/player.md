@@ -139,7 +139,20 @@ and walking attribute was 8, giving a 19-map-unit probe at raw Z `10526387`.
 The obstacle and slope checks allowed it. Ground support selected terrain with
 normal `(−39, −250, −39)`, classification 4, and actor-height result `−190976`.
 The player's position remained unchanged by these checks. This sample verifies
-an accepted terrain probe; it does not establish blocked-wall or ledge behavior.
+an accepted terrain probe; it does not establish ledge behavior.
+
+A separate ISLAND wall attempt at runtime position
+`(10432684, -191744, 10739172)`, heading 26, rejected the sphere probe.
+Walking returned without translating or advancing its zero startup phase.
+The later ground response in the same update retained that position and the
+equal previous position. The frame scale was 170 and idle group zero had no
+translation-suppression marker. This verifies rejection before translation for
+that wall contact; it does not establish swept correction or sliding.
+
+An unsuccessful sphere, steep-surface, or ground-support probe marks the
+forward attempt blocked and returns failure. Subsequent checks in that probe
+are skipped. The blocked-attempt marker is transient; it is not a permanent
+collision state.
 
 ### Converting support height to actor position
 
@@ -324,3 +337,44 @@ controller parity.
 - [Keyboard bindings](../config/keys-ini.md)
 - [System configuration](../config/system-ini.md)
 - [RGM markers and actor data](../formats/RGM.md)
+
+### Sphere contact with model faces
+
+The forward obstacle query converts the proposed actor origin to integer map
+units by arithmetic right shift by eight. Actor orientation transforms each
+local collision-sphere center; the model's inverse placement transform then
+expresses the center in model coordinates. The face test uses the model's
+stored face normal and polygon vertices, rather than a rendered triangle mesh.
+
+For a sphere center C, radius r, a face vertex V, and face normal N, the signed
+plane distance is `(V − C) · N`. When collision sidedness is enabled, a distance
+greater than 4 map units rejects the face. Independently, a squared distance
+greater than `r²` rejects it. The candidate contact point is the perpendicular
+projection `C + N × distance` onto the face plane.
+
+A face passes the remaining test when any polygon vertex is within the sphere,
+any polygon edge segment intersects the sphere, or the projected contact lies
+inside every oriented polygon edge. Boundary equality counts as contact.
+For the inside test, each consecutive vertex pair A/B must satisfy
+`((A − contact) × (B − contact)) · N >= 0`. A face that passed for one sphere
+is not added again for another sphere in the same model query.
+
+The reported contact remains the plane projection even when a vertex or edge
+intersection accepted the face. The model placement transform returns the
+contact point and normal to world coordinates. The obstacle probe needs only
+whether any model reported a contact; it does not move the actor to that point.
+
+In the blocked ISLAND sample above, the first contacting sphere had radius 24
+and the face-plane distance was −19.6171875 map units. The projection was inside
+the polygon. The reported world contact was
+`(40751, −791, 41987.6171875)` with normal `(0, 0, −1)` before integer contact
+conversion. Recomputing the plane projection from the observed model geometry
+reproduced that contact. A radius of 19 rejects it at the plane-distance test.
+The following forward-probe result was failure and the player remained at the
+same position. This sample verifies a face-interior contact; edge-only and
+vertex-only contacts still need independent live samples.
+
+These are the narrow face-contact rules. Model and collision-group broad-phase
+selection, transformed/scaled models, swept correction, moving geometry, and
+non-upright actor shapes require their own coverage before claiming a complete
+collision implementation.
