@@ -416,4 +416,3 @@ controller parity.
 - [Keyboard bindings](../config/keys-ini.md)
 - [System configuration](../config/system-ini.md)
 - [RGM markers and actor data](../formats/RGM.md)
-
