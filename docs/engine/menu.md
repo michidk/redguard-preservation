@@ -65,3 +65,13 @@ Movies action 3 turns MB_PG01 to its last frame with the same four-unit depth ch
 Configuration lookup matches section/key names without case and returns the first matching occurrence. Settings outside the requested section do not override that section.
 
 These settings and submenu facts were verified from MENU.INI, KEYS.INI, SYSTEM.INI, the three MM_ GXA assets, and the Glide menu initialization, painting, dispatch, traversal, binding-capture, binding-validation, and camera/frame update routines. Engine volume scaling was checked against the stored floating-point constants.
+
+## Frame and camera transitions
+
+Page turns use the authored frame arrays, not an independent hinge rotation. A turn request supplies an initial frame, a target frame, and an update delay. The delay counts down first; at zero it selects the initial frame. Later menu updates move one integer frame toward the target. There is no geometric interpolation between those authored frames in this path.
+
+MB_PG01 changes Z by +4 when a forward turn reaches frame four, and by -4 when a reverse turn reaches frame four. MB_PG03 applies the opposite depth changes. These shifts happen at the middle-frame crossing, not at the final frame. Returning to Main reverses the appropriate page turns. Cover motion and page-turn start can also dispatch menu sound cues; those cues require the existing effect playback path.
+
+Camera requests form an ordered queue. Each request specifies a target position, angle changes, and a fractional step. Position interpolates linearly from the previous settled position; angles interpolate from their previous values by the supplied changes. The first rendered sample uses the request's fractional step, rather than zero. Each update adds that same step; a value greater than one settles the target and advances to the next request. Rendering converts the interpolated values to engine integers.
+
+These rules were verified from the menu's camera enqueue/update and page-turn request/update routines, including the symmetric middle-frame depth changes. Complete camera-angle conventions, transition interruption, menu audio, and matched motion recordings still require investigation before claiming complete animated presentation.
