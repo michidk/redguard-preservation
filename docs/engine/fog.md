@@ -72,8 +72,8 @@ dithering; the fog-dither switch is a Voodoo 2 feature. For incoming encoded
 `clamp(c + floor((f-c)*(d+1)/256), 0, 255)`.
 
 Glide initializes framebuffer dithering to 4 by 4, and the shipped game's
-graphics setup explicitly selects that mode. The threshold matrix, indexed by framebuffer Y then
-X modulo four, is:
+graphics setup explicitly selects that mode. The threshold matrix, indexed by
+framebuffer Y then X modulo four, is:
 
 ```
  0  8  2 10

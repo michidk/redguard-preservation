@@ -103,8 +103,8 @@ processes at most 36 elapsed ticks. The plane tilts around a camera-relative axi
 
 ### Plane tilt
 
-The sky is a plane that can be crossed vertically. It is not an enclosing cube
-or sphere.
+The sky is a plane that can be crossed vertically and is visible from either
+side. It is not an enclosing cube or sphere.
 
 The initial tilt is 24 of the engine's 2048 angle units, approximately 4.21875
 degrees. It is a fixed angle, not an animation rate. The tilt setter masks its
