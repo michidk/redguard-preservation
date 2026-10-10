@@ -407,27 +407,27 @@ All fields little-endian.
 | +0x08 | 2 | `u16` | frame_count | Number of animation frames in this group |
 | +0x0A | var | `[u8; frame_count × 3]` | commands | Packed 3-byte animation commands, one per frame |
 
-In `ISLAND.RGM`, Cyrus (RAHD record 22, `ragr_offset=1318`) has 152 animation groups. 58 groups contain attachment commands (opcode 0/4/10 with non-zero vertex index). Vertex 1 = hand attachment (sword combat), vertex -10 = scabbard attachment.
+### Animation command (3 bytes, packed LE)
 
-### Animation Command (3 bytes, packed LE)
+The low four bits select the opcode. A file `ShowFrame` command, opcode zero,
+uses all remaining twenty bits as an unsigned frame reference. It does not
+encode an attachment vertex.
 
-Each command is a 24-bit little-endian packed value. The low 4 bits select the opcode type, which determines how the remaining 20 bits are allocated to parameters.
+RAAN entries form one concatenated frame table in file order. An entry with
+frame count N contributes its model's frames zero through N−1. The frame
+reference selects one entry in that table. For example, model A with three
+frames followed by model B with two frames gives references 0–2 for A and 3–4
+for B. Reference 4 selects model B, frame 1.
 
-**Opcode 0 (ShowFrame)** — the only opcode that sets the attachment vertex:
+The loader rewrites each `ShowFrame` into two ten-bit fields: runtime model
+handle and frame index. These patched runtime commands have a different
+meaning from file commands. Both resolved fields fit in a byte. Raw file
+commands must be resolved through RAAN before they can be played.
 
-```
-byte 0          byte 1          byte 2
-7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0
-├─hdl─┤ ├─op──┤ ├v┤ ├──handle─┤ ├───vertex────┤
-
-opcode       = byte0 & 0x0F                        (4 bits)
-handle_index = (byte0 >> 4) | ((byte1 & 0x3F) << 4)  (10-bit signed)
-vertex_index = (byte1 >> 6) | (byte2 << 2)           (10-bit signed)
-```
-
-Both `handle_index` and `vertex_index` are 10-bit sign-extended values (range −512..+511). The `handle_index` is a relative index into the per-actor animation handle lookup table (built from RAAN entries at load time; patched to absolute runtime handles during loading). The `vertex_index` identifies which vertex to track for item attachment — see [Item Attachment System](../engine/attachment.md).
-
-Opcodes 4 (PlaySound) and 10 (ChangeAnimGroup) share the same 10+10 bit layout but their parameters are NOT handle/vertex — they are sound params and animation jump targets respectively. See [attachment.md](../engine/attachment.md) for the full 16-opcode table with names, bit layouts, and playback behavior.
+Opcodes 4 (PlaySound) and 10 (ChangeAnimGroup) use two ten-bit fields in the
+file. Their parameters are sound settings and animation jump targets,
+respectively. See [animation playback](../engine/animation.md) and the
+[opcode table](../engine/attachment.md#complete-opcode-table).
 
 ## RANM (Namespace)
 

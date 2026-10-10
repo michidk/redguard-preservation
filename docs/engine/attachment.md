@@ -6,66 +6,18 @@ How the engine positions held items (swords, shields) on animated characters at 
 
 Character models (3D/3DC) are flat polygon meshes with per-frame vertex animation. There are no bones, joints, or named attachment points in the model data. Instead, the engine tracks a specific **vertex index** from the character's animation, reads that vertex's world position each frame, and places the held item there.
 
-The tracked vertex index is encoded **per-frame** in **packed 3-byte animation commands** within the RGM `RAGR` section (or the equivalent `AIAN` section in standalone `.AI` files). Each animation frame can specify which vertex to track, allowing the attachment point to change as the animation progresses.
+Animation commands select the character's model and frame. Attachment vertex
+selection is separate from that frame selection. File `ShowFrame` commands
+must not be interpreted as vertex indices. The grip and scabbard vertex inputs
+are retained in RAEX; this document does not establish their complete selection
+rules for every actor state.
 
-## Locating the Vertex Index in a File
+## Animation command stream
 
-To find an actor's attachment vertex index in an RGM file:
-
-```
-RAHD record (165 bytes per actor, at payload offset 8 + i × 165)
-  └─ offset 0x31: ragr_offset (u32 LE)
-        │
-        ▼
-RAGR section payload + ragr_offset
-  └─ read u16 entry_size (0 = end, else payload bytes follow)
-  └─ animation group entry:
-       +0x02: group_index (u16)
-       +0x04: anim_id     (u16)
-       +0x06: flag         (u16, low byte only)
-       +0x08: frame_count  (u16)
-       +0x0A: commands     (frame_count × 3 bytes)
-  └─ next entry at: current_position + 2 + entry_size
-                │
-                ▼
-       Per-frame command (3 bytes, packed LE):
-         byte0 & 0x0F = opcode
-         If opcode is 0, 4, or 10:
-           vertex_index = (byte1 >> 6) | (byte2 << 2)
-           Sign-extend from 10 bits: if value & 0x200, subtract 0x400
-```
-
-In `ISLAND.RGM`, Cyrus has 152 animation groups, 58 with attachment commands. Key vertex indices are **1** (hand/sword grip) and **−10** (scabbard/hip).
-
-The full animation command format is documented in [RGM § RAGR](../formats/RGM.md#ragr-animation-groups).
-
-## Animation Command Stream
-
-Animation group data consists of a 10-byte entry header followed by `frame_count` × 3-byte packed commands (see [RGM § RAGR](../formats/RGM.md#ragr-animation-groups) for the entry layout).
-
-### Animation Command (3 bytes, packed)
-
-Each command is a 24-bit packed value. The low 4 bits select the opcode type, which determines how remaining bits are allocated to parameters.
-
-#### Opcode 0 — ShowFrame (Set Handle + Vertex)
-
-The **only** opcode that sets the attachment vertex. Encoding: 10-bit handle + 10-bit vertex.
-
-```
-byte 0          byte 1          byte 2
-7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0
-├─hdl─┤ ├─op──┤ ├v┤ ├──handle─┤ ├───vertex────┤
-
-opcode       = byte0 & 0x0F                          (4 bits)
-handle_index = (byte0 >> 4) | ((byte1 & 0x3F) << 4)  (10-bit signed)
-vertex_index = (byte1 >> 6) | (byte2 << 2)            (10-bit signed)
-```
-
-During animation playback, the decoded values are written to the actor struct:
-- `handle_index` → actor animation handle (which 3D object to read from)
-- `vertex_index` → actor tracked vertex (which vertex to read position of)
-
-In `ISLAND.RGM`, Cyrus uses vertex 1 (hand grip) in 664 commands across combat animations.
+Groups contain packed three-byte commands. File `ShowFrame` commands use a
+twenty-bit reference into the concatenated RAAN model/frame table. The loader
+patches them into a runtime model handle and frame index. See
+[animation playback](animation.md) and [RGM](../formats/RGM.md#ragr-animation-groups).
 
 ### Complete Opcode Table
 
@@ -73,12 +25,12 @@ Semantics from engine analysis. Names from UESP where available.
 
 | Opcode | UESP Name | Bit Layout | Parameters | Playback Behavior |
 |---|---|---|---|---|
-| **0** | ShowFrame | 10 + 10 | handle_index, vertex_index | Advance frame; set attachment handle + vertex. The only opcode that drives item positioning. |
+| **0** | ShowFrame | 20-bit file reference | frame_reference | Select a model/frame through RAAN; runtime representation is a patched 10 + 10 model handle and frame index. |
 | **1** | EndAnimation | 20-bit | (unused, always 0) | Set animation handle to −1; stop associated sound; call playback recursively for next animation. |
 | **2** | GoToPrevious | 20-bit | target_frame | Jump backward to an earlier frame in this group. Used for walk/run loops. |
 | **3** | GoToFuture | 20-bit | target_frame | Jump forward to a later frame. Conditional — checks animation state flags and pending transitions. |
 | **4** | PlaySound | 10 + 10 | sound_param, volume_shift | Play SFX. Calls sound system with `sound_param` as setup and `volume_shift << 6` as volume. Same bit layout as opcode 0 but params are NOT handle/vertex. |
-| **5** | BreakPoint | 20-bit | (unused, always 0) | Set vertex-enable flag at anim control +0x0B. Often the target of GoToFuture jumps. |
+| **5** | BreakPoint | 20-bit | (unused, always 0) | Set the animation breakpoint flag. Often the target of GoToFuture jumps. |
 | **6** | SetRotationXYZ | 6 + 6 + 6 | rot_x, rot_y, rot_z | Set 3-axis rotation (each param × 256). Actor orientation override. |
 | **7** | SetRotationAxis | 2 + 18 | axis (0=X, 1=Y, 2=Z), value | Set rotation on a single axis. Finer precision than opcode 6. |
 | **8** | SetPositionXYZ | 6 + 6 + 6 | pos_x, pos_y, pos_z | Set 3-axis position offset (each param × 8). |
@@ -116,9 +68,11 @@ Opcodes 6–10 and 12–14 are implemented in the engine but **never appear in a
 | 6 + 7 + 7 | 15 | 6-bit at 4, 7-bit signed at 10, 7-bit signed at 17 |
 | 20-bit | 1, 2, 3, 5, 11, 12, 13, 14 | 20-bit signed at 4 |
 
-### Handle Index Patching
+### Frame reference patching
 
-During loading, commands with opcode type 0 are post-processed. The `handle_index` field contains a **relative index** into a per-actor animation handle lookup table. The engine rewrites the packed command in-place to replace the relative index with the resolved runtime animation handle. This table is built from RAAN entries loaded for the actor.
+The loader resolves the entire twenty-bit file reference through RAAN. It
+rewrites the command with a runtime model handle and frame index. Neither
+field is an attachment vertex index.
 
 ## Vertex Position Lookup
 
@@ -126,7 +80,7 @@ At each frame, the engine reads the tracked vertex position through this call ch
 
 1. **Entry point** — resolves animation handle and reads the tracked vertex.
 2. **3D object manager** — looks up handle in a table. For "virtual" animations (type `0x02`), follows a parent handle chain recursively.
-3. **Frame builder** — reads `(x, y, z)` float position of the given vertex from the current animation frame. For frame 0: reads `base_vertices[vertex_index × 12]`. For animated frames: applies delta-compressed offsets (i8×3 or i16×3) from the base frame. Returns `float[3]`.
+3. **Frame builder** — reads the requested vertices from the selected model frame. Frame encoding is described in [3DC](../formats/models/3dc.md).
 4. Result is scaled by a global constant and rounded to integer world coordinates.
 
 ## Item Data (from INVENTRY.ROB)
@@ -193,32 +147,9 @@ Additional runtime state tracked per actor: `hand_pos.vx/vy/vz`, `hand_angle.vx/
 
 ## Data Flow Summary
 
-```
-File data (RGM):
-  RAHD record → ragr_offset (offset 0x31)
-       │
-       ▼
-  RAGR section payload + ragr_offset
-       → size-prefixed entries (u16 entry_size; 0 = end):
-            +0x02 group_index, +0x04 anim_id, +0x06 flag,
-            +0x08 frame_count, +0x0A commands (frame_count × 3 bytes)
-            command bits 14–23 = vertex_index (for opcode 0/4/10)
-
-Map load:
-  RAAN entries → load .3DC animation files → get runtime handles
-  RAGR         → load animation command streams
-                 → patch handle_index from relative to absolute
-
-Runtime (per frame):
-  Animation playback → decode 3-byte command for current frame
-                     → extract vertex_index + handle_index
-                     → store in actor struct (+0x24f, +0x251)
-
-  Item attachment    → read vertex position from current anim frame
-                       using stored handle + vertex index
-                     → compute world transform (position + orientation)
-                     → place item model at computed transform
-```
+Animation playback resolves the model and frame first. Item attachment then
+reads selected vertices from that model frame and computes the item transform.
+The frame reference and the vertex selection are distinct inputs.
 
 ## External References
 

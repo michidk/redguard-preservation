@@ -108,19 +108,15 @@ impl RagrCommand {
         }
     }
 
+    /// File ShowFrame index into the concatenated RAAN model/frame table.
+    /// Runtime commands are patched to a model handle and frame index instead.
     #[must_use]
-    pub const fn handle_index(&self) -> i16 {
-        self.param_10a()
-    }
-
-    #[must_use]
-    pub const fn vertex_index(&self) -> i16 {
-        self.param_10b()
-    }
-
-    #[must_use]
-    pub const fn sets_attachment(&self) -> bool {
-        self.opcode == 0
+    pub const fn frame_reference(&self) -> Option<u32> {
+        if self.opcode == 0 {
+            Some(self.raw >> 4)
+        } else {
+            None
+        }
     }
 }
 
@@ -233,8 +229,7 @@ fn command_to_json(cmd: RagrCommand) -> serde_json::Value {
 
     match cmd.opcode {
         0 => {
-            obj.insert("handle_index".into(), cmd.param_10a().into());
-            obj.insert("vertex_index".into(), cmd.param_10b().into());
+            obj.insert("frame_reference".into(), (cmd.raw >> 4).into());
         }
         4 => {
             obj.insert("sound_param".into(), cmd.param_10a().into());

@@ -22,50 +22,6 @@ fn decode_position_does_not_collapse_small_values_to_origin() {
     assert!(pos[1].abs() > 0.01, "y too close to origin: {}", pos[1]);
 }
 
-fn pack_cmd_type0(opcode: u8, handle: i16, vertex: i16) -> [u8; 3] {
-    let handle_u = (handle as u16) & 0x3FF;
-    let vertex_u = (vertex as u16) & 0x3FF;
-    let packed: u32 = (opcode as u32 & 0xF) | ((handle_u as u32) << 4) | ((vertex_u as u32) << 14);
-    [packed as u8, (packed >> 8) as u8, (packed >> 16) as u8]
-}
-
-#[test]
-fn ragr_command_decodes_vertex_and_handle_for_opcode_0() {
-    let [b0, b1, b2] = pack_cmd_type0(0, 3, 47);
-    let cmd = metadata::decode_ragr_command(b0, b1, b2);
-
-    assert_eq!(cmd.opcode, 0);
-    assert!(cmd.sets_attachment());
-    assert_eq!(cmd.handle_index(), 3);
-    assert_eq!(cmd.vertex_index(), 47);
-}
-
-#[test]
-fn ragr_command_decodes_negative_vertex_index() {
-    let [b0, b1, b2] = pack_cmd_type0(0, -1, -5);
-    let cmd = metadata::decode_ragr_command(b0, b1, b2);
-
-    assert_eq!(cmd.opcode, 0);
-    assert_eq!(cmd.handle_index(), -1);
-    assert_eq!(cmd.vertex_index(), -5);
-}
-
-#[test]
-fn ragr_command_opcode_4_is_sound_trigger_not_attachment() {
-    let [b0, b1, b2] = pack_cmd_type0(4, 0, 100);
-    let cmd = metadata::decode_ragr_command(b0, b1, b2);
-
-    assert_eq!(cmd.opcode, 4);
-    assert!(!cmd.sets_attachment());
-}
-
-#[test]
-fn ragr_command_opcode_6_does_not_set_attachment() {
-    let cmd = metadata::decode_ragr_command(0x06, 0x00, 0x00);
-    assert_eq!(cmd.opcode, 6);
-    assert!(!cmd.sets_attachment());
-}
-
 #[test]
 fn marker_metadata_reads_positions_before_auxiliary_bytes() {
     let mut data = 2u32.to_le_bytes().to_vec();
