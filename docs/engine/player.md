@@ -162,6 +162,36 @@ The query returned that actor height while preserving its current and previous
 positions. Treating the terrain height as the actor origin would place the body
 64 map units too low in this case.
 
+### Applying ordinary ground support
+
+In an ordinary grounded update, the actor retains its previous position before
+walking changes X and Z. The subsequent obstacle pass and support query precede
+the ground response. When ordinary ground support is available and no airborne
+or special movement state diverts the response, the response assigns the
+returned actor height to Y. It preserves the translated X/Z and the saved
+previous position. This is a discrete support-height assignment, not vertical
+interpolation toward the terrain surface.
+
+A four-stop observation within one ISLAND update recorded:
+
+| Point in update | Runtime position |
+| --- | --- |
+| Before walking | `(10451447, -195072, 10640696)` |
+| After walking | `(10451732, -195072, 10642107)` |
+| Before ground response | `(10451732, -195072, 10642107)` |
+| After ground response | `(10451732, -195328, 10642107)` |
+
+The previous position remained `(10451447, -195072, 10640696)` at all four
+stops. The startup phase was three, the frame scale was 180, and walking group
+20 was active with its translation-suppression marker clear. The support query
+returned terrain class 4, normal `(−40, −253, 0)`, and actor height −195328.
+Its integer sample position `(40827, 41570)` lay on a terrain plane of height
+−699.21875; the documented actor-origin conversion reproduces that result.
+
+This sample establishes the ordinary supported branch. Falling, jumping,
+sliding, rollback against obstacles, and special movement states have additional
+responses; they are not equivalent to assigning a terrain height unconditionally.
+
 ### Terrain support sampling
 
 The ground query converts actor coordinates to integer map units by arithmetic
