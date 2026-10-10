@@ -71,8 +71,8 @@ dithering; the fog-dither switch is a Voodoo 2 feature. For incoming encoded
 8-bit channel `c`, fog channel `f` and density `d`, the resulting channel is
 `clamp(c + floor((f-c)*(d+1)/256), 0, 255)`.
 
-Glide initializes framebuffer dithering to 4 by 4. The shipped game has no
-call to change that mode. The threshold matrix, indexed by framebuffer Y then
+Glide initializes framebuffer dithering to 4 by 4, and the shipped game's
+graphics setup explicitly selects that mode. The threshold matrix, indexed by framebuffer Y then
 X modulo four, is:
 
 ```
