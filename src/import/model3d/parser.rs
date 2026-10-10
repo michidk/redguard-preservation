@@ -230,31 +230,27 @@ pub const fn parse_texture_data_value(raw: u32, version: &ModelVersion) -> Textu
 
 /// Parses one vertex coordinate triplet and applies fixed-point scaling.
 pub fn parse_vertex_coord(input: &[u8]) -> IResult<&[u8], VertexCoord> {
-    let (input, (x_raw, y_raw, z_raw)) = (le_i32, le_i32, le_i32).parse(input)?;
-    let scale = 1.0 / 256.0;
-    #[allow(clippy::cast_precision_loss)] // Source format stores fixed-point i32 positions.
-    Ok((
-        input,
-        VertexCoord {
-            x: x_raw as f32 * scale,
-            y: y_raw as f32 * scale,
-            z: z_raw as f32 * scale,
-        },
-    ))
+    let (input, [x, y, z]) = parse_fixed_vec3(input)?;
+    Ok((input, VertexCoord { x, y, z }))
 }
 
 /// Parses one face normal vector and applies fixed-point scaling.
 pub fn parse_face_normal(input: &[u8]) -> IResult<&[u8], FaceNormal> {
+    let (input, [x, y, z]) = parse_fixed_vec3(input)?;
+    Ok((input, FaceNormal { x, y, z }))
+}
+
+fn parse_fixed_vec3(input: &[u8]) -> IResult<&[u8], [f32; 3]> {
     let (input, (x_raw, y_raw, z_raw)) = (le_i32, le_i32, le_i32).parse(input)?;
     let scale = 1.0 / 256.0;
-    #[allow(clippy::cast_precision_loss)] // Source format stores fixed-point i32 normals.
+    #[allow(clippy::cast_precision_loss)] // Source format stores fixed-point i32 vectors.
     Ok((
         input,
-        FaceNormal {
-            x: x_raw as f32 * scale,
-            y: y_raw as f32 * scale,
-            z: z_raw as f32 * scale,
-        },
+        [
+            x_raw as f32 * scale,
+            y_raw as f32 * scale,
+            z_raw as f32 * scale,
+        ],
     ))
 }
 

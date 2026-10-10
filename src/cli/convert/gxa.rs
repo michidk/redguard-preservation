@@ -1,27 +1,12 @@
+use super::{rgba_to_image, save_rgba_png};
 use crate::opts::{GxaArgs, GxaFormat};
 use color_eyre::Result;
+use image::Frame;
 use image::codecs::gif::{GifEncoder, Repeat};
-use image::{DynamicImage, Frame, Rgba, RgbaImage};
 use log::info;
-use rgpre::import::{gxa, png::save_png};
+use rgpre::import::gxa;
 use serde_json::json;
 use std::path::Path;
-
-fn save_rgba_png(path: &Path, width: u32, height: u32, rgba: &[u8], compress: bool) -> Result<()> {
-    let img = RgbaImage::from_fn(width, height, |x, y| {
-        let i = (y * width + x) as usize * 4;
-        Rgba([rgba[i], rgba[i + 1], rgba[i + 2], rgba[i + 3]])
-    });
-    save_png(&DynamicImage::ImageRgba8(img), path, compress)?;
-    Ok(())
-}
-
-fn rgba_to_image(width: u16, height: u16, rgba: &[u8]) -> RgbaImage {
-    RgbaImage::from_fn(u32::from(width), u32::from(height), |x, y| {
-        let i = (y * u32::from(width) + x) as usize * 4;
-        Rgba([rgba[i], rgba[i + 1], rgba[i + 2], rgba[i + 3]])
-    })
-}
 
 pub(crate) fn handle_gxa_convert(args: &GxaArgs, output_path: &Path) -> Result<()> {
     let file_content = std::fs::read(&args.io.file)?;
