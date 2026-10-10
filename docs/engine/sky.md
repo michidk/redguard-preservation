@@ -99,13 +99,41 @@ per BIOS timer tick by dividing by 16. The timer runs at
 `1193182 / 65536` ticks per second. The initial scrolling direction is selected
 randomly from 2048 angle steps. Scroll offsets start at zero, advance with the
 shared engine sine/cosine table, and wrap at plus/minus 256 texels. A frame
-processes at most 36 elapsed ticks. The plane can also tilt around a
-camera-relative axis.
+processes at most 36 elapsed ticks. The plane tilts around a camera-relative axis as described below.
 
-**Unknown:** a reproducible initial random state for a particular saved scene,
-the rotation controls' complete mapping, and the software-renderer behavior.
-A static initial sky frame is useful for checking asset selection and projection;
-it does not verify sky movement or sun rendering.
+### Plane tilt
+
+**Verified against the Glide transform:** the initial tilt is 24 of the
+engine's 2048 angle units, approximately 4.21875 degrees. It is a fixed angle,
+not an animation rate. The tilt setter masks its input to 11 bits.
+
+Let `h` be the normalized horizontal camera-forward direction in engine
+coordinates. For an unrotated plane point with horizontal position `p`, let
+`q = dot(p, h)` and `a = 24 * 6.2831852 / 2048`. Its tilted horizontal position
+is `p + (cos(a) - 1) * q * h`, and its relative vertical position is
+`sin(a) * q + world_skylevel - camera_y`. Texture coordinates stay attached to
+the unrotated corners. The camera-relative tilt is applied before adding the
+height, not around the world origin.
+
+Transform samples before adding height, with the camera facing positive Z:
+`(-65000, 0, 65000)` becomes approximately
+`(-65000, 4781.6963, 64823.8789)`. Facing positive X, the same corner becomes
+approximately `(-64823.875, -4781.6963, 65000)`. Cardinal and oblique headings
+were checked against the original transform. These checks do not establish
+pixel parity with the original rasterizer.
+
+### Initial scroll direction
+
+**Verified:** the sky consumes one value from the engine's shared random
+stream and keeps its low 11 bits as the angle. The stream updates its unsigned
+32-bit state with `state = state * 1103515245 + 12345`, wrapping at 32 bits;
+the returned value is `(state >> 16) & 32767`. Therefore the sky direction is
+`(updated_state >> 16) & 2047`. Reproducing a particular session requires the
+state immediately before sky initialization or the resulting direction, not
+just a world identifier. Other engine users also consume this stream.
+
+**Unknown:** complete session seeding and call ordering, and the
+software-renderer behavior.
 
 ## Global Engine Toggles
 
