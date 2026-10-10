@@ -276,6 +276,26 @@ running actor. An additional support sphere is stored separately and is excluded
 from the ordinary obstacle-query count. X- and Z-dominant shapes use different
 construction rules.
 
+### Model-distance candidate test
+
+An ordinary actor's collision query converts its runtime origin to integer map
+units by arithmetic right shift by eight. If the actor has a model, the search
+radius is twice the model radius, truncated to an integer. Without a model, the
+search radius is 200 map units. The actor's own model is excluded.
+
+A model passes the distance test when the squared distance from the query origin
+to the model placement is no greater than the square of the sum of the query
+radius and the model radius. Model placement coordinates and radii are floating
+point. The coordinate differences, squared-distance sum, and combined radius
+are stored at single precision before the final comparison. Equality passes.
+
+In an ISLAND query, the player model radius 78.3671875 produced search radius
+156, not the nearest integer 157. The query origin was `(40807, −744, 42260)`.
+The current spatial list contained 224 static objects. Applying their runtime
+collision flags and the distance test selected the same four models, in order,
+as the original candidate list. Their model radii were 585.80078125,
+435.22265625, 55.421875, and 55.421875 map units.
+
 ### Sphere contact with model faces
 
 The forward obstacle query converts the proposed actor origin to integer map
