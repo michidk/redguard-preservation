@@ -84,3 +84,14 @@ The submenu requests use these camera paths. Each row's targets execute in order
 | Quit | `(232, 284, -96)`, `(232, 284, -96)`, `(408, 0, 0)` | `-152`, `0`, `+152` | `0.15`, `0.12`, `0.15` |
 
 The repeated target holds the position while the request fraction advances. Main to Movies delays the first page turn by four menu updates. Main to Options delays MB_PG01 by three and MB_PG02 by five; its return delays them by five and three respectively. Options to Controls and back delay MB_PG03 by four. Quit delays the cover turn by two. Normal menu direction, activation, and Escape handling wait until the camera queue and page turns finish, including the update that settles their final targets.
+
+For these paths, only the first camera angle changes. Subtract the camera position from a world point to obtain `(x, y, z)`, then apply the view rotation before viewport projection:
+
+```text
+angle = (first_angle & 2047) * 6.2831852 / 2048
+view_x = x
+view_y = y * cos(angle) - z * sin(angle)
+view_z = y * sin(angle) + z * cos(angle)
+```
+
+The sine and cosine samples use the shared [rotation table](water.md#wave-lookup-table), with cosine starting one quarter revolution after sine. The coordinates keep positive Y down. A negative first angle rotates positive-depth points downward on the screen.
