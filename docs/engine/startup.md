@@ -24,7 +24,7 @@ routine, and glyph-drawing path, independently of the font-file fields.
 ## 3dfx splash
 
 The [Glide splash tables](../formats/GLIDE-SPLASH.md) contain the geometry,
-textures, and authored transforms. The data arrays were verified against the
+textures, and authored transforms. The data arrays match the
 installed overlay; the overlay's drawing path was inspected independently of
 the published Glide implementation. No executable code needs to run to extract
 or display the animation.

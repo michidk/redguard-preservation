@@ -202,7 +202,7 @@ The engine loads a [`SURFACE.INI`](../config/surface-ini.md) configuration file 
 
 ### Water Tiles
 
-**Verified:** wave displacement selects a corner with texture index {0, 30, 31} when its three neighbours toward negative engine X and positive engine Z are in {0, 5, 30, 31}. Indices use the lower six bits. Only that corner moves; texture 5 is a permitted neighbour. See [Water Waves](../engine/water.md#water-vertex-selection) for raw-row orientation, timing, and the displacement formula.
+Wave displacement selects a corner with texture index {0, 30, 31} when its three neighbours toward negative engine X and positive engine Z are in {0, 5, 30, 31}. Indices use the lower six bits. Only that corner moves; texture 5 is a permitted neighbour. See [Water Waves](../engine/water.md#water-vertex-selection) for raw-row orientation, timing, and the displacement formula.
 
 ### Terrain Normals
 

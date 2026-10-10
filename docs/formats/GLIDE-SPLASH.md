@@ -4,7 +4,7 @@ The GOG Glide overlay contains authored geometry, animation transforms, and text
 
 `rgpre::import::glide_splash::parse_glide_splash` extracts data from the player's
 `DOSBOX/glide2x_emu.ovl`. It does not execute the overlay. This library API
-supports the verified GOG LE table layout; other overlay versions and the
+supports the GOG LE table layout; other overlay versions and the
 Windows `3DfxSpl2.dll` animation resource are unsupported.
 
 ## Overall Structure

@@ -4,7 +4,7 @@ Per-frame vertex displacement system that animates water surfaces on the terrain
 
 ## Water vertex selection
 
-**Verified:** wave displacement tests a vertex and the three corners toward
+Wave displacement tests a vertex and the three corners toward
 negative grid X and positive engine Z. The selected vertex must have texture
 index **{0, 30, 31}**; the other three may have **{0, 5, 30, 31}**. Each index is
 masked to its lower six bits. Only the selected vertex moves. Texture 5 can
@@ -17,7 +17,7 @@ row-major grid returned by `WldFile::combined_map`, the selected vertex is
 
 ## Wave parameters and enablement
 
-**Verified:** `world_wave[N]` contains amplitude, speed and spatial frequency,
+`world_wave[N]` contains amplitude, speed and spatial frequency,
 in that order. The world loader parses integers and converts them to floats.
 Terrain setup truncates speed and frequency toward zero into integers.
 Amplitude remains floating point. There is no additional speed multiplier.
@@ -31,7 +31,7 @@ A zero amplitude disables displacement; `world_scapeshift` does not enable it.
 
 ## Displacement and clock
 
-**Verified:** for selected engine-grid vertex `(x, z)`, width `W`, height `H`,
+For selected engine-grid vertex `(x, z)`, width `W`, height `H`,
 integer speed `S`, integer frequency `F`, amplitude `A`, and BIOS tick count `T`:
 
 ```
@@ -54,7 +54,7 @@ It does not center the oscillation on the base height.
 
 ## Wave lookup table
 
-**Verified:** the shared rotation table contains samples of
+The shared rotation table contains samples of
 `sin(n * 6.2831852 / 2048)`, stored as 32-bit floats. Water addresses the table
 starting at sample 512, so `wave_table[p]` is the float sample
 `sin((p + 512) * 6.2831852 / 2048)`. The 2048 wave phases therefore start near
@@ -67,7 +67,7 @@ by 28 per BIOS tick; its continuous period is approximately 4.02 seconds.
 
 ## Terrain window
 
-**Verified:** the engine fills a 34-by-34 storage grid around its terrain
+The engine fills a 34-by-34 storage grid around its terrain
 camera-grid coordinates, from `camera-17` through `camera+16`. The wave loop
 selects the inner 32-by-32 vertices, from `camera-16` through `camera+15` on
 each axis, and reads the four corners described above from that storage.
