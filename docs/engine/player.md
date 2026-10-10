@@ -102,6 +102,19 @@ positions. The following update retained that position and phase. This verifies
 the ordinary release case, not the timing of host keyboard event delivery or
 all movement interruptions.
 
+### Continuation after input release
+
+Accepted movement is not equivalent to a held input. The actor update can
+continue movement from its current animation group after the input has cleared.
+The run-group continuation still passes through the animation marker gate and
+counts as accepted forward movement when that marker suppresses translation.
+
+In an ISLAND release sample, all eight sampled player inputs were zero while
+group 18 remained current with its marker set. The update invoked forward
+continuation, retained startup phase three, and left position unchanged. The
+next update selected idle group zero and reset the phase to zero. Eight
+consecutive idle updates retained that position and cleared phase.
+
 ## Ordinary forward-walk support checks
 
 Before an ordinary ground walk is accepted, the engine probes ahead of the
