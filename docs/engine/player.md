@@ -102,6 +102,45 @@ positions. The following update retained that position and phase. This verifies
 the ordinary release case, not the timing of host keyboard event delivery or
 all movement interruptions.
 
+## Ordinary forward-walk support checks
+
+Before an ordinary ground walk is accepted, the engine probes ahead of the
+actor. The local forward probe distance is the actor's forward extent plus
+`attr_forward_walk`, converted to runtime position units. Actor orientation
+transforms the offset; the probe retains the actor's current Y coordinate.
+
+The probe must pass three checks, in order:
+
+1. The actor's collision spheres at the probe must not intersect nearby model
+   faces.
+2. The surface check must not reject the probe as a steep surface.
+3. A ground-support query at the probe must succeed.
+
+The ground-support query temporarily uses the probe position and then restores
+the actor's position. It considers terrain and nearby model faces. This is not
+a permanent Y clamp and is not equivalent to accepting every horizontal step.
+
+Surface classification uses the signed Y component of a normal scaled by 256:
+
+| Normal Y | Classification |
+| --- | --- |
+| Less than −160 | Ordinary ground (4) |
+| −160 through −42 | Steep ground (2) |
+| −41 through 160 | Side surface (1) |
+| Greater than 160 | Underside (8) |
+
+Ground selection accepts classifications 2 and 4; the separate slope rules
+control whether movement onto that support is allowed. Surface classification
+alone does not describe slope sliding or collision response.
+
+An observed ISLAND forward-walk check started at raw position
+`(10448896, -190464, 10521523)`, heading zero. The actor's forward extent was 11
+and walking attribute was 8, giving a 19-map-unit probe at raw Z `10526387`.
+The obstacle and slope checks allowed it. Ground support selected terrain with
+normal `(−39, −250, −39)`, classification 4, and actor-height result `−190976`.
+The player's position remained unchanged by these checks. This sample verifies
+an accepted terrain probe; it does not establish blocked-wall or ledge behavior.
+
 ## FPS-derived frame scale
 
 The FPS-derived timing path keeps a measured FPS and a smoothed FPS. On each
