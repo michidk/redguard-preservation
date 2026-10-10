@@ -80,9 +80,18 @@ the complete animation eligibility rules, or the timing of phase reset on releas
 
 The FPS-derived timing path keeps a measured FPS and a smoothed FPS. On each
 update, the smoothed value moves toward the measured value by one. If their
-initial difference exceeds five, it first moves by half that difference,
+initial difference is at least five, it first moves by half that difference,
 rounded down. Thus a measured change from 19 to 17 produces smoothed values
-18, then 17 on successive updates.
+18, then 17 on successive updates. At the acceleration boundary:
+
+| Smoothed FPS before update | Measured FPS | Smoothed FPS after update |
+| --- | --- | --- |
+| 10 | 14 | 11 |
+| 10 | 15 | 13 |
+| 14 | 10 | 13 |
+| 15 | 10 | 12 |
+
+The half-difference adjustment applies to a difference of five in both directions.
 
 `use_smooth_fps` selects the smoothed value instead of the measured value.
 The selected FPS is clamped to `min_frame_rate` and `max_frame_rate`. The target
