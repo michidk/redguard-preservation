@@ -11,3 +11,5 @@ Findings from engine analysis that go beyond file format documentation.
 | Water Waves | Per-frame sine-table vertex displacement on water terrain cells. Radial concentric ripples driven by `world_wave` INI parameters (amplitude, speed, spatial frequency) with runtime console tuning. | [water.md](water.md) |
 
 Player movement units, ground-turn arithmetic, and coverage limits are documented in [player.md](player.md).
+
+[Startup presentation](startup.md) covers the original splash assets, projection, lighting, and screen sequence.
