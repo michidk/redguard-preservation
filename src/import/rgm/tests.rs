@@ -25,7 +25,7 @@ fn decode_position_does_not_collapse_small_values_to_origin() {
 #[test]
 fn marker_metadata_reads_positions_before_auxiliary_bytes() {
     let mut data = 2u32.to_le_bytes().to_vec();
-    for coordinate in [20i32, -40, 65536, 100, 60, 65536] {
+    for coordinate in [20i32, -40, 65536, 100, 60, -3] {
         data.extend_from_slice(&coordinate.to_le_bytes());
     }
     data.extend_from_slice(&[7, 9]);
@@ -42,6 +42,11 @@ fn marker_metadata_reads_positions_before_auxiliary_bytes() {
     let metadata = export_rgm_metadata_json(&rgm, None);
     let markers = metadata["markers"].as_array().unwrap();
     assert_eq!(markers.len(), 2);
+    assert_eq!(
+        markers[0]["map_position"],
+        serde_json::json!([20, -40, 65536])
+    );
+    assert_eq!(markers[1]["map_position"], serde_json::json!([100, 60, -3]));
     assert_eq!(markers[0]["position"][0], -1.0);
     assert_eq!(markers[0]["position"][1], 2.0);
     assert_eq!(markers[1]["position"][0], -5.0);

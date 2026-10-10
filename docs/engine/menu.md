@@ -4,7 +4,7 @@ The menu renders textured models from `fxart/MENU.ROB` and paints configured tex
 
 ## Data and scene
 
-[`MENU.INI`](../config/menu-ini.md) supplies ordered labels, texel positions, alignment, selectable/default/grayed flags, texture references, and action IDs. Labels do not identify actions. `import::menu_ini::MenuPage::parse` exposes a requested page and ignores fields outside its text/layout contract.
+[`MENU.INI`](../config/menu-ini.md) supplies ordered labels, texel positions, alignment, selectable/default/grayed flags, texture references, and action IDs. Labels do not identify actions. `import::menu_ini::MenuPage::parse` exposes a requested page also exposes widget output positions/alignment and inclusive slider bounds.
 
 The model scene uses these placements in original engine coordinates, with positive Y down. Each model turns half a revolution around Y. The default view faces positive Z at the origin.
 
@@ -19,6 +19,8 @@ The model scene uses these placements in original engine coordinates, with posit
 All four book/page models have nine uncompressed frames. The settled main menu uses frame zero. The in-game entry context moves the cover from the last frame to zero; the page models remain at zero. In that context the camera begins at `(408, 0, 0)`, moves to `(172, 204, -152)` with a pitch change of -116 angle units, holds that position, then moves to the origin with a +116 pitch change. A revolution is 2048 angle units. The startup entry context keeps frame zero and moves the camera from `(-4, -100, 240)` to the origin instead.
 
 The Glide viewport has horizontal half-field tangent `0.788`. At 640 by 480, screen coordinates for camera-space `(x, y, z)` are `(320 + 320*x/(0.788*z), 240 + 320*y/(0.788*z))`. Texture UVs follow the model format's cumulative 1/16-texel coordinates. `REDGUARD.COL` is the initial palette; game/save context can replace the image on the main page with a gameplay snapshot. That snapshot is runtime content, not static book artwork.
+
+Book surfaces are single-sided. With positive screen Y down, visible triangles have negative signed area; the opposite winding is culled. Each main, Movies, Options, and Controls page surface has sixteen projected triangles in the examined models. Turning the page reverses their winding and exposes its other surface, rather than a mirrored copy of the previous page.
 
 ## Text
 
@@ -37,3 +39,23 @@ Action `-2` begins a closing-book/camera sequence and exits the game. It does no
 Verified against the installed MENU.INI, all six MENU.ROB segments, TEXBSI banks 288/289, the FNT files, and the menu setup, text, traversal, action, camera, and viewport routines. The model frame arrays have full signed-triplet spacing in every book frame. Independent parser probes verified the four nine-frame models and their bounded open/closed geometry.
 
 Lighting inherits engine/environment state. This document does not establish a context-independent light rig or a replacement for the runtime gameplay snapshot. Mouse menu selection and menu audio remain outside this investigation.
+
+## Options and settings pages
+
+Main action 4 opens page 4. Actions 405, 406, and 407 open Display, Sound, and Controls on pages 5, 6, and 7. Actions 500, 600, and 700 return to Options; 400 returns to Main. Escape returns from a settings page to Options and from Options or Movies to Main. Each page retains its selection while the menu stays open.
+
+The Glide executable omits actions 501, 502, and 503 when constructing Display entries. These are Screen Size, Resolution, and Gamma. Subtitles, action 504, establishes the Display selection. Pages 4, 5, and 6 each define only texture slot zero.
+
+Options turns MB_PG01 and MB_PG02 to their last frames. MB_PG01 moves four units farther along Z when passing its middle frame. The settled camera is at the origin. Display uses camera `(336, -128, 0)` and Sound uses `(336, 176, 0)`, retaining those page frames. Controls additionally turns MB_PG03 to its last frame, moving it four units nearer along Z; the camera returns to the origin. Returning reverses those changes. Camera pitch changes during the transition cancel at the settled endpoint.
+
+Left and Right subtract or add one within the installed slider bounds without wrapping. Enter or the primary activation key toggles actions 504, 505, and 603. These preferences map to SYSTEM.INI `[dialog] dialog_print_text`, `[screen] smk_interlace`, and `[dialog] dialog_use_speech`. Sound and Music actions 601 and 602 initialize from `[system] volume` and `redbook_volume`, divided by 12.8 and rounded. Updates multiply the menu value by 12.8 and round to the engine volume. Sound controls range from zero to twenty in the examined install.
+
+Checkboxes use MM_CHECK.GXA frames indexed by the toggle value. Sound sliders use MM_SLIDE.GXA, selecting the rounded product of the value and `(frame_count - 1) / (slider_max - slider_min)`, clamped at the endpoints. Widgets paint at output coordinates; their labels retain normal text without a numeric suffix.
+
+Controls actions 710 through 717 map to up, down, left, right, A, B, C, D. Actions 718 through 724 map to inventory, sword, health, map, log, next, previous. Output names come from KEYS.INI `[defined] key[code]`. While capturing, the book alternates `<prompt>` and `>prompt<` in the selection font. Its prompt buffer initializes to `WAITING` and uses KEYS.INI `[misc] waiting_message` when configured; the examined install displays `HIT KEY`. Key names and the configured prompt are uppercased and limited to fifteen characters before display. Escape cancels capture. Tab, Enter, F1 through F10, F11 and F12 are rejected during capture; Minus and Equal are also rejected by binding validation. Rebinding a used code clears the first conflicting binding. Zero displays the installed name for an empty binding. Mouse/joystick input shares the original code table but requires separate device handling.
+
+Movies action 3 turns MB_PG01 to its last frame with the same four-unit depth change, and uses camera `(336, 0, 0)`. Page 3 action 300 returns to Main; actions 301 through 305 select movie definitions zero through four. MM_MOVIE.GXA supplies the corresponding preview images. The original gates movie entries with runtime unlock flags; the installed text alone does not establish unlock state. MENU.INI `[general] force_movies=1` initializes every movie as unlocked. Playing a cinematic sets its unlock flag. The startup game path plays movie zero, so Introduction is visible at the first settled menu. MM_MOVIE.GXA preview data begins at row 33 of the second Movies page texture. The preview copies every indexed pixel into the page, including zero; its black pixels are opaque, unlike transparent widget pixels.
+
+Configuration lookup matches section/key names without case and returns the first matching occurrence. Settings outside the requested section do not override that section.
+
+These settings and submenu facts were verified from MENU.INI, KEYS.INI, SYSTEM.INI, the three MM_ GXA assets, and the Glide menu initialization, painting, dispatch, traversal, binding-capture, binding-validation, and camera/frame update routines. Engine volume scaling was checked against the stored floating-point constants.

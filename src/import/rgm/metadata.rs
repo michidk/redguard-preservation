@@ -512,6 +512,7 @@ fn parse_mpm_records(data: &[u8]) -> Vec<serde_json::Value> {
 
         out.push(serde_json::json!({
             "position": positioning::decode_position(pos_x, pos_y, pos_z),
+            "map_position": [pos_x, pos_y, pos_z_signed],
             "reserved": reserved,
         }));
 
@@ -637,19 +638,19 @@ fn parse_mpsz_entries(data: &[u8]) -> Vec<serde_json::Value> {
     for i in 0..count {
         let off = i * RECORD_SIZE;
         let rec = &data[off..off + RECORD_SIZE];
-        let total_x = read_i32_le(rec, 0x00).unwrap_or_default();
-        let total_y = read_i32_le(rec, 0x04).unwrap_or_default();
-        let total_z = read_i32_le(rec, 0x08).unwrap_or_default();
-        let center_x = read_i32_le(rec, 0x0C).unwrap_or_default();
-        let center_y = read_i32_le(rec, 0x10).unwrap_or_default();
-        let center_z = read_i32_le(rec, 0x14).unwrap_or_default();
-        let neg_x = read_i32_le(rec, 0x18).unwrap_or_default();
-        let neg_y = read_i32_le(rec, 0x1C).unwrap_or_default();
-        let neg_z = read_i32_le(rec, 0x20).unwrap_or_default();
-        let pos_x = read_i32_le(rec, 0x24).unwrap_or_default();
-        let pos_y = read_i32_le(rec, 0x28).unwrap_or_default();
-        let pos_z = read_i32_le(rec, 0x2C).unwrap_or_default();
-        let flags = rec.get(0x30).copied().unwrap_or_default();
+        let total_x = read_i32_le(rec, 0x01).unwrap_or_default();
+        let total_y = read_i32_le(rec, 0x05).unwrap_or_default();
+        let total_z = read_i32_le(rec, 0x09).unwrap_or_default();
+        let center_x = read_i32_le(rec, 0x0D).unwrap_or_default();
+        let center_y = read_i32_le(rec, 0x11).unwrap_or_default();
+        let center_z = read_i32_le(rec, 0x15).unwrap_or_default();
+        let neg_x = read_i32_le(rec, 0x25).unwrap_or_default();
+        let neg_y = read_i32_le(rec, 0x29).unwrap_or_default();
+        let neg_z = read_i32_le(rec, 0x2D).unwrap_or_default();
+        let pos_x = read_i32_le(rec, 0x19).unwrap_or_default();
+        let pos_y = read_i32_le(rec, 0x1D).unwrap_or_default();
+        let pos_z = read_i32_le(rec, 0x21).unwrap_or_default();
+        let flags = rec[0];
         out.push(serde_json::json!({
             "index": i,
             "total_extent": [total_x, total_y, total_z],
@@ -807,6 +808,10 @@ pub(super) fn export_rgm_metadata_json_impl(
                 }
             }
 
+            let mpsz_primary = read_i32_le(item, 0x89).unwrap_or(-1);
+            if mpsz_primary >= 0 {
+                actor.insert("mpsz_bounds_primary".into(), mpsz_primary.into());
+            }
             let mpsz_index_0 = read_i32_le(item, 0x8D).unwrap_or(-1);
             let mpsz_index_1 = read_i32_le(item, 0x91).unwrap_or(-1);
             if mpsz_index_0 >= 0 {

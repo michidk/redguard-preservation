@@ -46,6 +46,8 @@ const AXIS_NAMES: [&str; 3] = ["axis_x", "axis_y", "axis_z"];
 
 #[derive(Debug, Clone)]
 pub struct ActorScript {
+    /// The exact actor-local RASC slice. Empty when the stored slice is invalid.
+    pub bytecode: Vec<u8>,
     pub script_length: i32,
     pub script_data_offset: i32,
     pub script_pc: i32,
@@ -681,6 +683,7 @@ pub fn disassemble_actor_scripts(
         let variables = read_actor_variables(num_variables, variable_offset, rava_data);
 
         let mut instructions = Vec::new();
+        let mut bytecode = Vec::new();
         let start = usize::try_from(script_data_offset.max(0)).unwrap_or(0);
         let Ok(script_len) = usize::try_from(script_length.max(0)) else {
             continue;
@@ -697,12 +700,14 @@ pub fn disassemble_actor_scripts(
             });
         } else {
             let code = &rasc_data[start..end];
+            bytecode.extend_from_slice(code);
             instructions = disassemble_script(code, script_pc, &strings, soup_def);
         }
 
         out.push((
             script_name,
             ActorScript {
+                bytecode,
                 script_length,
                 script_data_offset,
                 script_pc,

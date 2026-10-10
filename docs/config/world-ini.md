@@ -27,7 +27,7 @@ Each world is identified by an integer index `N`. Keys follow the pattern `key_n
 |---|---|---|
 | `world_map[N]` | path | [RGM](../formats/RGM.md) scene file for this world. Present on every entry. |
 | `world_world[N]` | path | [WLD](../formats/WLD.md) terrain file. Only present for outdoor worlds with a heightmap terrain mesh. |
-| `world_redbook[N]` | integer | CD audio track number for background music. |
+| `world_redbook[N]` | integer | CD audio track number for background music; see [music](../engine/music.md). |
 | `world_palette[N]` | path | [COL](../formats/COL.md) palette file. |
 | `world_shade[N]` | integer | Shade table index. |
 | `world_haze[N]` | integer | Software-renderer haze table index; Glide selects FOG.INI by world ID. |

@@ -1,6 +1,17 @@
 //! Player input bindings from `KEYS.INI`; see `docs/config/keys-ini.md`.
 
 /// Order of the eight directional/action bindings in [`KeysIni`].
+pub const EXTRA_KEYS: [&str; 7] = [
+    "inventory_key",
+    "quick_sword_key",
+    "quick_health_key",
+    "map_key",
+    "log_key",
+    "next_key",
+    "prev_key",
+];
+
+/// Eight directional/action bindings.
 pub const PLAYER_KEYS: [&str; 8] = ["up", "down", "left", "right", "a", "b", "c", "d"];
 
 /// Raw input codes. Zero means unbound; 128 and above are device inputs.
@@ -10,6 +21,12 @@ pub struct KeysIni {
     pub keyboard: [u8; 8],
     /// Optional user overrides; zero or missing means no override.
     pub user: [u8; 8],
+    /// Inventory, sword, health, map, log, next, previous.
+    pub extra: [u8; 7],
+    /// Installed display names indexed by raw input code.
+    pub names: Vec<Option<String>>,
+    /// Configured capture prompt; the executable initializes its buffer to WAITING.
+    pub waiting_message: String,
 }
 
 impl KeysIni {
@@ -21,20 +38,49 @@ impl KeysIni {
     pub fn parse(content: &str) -> Result<Self, String> {
         let mut keyboard = [None; 8];
         let mut user = [0; 8];
-        let mut input = false;
+        let mut section = String::new();
+        let mut extra = [0; 7];
+        let mut names = vec![None; 140];
+        let mut waiting_message = "WAITING".to_owned();
+        let mut seen = std::collections::BTreeSet::new();
         for (line_number, line) in content.lines().enumerate() {
             let line = line.split(';').next().unwrap_or_default().trim();
             if line.starts_with('[') {
-                input = line.eq_ignore_ascii_case("[input]");
-                continue;
-            }
-            if !input {
+                section = line.to_ascii_lowercase();
                 continue;
             }
             let Some((key, value)) = line.split_once('=') else {
                 continue;
             };
             let key = key.trim().to_ascii_lowercase();
+            if !seen.insert((section.clone(), key.clone())) {
+                continue;
+            }
+            if section == "[misc]" && key == "waiting_message" {
+                waiting_message = value.trim().to_owned();
+            }
+            if section == "[defined]" {
+                if let Some(index) = key.strip_prefix("key[").and_then(|s| s.strip_suffix(']')) {
+                    let index = index
+                        .parse::<usize>()
+                        .ok()
+                        .filter(|i| *i < 140)
+                        .ok_or_else(|| format!("KEYS.INI [defined] {key}: expected code 0..139"))?;
+                    names[index] = Some(value.trim().to_owned());
+                }
+                continue;
+            }
+            if section != "[input]" {
+                continue;
+            }
+            if let Some(index) = EXTRA_KEYS.iter().position(|name| *name == key) {
+                extra[index] = value
+                    .trim()
+                    .parse::<u8>()
+                    .ok()
+                    .filter(|code| *code <= 139)
+                    .ok_or_else(|| format!("KEYS.INI [input] {key}: expected code 0..139"))?;
+            }
             for (index, name) in PLAYER_KEYS.iter().enumerate() {
                 let is_keyboard = key == format!("key_{name}[0]");
                 if !is_keyboard && key != format!("user_key_{name}") {
@@ -52,6 +98,9 @@ impl KeysIni {
         let mut result = Self {
             keyboard: [0; 8],
             user,
+            extra,
+            names,
+            waiting_message,
         };
         for (index, code) in keyboard.into_iter().enumerate() {
             result.keyboard[index] = code.ok_or_else(|| {
@@ -59,6 +108,19 @@ impl KeysIni {
             })?;
         }
         Ok(result)
+    }
+
+    /// Bindings for menu actions 710 through 724, in ascending action order.
+    #[must_use]
+    pub fn control_codes(&self) -> [u8; 15] {
+        let keyboard = self.keyboard_codes();
+        std::array::from_fn(|i| {
+            if i < 8 {
+                keyboard[i]
+            } else {
+                self.extra[i - 8]
+            }
+        })
     }
 
     /// Keyboard codes after applying nonzero user overrides.
@@ -89,6 +151,19 @@ mod tests {
             KeysIni::parse(&text).unwrap().keyboard_codes(),
             [72, 31, 30, 32, 42, 57, 56, 18]
         );
+    }
+
+    #[test]
+    fn reads_installed_key_names_and_first_duplicate_binding() {
+        let text = format!(
+            "{INPUT}next_key=52\nNEXT_KEY=37\nquick_sword_key=31\n[misc]\nwaiting_message=Custom prompt\n[defined]\nkey[37]=custom name\nkey[128]=mouse\n"
+        );
+        let keys = KeysIni::parse(&text).unwrap();
+        assert_eq!(keys.control_codes()[13], 52);
+        assert_eq!(keys.control_codes()[9], 31);
+        assert_eq!(keys.names[37].as_deref(), Some("custom name"));
+        assert_eq!(keys.names[128].as_deref(), Some("mouse"));
+        assert_eq!(keys.waiting_message, "Custom prompt");
     }
 
     #[test]

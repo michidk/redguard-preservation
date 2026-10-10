@@ -102,7 +102,169 @@ positions. The following update retained that position and phase. This verifies
 the ordinary release case, not the timing of host keyboard event delivery or
 all movement interruptions.
 
+## Ordinary forward-walk support checks
+
+Before an ordinary ground walk is accepted, the engine probes ahead of the
+actor. The local forward probe distance is the actor's forward extent plus
+`attr_forward_walk`, converted to runtime position units. Actor orientation
+transforms the offset; the probe retains the actor's current Y coordinate.
+
+The probe must pass three checks, in order:
+
+1. The actor's collision spheres at the probe must not intersect nearby model
+   faces.
+2. The surface check must not reject the probe as a steep surface.
+3. A ground-support query at the probe must succeed.
+
+The ground-support query temporarily uses the probe position and then restores
+the actor's position. It considers terrain and nearby model faces. This is not
+a permanent Y clamp and is not equivalent to accepting every horizontal step.
+
+Surface classification uses the signed Y component of a normal scaled by 256:
+
+| Normal Y | Classification |
+| --- | --- |
+| Less than −160 | Ordinary ground (4) |
+| −160 through −42 | Steep ground (2) |
+| −41 through 160 | Side surface (1) |
+| Greater than 160 | Underside (8) |
+
+Ground selection accepts classifications 2 and 4; the separate slope rules
+control whether movement onto that support is allowed. Surface classification
+alone does not describe slope sliding or collision response.
+
+An observed ISLAND forward-walk check started at raw position
+`(10448896, -190464, 10521523)`, heading zero. The actor's forward extent was 11
+and walking attribute was 8, giving a 19-map-unit probe at raw Z `10526387`.
+The obstacle and slope checks allowed it. Ground support selected terrain with
+normal `(−39, −250, −39)`, classification 4, and actor-height result `−190976`.
+The player's position remained unchanged by these checks. This sample verifies
+an accepted terrain probe; it does not establish blocked-wall or ledge behavior.
+
+### Converting support height to actor position
+
+The selected ground surface height is not the actor origin height. For ordinary
+support, truncate the selected surface height toward zero in map units, subtract
+the actor's positive Y extent, multiply by 256, and add the configured
+`standing_height` converted to runtime units. Ground-query eligibility and the
+later movement response remain separate from this conversion.
+
+A fresh ISLAND marker-zero entry settled at runtime position
+`(10448896, -190464, 10502144)`. Its ground query selected a flat terrain triangle
+with map-unit vertices `(40704, -680, 41216)`, `(40704, -680, 40960)` and
+`(40960, -680, 40960)`. The returned surface height was −680 and its normalized
+normal was `(0, −1, 0)`. The integer contact normal was `(0, −256, 0)`, classified
+as ordinary terrain ground.
+
+Cyrus's positive Y extent was 62 and the standing offset was −512 runtime units.
+The conversion gives `(−680 − 62) × 256 − 512 = −190464`, or −744 map units.
+The query returned that actor height while preserving its current and previous
+positions. Treating the terrain height as the actor origin would place the body
+64 map units too low in this case.
+
+### Applying ordinary ground support
+
+In an ordinary grounded update, the actor retains its previous position before
+walking changes X and Z. The subsequent obstacle pass and support query precede
+the ground response. When ordinary ground support is available and no airborne
+or special movement state diverts the response, the response assigns the
+returned actor height to Y. It preserves the translated X/Z and the saved
+previous position. This is a discrete support-height assignment, not vertical
+interpolation toward the terrain surface.
+
+A four-stop observation within one ISLAND update recorded:
+
+| Point in update | Runtime position |
+| --- | --- |
+| Before walking | `(10451447, -195072, 10640696)` |
+| After walking | `(10451732, -195072, 10642107)` |
+| Before ground response | `(10451732, -195072, 10642107)` |
+| After ground response | `(10451732, -195328, 10642107)` |
+
+The previous position remained `(10451447, -195072, 10640696)` at all four
+stops. The startup phase was three, the frame scale was 180, and walking group
+20 was active with its translation-suppression marker clear. The support query
+returned terrain class 4, normal `(−40, −253, 0)`, and actor height −195328.
+Its integer sample position `(40827, 41570)` lay on a terrain plane of height
+−699.21875; the documented actor-origin conversion reproduces that result.
+
+This sample establishes the ordinary supported branch. Falling, jumping,
+sliding, rollback against obstacles, and special movement states have additional
+responses; they are not equivalent to assigning a terrain height unconditionally.
+
+### Terrain support sampling
+
+The ground query converts actor coordinates to integer map units by arithmetic
+right shift by eight before sampling terrain. Fractional runtime coordinates
+therefore do not reach the terrain interpolator. This coordinate conversion is
+separate from truncating the resulting surface height toward zero.
+
+Terrain cell selection rounds `map_x / 256 - 0.5` and
+`map_z / 256 + 0.5` to the nearest integer, with ties going to the even integer.
+Let the selected cell coordinates be `i` and `j`. Its four horizontal corners
+are `(256i, 256j)`, `(256(i+1), 256j)`, `(256i, 256(j-1))` and
+`(256(i+1), 256(j-1))`. The diagonal joins the first and last corners.
+If `map_x - 256i` is strictly greater than `256j - map_z`, use the triangle
+containing the second corner; otherwise use the triangle containing the third.
+The surface height comes from that triangle's plane. Its normalized face normal
+is multiplied by 256 and rounded to nearest-even for the integer contact normal;
+it is not an interpolated shading normal.
+
+For the observed ISLAND interior cells, runtime grid row `j` corresponds to
+WLD source row `256-j`. All 65,280 height bytes in runtime rows 1 through 255
+matched that source mapping. This check does not establish out-of-grid behavior.
+Near-camera queries use the current terrain vertex cache; queries more than
+15 grid cells away on either axis use decoded heightmap values directly.
+The observed samples below use the near-camera path on dry terrain. They do not
+establish water-contact behavior or cache-update timing.
+
+At marker zero, map X 40816 and Z 41024 select cell `(159, 161)` and the flat
+triangle described above. A later forward probe at raw Z 10526387 samples integer
+map Z 41118 in the other triangle of the same cell. Its vertices are
+`(40704, -680, 41216)`, `(40960, -680, 40960)` and `(40960, -720, 41216)`.
+At X 40816, the plane height is −682.1875. Truncation and the actor-origin
+conversion produce −190976 runtime units, matching the observed ground result.
+Its integer normal is `(−39, −250, −39)`, also matching the observed contact.
+
+### Upright actor collision spheres
+
+For bounds whose X and Z totals are not strictly greater than both other totals,
+the ordinary collision shape is a vertical series of spheres. Its unscaled
+radius is half the larger X/Z total, truncated, with a minimum of 4 map units.
+The sphere spacing is three times half that radius, with the division performed
+first. The available height is total Y minus `SYSTEM.INI` `post_collide_height`;
+a negative available height is replaced by `post_collide_height`. The sphere
+count is the available height divided by the spacing, truncated, with a minimum
+of two.
+
+The radius scale comes from the signed RAEX field at 0x12. Nonpositive scales
+select 256; the scaled radius is the integer product of radius and scale shifted
+right by eight. All spheres have X and Z centers zero. All except the last start
+at Y = radius minus the negative Y extent, increasing by the spacing. The last
+center is positive Y extent minus `post_collide_height` minus scaled radius.
+
+For ISLAND Cyrus, totals `(48, 128, 49)`, positive Y extent 62, negative Y extent
+66, post-collision height 50 and the default radius scale produce two radius-24
+spheres at local Y −42 and −12. Both spheres and their count were observed in the
+running actor. An additional support sphere is stored separately and is excluded
+from the ordinary obstacle-query count. X- and Z-dominant shapes use different
+construction rules.
+
 ## FPS-derived frame scale
+
+The normal FPS measurement path counts one frame per update and accumulates
+elapsed BIOS ticks. A measurement window contains 18 BIOS ticks. Once at least
+one complete window has elapsed, measured FPS becomes the frame count divided
+by the number of complete windows, using integer division. The frame count
+resets to zero; the tick remainder is retained. A negative accumulated tick
+count is clamped to zero. This uses the BIOS clock, not exactly one wall-clock
+second; see the [water clock](water.md) for its frequency.
+
+A live nine-update sample advanced the accumulated tick remainder from 7 to 17
+while the frame count advanced from 6 to 14. The next update added one tick,
+produced measured FPS 15, and reset both frame count and tick remainder to zero.
+The intermediate updates included two-tick increments. Debugger pauses were
+excluded by using the original clock values as inputs.
 
 The FPS-derived timing path keeps a measured FPS and a smoothed FPS. On each
 update, the smoothed value moves toward the measured value by one. If their

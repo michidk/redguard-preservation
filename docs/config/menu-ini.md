@@ -15,7 +15,7 @@ Global menu system flags:
 | `preload_sprites` | `1` | Preload menu sprite textures at startup. |
 | `hi_res_menu` | `1` | Use high-resolution menu rendering. |
 | `ignore_autosave` | `0` | Skip auto-save slot handling. |
-| `force_movies` | `0` | Force movie playback (skip user-skip). |
+| `force_movies` | `0` | Mark all configured cinematics unlocked for Movies browsing. |
 
 ### `[pageN]` (pages 0–7)
 
@@ -29,9 +29,9 @@ Each page section defines the visual layout and interactive elements for one men
 | 1 | Save Game |
 | 2 | Load Game |
 | 3 | Movies (cinematic list with Smacker playback) |
-| 4 | Options (Sound Volume, Music Volume, Text toggle, Speech toggle) |
-| 5 | Confirm New Game |
-| 6 | Confirm Overwrite Save |
+| 4 | Options (Display, Sound, Controls) |
+| 5 | Display |
+| 6 | Sound |
 | 7 | Key Binding Options |
 
 #### Texture fields
@@ -62,6 +62,7 @@ Elements are indexed sequentially within each page (e.g. `text_x[0]`, `text_x[1]
 | `grayed[N]` | `1` to display in the grayed-out font. |
 | `output_x[N]` | X position for special output (key name text, slider art). |
 | `output_y[N]` | Y position for special output. |
+| `output_justify[N]` | Output alignment, using the text alignment codes. |
 | `slider_min[N]` | Minimum value for slider elements. |
 | `slider_max[N]` | Maximum value for slider elements. |
 
@@ -73,9 +74,9 @@ Page 3 defines cinematic movie entries with timed subtitle overlays:
 |---|---|
 | `movie_name[N]` | Smacker (`.SMK`) filename in the `anims` directory. |
 | `movie_keys[N]` | Comma-separated key frames for user fast-forward. |
-| `movieM_text[N]` | Subtitle overlay: `red,green,blue,start_frame,stop_frame,text`. |
+| `movieM_text[N]` | Subtitle overlay: `always,red,green,blue,start_frame,stop_frame,text`. |
 
-The shipped file defines 2 movies: `INTRO.SMK` (game intro, 88 subtitle lines) and `OUTRO.SMK` (ending, 34 subtitle lines).
+The examined install defines 11 movie filenames. Five entries are browsable in the movie page; additional definitions supply introduction cutaways. Read the installed file rather than assuming a fixed cinematic list.
 
 #### Action id ranges
 
@@ -88,15 +89,15 @@ Action ids follow a convention per page:
 | 1–10 | Main menu navigation (Save=1, Load=2, Movies=3, Options=4, New=10). |
 | 100–102 | Save game page actions. |
 | 200–202 | Load game page actions. |
-| 300–302 | Movie page actions. |
-| 400–411 | Options page actions (volume sliders, toggles). |
-| 500–501 | Confirm new game actions. |
-| 600–601 | Confirm overwrite actions. |
+| 300–305 | Movie page actions. |
+| 400–407 | Options navigation. |
+| 500–505 | Display controls and return. |
+| 600–603 | Sound controls and return. |
 | 700–724 | Key binding page actions. |
 
 ## Parser
 
-`import::menu_ini::MenuPage::parse(content, page)` reads a page's two texture references and ordered text entries. Missing numeric element fields default to zero; malformed values and nonsequential text indices report the page and field. It does not parse movie definitions, slider state, or runtime save labels. Rendering and traversal rules are documented in [Book menu](../engine/menu.md).
+`import::menu_ini::MenuPage::parse(content, page)` reads a page's optional texture slots, ordered text entries, widget positions/alignment, and inclusive slider bounds. Missing numeric element fields default to zero; malformed values and nonsequential text indices report the page and field. The first texture slot is required; a second may be omitted when no element references it. The parser rejects incomplete references and reversed slider bounds. `import::menu_movies::parse_menu_movies` separately reads cinematic names, forward skip points, and timed subtitles. Runtime save labels remain outside these parsers. Rendering and traversal rules are documented in [Book menu](../engine/menu.md).
 
 ## External References
 

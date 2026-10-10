@@ -44,3 +44,5 @@ Redguard shipped with two parallel sets of 3D model assets for different rendere
 The two directories contain the same models re-exported for different renderers. The Glide versions (v4.0/v5.0) have a cleaner header layout and different texture encoding. See [3D — v2.6/v2.7 Header Differences](formats/models/3d.md#v26v27-header-differences) for details.
 
 > **Note**: The GOG distribution contains `fxart/` only. The software-renderer `3dart/` directory shipped on the original CD but is not present in the GOG release.
+
+Cinematic playback: [engine rules](engine/movies.md), [Smacker metadata](formats/SMK.md).

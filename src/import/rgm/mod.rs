@@ -1,6 +1,7 @@
 //! RGM file structures and parsing.
 pub mod parser;
 pub mod script;
+pub mod script_step;
 
 mod metadata;
 mod positioning;
