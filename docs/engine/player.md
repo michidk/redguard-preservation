@@ -428,6 +428,25 @@ projection. From previous position `(10447534, −190464, 10771472)`, the result
 `(10447534, −190464, 10773491)`: no X displacement and 2019 runtime units along Z.
 The completed actor update retains this position.
 
+### Residual static-contact separation
+
+After the primary body response, the actor queries static face contacts again.
+The separation distance is the current horizontal displacement length shifted
+right by eight, with a minimum from `SYSTEM.INI` `poly_push_units`. The installed
+minimum is 16. For remaining contacts, sum their integer normals, divide each
+component by the contact count with truncation toward zero, and normalize the
+result to length 65536 using the body-response normalization above. Shift each
+normalized component arithmetically right by eight. Add its X and Z components
+multiplied by the separation distance to the actor position. Y is unchanged.
+A nonempty contact set marks the residual-separation result even when its
+averaged normal has no horizontal component.
+
+A stationary ISLAND overlap at `(10444931, −190464, 10771486)` had
+one remaining contact with normal `(256, 0, 0)` and no held inputs. Previous and
+current positions were equal. The minimum distance 16 produced an X correction
+of 4096, reaching `(10449027, −190464, 10771486)` at the end of the actor update.
+Height and heading remained unchanged.
+
 ## FPS-derived frame scale
 
 The normal FPS measurement path counts one frame per update and accumulates
