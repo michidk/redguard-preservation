@@ -428,6 +428,31 @@ projection. From previous position `(10447534, −190464, 10771472)`, the result
 `(10447534, −190464, 10773491)`: no X displacement and 2019 runtime units along Z.
 The completed actor update retains this position.
 
+### Grounded wall-facing adjustment
+
+After a projected wall response, an ordinary grounded actor whose current
+position differs from its previous position adjusts its heading. This branch
+requires no active sliding, airborne, or special movement state. The starting
+heading for this calculation is the attempted displacement's quantized heading,
+not the actor's current facing. Convert the contact normal to the opposing
+actor-facing heading by adding half a turn to its negated quantized heading
+and masking to 2047.
+
+Subtract the movement heading from that normal-facing heading. Differences
+below −1024 add 2047; differences above 1024 subtract 2047. A positive difference
+subtracts up to 32 from the movement heading; a negative difference adds up to
+32. Zero leaves the movement heading unchanged. This difference correction uses
+2047, unlike the ordinary 2048-unit turn wrap.
+
+Separately compare the actor's pre-response heading with the movement heading,
+masking both to 2047 and wrapping their difference to the interval −1024 through
+1024 using a full 2048-unit turn. When the absolute difference is greater than
+512, add 1024 to the adjusted heading and mask the result to 2047.
+
+For the oblique wall approach above, actor heading 344 and movement heading 345
+meet a normal-facing heading of 512. The completed update has heading 313.
+The following update has movement heading 314 and completes at heading 282.
+
 ### Residual static-contact separation
 
 After the primary body response, the actor queries static face contacts again.
