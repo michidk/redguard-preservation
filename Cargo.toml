@@ -41,4 +41,4 @@ rayon = "1.10"
 delharc = { version = "0.8", default-features = false, features = ["std", "lh1"] }
 
 [dev-dependencies]
-ttf-parser = "0.25"
+ttf-parser = "=0.25.1"
