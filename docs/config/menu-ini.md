@@ -74,7 +74,7 @@ Page 3 defines cinematic movie entries with timed subtitle overlays:
 |---|---|
 | `movie_name[N]` | Smacker (`.SMK`) filename in the `anims` directory. |
 | `movie_keys[N]` | Comma-separated key frames for user fast-forward. |
-| `movieM_text[N]` | Subtitle overlay: `red,green,blue,start_frame,stop_frame,text`. |
+| `movieM_text[N]` | Subtitle overlay: `always,red,green,blue,start_frame,stop_frame,text`. |
 
 The examined install defines 11 movie filenames. Five entries are browsable in the movie page; additional definitions supply introduction cutaways. Read the installed file rather than assuming a fixed cinematic list.
 
@@ -97,7 +97,7 @@ Action ids follow a convention per page:
 
 ## Parser
 
-`import::menu_ini::MenuPage::parse(content, page)` reads a page's optional texture slots, ordered text entries, widget positions/alignment, and inclusive slider bounds. Missing numeric element fields default to zero; malformed values and nonsequential text indices report the page and field. The first texture slot is required; a second may be omitted when no element references it. The parser rejects incomplete references and reversed slider bounds. It does not parse movie playback definitions or runtime save labels. Rendering and traversal rules are documented in [Book menu](../engine/menu.md).
+`import::menu_ini::MenuPage::parse(content, page)` reads a page's optional texture slots, ordered text entries, widget positions/alignment, and inclusive slider bounds. Missing numeric element fields default to zero; malformed values and nonsequential text indices report the page and field. The first texture slot is required; a second may be omitted when no element references it. The parser rejects incomplete references and reversed slider bounds. `import::menu_movies::parse_menu_movies` separately reads cinematic names, forward skip points, and timed subtitles. Runtime save labels remain outside these parsers. Rendering and traversal rules are documented in [Book menu](../engine/menu.md).
 
 ## External References
 

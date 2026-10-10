@@ -1,5 +1,6 @@
 /// Parser for BSI/TEXBSI image archives.
 pub mod bsi;
+pub mod cdrom;
 /// Parser for REDGUARD.CHT cheat persistence files.
 pub mod cht;
 /// Parser for FNT bitmap font files.
@@ -17,6 +18,7 @@ pub mod gxa;
 /// Parser for KEYS.INI player keyboard bindings.
 pub mod keys_ini;
 pub mod menu_ini;
+pub mod menu_movies;
 pub mod menu_settings;
 /// Parser for 3D and 3DC model files.
 pub mod model3d;
@@ -38,6 +40,7 @@ pub mod rob;
 pub mod rtx;
 /// Parser for SFX sound effect files.
 pub mod sfx;
+pub mod smacker;
 pub mod soup_def;
 /// Parser and export helpers for WLD world files.
 pub mod wld;
