@@ -32,9 +32,16 @@ Each script supports up to two concurrent threads sharing the same bytecode buff
 
 Thread 1 enables actors to remain activatable while performing another action (for example, an NPC walking a patrol route can still respond to player interaction). The two threads share the bytecode array but maintain independent program counters and independent call stacks.
 
-Execution uses cooperative multitasking: `tickScript` advances each thread by one instruction per tick. `runScript` drives thread 0 to completion (with an infinite-loop guard at 1024 iterations).
+Execution is cooperative. The original runtime consumes non-blocking instructions
+until a blocking task or an explicit yield returns control. Existing tasks are
+revisited before the main script body can continue. It does not execute exactly
+one instruction per nominal tick; that describes a reimplementation rather than
+the original runtime.
 
-`Endint` (opcode `0x13`) terminates thread 1 by resetting its PC to `0x00`. `End` (opcode `0x05`) terminates thread 0.
+`End` (opcode `0x05`) stores its authored target and ends the current invocation.
+It does not permanently terminate the actor's main script. An eligible later
+invocation resumes at the stored target. `Endint` (opcode `0x13`) resets the active
+cursor to the script base and returns from the current invocation.
 
 ### Value Modes
 
@@ -63,7 +70,7 @@ All integers are little-endian. The VM reads a leading opcode byte and dispatche
 | `0x02` | Function | same as `0x00` | Call function on self (returns value) |
 | `0x03` | If | condition chain, `u32` end_offset, block | Conditional branch |
 | `0x04` | Goto | `u32` target | Unconditional jump |
-| `0x05` | End | `u32` target | Halt — terminates execution |
+| `0x05` | End | `u32` target | Store target and return from the current invocation |
 | `0x06` | Flag | `u16` flag_id, mode-dependent | Global flag read/write |
 | `0x07` | Numeric | `i32` value | Immediate 32-bit integer |
 | `0x0A` | LocalVar | `u8` var_index, mode-dependent | Local variable read/write |
@@ -203,7 +210,21 @@ Unconditional jump. Sets PC to the `u32` target address (absolute).
 
 ### End (`0x05`)
 
-Reads a `u32` target offset, sets PC to that address, and signals script termination (returns `0xDEAD` sentinel to the run loop).
+Reads a `u32` offset relative to the actor's script base, stores that address as
+the main continuation, and returns from the current invocation. It also clears
+pending synchronization state for the actor's configured group and user channels
+and releases the current activation reference when it refers to that actor.
+These notifications do not clear the stored continuation or disable the actor.
+
+When the actor's script remains eligible and has no blocking task, a later main
+script stage starts at that continuation. Target zero therefore restarts at the
+script base on that later invocation, rather than executing again immediately
+or stopping permanently.
+
+The installed ISLAND `FLAG2` script is 61 bytes: four blocking `PushAnimation`
+calls request groups/counts `(1, 25)`, `(10, 1)`, `(1, 3)`, `(10, 2)`, followed
+by `End` with target zero. Its finite task counts do not make the whole script
+finite. The authored sequence can repeat while the actor remains eligible.
 
 ### Gosub / Return (`0x11`, `0x12`)
 
@@ -211,7 +232,7 @@ Reads a `u32` target offset, sets PC to that address, and signals script termina
 
 ### Endint (`0x13`)
 
-Resets the secondary thread's PC to `0x00` and signals termination (`0xDEAD`). Used to end thread 1's current activation while leaving thread 0 running.
+Resets the active cursor to the script base and returns from the current invocation. Script-entry processing preserves the main continuation while advancing its separate entry cursor.
 
 ## Function Dispatch
 

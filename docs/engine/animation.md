@@ -20,6 +20,16 @@ It remains active while that group is current and completes when the group
 changes. Thus count is a finite loop input, not a speed or wall-clock duration.
 The animation request made by this task has a speed modifier of zero.
 
+The first invocation has a separate not-started phase. If the requested group
+is not current, it makes an ordinary request and remains active. Even when
+that request starts the group immediately, this invocation does not set the
+loop count. A subsequent invocation that finds the group current sets the byte
+count and enters the started phase, still returning active. Once started, it
+completes only when the current group differs; it does not re-request the group.
+An initial invocation that already finds its group current sets the count
+immediately and remains active. Each invocation evaluates the call's operands
+again. Task creation and later task invocations are separate scheduling stages.
+
 For forward playback, `GoToPrevious` with a nonzero loop countdown decrements
 that countdown. If it becomes zero, playback continues after the command;
 otherwise it jumps to the command's target. With a zero countdown it jumps
@@ -150,7 +160,10 @@ established by the original task handler and animation interpreter. These are
 engine facts; they do not establish a matched visible-playback comparison.
 
 The shipped island FLAG2 program contains finite `PushAnimation` requests.
-Replacing it with an endless automatic idle loop changes the authored behavior.
+It requests groups/counts `(1, 25)`, `(10, 1)`, `(1, 3)`, `(10, 2)` and then
+ends the invocation with target zero. A later eligible script stage can restart
+that authored sequence. Replacing it with a single endless idle group loses
+the group changes and task boundaries. See [SOUP End](SOUP.md#end-0x05).
 
 ## Forward frame countdown
 
