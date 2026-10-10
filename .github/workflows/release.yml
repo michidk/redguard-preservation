@@ -3,7 +3,7 @@ name: Release
 on:
   push:
     tags:
-      - 'v*.*.*'
+      - 'v[0-9]+.[0-9]+.[0-9]+'
 
 permissions:
   contents: write
@@ -116,8 +116,8 @@ jobs:
             ${{ env.CLI_ASSET }}
             ${{ env.LIB_ASSET }}
 
-  publish-release:
-    name: Publish release
+  create-release:
+    name: Create draft release
     needs: ['build-release']
     runs-on: ubuntu-26.04
     steps:
@@ -145,29 +145,10 @@ jobs:
       - name: Get release version
         run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
 
-      - name: Create release and upload assets
+      - name: Create draft release and upload assets
         uses: softprops/action-gh-release@v3
         with:
           name: ${{ env.VERSION }}
           body: ${{ steps.changelog.outputs.content }}
+          draft: true
           files: artifacts/*
-
-  publish-cratesio:
-    name: Publish to crates.io
-    needs: ['publish-release']
-    runs-on: ubuntu-26.04
-    environment: publish-crates.io
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v7
-
-      - name: Install toolchain
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Cache
-        uses: Swatinem/rust-cache@v2
-
-      - name: Upload to crates.io
-        run: cargo publish
-        env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
