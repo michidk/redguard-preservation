@@ -75,7 +75,9 @@ grayscale, not an alpha mask.
 
 YIQ8 uses the first 64 bytes of the color-table union: 16 unsigned luma bytes,
 then four signed three-channel I vectors and four signed three-channel Q
-vectors, each component `i16`. For pixel `p`, RGB is the clamped sum of
+vectors, each component stored in a `u16` slot as a signed nine-bit value.
+Sign extension uses bit 8: values 256 through 511 represent -256 through -1.
+For pixel `p`, RGB is the clamped sum of
 `Y[p >> 4] + I[(p >> 2) & 3] + Q[p & 3]`; alpha is 255.
 
 See [startup rendering](../engine/startup.md) for transforms, materials, and

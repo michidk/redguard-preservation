@@ -249,9 +249,11 @@ fn texture(data: &[u8], header: [u32; 6]) -> Result<SplashTexture, Error> {
             for channel in 0..3 {
                 let i = 16 + (usize::from((pixel >> 2) & 3) * 3 + channel) * 2;
                 let q = 40 + (usize::from(pixel & 3) * 3 + channel) * 2;
-                let value = i32::from(table[usize::from(pixel >> 4)])
-                    + i32::from(i16::from_le_bytes(table[i..i + 2].try_into().unwrap()))
-                    + i32::from(i16::from_le_bytes(table[q..q + 2].try_into().unwrap()));
+                let component = |offset| {
+                    let bits = u16::from_le_bytes(table[offset..offset + 2].try_into().unwrap());
+                    i32::from(bits & 255) - i32::from(bits & 256)
+                };
+                let value = i32::from(table[usize::from(pixel >> 4)]) + component(i) + component(q);
                 rgba.push(value.clamp(0, 255) as u8);
             }
             rgba.push(255);
@@ -267,6 +269,31 @@ fn texture(data: &[u8], header: [u32; 6]) -> Result<SplashTexture, Error> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn yiq_sign_extends_nine_bit_color_components() {
+        let header = [64, 64, 8, 2, 3, 1];
+        let mut data = vec![0; 1056 + 4096];
+        for (i, value) in header.into_iter().enumerate() {
+            data[i * 4..i * 4 + 4].copy_from_slice(&u32::to_le_bytes(value));
+        }
+        data[24 + 8] = 128;
+        for (start, vector) in [
+            (24 + 16 + 6, [502u16, 20, 30]),
+            (24 + 40 + 12, [5, 507, 492]),
+        ] {
+            for (channel, value) in vector.into_iter().enumerate() {
+                data[start + channel * 2..start + channel * 2 + 2]
+                    .copy_from_slice(&value.to_le_bytes());
+            }
+        }
+        data[1052..1056].copy_from_slice(&4096u32.to_le_bytes());
+        data[1056] = (8 << 4) | (1 << 2) | 2;
+        assert_eq!(
+            &texture(&data, header).unwrap().rgba[..4],
+            &[123, 143, 138, 255]
+        );
+    }
 
     #[test]
     fn intensity_is_opaque_grayscale() {
