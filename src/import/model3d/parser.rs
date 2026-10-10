@@ -793,11 +793,13 @@ pub fn parse_3d_file(input: &[u8]) -> IResult<&[u8], Model3DFile> {
 
     let normal_indices = convert_normal_indices(raw_normal_indices, adjusted_offset_normals);
 
-    // v4.0/v5.0 frame tables reference complete i32 positions and normals.
+    // v4.0/v5.0 type-0 models keep complete i32 positions and normals.
     let uncompressed_frames = matches!(
         header.parse_version(),
         ModelVersion::V40 | ModelVersion::V50
-    );
+    ) && frame_data
+        .first()
+        .is_some_and(|frame| frame.frame_type == FrameType::Static3D);
     let frames_use_i32 = uncompressed_frames
         || !frame_data.is_empty() && matches!(frame_data[0].frame_type, FrameType::AnimatedI32);
 
@@ -861,6 +863,44 @@ mod tests {
         assert_eq!([vertex.x, vertex.y, vertex.z], [4.0, -2.5, 0.5]);
         let normal = &model.frame_normal_data[1].face_normals[0];
         assert_eq!([normal.x, normal.y, normal.z], [0.0, -1.0, 0.0]);
+    }
+
+    #[test]
+    fn v40_animated_models_keep_packed_later_normals() {
+        for encoding in [2u32, 4] {
+            let normal_offset = if encoding == 2 { 136usize } else { 142 };
+            let mut bytes = vec![0u8; normal_offset + 4];
+            bytes[..4].copy_from_slice(b"v4.0");
+            let words = [1u32, 1, 1, 2, 74, 0, 0, 0, 0, 0, 0, 106, 118, 0, 64];
+            for (index, word) in words.into_iter().enumerate() {
+                bytes[4 + index * 4..8 + index * 4].copy_from_slice(&word.to_le_bytes());
+            }
+            for (index, (vertex, normal)) in [(106u32, 118u32), (130, normal_offset as u32)]
+                .into_iter()
+                .enumerate()
+            {
+                let offset = 74 + index * 16;
+                bytes[offset..offset + 4].copy_from_slice(&vertex.to_le_bytes());
+                bytes[offset + 4..offset + 8].copy_from_slice(&normal.to_le_bytes());
+            }
+            bytes[86..90].copy_from_slice(&encoding.to_le_bytes());
+            if encoding == 2 {
+                for (axis, value) in [-7i16, 9, 2].into_iter().enumerate() {
+                    bytes[130 + axis * 2..132 + axis * 2].copy_from_slice(&value.to_le_bytes());
+                }
+            } else {
+                for (axis, value) in [-1792i32, 2304, 512].into_iter().enumerate() {
+                    bytes[130 + axis * 4..134 + axis * 4].copy_from_slice(&value.to_le_bytes());
+                }
+            }
+            bytes[normal_offset..normal_offset + 4].copy_from_slice(&(768u32 << 10).to_le_bytes());
+            let model = super::super::parse_3d_file(&bytes).unwrap();
+            let vertex = model.frame_vertex_data[1].coords[0];
+            assert_eq!([vertex.x, vertex.y, vertex.z], [-7.0, 9.0, 2.0]);
+            let normals = &model.frame_normal_data[1].face_normals;
+            assert_eq!(normals.len(), 1);
+            assert_eq!([normals[0].x, normals[0].y, normals[0].z], [0.0, -1.0, 0.0]);
+        }
     }
 
     fn make_v27_face_bytes(u1: u8, texture_data: u16, vertex_count: u8) -> Vec<u8> {
