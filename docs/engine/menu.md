@@ -74,4 +74,17 @@ MB_PG01 changes Z by +4 when a forward turn reaches frame four, and by -4 when a
 
 Camera requests form an ordered queue. Each request specifies a target position, angle changes, and a fractional step. Position interpolates linearly from the previous settled position; angles interpolate from their previous values by the supplied changes. The first rendered sample uses the request's fractional step, rather than zero. Each update adds that same step; a value greater than one settles the target and advances to the next request. Rendering converts the interpolated values to engine integers.
 
+The examined submenu requests use these camera paths. Each row's targets execute in order. Angle values are changes in the first camera angle, in 2048 units per revolution; the other two angles do not change.
+
+| Navigation | Ordered camera targets | Angle changes | Fractional steps |
+|---|---|---|---|
+| Main to Movies | `(192, 284, -160)`, `(192, 284, -160)`, `(336, 0, 0)` | `-152`, `0`, `+152` | `0.15`, `0.12`, `0.15` |
+| Main to Options, Movies or Options to Main, Options to Controls, Controls to Options | `(192, 284, -160)`, `(192, 284, -160)`, `(0, 0, 0)` | `-152`, `0`, `+152` | `0.15`, `0.12`, `0.15` |
+| Options to Display | `(336, -128, 0)` | `0` | `0.15` |
+| Options to Sound | `(336, 176, 0)` | `0` | `0.15` |
+| Display or Sound to Options | `(0, 0, 0)` | `0` | `0.15` |
+| Quit | `(232, 284, -96)`, `(232, 284, -96)`, `(408, 0, 0)` | `-152`, `0`, `+152` | `0.15`, `0.12`, `0.15` |
+
+The repeated target holds the position while the request fraction advances. Main to Movies delays the first page turn by four menu updates. Main to Options delays MB_PG01 by three and MB_PG02 by five; its return delays them by five and three respectively. Options to Controls and back delay MB_PG03 by four. Quit delays the cover turn by two. Normal menu direction, activation, and Escape handling wait until the camera queue and page turns finish, including the update that settles their final targets.
+
 These rules were verified from the menu's camera enqueue/update and page-turn request/update routines, including the symmetric middle-frame depth changes. Complete camera-angle conventions, transition interruption, menu audio, and matched motion recordings still require investigation before claiming complete animated presentation.
