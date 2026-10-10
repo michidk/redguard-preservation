@@ -304,6 +304,36 @@ selection, transformed/scaled models, swept correction, moving geometry, and
 non-upright actor shapes require their own coverage before claiming a complete
 collision implementation.
 
+### Horizontal body-contact response
+
+Body contacts are processed after the movement and ground-support response.
+For an ordinary grounded actor, the response uses the displacement from the
+previous position to the attempted position, including its vertical component.
+It normalizes that displacement to length 65536. The length divided by 65536 is
+stored at single precision before dividing the displacement components; the
+components use nearest-integer conversion.
+
+For an eligible facing wall contact, the horizontal dot product is
+`(movement_x × normal_x + movement_z × normal_z) >> 8`, using the normalized
+movement and the contact's integer normal. The comparison threshold is
+`SYSTEM.INI` `slide_range`, which is −60000 in the installed configuration.
+When the dot product is strictly greater than the threshold, the response
+subtracts the normal component from the normalized horizontal movement. Each
+projected component is shifted arithmetically right by four and added to the
+previous X or Z position. Otherwise, an actor outside the sliding state restores
+its previous X and Z. This step leaves Y unchanged.
+
+A direct ISLAND wall approach had displacement `(−4274, 0, 960)`, normalized
+movement `(−63943, 0, 14362)`, and contact normal `(256, 0, 0)`. Its dot product
+−63943 selects rollback. Both the body-response result and the completed actor
+update retain the previous position `(10449205, −190464, 10770526)`.
+
+An oblique approach had displacement `(−3341, 0, 1893)`, normalized movement
+`(−57019, 0, 32307)`, and the same normal. Its dot product −57019 selects
+projection. From previous position `(10447534, −190464, 10771472)`, the result is
+`(10447534, −190464, 10773491)`: no X displacement and 2019 runtime units along Z.
+The completed actor update retains this position.
+
 ## FPS-derived frame scale
 
 The normal FPS measurement path counts one frame per update and accumulates
