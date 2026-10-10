@@ -52,7 +52,7 @@ The file footer also contains uppercase duplicates `NEXT_KEY = 37` and `PREV_KEY
 
 | Key | Default | Description |
 |---|---|---|
-| `waiting_message` | `HIT KEY` | Text displayed during key-binding prompt. |
+| `waiting_message` | `HIT KEY` | Generic input prompt; the book Controls page uses its own blinking WAITING label. |
 
 ### `[defined]`
 
@@ -113,6 +113,10 @@ The shipped manual, User's Guide page 1, identifies Shift as Walk/Run and
 Ctrl as Activate/Attack. These correspond to `key_a` and `key_d`, respectively,
 in the GOG keyboard layout. The example bindings above describe one layout;
 read the installed file rather than assuming those codes are universal.
+
+## Parser
+
+`import::keys_ini::KeysIni` exposes the eight keyboard bindings and user overrides, seven additional gameplay keys, and the installed key-name table. Section/key matching ignores case, and the last duplicate field wins. `control_codes()` returns bindings in menu-action order 710 through 724.
 
 ## External References
 

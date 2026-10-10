@@ -17,6 +17,7 @@ pub mod gxa;
 /// Parser for KEYS.INI player keyboard bindings.
 pub mod keys_ini;
 pub mod menu_ini;
+pub mod menu_settings;
 /// Parser for 3D and 3DC model files.
 pub mod model3d;
 /// Parser for COL palette files.
