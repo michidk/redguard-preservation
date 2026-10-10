@@ -74,6 +74,25 @@ is `(10446827, 10819295)`. Keeping the sum at double precision until truncation
 would give a different Z result. At distance 1360, the following six updates
 advance X/Z by `(50, 1359)` each in the sampled route.
 
+### Direction recovered from displacement
+
+Collision response derives a movement heading from the integer X/Z displacement.
+Take the absolute components and repeatedly halve both, discarding remainders,
+until neither exceeds 511. Axis-aligned vectors select the corresponding quarter
+revolution directly. For two nonzero components, equal magnitudes select 256;
+otherwise index a first-octant table with
+`floor(512 × smaller_component / larger_component)`. When X is larger, subtract
+the table result from 512. Reflect this first-quadrant angle according to the
+original component signs, negate it for the actor-heading convention, and mask
+to 2047.
+
+The 512 used first-octant entries are
+`truncate(atan(index / 512) × 65536 / 3.141592654) >> 6`.
+All used entries match the captured integer table. The diagonal case uses its
+explicit value rather than indexing an extra endpoint. The observed displacement
+`(−3341, 1893)` yields movement heading 345. Directly rounding a continuous
+`atan2` angle produces a different result.
+
 ## Forward-walking startup
 
 Ordinary forward walking keeps a startup phase from zero through three.
@@ -138,6 +157,24 @@ group 18 remained current with its marker set. The update invoked forward
 continuation, retained startup phase three, and left position unchanged. The
 next update selected idle group zero and reset the phase to zero. Eight
 consecutive idle updates retained that position and cleared phase.
+
+For ordinary type-1 walking, a pending default-group request does not immediately
+replace the current group. A `GoToFuture` command takes its exit target when a
+different pending group exists, or when exit processing is already active. The
+taken jump marks exit processing active and clears the movement marker; a
+`BreakPoint` at the target can set the marker again. A pending default remains
+pending through these exit frames until `EndAnimation` starts it in the same
+advancement call, using that call's tick input.
+
+An ISLAND walk-stop trace began with group 20 at command 12 and idle group zero
+pending, with all sampled inputs released. A one-tick update took command 13's
+exit to command 31 and selected frame command 32 with the movement marker set.
+The group retained that marker through its exit frames. On reaching End, the
+same update selected idle group zero and reset the forward startup phase.
+Thirteen complete updates retained position `(10447527, −190464, 10838321)` and
+matched the group, pending request, cursor, countdown, exit state and marker.
+This establishes the default-exit path for walking type 1, not every interruption
+or group type.
 
 ## Ordinary forward-walk support checks
 
