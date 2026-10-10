@@ -4,7 +4,7 @@ Item database defining all collectible objects, weapons, potions, keys, and ques
 
 Shipped sample path: `/Redguard/ITEM.INI` (e.g. `.../GOG Galaxy/Redguard/Redguard/ITEM.INI`).
 
-The file is data-driven: every game object from the compass to the soul sword is defined here with associated 3D models, inventory bitmaps, and AI scripts. Item 0 is always the compass, a special case — giving the player this item automatically turns on the compass display. Any item index declared as 0 in a weapon or hand-object field is treated as "no object" for this reason.
+The file is data-driven: every game object from the compass to the soul sword is defined here with associated 3D models, inventory bitmaps, and AI scripts. Item 0 is always the compass, a special case. The file's comment says giving the player this item turns on the compass display; the display actually toggles when item 0 is used (see [compass](../engine/hud.md#compass)). Any item index declared as 0 in a weapon or hand-object field is treated as "no object" for this reason.
 
 ## File Structure
 
@@ -17,8 +17,8 @@ The file contains a single `[items]` section with two parts:
 
 | Field | Value | Description |
 |---|---|---|
-| `bitmap_file` | `SYSTEM\PICKUPS.GXA` | GXA texture atlas for unselected inventory icons. |
-| `bitmap_selected_file` | `SYSTEM\PICKUPSS.GXA` | GXA texture atlas for selected inventory icons. |
+| `bitmap_file` | `SYSTEM\PICKUPS.GXA` | GXA atlas indexed by `bitmap[x]`; the HUD [active item](../engine/hud.md#active-item) icon uses this atlas. `pickbox.gxa` and `pickblob.gxa` are not used by the Glide build. |
+| `bitmap_selected_file` | `SYSTEM\PICKUPSS.GXA` | GXA atlas of selected icons, indexed by the same `bitmap[x]`. Not used by the [HUD](../engine/hud.md#active-item). |
 | `start_item_list` | `1, 2, 4, 18` | Item IDs the player starts the game with. |
 | `start_item_select` | `1` | Item ID selected by default at game start. |
 | `additional_length` | `8` | Extra inventory display length (slots). |
@@ -56,7 +56,7 @@ All fields are optional. Missing fields are treated as unused. The index `x` in 
 
 | Field | Description |
 |---|---|
-| `bitmap[x]` | Bitmap index into the `bitmap_file` GXA atlas for in-game display. |
+| `bitmap[x]` | Frame index into the `bitmap_file` and `bitmap_selected_file` atlases; the [HUD](../engine/hud.md#active-item) shows it for the selected item. |
 | `inventory_object_file[x]` | 3D object file used in the inventory screen. |
 | `game_object_file[x]` | 3D object file used in the game world. |
 

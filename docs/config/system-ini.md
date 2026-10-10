@@ -27,7 +27,7 @@ Display mode and palette initialization settings.
 
 | Key | Default Value | Description |
 |---|---|---|
-| `candle_mode` | `2` | Candle/torch lighting mode index. |
+| `candle_mode` | `2` | Candle HUD visibility: `0` = only while the show timer runs, `1` = always, `2` = always with the health number. F8 cycles and rewrites it. See [candle](../engine/hud.md#visibility). |
 | `colour_bits` | `8` | Color depth in bits per pixel (8 = paletted). |
 | `resolution` | `1` | Software renderer resolution index. |
 | `Palette_red` | `0` | Red component of the initial palette background color. |
@@ -45,7 +45,7 @@ Core engine paths, audio configuration, physics constants, HUD element positions
 
 | Key | Default Value | Description |
 |---|---|---|
-| `game_bitmap` | `system\powerup.gxa` | Path to the startup/powerup UI bitmap (GXA format). |
+| `game_bitmap` | `system\powerup.gxa` | GXA for the two HUD [power-up slots](../engine/hud.md#power-up-slots) (frame 0 gauntlet, frame 1 shield). |
 | `pointers` | `system\pointers.bmp` | Path to the cursor sprite sheet. |
 | `system_font` | `fonts\redguard.fnt` | Path to the primary system font. |
 | `icon_font` | `fonts\arialvs.fnt` | Path to the icon/small font. |
@@ -88,19 +88,19 @@ Core engine paths, audio configuration, physics constants, HUD element positions
 | `world_ini` | `WORLD.INI` | Path to the world definitions INI. |
 | `item_ini` | `ITEM.INI` | Path to the item definitions INI. |
 | `start_fade` | `on` | Fade in on game start. |
-| `compass_xco` | `546` | Compass HUD element X coordinate. |
-| `compass_yco` | `396` | Compass HUD element Y coordinate. |
-| `candle_xco` | `12` | Candle HUD element X coordinate. |
-| `candle_yco` | `8` | Candle HUD element Y coordinate. |
-| `logbook_xco` | `540` | Logbook HUD element X coordinate. |
-| `logbook_yco` | `20` | Logbook HUD element Y coordinate. |
-| `pickup_xco` | `12` | Pickup prompt HUD element X coordinate. |
-| `pickup_yco` | `386` | Pickup prompt HUD element Y coordinate. |
-| `pickup_text_yco` | `436` | Pickup text HUD element Y coordinate. |
-| `game_xco1` | `576` | Game UI element 1 X coordinate. |
-| `game_yco1` | `6` | Game UI element 1 Y coordinate. |
-| `game_xco2` | `576` | Game UI element 2 X coordinate. |
-| `game_yco2` | `96` | Game UI element 2 Y coordinate. |
+| `compass_xco` | `546` | [Compass](../engine/hud.md#compass) top-left X. |
+| `compass_yco` | `396` | [Compass](../engine/hud.md#compass) top-left Y. |
+| `candle_xco` | `12` | [Candle](../engine/hud.md#candle) top-left X. |
+| `candle_yco` | `8` | [Candle](../engine/hud.md#candle) top-left Y. |
+| `logbook_xco` | `540` | [Logbook icon](../engine/hud.md#logbook-icon) top-left X. |
+| `logbook_yco` | `20` | [Logbook icon](../engine/hud.md#logbook-icon) top-left Y. |
+| `pickup_xco` | `12` | [Active item](../engine/hud.md#active-item) icon top-left X, and start X of the [prompt text](../engine/hud.md#prompt-text). |
+| `pickup_yco` | `386` | [Active item](../engine/hud.md#active-item) icon top-left Y. |
+| `pickup_text_yco` | `436` | Top Y of the HUD [prompt text](../engine/hud.md#prompt-text) line. |
+| `game_xco1` | `576` | [Power-up slot](../engine/hud.md#power-up-slots) 1 X. |
+| `game_yco1` | `6` | [Power-up slot](../engine/hud.md#power-up-slots) 1 Y. |
+| `game_xco2` | `576` | [Power-up slot](../engine/hud.md#power-up-slots) 2 X. |
+| `game_yco2` | `96` | [Power-up slot](../engine/hud.md#power-up-slots) 2 Y. |
 | `lock_windows` | `no` | Lock window position/size. |
 | `disable_drive_check` | `yes` | Skip CD drive presence check on startup. |
 | `disable_cpu_check` | `yes` | Skip CPU speed check on startup. |
@@ -174,7 +174,7 @@ Gameplay physics thresholds, fall damage, and interaction radii.
 | `rope_jump_add` | `18` | Velocity added when jumping from a rope. |
 | `rope_attach_angle` | `512` | Angle threshold for rope attachment (engine angle units). |
 | `slide_speed` | `36` | Player slide speed in engine units per frame. |
-| `rtx_pickup_override_time` | `24` | Duration (frames) of the pickup text override display. |
+| `rtx_pickup_override_time` | `24` | Ticks for which holding the previous/next item key suppresses an [activation prompt](../engine/hud.md#activation-prompt) and shows the item icon. |
 | `swim_depth` | `40` | Depth threshold for switching to swim mode. |
 | `player_dead_time` | `3` | Time (seconds) before respawn after death. |
 | `player_fall_dead_time` | `12` | Time (frames) before death is registered after a fatal fall. |
