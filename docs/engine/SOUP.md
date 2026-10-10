@@ -43,6 +43,26 @@ It does not permanently terminate the actor's main script. An eligible later
 invocation resumes at the stored target. `Endint` (opcode `0x13`) resets the active
 cursor to the script base and returns from the current invocation.
 
+### Ordinary update gates
+
+`SYSTEM.INI`'s `[system] task_system` enables the ordinary entry, task, and main
+script stages. Disabling it does not disable every script invocation: an
+available interrupt cursor can still run unless its runtime suppression flag
+is set. Actor exclusions and script-name filters apply before these stages.
+
+The actor's runtime script-control byte has independent effects:
+
+| Mask | Effect in the ordinary actor update |
+|---|---|
+| `0x01` | Suppress the ordinary main stage, including its entry and task work |
+| `0x02` | Suppress the separate interrupt invocation |
+| `0x04` | Use entry and main-body processing without the existing-task pass |
+| `0x08` | Exclude the actor from the ordinary actor-update body |
+
+The `0x04` path is distinct from the usual entry, existing-task, then main-body
+order. These runtime flags are not RAHD attribute indices. See
+[actor update order](animation.md#ordinary-actor-update-order).
+
 ### Value Modes
 
 The same opcode byte is interpreted differently depending on the calling context. There is no separate addressing-mode byte — the calling instruction determines how trailing bytes are consumed.
