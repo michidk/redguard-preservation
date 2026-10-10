@@ -314,14 +314,28 @@ fn parse_image_record(data: &[u8], pos: usize) -> Result<Option<(BsiImage, usize
         0
     };
 
+    let image = parse_image_chunks(data, record_start, record_end, name, image_index)?;
+    Ok(Some((image, record_end)))
+}
+
+fn parse_image_chunks(
+    data: &[u8],
+    record_start: usize,
+    record_end: usize,
+    name: String,
+    image_index: u16,
+) -> Result<BsiImage> {
     let chunks = parse_record_chunks(data, record_start, record_end)?;
+    if chunks.bhdr_data.is_none() {
+        return Err(Error::Parse("BSI: missing BHDR image header".to_string()));
+    }
     let (x_offset, y_offset, width, height, frame_count, anim_delay, tex_scale, data_encoding) =
         parse_bhdr_fields(chunks.bhdr_data)?;
     let palette = parse_embedded_palette(chunks.cmap_data);
     let (pixel_data, extra_frames) =
         decode_animated_frames(width, height, frame_count, chunks.pixel_data)?;
 
-    let image = BsiImage {
+    Ok(BsiImage {
         name,
         image_index,
         width,
@@ -336,14 +350,25 @@ fn parse_image_record(data: &[u8], pos: usize) -> Result<Option<(BsiImage, usize
         palette,
         pixel_data,
         extra_frames,
-    };
-
-    Ok(Some((image, record_end)))
+    })
 }
 
 /// Parses a BSI/TEXBSI byte slice into image records.
 #[allow(clippy::missing_errors_doc)]
 pub fn parse_bsi_file(data: &[u8]) -> Result<BsiFile> {
+    // Standalone BSI files contain chunks directly, without a TEXBSI name envelope.
+    if data.starts_with(b"IFHD") || data.starts_with(b"BSIF") {
+        let image = parse_image_chunks(data, 0, data.len(), String::new(), 0)?;
+        if image.width == 0
+            || image.height == 0
+            || image.pixel_data.len() != usize::from(image.width) * usize::from(image.height)
+        {
+            return Err(Error::Parse("BSI: incomplete standalone image".to_string()));
+        }
+        return Ok(BsiFile {
+            images: vec![image],
+        });
+    }
     let mut images = Vec::new();
     let mut pos = 0_usize;
 
@@ -356,4 +381,41 @@ pub fn parse_bsi_file(data: &[u8]) -> Result<BsiFile> {
     }
 
     Ok(BsiFile { images })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn chunk(data: &mut Vec<u8>, tag: &[u8; 4], payload: &[u8]) {
+        data.extend(tag);
+        data.extend(u32::try_from(payload.len()).unwrap().to_be_bytes());
+        data.extend(payload);
+    }
+
+    #[test]
+    fn standalone_chunks_and_archive_records_decode_the_same_pixels() {
+        let mut chunks = Vec::new();
+        chunk(&mut chunks, b"IFHD", &[0; 44]);
+        let mut header = [0; 26];
+        header[4..6].copy_from_slice(&2_i16.to_le_bytes());
+        header[6..8].copy_from_slice(&1_i16.to_le_bytes());
+        header[14..16].copy_from_slice(&1_i16.to_le_bytes());
+        chunk(&mut chunks, b"BHDR", &header);
+        chunk(&mut chunks, b"DATA", &[1, 2]);
+        chunks.extend(b"END ");
+        let standalone = parse_bsi_file(&chunks).unwrap();
+        let mut archive = b"D02000\0\0\0".to_vec();
+        archive.extend(u32::try_from(chunks.len()).unwrap().to_le_bytes());
+        archive.extend(&chunks);
+        let archived = parse_bsi_file(&archive).unwrap();
+        for file in [standalone, archived] {
+            assert_eq!(file.images.len(), 1);
+            let image = &file.images[0];
+            assert_eq!((image.width, image.height), (2, 1));
+            assert_eq!(image.decode_rgba(None), [1, 1, 1, 255, 2, 2, 2, 255]);
+        }
+        assert!(parse_bsi_file(&chunks[..chunks.len() - 6]).is_err());
+        assert!(parse_bsi_file(b"IFHD\0\0\0\0END ").is_err());
+    }
 }
