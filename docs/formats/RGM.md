@@ -262,9 +262,9 @@ All typed fields are little-endian.
 | 0x7D | 4 | `u32` | variable_offset | Byte offset into RAVA section data (÷ 4 = variable array index) |
 | 0x81 | 4 | `u32` | variable_offset_dup | Runtime copy of `variable_offset`; advanced by `num_variables × 4` per instance |
 | 0x85 | 4 | `u32` | anim_frame_data | Animation frame count or group index. Upper 16 bits used as count (× 11 bytes per frame for allocation). |
-| 0x89 | 4 | `i32` | soup_func_primary | SOUP386 function table index (primary). Multiplied by 49 to index into function table. -1 = disabled. |
-| 0x8D | 4 | `i32` | soup_func_secondary | SOUP386 function table index (secondary). Same indexing. -1 = disabled. |
-| 0x91 | 4 | `i32` | soup_func_tertiary | SOUP386 function table index (tertiary). -1 = disabled. |
+| 0x89 | 4 | `i32` | bounds_primary | Primary MPSZ record index; −1 derives bounds from the model. |
+| 0x8D | 4 | `i32` | bounds_secondary | Secondary MPSZ record index; −1 = absent. |
+| 0x91 | 4 | `i32` | bounds_tertiary | Alternate MPSZ record index; −1 = absent. |
 | 0x95 | 2 | `i16` | combat_flag | Combat/state flag. |
 | 0x97 | 2 | `i16` | raex_stat | Stored at actor state +0x97 after SOUP function lookup. -1 = disabled. |
 | 0x99 | 2 | `i16` | reserved_99 | Always -1. Not read at runtime. |
@@ -483,31 +483,33 @@ as `reserved` for compatibility.
 
 ## MPSZ (Bounding Volumes)
 
-MPSZ is an array of 49-byte bounding volume records used to build per-actor **fspheres** (combat/collision bounding spheres) at runtime. Not count-prefixed — record count is `section_size / 49`. RAHD fields at +0x8D and +0x91 store per-actor indices into this table (−1 = no record).
+MPSZ is an array of 49-byte bounding volume records used to build per-actor **fspheres** (combat/collision bounding spheres) at runtime. Not count-prefixed — record count is `section_size / 49`. RAHD fields at 0x89, 0x8D and 0x91 store per-actor indices into this table. A primary index of −1 derives bounds from the model; −1 in either alternate index means absent.
 
 ### Record Layout (49 bytes)
 
 | Offset | Size | Type | Name | Description |
 |---|---|---|---|---|
-| 0x00 | 4 | `i32` | total_x | Total extent X (`neg_x + pos_x`) |
-| 0x04 | 4 | `i32` | total_y | Total extent Y (`neg_y + pos_y`) |
-| 0x08 | 4 | `i32` | total_z | Total extent Z (`neg_z + pos_z`) |
-| 0x0C | 4 | `i32` | center_x | Center offset X (always 0 in shipped data) |
-| 0x10 | 4 | `i32` | center_y | Center offset Y (always 0 in shipped data) |
-| 0x14 | 4 | `i32` | center_z | Center offset Z (always 0 in shipped data) |
-| 0x18 | 4 | `i32` | neg_x | Negative half-extent X |
-| 0x1C | 4 | `i32` | neg_y | Negative half-extent Y |
-| 0x20 | 4 | `i32` | neg_z | Negative half-extent Z |
-| 0x24 | 4 | `i32` | pos_x | Positive half-extent X |
-| 0x28 | 4 | `i32` | pos_y | Positive half-extent Y |
-| 0x2C | 4 | `i32` | pos_z | Positive half-extent Z |
-| 0x30 | 1 | `u8` | flags | Always 0 in shipped data |
+| 0x00 | 1 | `u8` | flags | Initially zero; runtime sphere construction selects the dominant axis here |
+| 0x01 | 4 | `i32` | total_x | Total extent X (`pos_x + neg_x`) |
+| 0x05 | 4 | `i32` | total_y | Total extent Y (`pos_y + neg_y`) |
+| 0x09 | 4 | `i32` | total_z | Total extent Z (`pos_z + neg_z`) |
+| 0x0D | 4 | `i32` | center_x | Center offset X |
+| 0x11 | 4 | `i32` | center_y | Center offset Y |
+| 0x15 | 4 | `i32` | center_z | Center offset Z |
+| 0x19 | 4 | `i32` | pos_x | Positive half-extent X |
+| 0x1D | 4 | `i32` | pos_y | Positive half-extent Y |
+| 0x21 | 4 | `i32` | pos_z | Positive half-extent Z |
+| 0x25 | 4 | `i32` | neg_x | Absolute negative half-extent X |
+| 0x29 | 4 | `i32` | neg_y | Absolute negative half-extent Y |
+| 0x2D | 4 | `i32` | neg_z | Absolute negative half-extent Z |
 
 Invariant: `total = neg + pos` for each axis. Center is always zero in shipped files. About 30% of records are symmetric (`neg == pos`); the rest have asymmetric bounds.
 
-At runtime, the engine copies these 49 bytes and calls the fsphere builder to create a 3D bounding volume for the actor. RAHD provides two separate index fields per actor, allowing reference to different bounding records. Only a subset of actors have direct RAHD indices — other records may be referenced by MPOB objects or other runtime systems.
+At runtime, the engine copies these 49 bytes and calls the fsphere builder to create a 3D bounding volume for the actor. RAHD provides three index fields per actor, allowing reference to different bounding records. Only a subset of actors have direct RAHD indices — other records may be referenced by MPOB objects or other runtime systems.
 
-Present in all 27 shipped RGM files (5–144 records per map).
+Verified across 806 records in all 27 shipped RGM files: flags and centers are zero, and each total equals its positive plus negative extent. The flag byte precedes the integers; placing it last shifts every decoded field.
+
+ISLAND `CYRUS` references primary record 120 and secondary record 121, with no tertiary record. Its primary totals are `(48, 128, 49)`, positive extents `(24, 62, 11)`, and negative extents `(24, 66, 38)`. This record matches the runtime actor bounds.
 
 ## MPSF (Flat Objects)
 
