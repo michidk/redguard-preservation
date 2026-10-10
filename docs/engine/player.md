@@ -13,6 +13,19 @@ Headings wrap after 2048 units per revolution. For ordinary ground movement with
 the sword sheathed, forward at heading zero increases Z. Right turning decreases
 heading; left turning increases it. Other player states must be checked separately.
 
+## Marker-based world entry
+
+A marker-based world load selects the requested map marker and uses its position
+for the initial player position. The marker coordinates are multiplied by 256
+for runtime storage. The requested heading is wrapped modulo 2048; the marker's
+auxiliary byte does not supply a heading. The player actor uses the map's `CYRUS`
+actor definition, including its attributes and animation data.
+
+Initial placement and ground settling are separate. In an observed ISLAND entry,
+marker zero supplied `(40816, -699, 41024)` with requested heading zero. The
+settled player position was `(40816, -744, 41024)`. Using the marker's Y coordinate
+as a permanent ground height would therefore be incorrect.
+
 ## Ground-turn arithmetic
 
 Left and right input have independent turn accumulators. Releasing one direction
@@ -74,7 +87,20 @@ One observed heading-zero sequence began at raw Z `10502144` and produced:
 
 Each resulting position was retained as the previous position in the following
 update in this case. This sample does not establish collision behavior elsewhere,
-the complete animation eligibility rules, or the timing of phase reset on release.
+the complete animation eligibility rules.
+
+### Ending a walking update
+
+The actor update tracks whether it accepted forward movement. At the end of an
+update without accepted forward movement, it resets the forward startup phase
+to zero. This differs from suppressing translation through animation: an accepted
+walking update can advance startup while producing no displacement.
+
+An observed ISLAND walk reached phase three. After forward input was released,
+an update ended at phase zero with idle animation and equal current and previous
+positions. The following update retained that position and phase. This verifies
+the ordinary release case, not the timing of host keyboard event delivery or
+all movement interruptions.
 
 ## FPS-derived frame scale
 

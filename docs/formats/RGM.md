@@ -477,7 +477,8 @@ All fields little-endian.
 
 Position fields use the same i24+pad encoding as MPOB/MPSO. No explicit record ID field.
 The auxiliary table begins at `4 + count * 12`; byte `i` belongs to position
-record `i`. Its meaning is not established. The metadata exporter retains it
+record `i`. The runtime marker lookup accepts a marker only when its auxiliary byte is `1`;
+other values identify an unavailable marker. The metadata exporter retains it
 as `reserved` for compatibility.
 
 ## MPSZ (Bounding Volumes)
