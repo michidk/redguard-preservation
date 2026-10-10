@@ -479,7 +479,10 @@ Position fields use the same i24+pad encoding as MPOB/MPSO. No explicit record I
 The auxiliary table begins at `4 + count * 12`; byte `i` belongs to position
 record `i`. The runtime marker lookup accepts a marker only when its auxiliary byte is `1`;
 other values identify an unavailable marker. The metadata exporter retains it
-as `reserved` for compatibility.
+as `reserved` for compatibility. `map_position` retains the three signed map
+coordinates before export-axis conversion and scaling; `position` retains the
+existing converted coordinates. Runtime placement can use `map_position` without
+recovering integers from floating-point export coordinates.
 
 ## MPSZ (Bounding Volumes)
 

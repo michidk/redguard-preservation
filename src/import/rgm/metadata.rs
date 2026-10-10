@@ -512,6 +512,7 @@ fn parse_mpm_records(data: &[u8]) -> Vec<serde_json::Value> {
 
         out.push(serde_json::json!({
             "position": positioning::decode_position(pos_x, pos_y, pos_z),
+            "map_position": [pos_x, pos_y, pos_z_signed],
             "reserved": reserved,
         }));
 
