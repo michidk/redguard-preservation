@@ -11,6 +11,7 @@
   - [SFX](formats/SFX.md)
   - [RTX](formats/RTX.md)
   - [TEXBSI](formats/TEXBSI.md)
+  - [Glide splash tables](formats/GLIDE-SPLASH.md)
   - [COL](formats/COL.md)
   - [FNT](formats/FNT.md)
   - [PVO](formats/pvo/format.md)
@@ -32,3 +33,4 @@
   - [SOUP Scripting](engine/SOUP.md)
   - [Sky Renderer](engine/sky.md)
   - [Water Waves](engine/water.md)
+  - [Startup presentation](engine/startup.md)

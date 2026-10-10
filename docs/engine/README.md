@@ -9,3 +9,7 @@ Findings from engine analysis that go beyond file format documentation.
 | SOUP Scripting | SOUP386 virtual machine architecture, bytecode encoding (22 opcodes), value modes, operator tables, threading model, function dispatch (367 functions), and global flag system (369 flags) | [SOUP.md](SOUP.md) |
 | Sky Renderer | Two-layer sky system: static GXA skybox + scrolling BSI texture, sun disc billboard, per-world configuration, and runtime console commands. | [sky.md](sky.md) |
 | Water Waves | Per-frame sine-table vertex displacement on water terrain cells. Radial concentric ripples driven by `world_wave` INI parameters (amplitude, speed, spatial frequency) with runtime console tuning. | [water.md](water.md) |
+
+Player movement units, ground-turn arithmetic, and coverage limits are documented in [player.md](player.md).
+
+[Startup presentation](startup.md) covers the original splash assets, projection, lighting, and screen sequence.

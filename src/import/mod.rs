@@ -8,6 +8,8 @@ pub mod fnt;
 pub mod fnt_export;
 /// FNT to TrueType font conversion.
 pub mod fnt_ttf;
+/// Extract authored splash data from the installed Glide overlay.
+pub mod glide_splash;
 /// Parser for GXA bitmap archives.
 pub mod gxa;
 /// Parser for KEYS.INI player keyboard bindings.
