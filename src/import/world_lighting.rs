@@ -50,8 +50,10 @@ impl WorldLighting {
         let skew = read_angle("world_sunskew")?;
         #[allow(clippy::approx_constant)]
         // The engine uses this decimal full-period constant when building the float table.
-        let sample =
-            |index: u16| ((f64::from(index) * 6.2831852 / 2048.0).sin() as f32 * 16000.0).trunc();
+        let sample = |index: u16| {
+            (f64::from((f64::from(index) * 6.2831852 / 2048.0).sin() as f32) * 16000.0).trunc()
+                as f32
+        };
         let direction = glam::Vec3::from([sample(angle), sample(angle + 512), sample(skew)])
             .normalize_or_zero()
             .to_array();
@@ -91,6 +93,16 @@ mod tests {
                 .ambient,
             [4.0, 5.0, 6.0]
         );
+    }
+
+    #[test]
+    fn direction_truncates_the_table_product_before_float_rounding() {
+        let light = WorldLighting::parse("world_sunangle[1]=411\nworld_sunskew[1]=512", 1).unwrap();
+        // The X/Y ratio removes normalization and exposes integer direction inputs.
+        let expected = glam::Vec3::new(15237.0, 4878.0, 16000.0)
+            .normalize()
+            .to_array();
+        assert_eq!(light.direction, expected);
     }
 
     #[test]
