@@ -444,6 +444,11 @@ to the subgroup and polygon tests.
 
 ### Collision subobject admission
 
+The model runtime loader retains authored subobjects only for version 5 models.
+For other model versions, including version 4, it clears both the subobject
+list and its count. Version 4 subobjects therefore do not participate in these
+queries; the loader does not synthesize extent factors for them.
+
 For a sphere center in model coordinates, let `d` be its displacement from a
 subobject center, `R` the subobject radius, `e` its three extent factors, and `r`
 the sphere radius. For nonzero `length(d)`, form each component of
