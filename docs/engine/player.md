@@ -328,6 +328,37 @@ rotation. Surface lookup uses texture set 302 and that texture index before
 applying terrain blend-mask and water overrides, as described in
 [sound surface selection](sound.md#surfaceini-remap).
 
+### Terrain material blend coverage
+
+Material lookup derives local mask coordinates from integer map coordinates:
+`u = (X >> 1) & 127`, `v = 127 - ((Z >> 1) & 127)`. The tile's rotation
+selects `(u,v)`, `(127-v,u)`, `(127-u,127-v)`, or `(v,127-u)` for rotations
+zero through three respectively. Call the rotated coordinates `a,b`.
+
+The generated 256-by-256 mask has value
+`clamp(2 × (x + y - 254), 0, 255)` at `(x,y)`. Terrain image indices select
+these coverage rules:
+
+| Image | Coverage |
+| --- | --- |
+| 0 | 256 |
+| 5 | Mask at `(a+109,b+109)` |
+| 6, 52 | Zero for `a <= 28`; `((a-28) × 455) >> 7` for `29 <= a < 100`; 256 otherwise |
+| 7 | Mask at `(a+32,b+32)` |
+| 30 | Mask at `(a+128,b+128)` |
+| 31 | Zero for `a < 5`, otherwise 256 |
+| 32 | Zero when mask at `(a+64,b+64)` is zero, otherwise 256 |
+| Other indices | Zero |
+
+Start with the surface assignment for texture set 302 and the image index.
+Dry pixels on images 6 and 52 select sand, and dry pixels on images 31 and 32
+select rock. On the other mask-backed images, zero coverage replaces a water
+assignment with sand; a deepwater assignment also becomes sand before the
+water override. Other image indices retain their base assignment.
+
+After these rules, nonzero coverage selects surface 3, except coverage 256
+selects surface 4. Coverage 255 is therefore distinct from full coverage.
+
 ### Static candidate list separation
 
 Static collision flag 2 excludes a placement before distance selection. Flag 1
