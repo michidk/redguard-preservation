@@ -207,6 +207,20 @@ states. Its early-return paths do not perform that assignment. The forward
 check reads the shared veto after the support query; it does not recompute it
 solely from the actor's current surface state.
 
+### Surface-query state retention
+
+The surface query has separate return, actor-surface and shared-veto results.
+An excluded query returns zero without replacing the actor's surface or the
+shared veto. An admitted query can also run without assigning actor state:
+it returns the resolved model or terrain surface, but retains both the actor's
+surface and the shared veto. For other support kinds, this path returns zero.
+
+The ordinary assignment path stores the resolved surface in the actor, then
+sets the shared veto according to that stored value. Model contacts use the
+packed face texture assignment; terrain contacts use the actor's integer map
+X/Z position. Other support kinds assign surface zero. A zero return alone
+therefore does not establish that the actor's surface or shared veto is zero.
+
 ### Converting support height to actor position
 
 The selected ground surface height is not the actor origin height. For ordinary
