@@ -248,6 +248,23 @@ position has a selected surface, classification 2 rejects the attempt and other
 classifications allow this slope check. This selection is separate from the
 ordinary ground-support rank comparison.
 
+### Forward ground-support admission
+
+The forward ground check saves the actor position, queries support at the
+proposed position, then restores all three position coordinates before deciding
+whether the attempt succeeds. The support query retains its other state changes.
+
+The attempt fails when collision attribute bit 2 is set and the resulting
+support classification is 2. It also fails when support is absent or the shared
+surface veto equals one. Bypassing the earlier slope check does not bypass this
+final classification check.
+
+When the surface-state updater reaches its ordinary assignment path, it sets
+the shared veto to one for actor surface states 5 and 11, and zero for other
+states. Its early-return paths do not perform that assignment. The forward
+check reads the shared veto after the support query; it does not recompute it
+solely from the actor's current surface state.
+
 ### Converting support height to actor position
 
 The selected ground surface height is not the actor origin height. For ordinary
