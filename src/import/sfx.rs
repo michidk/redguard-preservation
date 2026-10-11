@@ -1,4 +1,5 @@
 use crate::{Result, error::Error};
+use std::io::{Read, Seek, SeekFrom};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 /// Encoded audio channel/bit-depth layout for an SFX effect.
@@ -84,103 +85,142 @@ fn read_u32_be(data: &[u8], offset: usize) -> Option<u32> {
     Some(u32::from_be_bytes(bytes))
 }
 
+/// SFX effect metadata and payload boundaries, without loading PCM data.
+pub struct SfxIndex {
+    pub description: String,
+    pub effects: Vec<SfxEffect>,
+    ranges: Vec<(u64, usize)>,
+}
+impl SfxIndex {
+    /// Reads fixed bank/effect headers and seeks over PCM payloads.
+    pub fn read(reader: &mut (impl Read + Seek)) -> Result<Self> {
+        let length = reader.seek(SeekFrom::End(0))?;
+        reader.seek(SeekFrom::Start(0))?;
+        let mut input = [0; 52];
+        reader.read_exact(&mut input)?;
+        let input = &input[..];
+        if input.len() < 52 {
+            return Err(Error::Parse("SFX file too small for FXHD section".into()));
+        }
+
+        // FXHD: 4-byte tag + 4 bytes BE section_size + 32 bytes description + 4 bytes LE effect_count
+        if &input[0..4] != b"FXHD" {
+            return Err(Error::Parse(format!(
+                "expected FXHD tag, got {:?}",
+                String::from_utf8_lossy(&input[0..4])
+            )));
+        }
+
+        let _section_size = read_u32_be(input, 4)
+            .ok_or_else(|| Error::Parse("failed to read FXHD section_size".into()))?;
+
+        let description = String::from_utf8_lossy(&input[8..40])
+            .trim_matches('\0')
+            .to_string();
+
+        let effect_count = usize::try_from(
+            read_u32_le(input, 40)
+                .ok_or_else(|| Error::Parse("failed to read FXHD effect_count".into()))?,
+        )
+        .map_err(|_| Error::Parse("FXHD effect_count does not fit usize".to_string()))?;
+
+        // FXDT: 4-byte tag + 4 bytes BE section_size, then sequential effects
+        let fxdt_offset = 44;
+        if input.len() < fxdt_offset + 8 {
+            return Err(Error::Parse("SFX file too small for FXDT header".into()));
+        }
+        if &input[fxdt_offset..fxdt_offset + 4] != b"FXDT" {
+            return Err(Error::Parse(format!(
+                "expected FXDT tag, got {:?}",
+                String::from_utf8_lossy(&input[fxdt_offset..fxdt_offset + 4])
+            )));
+        }
+        let _fxdt_size = read_u32_be(input, fxdt_offset + 4)
+            .ok_or_else(|| Error::Parse("failed to read FXDT section_size".into()))?;
+
+        if effect_count as u64 > length.saturating_sub(52) / 27 {
+            return Err(Error::Parse("SFX effect count exceeds file length".into()));
+        }
+        let mut position = 52;
+        let mut effects = Vec::new();
+        let mut ranges = Vec::new();
+        for i in 0..effect_count {
+            reader.seek(SeekFrom::Start(position))?;
+            let mut bytes = [0; 27];
+            reader.read_exact(&mut bytes)?;
+            let input = &bytes[..];
+            let cursor = 0;
+            let type_id = read_u32_le(input, cursor)
+                .ok_or_else(|| Error::Parse(format!("effect {i}: failed to read type_id")))?;
+            let _bit_depth = read_u32_le(input, cursor + 4);
+            let sample_rate = read_u32_le(input, cursor + 8)
+                .ok_or_else(|| Error::Parse(format!("effect {i}: failed to read sample_rate")))?;
+            #[allow(clippy::cast_possible_wrap)]
+            // Engine stores this as a signed flag byte in binary data.
+            let loop_flag = input[cursor + 13] as i8;
+            let base_volume = input[cursor + 12];
+            let loop_offset = read_u32_le(input, cursor + 14)
+                .ok_or_else(|| Error::Parse(format!("effect {i}: failed to read loop_offset")))?;
+            let loop_end = read_u32_le(input, cursor + 18)
+                .ok_or_else(|| Error::Parse(format!("effect {i}: failed to read loop_end")))?;
+            let data_length =
+                usize::try_from(read_u32_le(input, cursor + 22).ok_or_else(|| {
+                    Error::Parse(format!("effect {i}: failed to read data_length"))
+                })?)
+                .map_err(|_| Error::Parse(format!("effect {i}: data_length does not fit usize")))?;
+
+            let audio_type = AudioType::from_type_id(type_id).ok_or_else(|| {
+                Error::Parse(format!("effect {i}: unknown audio type_id {type_id}"))
+            })?;
+
+            position += 27;
+            if data_length as u64 > length.saturating_sub(position) {
+                return Err(Error::Parse(format!(
+                    "SFX effect {i}: PCM payload exceeds file length"
+                )));
+            }
+            ranges.push((position, data_length));
+            position += data_length as u64;
+            effects.push(SfxEffect {
+                audio_type,
+                sample_rate,
+                base_volume,
+                loop_flag,
+                loop_offset,
+                loop_end,
+                pcm_data: Vec::new(),
+            });
+        }
+        Ok(Self {
+            description,
+            effects,
+            ranges,
+        })
+    }
+    /// Reads only the selected effect's PCM bytes.
+    pub fn read_effect(&self, reader: &mut (impl Read + Seek), index: usize) -> Result<SfxEffect> {
+        let mut effect = self
+            .effects
+            .get(index)
+            .ok_or_else(|| Error::Parse(format!("SFX effect {index} missing")))?
+            .clone();
+        let (offset, length) = self.ranges[index];
+        reader.seek(SeekFrom::Start(offset))?;
+        effect.pcm_data.resize(length, 0);
+        reader.read_exact(&mut effect.pcm_data)?;
+        Ok(effect)
+    }
+}
+
 /// Parses a Redguard SFX file from bytes.
 pub fn parse_sfx_file(input: &[u8]) -> Result<SfxFile> {
-    if input.len() < 52 {
-        return Err(Error::Parse("SFX file too small for FXHD section".into()));
-    }
-
-    // FXHD: 4-byte tag + 4 bytes BE section_size + 32 bytes description + 4 bytes LE effect_count
-    if &input[0..4] != b"FXHD" {
-        return Err(Error::Parse(format!(
-            "expected FXHD tag, got {:?}",
-            String::from_utf8_lossy(&input[0..4])
-        )));
-    }
-
-    let _section_size = read_u32_be(input, 4)
-        .ok_or_else(|| Error::Parse("failed to read FXHD section_size".into()))?;
-
-    let description = String::from_utf8_lossy(&input[8..40])
-        .trim_matches('\0')
-        .to_string();
-
-    let effect_count = usize::try_from(
-        read_u32_le(input, 40)
-            .ok_or_else(|| Error::Parse("failed to read FXHD effect_count".into()))?,
-    )
-    .map_err(|_| Error::Parse("FXHD effect_count does not fit usize".to_string()))?;
-
-    // FXDT: 4-byte tag + 4 bytes BE section_size, then sequential effects
-    let fxdt_offset = 44;
-    if input.len() < fxdt_offset + 8 {
-        return Err(Error::Parse("SFX file too small for FXDT header".into()));
-    }
-    if &input[fxdt_offset..fxdt_offset + 4] != b"FXDT" {
-        return Err(Error::Parse(format!(
-            "expected FXDT tag, got {:?}",
-            String::from_utf8_lossy(&input[fxdt_offset..fxdt_offset + 4])
-        )));
-    }
-    let _fxdt_size = read_u32_be(input, fxdt_offset + 4)
-        .ok_or_else(|| Error::Parse("failed to read FXDT section_size".into()))?;
-
-    let mut cursor = fxdt_offset + 8;
-    let mut effects = Vec::with_capacity(effect_count);
-
-    for i in 0..effect_count {
-        if cursor + 27 > input.len() {
-            return Err(Error::Parse(format!(
-                "effect {i}: not enough bytes for 27-byte header at offset {cursor}"
-            )));
-        }
-
-        let type_id = read_u32_le(input, cursor)
-            .ok_or_else(|| Error::Parse(format!("effect {i}: failed to read type_id")))?;
-        let _bit_depth = read_u32_le(input, cursor + 4);
-        let sample_rate = read_u32_le(input, cursor + 8)
-            .ok_or_else(|| Error::Parse(format!("effect {i}: failed to read sample_rate")))?;
-        #[allow(clippy::cast_possible_wrap)]
-        // Engine stores this as a signed flag byte in binary data.
-        let loop_flag = input[cursor + 13] as i8;
-        let base_volume = input[cursor + 12];
-        let loop_offset = read_u32_le(input, cursor + 14)
-            .ok_or_else(|| Error::Parse(format!("effect {i}: failed to read loop_offset")))?;
-        let loop_end = read_u32_le(input, cursor + 18)
-            .ok_or_else(|| Error::Parse(format!("effect {i}: failed to read loop_end")))?;
-        let data_length = usize::try_from(
-            read_u32_le(input, cursor + 22)
-                .ok_or_else(|| Error::Parse(format!("effect {i}: failed to read data_length")))?,
-        )
-        .map_err(|_| Error::Parse(format!("effect {i}: data_length does not fit usize")))?;
-
-        cursor += 27;
-
-        if cursor + data_length > input.len() {
-            return Err(Error::Parse(format!(
-                "effect {i}: PCM data extends beyond file (need {data_length} bytes at offset {cursor})"
-            )));
-        }
-
-        let audio_type = AudioType::from_type_id(type_id)
-            .ok_or_else(|| Error::Parse(format!("effect {i}: unknown audio type_id {type_id}")))?;
-
-        let pcm_data = input[cursor..cursor + data_length].to_vec();
-        cursor += data_length;
-
-        effects.push(SfxEffect {
-            audio_type,
-            sample_rate,
-            base_volume,
-            loop_flag,
-            loop_offset,
-            loop_end,
-            pcm_data,
-        });
-    }
-
+    let mut reader = std::io::Cursor::new(input);
+    let index = SfxIndex::read(&mut reader)?;
+    let effects = (0..index.effects.len())
+        .map(|i| index.read_effect(&mut reader, i))
+        .collect::<Result<Vec<_>>>()?;
     Ok(SfxFile {
-        description,
+        description: index.description,
         effects,
     })
 }

@@ -31,8 +31,8 @@ pub fn parse_rob_header(input: &[u8]) -> IResult<&[u8], RobHeader> {
     ))
 }
 
-/// Parses one ROB segment record and optional payload bytes.
-pub fn parse_rob_segment(input: &[u8]) -> IResult<&[u8], RobSegment> {
+/// Parses a ROB segment header without consuming its model payload.
+pub fn parse_rob_segment_header(input: &[u8]) -> IResult<&[u8], RobSegment> {
     let (input, total_size) = le_u32(input)?;
     let (input, segment_name) = take(8u8)(input)?;
     let (input, segment_type) = le_u16(input)?;
@@ -61,12 +61,6 @@ pub fn parse_rob_segment(input: &[u8]) -> IResult<&[u8], RobSegment> {
 
     let (input, data_size) = le_u32(input)?;
 
-    let (input, data) = if data_size > 0 && segment_type != 512 {
-        take(usize::try_from(data_size).unwrap_or(usize::MAX))(input)?
-    } else {
-        (input, &[] as &[u8])
-    };
-
     let mut segment_name_bytes = [0_u8; 8];
     segment_name_bytes.copy_from_slice(segment_name);
     let mut face_count_low_bytes = [0_u8; 3];
@@ -94,9 +88,21 @@ pub fn parse_rob_segment(input: &[u8]) -> IResult<&[u8], RobSegment> {
                 negative_z,
             },
             data_size,
-            data: data.to_vec(),
+            data: Vec::new(),
         },
     ))
+}
+
+/// Parses one ROB segment and its optional model payload.
+pub fn parse_rob_segment(input: &[u8]) -> IResult<&[u8], RobSegment> {
+    let (input, mut segment) = parse_rob_segment_header(input)?;
+    let (input, data) = if segment.data_size > 0 && !segment.points_to_external_file() {
+        take(usize::try_from(segment.data_size).unwrap_or(usize::MAX))(input)?
+    } else {
+        (input, &[] as &[u8])
+    };
+    segment.data = data.to_vec();
+    Ok((input, segment))
 }
 
 /// Parses a complete ROB file into header and segment records.

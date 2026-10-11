@@ -1,5 +1,7 @@
+mod index;
 /// Low-level ROB binary parser.
 pub mod parser;
+pub use index::RobIndex;
 
 use crate::{
     Result,
