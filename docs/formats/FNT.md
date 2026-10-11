@@ -68,6 +68,8 @@ Notes:
 - `BPAL` is the normal tag.
 - `FPAL` appears in `ARIALVS.FNT` with the same 768-byte payload shape.
 - These palettes are local to each font file, independent of scene palettes in [COL.md](COL.md).
+- Components are 6-bit (0–63). The 3dfx renderer displays a component `c` as the
+  8-bit value `c << 2`; for example REDSEL index 195 `39,3,14` appears as `156,12,56`.
 
 ## FBMP Chunk (Glyph Records)
 
