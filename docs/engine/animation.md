@@ -139,6 +139,28 @@ tick increment. A renderer that advances each actor exactly once before or
 after all script execution loses this ordering. These facts do not specify
 the complete script interpreter, movement handling, or every eligibility rule.
 
+## Ordinary actor eligibility
+
+The ordinary actor update traverses the actor update list. It skips the actor
+body for the unselected member of the two designated player actors, a matching
+active script-name exclusion, a nonzero runtime object-update exclusion, or
+script-control mask `0x08`. This suppresses the ordinary animation stage and
+later main-script stage together. Update-list membership alone does not make
+an actor eligible.
+
+The runtime animation-update exclusion is separate. A nonzero value skips the
+ordinary animation stage, including current-group advancement and its default
+request, without itself skipping the later main-script stage. Direct animation
+requests retain their own boundary checks. At each ordinary update, the engine
+clears this exclusion on the selected player actor and sets it on the other
+player actor.
+
+`SYSTEM.INI`'s `[debug] disable_slaves` sets the object-update exclusion for
+actors with `attr_slave` set and `attr_master` clear. `disable_master_slaves`
+sets it for actors with both attributes set. These tests set the runtime
+exclusion; turning off the option does not clear an already-set exclusion in
+this update branch.
+
 ## Timing boundary
 
 Animation consumes the shared whole nominal-tick increment. The normal timing
@@ -184,6 +206,39 @@ past those frames and selects the next one when no skips remain. It does not
 interpolate vertex positions between model frames. These rules describe a
 forward current group; reverse playback, pending-group eligibility, delays,
 and event dispatch have additional state.
+
+## Forward type-one transitions
+
+A forward type-one group uses the ordinary frame countdown and control commands.
+With no finite loop countdown, a pending group different from the current group
+makes `GoToFuture` take its exit target. The jump sets the exit marker and clears
+the movement-suppression marker before interpreting the target commands.
+
+A pending default does not immediately replace a type-one group, even after the
+exit marker is set. Playback continues through the exit tail until
+`EndAnimation`, which selects the pending default in the same advancement with
+the same nominal ticks. With a pending non-default group, an already-set exit
+marker instead permits replacement at the beginning of a subsequent advance,
+before its ordinary countdown update. This test does not require the pending
+number to differ from the current number. The ordinary request priority rules
+still determine which request becomes pending.
+
+Delay processing precedes that replacement test. An unexpired finite delay or
+an indefinite delay yields before replacement eligibility is checked. When a
+finite delay expires, replacement receives the call's complete tick input.
+Selecting the replacement resets its cursor, countdown, loop state and markers.
+
+In a thirteen-update ISLAND walking release, group twenty remained current with
+its exit and movement-suppression markers set while its pending group was zero.
+The actor position stayed fixed. Nine observed updates retained the walking
+group; the tenth reached End and selected idle group zero in that same update.
+Zero-tick updates retained the currently selected frame. The walk group's
+PlaySound command in the exit tail does not end the group or consume a frame
+skip. See [animation sound requests](sound.md#animation-playsound).
+
+The type-two `GoToFuture` exception for a pending default is separate from these
+type-one rules. These transitions do not establish reverse playback, complete
+actor eligibility or automatic script scheduling.
 
 ## Forward animation delays
 

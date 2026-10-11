@@ -34,6 +34,7 @@
   - [Music](engine/music.md)
   - [Positional Sound](engine/sound.md)
   - [Subtitles](engine/subtitles.md)
+  - [In-game HUD](engine/hud.md)
   - [Sky Renderer](engine/sky.md)
   - [Glide fog and clipping](engine/fog.md)
   - [Water Waves](engine/water.md)

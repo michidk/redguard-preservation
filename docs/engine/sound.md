@@ -144,6 +144,17 @@ Animation opcode 4 ([attachment](attachment.md)) starts a positional sound:
 - The handle is stored on the animation; EndAnimation (opcode 1) stops it.
   No later volume or pan update was found for these sounds.
 
+Each encountered PlaySound advances to the next command without consuming a
+frame skip. A second PlaySound replaces the animation's remembered handle
+without stopping the previous channel. Selecting a replacement group clears
+that handle without issuing a stop. EndAnimation stops only the handle still
+remembered by that animation. Channel validity and completion are handled by
+the audio mixer independently.
+
+The metadata field historically named `volume_shift` contains the second
+signed ten-bit operand. It is a rate offset in units of 64 Hz, not a volume
+adjustment.
+
 ### SOUP functions
 
 `SOUP386.DEF` declares these sound functions:
@@ -199,6 +210,25 @@ its range; the script must call it again to resume.
   with `off = −40` on one shared channel, owned by the player. It is
   restarted whenever it has finished, its volume and pan are refreshed every
   frame, and it stops when the torch goes out.
+
+## Mixer gain and pan law
+
+The statically linked Miles mixer turns a sample's volume and pan into two
+linear scale factors whenever either changes:
+
+- Volume and pan are clamped to 0–127. The effective volume is
+  `trunc(volume × driver_master / 127)`, clamped to 0–127; the driver master
+  starts at 127 and the game never changes it, so it equals the volume.
+- A non-zero effective volume `v` scales samples by `(v + 1) / 128`; zero is
+  silent. Loudness is therefore linear in volume.
+- Pan uses a 128-entry table `T`: `T[p] = 2p` for `p` 0–62 and `T[p] = 128`
+  for 63–127. One output side scales by `T[127 − pan] / 128`, the other by
+  `T[pan] / 128`. At the centre (64) both sides play at full level; towards
+  either extreme the far side fades linearly to silence while the near side
+  stays at full level. By Miles' convention the `T[127 − pan]` side is left.
+
+Evidence: engine analysis of the mixer's scale-table setup, with the pan table
+read from the executable (`0, 2, 4, …, 124` then `128` from entry 63).
 
 ## SURFACE.INI remap
 
@@ -281,14 +311,16 @@ Distance: listener at the origin, emitter at engine units (768, 1024, 0) gives
 
 ## Open questions
 
-1. Which physical speaker the high pan values reach, i.e. whether `u = 512`
-   is the camera's right. Needs a stereo capture of the original.
+1. Whether `u = 512` reaches the camera's right speaker. The pan law above
+   follows Miles' convention (pan 127 = right) and the Glide projection is
+   expected to put engine +X on the right at heading 0, but neither the
+   output buffer order nor the world camera's handedness has been observed.
+   A stereo capture of the original would settle it.
 2. Which camera position feeds the listener in each camera mode (third
    person, first person, combat, rope, cutscenes).
 3. Which objects link to another positioned record for their emitter
    position.
 4. The rate at which multitasks rerun (assumed once per frame).
-5. How Miles maps sample volume 0–127 to output gain.
 
 ## Related
 
