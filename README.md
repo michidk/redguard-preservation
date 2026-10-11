@@ -55,16 +55,16 @@ The full documentation is published at **<https://michidk.github.io/redguard-pre
 
 ## Acknowledgements
 
-[RGUnity](https://github.com/RGUnity/redguard-unity) inspired both this project
-and [cyrus](https://github.com/michidk/cyrus), and provided foundational Redguard
-research used by both. RGUnity is a human-developed Unity reimplementation built
-without AI assistance. Its contributors focus on meticulous fidelity and the
-small details that make the original game behave correctly.
+[RGUnity](https://github.com/RGUnity/redguard-unity) inspired
+redguard-preservation and provided foundational Redguard research used by this
+project. RGUnity is a human-developed Unity reimplementation built without AI
+assistance. Its contributors focus on meticulous fidelity and the small details
+that make the original game behave correctly.
 
-redguard-preservation and cyrus use AI-assisted development to reach broad
-working coverage quickly. This complements RGUnity's detail-first work. We are
-grateful to its contributors for their research, implementation, and continued
-care for Redguard.
+redguard-preservation uses AI-assisted development to document broad working
+coverage quickly. This complements RGUnity's detail-first work. We are grateful
+to its contributors for their research, implementation, and continued care for
+Redguard.
 
 ## Repository Layout
 
