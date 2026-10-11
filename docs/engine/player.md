@@ -378,6 +378,20 @@ collision flags and the distance test selected the same four models, in order,
 as the original candidate list. Their model radii were 585.80078125,
 435.22265625, 55.421875, and 55.421875 map units.
 
+### Static candidate list separation
+
+Static collision flag 2 excludes a placement before distance selection. Flag 1
+routes an admitted placement to the actor-style list; other admitted placements
+go to the face-model list. Each list holds at most 64 entries. A full actor-style
+list skips further actor-style entries and continues the static scan. Encountering
+another admitted face model when the face-model list is full ends the static scan,
+including any later actor-style placements.
+
+Ground support reads the face-model list, both for its primary segment query and
+its selected-player fallback sphere query. It does not query the separate
+actor-style list. This separation does not exclude actor-style contacts from
+other collision responses.
+
 ### Collision subobject admission
 
 For a sphere center in model coordinates, let `d` be its displacement from a
