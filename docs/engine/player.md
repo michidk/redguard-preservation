@@ -26,6 +26,31 @@ Initial placement and ground settling are separate. Ground settling can change
 the player's Y coordinate, so the marker's Y coordinate is not a permanent
 ground height.
 
+## Startup ground settling
+
+Startup ground settling is separate from the ordinary grounded movement update.
+It queries nearby model candidates with radius 1000 map units, excluding the
+actor's current model. The vertical segment keeps the prepared actor X/Z and
+extends 500 map units in each direction from the prepared actor Y plus its
+positive Y extent.
+
+When terrain is enabled, its sampled height is truncated toward zero to an
+integer map height. Terrain is eligible only strictly between the segment
+endpoints. Its rank is `abs(16384 - ((abs(height - start_y) * 8388) >> 8))`.
+The initial rank without eligible terrain is 65536.
+
+Model contacts are visited in candidate and contact order. Only surface
+classifications 2 and 4 participate. Their rank is
+`abs(16384 - contact_rank)`. A model contact replaces the current selection
+only when its rank is strictly smaller. Equal ranks retain the earlier
+selection, including terrain when it was selected first. This differs from
+ordinary support selection's later-equal replacement.
+
+If a support is selected, the actor Y becomes
+`(selected_height - positive_y_extent + standing_height) * 256`, where
+`standing_height` is the configured map-unit value from `SYSTEM.INI`.
+Without a selection, the actor Y is unchanged. This pass does not translate X/Z.
+
 ## Ordinary idle animation default
 
 For the ordinary grounded player at rest with the weapon sheathed and no special
