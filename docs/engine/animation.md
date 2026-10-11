@@ -169,6 +169,31 @@ between consecutive whole accumulated values. It can therefore supply zero,
 one, or several ticks during an update. The first twelve updates after a timing
 reset use one tick. See [player timing](player.md#fps-derived-frame-scale).
 
+The measurement baseline can change between ordinary updates. Timing state is
+saved around selected blocking operations, including model resource loading.
+Restoring that state reads the current BIOS clock and rebases the measurement
+baseline, excluding the suspended interval from the next FPS measurement.
+The saved frame count, measured FPS, next scale and fractional accumulators are
+restored. The FPS tick remainder is not part of that saved state.
+
+For a zero saved measurement interval, a live update ended at BIOS tick 810722
+with remainder 4. Resource-loading restores moved the baseline to 810725;
+the next measurement read 810726 and produced remainder 5. Subtracting the
+previous update's clock value would instead produce remainder 8. Consecutive
+post-update snapshots alone therefore do not supply the next measurement's
+baseline.
+
+A normal timing reset clears the measurement frame count, tick remainder,
+BIOS baseline and fractional nominal accumulator. Measured and smoothed FPS
+start at 12, the used and next scales start at 256, and twelve startup outputs
+remain. The reset does not seed the baseline with the current BIOS time.
+
+The first twelve nominal outputs after a reset report one whole tick and a
+frame scale of 256. The underlying measurement and fractional accumulation
+still run. During this startup, measured FPS replaces smoothed FPS for scale
+selection and divisor smoothing is bypassed. After startup, nominal ticks
+come from the whole-accumulator difference rather than that forced output.
+
 A fixed one-frame-per-render update or a hardcoded twelve-Hertz playback timer
 does not reproduce this boundary. Complete host-clock selection, actor
 eligibility, interruption, unsupported commands, and script scheduling must be
