@@ -63,7 +63,7 @@ heading on every refresh.
 The ordinary actor update copies current pitch, heading and roll into their
 previous-angle fields before selecting the default animation and running the
 ordinary animation block. Movement later in that update can change the current
-angles. The matrix-refresh operation itself does not advance this snapshot.
+angles. The admitted incremental refresh does not advance this snapshot.
 
 In that branch, `attr_rotation = 2` instead rebuilds from identity using the
 negated current angles. A selected player with nonzero roll takes a separate
