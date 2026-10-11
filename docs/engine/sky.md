@@ -72,7 +72,18 @@ Coordinates use engine units, with positive Y pointing down.
 
 Glide renderer initialization selects bilinear minification and
 magnification on texture unit 0. The sky texture binding and draw path do not
-change the filter mode.
+change the filter mode. The initial boat sky uses bilinear
+minification and magnification, an eight-bit paletted texture, wrapping in both
+directions, and the base mip level. Palette lookup precedes color filtering.
+
+For the software Voodoo 1 renderer, bilinear filtering operates on encoded
+eight-bit channels, without an sRGB-to-linear conversion. Texel centers are at
+half-integer coordinates. Each fractional coordinate is rounded down to a
+multiple of `1/16`. Each row is interpolated first, rounding its channel result
+down to an integer; those two results are then interpolated vertically and
+rounded down again. For channel endpoints `a`, `b` and fractional weight `w`,
+each interpolation is `a + floor((b-a)*w)`. For example, the midpoint between
+encoded channel values 0 and 255 is 127.
 
 The installed files `SKY888.BSI`, `SKY899.BSI`, `SKYNIT.BSI`, and
 `SKYNEC.BSI` each contain one 256 by 256 frame and have matching COL files.

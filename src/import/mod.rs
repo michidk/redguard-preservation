@@ -13,6 +13,8 @@ pub mod fnt_ttf;
 pub mod fog_ini;
 /// Extract authored splash data from the installed Glide overlay.
 pub mod glide_splash;
+/// Extract authored splash data from the installed Windows Glide DLL.
+pub mod glide_splash_dll;
 /// Parser for GXA bitmap archives.
 pub mod gxa;
 /// Parser for KEYS.INI player keyboard bindings.
