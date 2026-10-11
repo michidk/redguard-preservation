@@ -173,3 +173,6 @@ impl std::str::FromStr for FileType {
         })
     }
 }
+
+/// Original terrain lighting configuration.
+pub mod world_lighting;
