@@ -101,6 +101,8 @@ The wave renderer runs each frame as part of the terrain update:
 4. Rasterize
 ```
 
+The RGB inputs and directional calculation are specified in [terrain-lighting.md](terrain-lighting.md).
+
 The normal recomputation after displacement ensures water surfaces receive correct per-frame lighting as waves move — the normals tilt with the displaced geometry rather than remaining flat.
 
 ## Terrain Vertex Layout
