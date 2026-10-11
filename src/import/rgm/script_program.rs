@@ -41,8 +41,20 @@ pub enum Operation {
     Anchor {
         value: u8,
     },
+    Yield,
+    TaskStop {
+        label: u32,
+    },
     TaskPause {
         label: u32,
+    },
+    TaskResume {
+        label: u32,
+    },
+    ScriptRv {
+        expected: u8,
+        target: u32,
+        save_return: bool,
     },
     Unsupported {
         reason: String,
@@ -91,6 +103,7 @@ pub enum Value {
     Integer { value: i32 },
     String { index: u32 },
     Read { place: Place },
+    Update { place: Place, delta: i32 },
     Call { call: Box<Call> },
 }
 
@@ -224,22 +237,48 @@ impl Decoder<'_> {
     fn value_inner(&mut self, mode: Mode) -> Result<Value, String> {
         let opcode = self.byte()?;
         Ok(match opcode {
-            7 | 22 => Value::Integer {
+            7 => Value::Integer {
                 value: self.dword()? as i32,
             },
+            22 => {
+                let value = self.dword()?;
+                Value::Integer {
+                    value: if matches!(mode, Mode::Parameter) {
+                        i32::from(value as u16)
+                    } else {
+                        value as i32
+                    },
+                }
+            }
             21 => Value::String {
-                index: self.dword()?,
+                index: {
+                    let value = self.dword()?;
+                    if matches!(mode, Mode::Parameter) {
+                        u32::from(value as u8)
+                    } else {
+                        value
+                    }
+                },
             },
             6 | 10 | 20 => {
                 let place = self.place(opcode)?;
                 let extra = match (opcode, mode) {
-                    (6 | 10, Mode::Lhs | Mode::Rhs) | (20, Mode::Lhs) => 1,
+                    (6 | 10 | 20, Mode::Lhs | Mode::Rhs) => 1,
                     (6, Mode::Parameter) => 2,
                     (10, Mode::Parameter) => 3,
                     _ => 0,
                 };
-                self.read(extra)?;
-                Value::Read { place }
+                let trailing = self.read(extra)?;
+                if matches!(mode, Mode::Lhs | Mode::Rhs) {
+                    match trailing[0] {
+                        0 => Value::Read { place },
+                        10 => Value::Update { place, delta: 1 },
+                        11 => Value::Update { place, delta: -1 },
+                        value => return Err(format!("unsupported conditional update {value}")),
+                    }
+                } else {
+                    Value::Read { place }
+                }
             }
             2 => Value::Call {
                 call: Box::new(self.call(Object::Me, CallKind::Function)?),
@@ -261,7 +300,7 @@ impl Decoder<'_> {
             match operator {
                 0 => break,
                 1..=9 => rest.push((operator, self.value(Mode::Formula)?)),
-                10 | 11 => return Err("unsupported unary formula encoding".into()),
+                10 | 11 => return Err(format!("invalid formula operator {operator}")),
                 _ => return Err(format!("invalid formula operator {operator}")),
             }
         }
@@ -330,6 +369,7 @@ impl Decoder<'_> {
             23 => Operation::Anchor {
                 value: self.byte()?,
             },
+            24 => Operation::Yield,
             25 | 26 => {
                 let target = self.object()?;
                 let kind = self.kind()?;
@@ -337,10 +377,32 @@ impl Decoder<'_> {
                     call: self.call(target, kind)?,
                 }
             }
-            27 => Operation::TaskPause {
+            27 => Operation::TaskStop {
                 label: self.dword()?,
             },
-            30 => return Err("unsupported ScriptRV block encoding".into()),
+            28 => Operation::TaskPause {
+                label: self.dword()?,
+            },
+            29 => Operation::TaskResume {
+                label: self.dword()?,
+            },
+            30 => {
+                let expected = self.byte()?;
+                let target = u32::try_from(self.cursor + 5)
+                    .map_err(|_| "ScriptRV continuation exceeds u32")?;
+                let opcode = *self
+                    .bytes
+                    .get(self.cursor)
+                    .ok_or("truncated ScriptRV body")?;
+                if opcode == 18 {
+                    self.read(4)?;
+                }
+                Operation::ScriptRv {
+                    expected,
+                    target,
+                    save_return: opcode == 17,
+                }
+            }
             _ => return Err(format!("unsupported opcode {opcode}")),
         })
     }
@@ -411,7 +473,9 @@ pub fn decode_script_program(
             Operation::Goto { target } | Operation::End { target } => {
                 pending.insert(*target);
             }
-            Operation::If { target, .. } | Operation::Gosub { target } => {
+            Operation::If { target, .. }
+            | Operation::Gosub { target }
+            | Operation::ScriptRv { target, .. } => {
                 pending.insert(*target);
                 pending.insert(step.next);
             }

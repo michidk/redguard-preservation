@@ -30,7 +30,7 @@ Each script supports up to two concurrent threads sharing the same bytecode buff
 | Thread 0 | `RAHD.script_pc` | Main execution (dialogue, activation, behavior) |
 | Thread 1 | Offset `0x00` | Interrupt handler — only created when `script_pc != 0` |
 
-Thread 1 enables actors to remain activatable while performing another action (for example, an NPC walking a patrol route can still respond to player interaction). The two threads share the bytecode array but maintain independent program counters and independent call stacks.
+The main and entry invocations share bytecode and local variables. Entry processing temporarily replaces the active cursor, then restores the main continuation. The actor has one subroutine return continuation, shared by these invocations, rather than a stack of return addresses.
 
 Execution is cooperative. The original runtime consumes non-blocking instructions
 until a blocking task or an explicit yield returns control. Existing tasks are
@@ -105,10 +105,13 @@ All integers are little-endian. The VM reads a leading opcode byte and dispatche
 | `0x17` | Anchor | `u8` anchor_value | Anchor assignment |
 | `0x19` | ObjDotTask | object encoding, task encoding | Task call on named object |
 | `0x1A` | ObjDotFunc | object encoding, task encoding | Function call on named object |
-| `0x1B` | TaskPause | `u32` label | Pause until task completes |
+| `0x18` | Yield | none | Save the following cursor and end the invocation |
+| `0x1B` | TaskStop | `u32` label | Remove matching actor task slots |
+| `0x1C` | TaskPause | `u32` label | Pause matching actor task slots |
+| `0x1D` | TaskResume | `u32` label | Resume matching actor task slots |
 | `0x1E` | ScriptRV | `u8` expected, block | Branch on script return value |
 
-Bytes with no known opcode: `0x08`, `0x09`, `0x0B`–`0x0E`, `0x18`, `0x1C`–`0x1D`, `0x1F`+. These bytes are not used in any shipped script.
+The typed decoder leaves unimplemented opcode encodings explicit rather than interpreting them as successful operations.
 
 ### Operand Encoding
 
@@ -119,7 +122,7 @@ Flag (`0x06`) and LocalVar (`0x0A`) consume different trailing bytes depending o
 | Mode | Bytes after `u16` flag_id |
 |---|---|
 | MAIN | Formula (assignment to flag) |
-| LHS, RHS | `u8` operator byte |
+| LHS, RHS | `u8` update byte: zero reads, 10 increments, 11 decrements |
 | PARAMETER | `u16` padding (always `0x0000`) |
 | FORMULA | *(none)* |
 
@@ -128,7 +131,7 @@ Flag (`0x06`) and LocalVar (`0x0A`) consume different trailing bytes depending o
 | Mode | Bytes after `u8` var_index |
 |---|---|
 | MAIN | Formula (assignment to variable) |
-| LHS, RHS | `u8` operator byte |
+| LHS, RHS | `u8` update byte: zero reads, 10 increments, 11 decrements |
 | PARAMETER | 3 padding bytes (`0x000000`) |
 | FORMULA | *(none)* |
 
@@ -137,8 +140,12 @@ Flag (`0x06`) and LocalVar (`0x0A`) consume different trailing bytes depending o
 | Mode | Bytes after object encoding + `u16` ref_id |
 |---|---|
 | MAIN | Formula (assignment to property) |
-| LHS | `u8` operator byte |
-| Other | *(none)* |
+| LHS, RHS | `u8` update byte: zero reads, 10 increments, 11 decrements |
+| PARAMETER, FORMULA | *(none)* |
+
+Conditional updates write the adjusted value before the comparison and compare that adjusted value. Both sides of every comparison are evaluated, including their updates and function calls.
+
+In PARAMETER mode, NumericAlt consumes four bytes but returns the unsigned low 16 bits. A String parameter consumes four bytes but uses the low byte as its actor-local string index.
 
 ### Object Name Encoding
 
@@ -174,16 +181,14 @@ Assignments use a terminated list of (value, operator) pairs. The formula loop r
 | 7 | `&` | binary | `and eax, ebx` |
 | 8 | `\|` | binary | `or eax, ebx` |
 | 9 | `^` | binary | `xor eax, ebx` |
-| 10 | `++` | unary | (increment; terminates formula) |
-| 11 | `--` | unary | (decrement; terminates formula) |
 
-Operator bytes outside 1–9 terminate the formula loop. Bytes 10–11 (unary increment/decrement) are consumed as the final operator and also terminate. Bytes 12+ are fatal. Division by zero is not checked in software — it raises a CPU divide-by-zero exception caught by the C runtime signal handler.
+The formula evaluator accepts only zero and binary operator bytes 1–9. Other operator bytes enter the fatal error path. Division by zero is not checked in software — it raises a CPU divide-by-zero exception caught by the C runtime signal handler.
 
 > **Note:** The Dillonn241 disassembler/assembler tools swap operators 3 and 4 (`/` and `*`). This swap is internally consistent within those tools (scripts round-trip correctly) but does not match the engine binary, where byte 3 maps to `imul` (multiply) and byte 4 maps to `div` (divide).
 
 ### Comparison Operators
 
-Used in `if` conditions. Each comparison pairs a LHS value, comparison byte, and RHS value.
+Used in `if` conditions. Each comparison pairs a LHS value, comparison byte, and RHS value. Ordered comparisons use signed 32-bit integers.
 
 | Byte | Operator |
 |---|---|
@@ -248,7 +253,7 @@ finite. The authored sequence can repeat while the actor remains eligible.
 
 ### Gosub / Return (`0x11`, `0x12`)
 
-`Gosub` pushes the current PC onto the per-thread call stack, then jumps to the target address. `Return` pops the return address and resumes. Subroutines share the same local variable scope — no parameters are passed through the call stack.
+`Gosub` stores the address following its target operand in the actor's single return continuation, then jumps to the target. A later `Gosub` overwrites that continuation. `Return` resumes at the stored continuation and restores the actor's saved script-return byte. It does not pop a stack or clear the saved continuation. Subroutines share actor-local variables.
 
 ### Endint (`0x13`)
 
@@ -257,6 +262,8 @@ Resets the active cursor to the script base and returns from the current invocat
 ## Function Dispatch
 
 ### Call Types
+
+Active tasks reevaluate their encoded operands on every task invocation. A task therefore observes changes to locals, global flags, and queried values while it is active. Literal arguments are a special case of this rule.
 
 SOUP386 distinguishes three call types, encoded in the opcode byte:
 
@@ -288,6 +295,18 @@ When a Numeric (`0x07`) or NumericAlt (`0x16`) opcode appears in PARAMETER mode,
 | `LoadWorld` | Map ID | `i32` map identifier |
 | `ActiveItem`, `AddItem`, `DropItem`, `HandItem`, `HaveItem`, `SelectItem`, `ShowItem`, `ShowItemNoRtx` | Item ID | `i32` item identifier |
 | All others | Integer | `i32` signed integer |
+
+### Actor task controls and return state
+
+An actor has six task slots shared by its entry and main invocations. Existing-task processing traverses those slots in allocation order, skips paused slots, reevaluates encoded operands, and removes a slot when its handler reports completion. Unpaused blocking slots suppress the subsequent main-body invocation; multitask slots do not. Reissuing a call whose operand address is already in a slot does not execute its handler again. Task labels refer to the call statement's actor-relative offset; matching uses the operand address immediately following that statement's opcode. `TaskStop` removes every matching slot and clears its blocking and pause state. `TaskPause` and `TaskResume` set and clear the matching slots' pause state.
+
+`Anchor` stores its operand byte as the actor's anchor state. `Yield` retains the following cursor without issuing the `End` notifications.
+
+`ScriptRV` reads an expected byte. On mismatch it skips the next five bytes. On a match, a following `Return` byte advances the cursor by four bytes; a following `Gosub` saves the current script-return byte before the control instruction runs. Other following instructions remain eligible. `Return` restores that saved byte.
+
+### Attribute reads and writes
+
+`GetMyAttr` reads an unsigned byte from the receiving actor's attribute table. It returns zero when the table is absent or the index is outside 0–255. `SetMyAttr` returns zero and ignores an absent table or an out-of-range index. A valid write truncates the supplied value to its low byte. Attribute 44 also updates model state when the actor has an active model record.
 
 ### Function Table
 
@@ -325,6 +344,8 @@ For the weapon/attachment function interface, see [Item Attachment — SOUP Scri
 | `BOOL` | Binary state (0 or 1) |
 | `NUMBER` | Integer counter or timer |
 | `FLIPFLOP` | Toggled state (doors, switches, puzzle elements) |
+
+Native flag functions maintain a separate latch in addition to the numeric flag value. `TestGlobalFlag` reads that latch; `ResetGlobalFlag` clears it. `SetGlobalFlag` dispatches according to the runtime type bits and can toggle, decrement, or latch a flag. It is not a generic assignment of one to the numeric flag.
 
 Flags are declared in the `[flags]` section of `SOUP386.DEF` and accessed by bytecode via `SetGlobalFlag`, `TestGlobalFlag`, and `ResetGlobalFlag` (which use the NumericAlt opcode `0x16` for their flag-ID parameter).
 

@@ -540,7 +540,7 @@ impl<'a> Decoder<'a> {
                 }
             }
             0x1B => Ok(format!(
-                "<TaskPause({})>",
+                "<TaskStop({})>",
                 Self::label_name(self.read_i32()?)
             )),
             0x1E => {
