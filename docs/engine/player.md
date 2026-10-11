@@ -357,6 +357,20 @@ collision flags and the distance test selected the same four models, in order,
 as the original candidate list. Their model radii were 585.80078125,
 435.22265625, 55.421875, and 55.421875 map units.
 
+### Collision face traversal
+
+A sphere-to-model query uses the model's authored [subobject face lists](../formats/models/3d.md#section4-subobject-bvh).
+It visits actor spheres in order. For each admitted sphere, it visits admitted
+subobjects in their stored order and then their face references in stored order.
+Faces omitted from those lists do not participate in this query.
+
+The query tracks faces that have produced a contact. Once a face succeeds, later
+references to that face are skipped for the remainder of the model query,
+including references reached by later spheres. A failed test does not mark the
+face: another subobject reference or another sphere may test it again. Clearing
+the accepted-face set between spheres, or marking every attempted face, changes
+this behavior. Returned contacts retain the order of first successful tests.
+
 ### Sphere contact with model faces
 
 The forward obstacle query converts the proposed actor origin to integer map
