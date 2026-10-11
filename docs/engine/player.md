@@ -228,6 +228,26 @@ forward attempt blocked and returns failure. Subsequent checks in that probe
 are skipped. The blocked-attempt marker is transient; it is not a permanent
 collision state.
 
+### Forward slope surface selection
+
+The forward steep-surface check uses `post_collide_height` as the half-length
+of its vertical segment, centered on integer actor Y plus the positive Y extent.
+It is bypassed when collision attribute bit 2 is clear, or when the designated
+player's alternate collision mode is active.
+
+For the proposed position, face-model contacts of classification 2 or 4 compete
+by `abs(16384 - segment_rank)`. Strictly smaller values replace the current
+contact, preserving the first equal candidate. The initial comparison value is
+999999 and the initial model height is 9999999 map units.
+
+Terrain participates when its height is no lower than the segment's lower end.
+Its rounded absolute height difference from the segment center must be strictly
+less than the absolute difference of the current model height from that center.
+A winning terrain sample replaces the normal and height. When the proposed
+position has a selected surface, classification 2 rejects the attempt and other
+classifications allow this slope check. This selection is separate from the
+ordinary ground-support rank comparison.
+
 ### Converting support height to actor position
 
 The selected ground surface height is not the actor origin height. For ordinary
