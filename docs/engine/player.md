@@ -563,3 +563,22 @@ the calculated scale and accumulated increments.
 - [Keyboard bindings](../config/keys-ini.md)
 - [System configuration](../config/system-ini.md)
 - [RGM markers and actor data](../formats/RGM.md)
+
+## Initial player animation setup
+
+A newly allocated player actor starts with animation default group zero.
+Player entry assigns the supplied map position with eight fractional bits and
+sets pitch and roll to zero and heading modulo 2048 before binding the actor
+definition and building its animation groups.
+
+For an animated player definition, group setup makes two ordinary requests for
+group zero with modifier zero. It then clears the current model reference.
+Player entry follows that setup with a forced request for the actor's default
+group, again with modifier zero. These requests use the existing shared nominal
+ticks; they do not establish a new clock interval.
+
+The final request follows the ordinary [forced-request rules](animation.md#forced-requests).
+Requesting an already-current group before its exit marker is set only clears
+the pending request; it does not necessarily restart or advance the animation.
+The initial default group is distinct from the state-dependent default selected
+during subsequent ordinary player updates.
