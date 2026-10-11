@@ -98,7 +98,9 @@ A single byte of per-segment attribute flags.
 Model lookup searches the active primary archive first, then the active world
 archive. Within each archive it follows stored segment order and returns the
 first matching name. It does not search every installed ROB archive.
-Loading a world archive replaces the previous world archive registry.
+Loading a world archive replaces the previous world archive registry. The
+world loader takes the configured map filename and replaces its extension with
+`ROB` in the configured art directory.
 
 The ISLAND world uses `FXART\ISLAND.ROB`. Its ordinary in-world registry has no
 primary archive. The names `BARREL`, `BASKET02`, `LANTERN4`, `LANTHOL1`, `MKCARP1`
