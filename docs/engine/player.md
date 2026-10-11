@@ -624,8 +624,10 @@ and scale 161. When measured FPS became 17, the following three scales were
 170 and 180, reproducing that scale sequence. Earlier in the same sequence,
 measured FPS rose from 18 to 19 and the scale changed directly from 170 to 161.
 
-This describes the FPS-derived path after timing startup. It does not establish
-selection of that path in every game state, alternate-timer behavior, or the
+This describes the FPS-derived path after timing startup. The 3dfx executable
+also contains an alternate path driven by a reprogrammed PIT interrupt, but
+nothing installs that interrupt (the installer has no caller or relocation), so
+the BIOS-clock path above is the one that runs. This does not establish the
 mapping from host elapsed time to original timer ticks.
 
 ### Whole nominal ticks
@@ -668,8 +670,8 @@ above does not test the reset period.
 
 ## Remaining coverage
 
-Complete animation eligibility, collision, other startup paths and stop movement, timer-mode
-selection, jumping, gravity, combat, swimming, climbing, and follow-camera behavior
+Complete animation eligibility, collision, other startup paths and stop movement,
+jumping, gravity, combat, swimming, climbing, and follow-camera behavior
 are not specified here. Reproducing only the arithmetic above does not establish
 controller parity.
 

@@ -52,9 +52,12 @@ All shipped files use the title `GXlib image conversion`.
 | 0x00 | 2 | `i16` | unknown_00 | Unknown frame field. |
 | 0x02 | 2 | `i16` | width | Frame width in pixels. |
 | 0x04 | 2 | `i16` | height | Frame height in pixels. |
-| 0x06 | 4 | `[i16; 2]` | unknown_06 | Two unknown frame fields. |
+| 0x06 | 2 | `i16` | offset_x | Draw offset added to the anchor X when the frame is drawn as a HUD bitmap. |
+| 0x08 | 2 | `i16` | offset_y | Draw offset added to the anchor Y when the frame is drawn as a HUD bitmap. |
 | 0x0A | 2 | `i16` | compression | Compression type (`0` = raw, `1` = RLE, `2` = LZHUF). |
 | 0x0C | 6 | `[i16; 3]` | unknown_0c | Three unknown frame fields. |
+
+`offset_x` and `offset_y` are 0 in all 450 frames of the 65 shipped files, including the HUD atlases `SNUFF`, `COMPASS2`, `PICKUPS`, `PICKUPSS`, `POWERUP` and `SCROLL`. The candle, active-item and compass HUD elements add them to their anchor; the power-up slots and the logbook icon ignore them. See [In-game HUD](../engine/hud.md).
 
 ### Pixel Decode Rules
 
