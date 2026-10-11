@@ -77,7 +77,7 @@ impl TextureCache {
             match bsi::parse_bsi_file(&data) {
                 Ok(parsed) => {
                     bsi_files.insert(id, parsed);
-                    // Populate texbsi_paths so resolve_texbsi_id() can remap other IDs
+                    // Populate texbsi_paths so resolve_texture_id() can remap other IDs
                     // to this one. The PathBuf is never used for I/O since bsi_files
                     // is already populated.
                     texbsi_paths.insert(id, PathBuf::new());
@@ -110,19 +110,20 @@ impl TextureCache {
         }
     }
 
-    fn resolve_texbsi_id(&self, texture_id: u16) -> u16 {
-        if self.texbsi_paths.contains_key(&texture_id) {
+    /// Resolves an authored texture bank against available IDs using the exporter's remapping rules.
+    pub fn resolve_texture_id(texture_id: u16, contains: impl Fn(u16) -> bool) -> u16 {
+        if contains(texture_id) {
             return texture_id;
         }
 
         let folded_9bit = texture_id & 0x01FF;
-        if self.texbsi_paths.contains_key(&folded_9bit) {
+        if contains(folded_9bit) {
             return folded_9bit;
         }
 
         if texture_id > 500 {
             let wrapped = texture_id % 500;
-            if self.texbsi_paths.contains_key(&wrapped) {
+            if contains(wrapped) {
                 return wrapped;
             }
         }
@@ -131,7 +132,8 @@ impl TextureCache {
     }
 
     fn find_texbsi_path(&self, texture_id: u16) -> Option<(u16, PathBuf)> {
-        let resolved_id = self.resolve_texbsi_id(texture_id);
+        let resolved_id =
+            Self::resolve_texture_id(texture_id, |id| self.texbsi_paths.contains_key(&id));
         self.texbsi_paths
             .get(&resolved_id)
             .cloned()
@@ -159,7 +161,8 @@ impl TextureCache {
         }
 
         // Resolve remapped ID and check if it's already loaded (covers from_data pre-loads)
-        let resolved_id = self.resolve_texbsi_id(texture_id);
+        let resolved_id =
+            Self::resolve_texture_id(texture_id, |id| self.texbsi_paths.contains_key(&id));
         if resolved_id != texture_id
             && let Some(bsi) = self.bsi_files.get(&resolved_id).cloned()
         {
@@ -351,4 +354,19 @@ pub(super) fn create_palette_color_png(rgb: [u8; 3], compress: bool) -> Option<V
         rgba.extend_from_slice(&[rgb[0], rgb[1], rgb[2], 255]);
     }
     encode_rgba_png(width, height, &rgba, compress)
+}
+
+#[cfg(test)]
+mod resolution_tests {
+    use super::TextureCache;
+
+    #[test]
+    fn bank_resolution_preserves_exact_then_folded_then_wrapped_priority() {
+        let resolve =
+            |available: &[u16]| TextureCache::resolve_texture_id(700, |id| available.contains(&id));
+        assert_eq!(resolve(&[700, 188, 200]), 700);
+        assert_eq!(resolve(&[188, 200]), 188);
+        assert_eq!(resolve(&[200]), 200);
+        assert_eq!(resolve(&[]), 700);
+    }
 }
