@@ -404,6 +404,28 @@ face: another subobject reference or another sphere may test it again. Clearing
 the accepted-face set between spheres, or marking every attempted face, changes
 this behavior. Returned contacts retain the order of first successful tests.
 
+### Ground-support ranking
+
+The ordinary vertical support segment is centered on the actor's integer map
+Y plus its positive Y extent, extending the supplied search distance R in both
+directions. Selection begins with rank 65,536 and no support. Terrain below
+the lower end of this segment is not a candidate. Terrain above the upper end
+receives rank 65,535. Terrain within the segment receives
+`(truncate(16777216 / (2 × R)) × (truncate(terrain_Y) − segment_start_Y)) >> 8`.
+
+Model contacts with normal classification 2 or 4 compete in candidate and
+contact order. A contact replaces the current support when its stored segment
+rank is less than or equal to the current rank, so a later equal rank replaces
+an earlier one. Model segment ranks use the 32,768 scale described below;
+terrain's rank calculation is retained separately.
+
+An ISLAND segment from Y = −377 to −277 with R = 50 sampled terrain at −287.5.
+Truncating the terrain height to −287 produced rank 58,982. A model contact at
+Y = −325 had rank 17,039 and replaced the terrain result. With positive Y
+extent 61 and standing offset −512, the returned actor support height was
+−99,328 runtime units. Using the fractional terrain height in the rank
+calculation gives a different result.
+
 ### Segment contact with model faces
 
 Ground probes intersect the original model polygons. In model coordinates,
