@@ -241,8 +241,9 @@ contact, preserving the first equal candidate. The initial comparison value is
 999999 and the initial model height is 9999999 map units.
 
 Terrain participates when its height is no lower than the segment's lower end.
-Its rounded absolute height difference from the segment center must be strictly
-less than the absolute difference of the current model height from that center.
+Its height difference from the segment center is truncated toward zero before
+taking the absolute value. That value must be strictly less than the absolute
+difference of the current model height from that center.
 A winning terrain sample replaces the normal and height. When the proposed
 position has a selected surface, classification 2 rejects the attempt and other
 classifications allow this slope check. This selection is separate from the
