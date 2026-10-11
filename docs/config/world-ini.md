@@ -17,6 +17,11 @@ Single section: `[world]`
 | `test_map_delay` | `1` | Delay (seconds) between worlds during test-map cycling. |
 | `test_map_order` | `0,1,2,1,...,-2` | Comma-separated world index sequence for the test-map loop. `-2` terminates the list. The shipped file includes a commented-out compact variant and an active interleaved variant that returns to world 1 between each location. |
 
+`import::world_ini::NewGameEntry::parse` reads the required `start_world` and
+`start_marker` indices from this section. Names match without case; the first
+occurrence of each key wins. Missing, negative, or malformed indices return a
+contextual error.
+
 ### Per-World Keys
 
 Each world is identified by an integer index `N`. Keys follow the pattern `key_name[N]=value`.
