@@ -29,8 +29,10 @@ ground height.
 ## Startup ground settling
 
 Startup ground settling is separate from the ordinary grounded movement update.
-It queries nearby model candidates with radius 1000 map units, excluding the
-actor's current model. The vertical segment keeps the prepared actor X/Z and
+It prepares the spatial window around the actor X/Z, using the
+[static collision list order](#static-collision-list-order). It queries nearby
+model candidates with radius 1000 map units, excluding the actor's current model.
+The vertical segment keeps the prepared actor X/Z and
 extends 500 map units in each direction from the prepared actor Y plus its
 positive Y extent.
 
