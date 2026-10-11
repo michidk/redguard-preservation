@@ -1,6 +1,6 @@
 # Engine Details
 
-Findings from engine analysis that go beyond file format documentation.
+Engine behavior that goes beyond file format documentation.
 
 | Topic | Description | Docs |
 |---|---|---|
@@ -16,7 +16,7 @@ Findings from engine analysis that go beyond file format documentation.
 | Glide fog and clipping | Scene and sky ranges, fog-table lookup, and encoded RGB blending. | [fog.md](fog.md) |
 | Water Waves | Per-frame sine-table vertex displacement on water terrain cells. Radial concentric ripples driven by `world_wave` INI parameters (amplitude, speed, spatial frequency) with runtime console tuning. | [water.md](water.md) |
 
-Player movement units, ground-turn arithmetic, and coverage limits are documented in [player.md](player.md).
+Player movement units, ground-turn arithmetic, collision, and timing are documented in [player.md](player.md).
 
 [Startup presentation](startup.md) covers the original splash assets, projection, lighting, and screen sequence.
 

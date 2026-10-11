@@ -1,6 +1,6 @@
 [book]
 title = "Redguard Preservation Docs"
-description = "Documented findings from reverse-engineering Redguard assets"
+description = "Redguard file formats and engine behavior"
 authors = ["redguard-preservation contributors"]
 language = "en"
 src = "."

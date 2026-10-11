@@ -5,7 +5,7 @@ computed and before rasterization.
 
 ## World inputs
 
-**Verified:** world loading sets the Glide ambient channels from
+World loading sets the Glide ambient channels from
 `world_ambientrgb[N]`. If that entry is absent, the channels default to
 `128,128,128`.
 
@@ -27,7 +27,7 @@ those directional RGB values.
 
 ## Vertex calculation
 
-**Verified:** let `A` be the ambient RGB vector, `S` the directional RGB
+Let `A` be the ambient RGB vector, `S` the directional RGB
 strength, `D` the normalized light direction, and `N` the supplied terrain
 vertex normal, expressed in the same renderer coordinate system.
 
@@ -47,14 +47,14 @@ For ambient `64,64,64`, directional strength `255,220,200`, and direction
 
 ## Terrain updates
 
-**Verified:** rebuilding the camera's terrain grid recomputes face normals,
+Rebuilding the camera's terrain grid recomputes face normals,
 then vertex normals, then vertex lighting. The wave update repeats these
 stages for dirty terrain entries after changing heights. Lighting therefore
 uses the displaced water normals, as described in [water.md](water.md).
 
 ## Direction and exported coordinates
 
-**Verified:** the direction before normalization is formed from the shared
+The direction before normalization is formed from the shared
 float rotation table. Its components are `sin(angle) * 16000`,
 `sin(angle + 512) * 16000`, and `sin(skew) * 16000`, each truncated toward zero
 to an integer. The table sample at index `n` is
@@ -72,7 +72,7 @@ The Z origin translation does not affect directions or normals.
 
 ## Shading normals
 
-**Verified:** each terrain cell is split along the diagonal joining its
+Each terrain cell is split along the diagonal joining its
 negative-X, positive-Z corner to its positive-X, negative-Z corner.
 Each triangle's cross product is normalized separately. A vertex normal is
 the normalized sum of the six incident triangle normals. Triangle areas
@@ -95,7 +95,7 @@ approximately `190.99797,190.99797,190.99797`.
 
 ## Texture combination
 
-**Verified:** the terrain draw selects Glide's texture-times-iterated-RGB
+The terrain draw selects Glide's texture-times-iterated-RGB
 color-combine mode. Lighting therefore modulates texture colors before scene
 fog. Vertex RGB is interpolated across screen space; texture coordinates use
 perspective correction. Terrain does not pass through a scene exposure or

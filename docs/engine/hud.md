@@ -27,8 +27,7 @@ compass, power-up icons and logbook icon) over the 3D scene on a virtual
   buffers and swaps with a swap interval of 1, so each frame waits for one
   vertical retrace: these animations advance at most 60 times per second and
   otherwise at the frame rate the machine reaches. `max_frame_rate` limits only
-  the tick computation, not drawing. The frame rate original hardware reaches
-  in a given world has not been measured.
+  the tick computation, not drawing.
 - *Lockout* is the value last passed to the script function `LockoutPlayer`;
   the engine also resets it to 0, for example after player death. Each element
   below tests it differently.
@@ -199,9 +198,9 @@ A single text line is drawn left-aligned from `x = pickup_xco` with its top at
 The script function `Activate(label)` (also used by `TorchActivate`) offers
 RTX entry `label` as the prompt when lockout is not 1, no dialogue topic menu
 is open, the sword is not drawn, no other object holds the activation, the
-hold-off `A` is 0, and no prompt is already pending for the frame. Further
-player-state conditions exist; which states they are is unknown. The prompt
-text is the RTX entry's text.
+hold-off `A` is 0, and no prompt is already pending for the frame. Additional
+player-state checks can reject the prompt. The prompt text is the RTX entry's
+text.
 
 - If the use key is held when `Activate` is called, the activation fires:
   the function returns true and `A` is set to 22 ticks, blanking the icon and
@@ -229,8 +228,7 @@ flag is on.
 The flag starts off, toggles each time item 0 is used, and is stored in save
 games. Receiving item 0 does not set it. This differs from the ITEM.INI
 comment that giving the player item 0 "will automatically turn on the compass
-display"; whether a shipped script uses the item on pickup has not been
-observed.
+display".
 
 The frame is
 
@@ -255,9 +253,6 @@ elsewhere. Turning right increases the frame index.
 | 0 | 2000 | 0 |
 | 1000 | 2000 | 17 |
 
-Which compass direction frame 0 depicts is a property of the artwork and is
-not established here.
-
 ## Power-up slots
 
 Two slots show frames of `[system] game_bitmap` (`system\powerup.gxa`: frame 0
@@ -272,8 +267,6 @@ gauntlet, frame 1 shield) at `(game_xco1, game_yco1)` and
 - `UnShowBitmap(id)` clears slot 1 if its id matches, otherwise slot 2 if its
   id matches.
 - Slot contents are stored in save games.
-
-Which shipped scripts call these functions has not been catalogued.
 
 ## Logbook icon
 
@@ -300,5 +293,5 @@ After the 3D scene, later entries over earlier ones:
 4. Walk-mode and auto-defend notices
 5. Power-up slot 1, slot 2
 6. Activation prompt, or item icon then count (or item name)
-7. A further pair of bitmaps whose content is unknown
+7. Two additional bitmaps
 8. [Subtitles](subtitles.md), the dialogue topic menu and later layers
