@@ -15,7 +15,7 @@ The GOG configuration points to `fonts\\arialvb.fnt`, a 9-pixel line-height
 font. The version label starts at `(10,467)` in RGB `(32,32,32)`. Its format is
 `Version %s.%s`; the GOG release displays `Version 1.0.1.0`. Loading
 text is right-aligned to `(630,467)` in RGB `(50,0,0)`. The map-registration
-stage supplies `Loading Map %d`.
+stage supplies `Loading Map %d`. Sound preparation supplies `Loading Sound`.
 
 Glyph bitmaps use their FNT left and top offsets. Each active character
 advances by its bitmap width plus one pixel. Space additionally advances by
