@@ -18,9 +18,17 @@ compass, power-up icons and logbook icon) over the 3D scene on a virtual
   [subtitle](subtitles.md#glyphs). Text is drawn as stored, ignores
   `[system] disable_text`, and wraps only when a glyph would cross x = 640.
 - Timers below count game ticks, the unit of `rtx_pickup_override_time` and
-  the subtitle timers. Animations marked *per rendered frame* advance once per
-  drawn frame, independent of ticks; their on-screen rate in the original has
-  not been observed.
+  the subtitle timers; the tick advance per frame is the
+  [FPS-derived frame scale](player.md#fps-derived-frame-scale), so ticks run at
+  `normal_frame_rate` per 18 BIOS timer ticks (about 12.14 per second with the
+  shipped value 12) while the frame rate stays at or above `min_frame_rate`.
+  Animations marked *per rendered frame* advance once per drawn frame,
+  independent of ticks. The 3dfx renderer opens Glide at 60 Hz with two colour
+  buffers and swaps with a swap interval of 1, so each frame waits for one
+  vertical retrace: these animations advance at most 60 times per second and
+  otherwise at the frame rate the machine reaches. `max_frame_rate` limits only
+  the tick computation, not drawing. The frame rate original hardware reaches
+  in a given world has not been measured.
 - *Lockout* is the value last passed to the script function `LockoutPlayer`;
   the engine also resets it to 0, for example after player death. Each element
   below tests it differently.
