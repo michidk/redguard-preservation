@@ -374,3 +374,37 @@ mod tests {
         assert_eq!(paths.map4_path, PathBuf::from("out/island_height_map4.png"));
     }
 }
+
+const WLD_HEIGHT_TABLE: [u16; 128] = [
+    0, 40, 40, 40, 80, 80, 80, 120, 120, 120, 160, 160, 160, 200, 200, 200, 240, 240, 240, 280,
+    280, 320, 320, 320, 360, 360, 400, 400, 400, 440, 440, 480, 480, 480, 520, 520, 560, 560, 600,
+    600, 600, 640, 640, 680, 680, 720, 720, 760, 760, 800, 800, 840, 840, 880, 880, 920, 920, 960,
+    1000, 1000, 1040, 1040, 1080, 1120, 1120, 1160, 1160, 1200, 1240, 1240, 1280, 1320, 1320, 1360,
+    1400, 1440, 1440, 1480, 1520, 1560, 1600, 1600, 1640, 1680, 1720, 1760, 1800, 1840, 1880, 1920,
+    1960, 2000, 2040, 2080, 2120, 2200, 2240, 2280, 2320, 2400, 2440, 2520, 2560, 2640, 2680, 2760,
+    2840, 2920, 3000, 3080, 3160, 3240, 3360, 3440, 3560, 3680, 3800, 3960, 4080, 4280, 4440, 4680,
+    4920, 5200, 5560, 6040, 6680, 7760,
+];
+
+/// Decodes a WLD height byte to unshifted engine Y in map units, positive down.
+/// The build-time high bit is discarded. See `docs/formats/WLD.md`.
+#[must_use]
+pub fn decode_height(value: u8) -> i16 {
+    -(WLD_HEIGHT_TABLE[usize::from(value & 0x7f)] as i16)
+}
+
+#[cfg(test)]
+mod height_tests {
+    #[test]
+    fn decoded_heights_retain_engine_sign_and_strip_build_flag() {
+        assert_eq!(super::decode_height(0), 0);
+        assert_eq!(super::decode_height(43), -680);
+        assert_eq!(super::decode_height(127), -7760);
+        for value in 0..128 {
+            assert_eq!(
+                super::decode_height(value),
+                super::decode_height(value | 128)
+            );
+        }
+    }
+}

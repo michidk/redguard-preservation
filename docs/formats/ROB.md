@@ -38,7 +38,9 @@ Each segment has a fixed 80-byte header followed by `data_size` bytes of payload
 | 0x0C | 2 | `u16` | LE | segment_type | 0 = embedded 3D data, 512 = external `.3DC` reference. See below. |
 | 0x0E | 2 | `u16` | LE | segment_flags | Render mode flags. Only the **high byte** (at file offset 0x0F) is used at runtime — it becomes a render mode selector. A value of 0 defaults to 0xFF (normal rendering). See [Segment Flags](#segment-flags-0x0e) below. |
 | 0x10 | 1 | `u8` | — | segment_attribs | Per-segment attribute flags. Only this single byte is read at runtime. Bit 1 (0x02) triggers texture pre-loading. Value 0x40 marks special objects (inventory items, shop objects). See [Segment Attributes](#segment-attributes-0x10) below. |
-| 0x11 | 3 | — | — | face_count_low | Build tool artifact: the last byte (0x13) equals `face_count mod 256`. Not read at runtime. |
+| 0x11 | 1 | `u8` | — | collision_flags | Copied into static-object runtime collision flags. See [Collision flags](#collision-flags-0x11). |
+| 0x12 | 1 | `u8` | — | reserved_12 | Zero in all 4,761 installed segments. |
+| 0x13 | 1 | `u8` | — | face_count_low | Build tool artifact: `face_count mod 256`. |
 | 0x14 | 4 | `u32` | BE | unused_14 | Unused — never read at runtime. Most commonly 1 (3,690 segments), but other values exist. |
 | 0x18 | 4 | `u32` | — | reserved_18 | Always 0. |
 | 0x1C | 4 | `u32` | LE | bbox_extent_x | Bounding box total X extent. |
@@ -90,6 +92,28 @@ A single byte of per-segment attribute flags.
 | 0x00 | (all normal) | No special attributes |
 | 0x02 | PALMTR01–04 (CAVERNS, EXTPALAC, ISLAND) | Texture pre-load trigger (bit 1). Engine calls a texture pre-caching function for all face textures in this segment. |
 | 0x40 | SS_OBJ01–06, IGRING, IWATER1 (shop items, inventory) | Special object flag (bit 6). Stored as model metadata. |
+
+### Collision flags (0x11)
+
+Static object loading copies this byte from the named ROB segment into the
+instance's runtime collision flags. In collision candidate selection, bit
+`0x02` excludes the static instance. Otherwise, bit `0x01` routes it to the
+separate actor-style candidate list; a clear bit selects the model-face list.
+
+Across 4,761 segments in 31 installed ROB archives, the byte values are:
+
+| Value | Count |
+|---|---|
+| `0x00` | 4,726 |
+| `0x01` | 28 |
+| `0x02` | 5 |
+| `0x04` | 1 |
+| `0x08` | 1 |
+
+In ISLAND, `PLANT000`, `PLANT001`, and `PLANT002` use `0x02`;
+`BARREL`, `BASKET01`, and `BASKET02` use `0x01`. All 224 static instances in a
+sampled active spatial list retained their named segment's collision byte.
+See [player collision](../engine/player.md#model-distance-candidate-test).
 
 ## Segment Data
 

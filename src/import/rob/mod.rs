@@ -39,7 +39,7 @@ pub struct RobSegment {
     pub segment_flags: u16,
     /// Attribute flags byte at offset 0x10. 0x02 = texture preload, 0x40 = special object.
     pub segment_attribs: u8,
-    /// Build-tool artifact (`face_count` mod 256); not read at runtime.
+    /// Bytes at 0x11..0x14: collision flags, reserved zero, and `face_count` mod 256.
     #[allow(
         clippy::pub_underscore_fields,
         reason = "field name mirrors reverse-engineered binary layout"

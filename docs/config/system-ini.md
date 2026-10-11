@@ -4,6 +4,11 @@ Primary engine configuration file controlling rendering, gameplay, camera, dialo
 
 Shipped sample path: `/Redguard/SYSTEM.INI` (e.g. `.../GOG Galaxy/Redguard/Redguard/SYSTEM.INI`).
 
+The `import::player_ini::PlayerConfig` parser exposes the installed ordinary
+grounded-player settings from `[system]` and `[cyrus]`. It requires explicit
+values and rejects duplicate relevant keys; missing-value defaults and duplicate
+precedence are not supplied by this API.
+
 ## File Structure
 
 Standard Windows-style INI file with 10 sections:
