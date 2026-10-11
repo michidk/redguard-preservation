@@ -50,7 +50,15 @@ units. The square root runs in floating point and is rounded to the nearest
 integer before the shift; the 32-bit float intermediate only matters beyond
 about 65536 world units.
 
-The emitter is the emitting object's position.
+The emitter is the emitting object's position, with two exceptions:
+
+- An object whose `attr_slave` attribute (index 26 in `SOUP386.DEF`) is set
+  emits from its attached position: its master's position plus its own offset
+  rotated by the master.
+- Otherwise, an object that links to another positioned record emits from
+  that record's position.
+
+Animation PlaySound always uses the object's own position.
 
 ## Volume curve
 
@@ -107,12 +115,15 @@ volume and a pan.
 
 - **Playback rate:** `clamp(effect sample_rate + rate_offset, 512, 44000)` Hz.
 - **Looping:** see [SFX loop behaviour](../formats/SFX.md#loop-behavior).
+- **Effect range:** an effect index at or beyond the number of effects in
+  `MAIN.SFX` (118 shipped) starts nothing.
 - **Channels:** 16 sample channels. A start takes the first idle channel at or
   above a start index. When none is idle the sound is dropped; playing sounds
   are never stolen. The start index is 0 for the player's own animation sounds
   and for speech, 4 for combat hit sounds, and 6 otherwise (0 at boot until the
   first sound that resets it).
-- **Ownership:** each channel records its owner object and effect index.
+- **Ownership:** each channel records its owner object and the requested
+  effect index (before any SURFACE.INI remap).
 - **Master volume:** every volume set, at start and on later updates, sends
   `(v × master) >> 8` to Miles, where `master` is `SYSTEM.INI [system]
   volume` (shipped 255, engine default 256 before the file is read) or the
@@ -152,10 +163,24 @@ adjustment.
 |---|---|---|---|
 | `Sound` | function | effect, volume offset, rate offset | Positional start: volume from the curve with `off` = volume offset, pan at start. Starts even at `v = 0`. No later updates. |
 | `FlatSound` | function | effect, volume, rate offset | Non-positional: pan 64, `v = clamp(base_volume + volume, 0, 127)`, where `base_volume` is SFX header byte `0x0C` (64 in all 118 shipped effects). `FlatSound(e, 0, 0)` plays at 64. |
-| `AmbientSound` | multitask | effect, volume offset, rate offset | Each run: compute volume and pan. If `v = 0`, or a per-object flag is set, stop this task's sound and end the multitask. Otherwise start the sound if it is not playing (never started, or a one-shot finished), then set the current volume and pan. |
+| `AmbientSound` | multitask | effect, volume offset, rate offset | Each run: compute volume and pan. If `v = 0`, or the object has been killed, stop this task's sound and end the multitask. Otherwise start the sound if it is not playing (never started, or a one-shot finished), then set the current volume and pan. |
+| `AmbientRTX` | multitask | RTX label, volume offset, unused | First run: start the label's [RTX](../formats/RTX.md) clip at pan 64 and its header volume, start index 0. Each run: compute volume and pan; if `v = 0` or the object has been killed, stop the clip and end the multitask; otherwise set the volume and pan. The multitask ends once the clip has finished; it is not restarted. No dialogue line or subtitle is created. |
+| `EndSound` | function | effect | Stop every playing channel whose requested effect is `effect`, whatever its owner. |
+| `EndMySound` | function | effect | Stop every playing channel whose requested effect is `effect` and whose owner is this object. |
 | `EndMySounds` | function | — | Stop every playing channel owned by this object. |
 | `StopAllSounds` | function | — | Stop all 16 channels. |
-| `EndSound`, `EndMySound` | function | 1 | Not yet analysed. |
+
+`KillMe` sets the object's killed flag and stops every channel the object
+owns; `Resurrect` clears the flag.
+
+**Owner:** the owner recorded by `Sound`, `FlatSound`, `AmbientSound` and
+`AmbientRTX`, and matched by `EndMySound` and `EndMySounds`, is the calling
+object, except for two kinds of script that run on a temporary object:
+
+- Scripts run by the shell system (for example an item's `use_script`, see
+  [ITEM.INI](../config/item-ini.md)) record the shell entry as owner.
+- Scripts of code objects (scripts without a world object) record the code
+  object as owner.
 
 So an ambient sound follows the listener while its multitask runs, restarts
 non-looping effects when they end, and stops for good once the listener leaves
@@ -171,6 +196,20 @@ its range; the script must call it again to resume.
   `ENGLISH.RTX` audio headers), start index 0. While the dialogue runs, the
   volume is refreshed every frame from the speaker's distance (curve with
   `off = 0`); the pan is not updated.
+- **Rope sounds:** each [MPRP](../formats/RGM.md#mprp-rope-chains) rope
+  record names three effects. A rope plays one of them when its swing
+  velocity changes sign (or stays at zero), chosen by its current swing speed
+  against `q = trunc(m / 4)`, where `m` is the rope's maximum swing speed:
+  the third effect from `3q`, the second from
+  `2q`, the first from `q`; a zero effect falls through to the next lower one.
+  Ropes whose `q` is 2 or less play nothing. Volume from the curve with
+  `off = 0` at the rope's position, rate offset 0, start index 6; not started
+  when `v = 0`. Of the 29 shipped rope records, 23 name effects 62, 62, 63,
+  one 62, 62, 62, and five none.
+- **Torch:** while the player's torch burns, effect 25 plays from the player
+  with `off = −40` on one shared channel, owned by the player. It is
+  restarted whenever it has finished, its volume and pan are refreshed every
+  frame, and it stops when the torch goes out.
 
 ## Mixer gain and pan law
 
@@ -203,6 +242,26 @@ Only animation PlaySound uses it: when the animated object's surface value is
 non-zero, `effect = table[surface][effect]`. `Sound`, `AmbientSound`, combat
 hits and speech are not remapped. With the shipped file, effect 4 plays 108 on
 sand, 89 on wood, 112 on tile, 102 on rock and 69 on water.
+
+An object's surface value comes from the face it stands on:
+
+- A model face: the surface type that `[surfaces]` assigns to the face's
+  texture, or 0 when the texture has no entry.
+- Terrain: `scapewater` (3) over shallow terrain water and `scapedeepwater` (4)
+  over deep terrain water. Over dry terrain the value is whichever of the two
+  the last terrain-water hit produced, for any object; it is not reset.
+- Any other face: 0.
+
+## Shipped script calls
+
+The 27 shipped RGM files contain 137 `Sound`, 477 `FlatSound`, 91
+`AmbientSound`, 97 `AmbientRTX`, 33 `EndMySounds` and 12 `StopAllSounds`
+calls, and none to `EndSound` or `EndMySound`. Values outside the usual
+ranges occur: `FlatSound` volume 128 (clamped to 127) and rate offset −10000
+(clamped to 512 Hz), `AmbientSound` rate offset 2000, `AmbientSound` effect 127
+(beyond the 118 shipped effects, so it never sounds), and `AmbientRTX` volume
+offsets of 127 and 128 (volume 127 everywhere within the radius `R`). Every
+`AmbientRTX` call passes 0 as its third argument.
 
 ## Test vectors
 
@@ -259,19 +318,9 @@ Distance: listener at the origin, emitter at engine units (768, 1024, 0) gives
    A stereo capture of the original would settle it.
 2. Which camera position feeds the listener in each camera mode (third
    person, first person, combat, rope, cutscenes).
-3. How the object's surface value used by the remap is set.
-4. For some object kinds the emitter position is a related sub-position
-   rather than the object's own; which kinds is not established. Animation
-   PlaySound volume always uses the object's own position.
-5. The meaning of the `EndSound` / `EndMySound` argument.
-6. The meaning of the per-object flag that stops `AmbientSound`, and the rate
-   at which multitasks rerun (assumed once per frame).
-7. Two further engine starts exist: a sound driven by object speed and a
-   looping effect 25 with `off = −40` on one shared channel; their in-game
-   identity is not established. Whether any other path refreshes
-   animation-started sounds is not certain.
-8. The alternate owner object scripts can designate for `Sound`, `FlatSound`,
-   `AmbientSound` and `EndMySounds`.
+3. Which objects link to another positioned record for their emitter
+   position.
+4. The rate at which multitasks rerun (assumed once per frame).
 
 ## Related
 

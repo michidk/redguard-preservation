@@ -136,7 +136,10 @@ All fields little-endian.
 | 0x20 | 2 | `i16` | length | Number of rope links |
 | 0x22 | 9 | `[u8; 9]` | static_model | Optional terminal model |
 | 0x2B | 9 | `[u8; 9]` | rope_model | Link model name (for example `ROPELINK`) |
-| 0x34 | 28 | `i32[7]` | reserved | Not read at runtime. |
+| 0x34 | 4 | `i32` | sound_1 | Rope effect for low swing speed; 0 = none. |
+| 0x38 | 4 | `i32` | sound_2 | Rope effect for medium swing speed; 0 = none. |
+| 0x3C | 4 | `i32` | sound_3 | Rope effect for high swing speed; 0 = none. |
+| 0x40 | 16 | `i32[4]` | unknown | Read at runtime; zero in all 29 shipped records. |
 
 Rope instancing behavior:
 
@@ -144,6 +147,8 @@ Rope instancing behavior:
 - Spawn `length` copies of `rope_model`.
 - For each link: subtract `0.8` from Y and place one instance.
 - If `static_model` is present, place one additional instance after the chain.
+- Rope swing sounds use `sound_1`–`sound_3`; see
+  [positional sound](../engine/sound.md#engine-internal-starts).
 
 Current parser behavior: `MPRP` is parsed into typed 80-byte records only when section payload is an exact fit for `record_count`; otherwise raw fallback is kept.
 
