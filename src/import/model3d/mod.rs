@@ -1,5 +1,6 @@
 /// Low-level parser for Redguard 3D/3DC binary model data.
 pub mod parser;
+pub mod subobjects;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 /// Recognized model format versions from 3D/3DC headers.
