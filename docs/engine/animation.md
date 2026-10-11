@@ -183,6 +183,11 @@ previous update's clock value would instead produce remainder 8. Consecutive
 post-update snapshots alone therefore do not supply the next measurement's
 baseline.
 
+A normal timing reset clears the measurement frame count, tick remainder,
+BIOS baseline and fractional nominal accumulator. Measured and smoothed FPS
+start at 12, the used and next scales start at 256, and twelve startup outputs
+remain. The reset does not seed the baseline with the current BIOS time.
+
 The first twelve nominal outputs after a reset report one whole tick and a
 frame scale of 256. The underlying measurement and fractional accumulation
 still run. During this startup, measured FPS replaces smoothed FPS for scale
