@@ -46,6 +46,11 @@ const AXIS_NAMES: [&str; 3] = ["axis_x", "axis_y", "axis_z"];
 
 #[derive(Debug, Clone)]
 pub struct ActorScript {
+    /// Index in authored RAHD order; names are not instance identifiers.
+    pub header_index: usize,
+    pub instances: u16,
+    /// Separate authored RAVA slices in instance allocation order.
+    pub instance_variables: Vec<Vec<i32>>,
     /// The exact actor-local RASC slice. Empty when the stored slice is invalid.
     pub bytecode: Vec<u8>,
     pub script_length: i32,
@@ -535,7 +540,7 @@ impl<'a> Decoder<'a> {
                 }
             }
             0x1B => Ok(format!(
-                "<TaskPause({})>",
+                "<TaskStop({})>",
                 Self::label_name(self.read_i32()?)
             )),
             0x1E => {
@@ -661,6 +666,7 @@ pub fn disassemble_actor_scripts(
             break;
         }
         let item = &rahd_data[rec_off..rec_off + RAHD_ITEM_SIZE];
+        let instances = u16::from_le_bytes([item[0x0D], item[0x0E]]);
 
         let script_name = read_script_name_9(item, 4).unwrap_or_default();
         if script_name.is_empty() {
@@ -681,6 +687,16 @@ pub fn disassemble_actor_scripts(
 
         let strings = read_actor_strings(num_strings, string_offsets_index, rast_data, rasb_data);
         let variables = read_actor_variables(num_variables, variable_offset, rava_data);
+        let instance_variables = (0..i32::from(instances))
+            .map(|instance| {
+                instance
+                    .checked_mul(num_variables)
+                    .and_then(|offset| offset.checked_mul(4))
+                    .and_then(|offset| variable_offset.checked_add(offset))
+                    .map(|offset| read_actor_variables(num_variables, offset, rava_data))
+                    .unwrap_or_default()
+            })
+            .collect();
 
         let mut instructions = Vec::new();
         let mut bytecode = Vec::new();
@@ -707,6 +723,9 @@ pub fn disassemble_actor_scripts(
         out.push((
             script_name,
             ActorScript {
+                header_index: i,
+                instances,
+                instance_variables,
                 bytecode,
                 script_length,
                 script_data_offset,
