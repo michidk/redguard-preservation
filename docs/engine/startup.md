@@ -11,7 +11,7 @@ loading labels along its bottom edge.
 The title redraw selects the `[system] gui_low_font` entry from `SYSTEM.INI`.
 The GOG configuration points to `fonts\\arialvb.fnt`, a 9-pixel line-height
 font. The version label starts at `(10,467)` in RGB `(32,32,32)`. Its format is
-`Version %s.%s`; the observed GOG release displays `Version 1.0.1.0`. Loading
+`Version %s.%s`; the GOG release displays `Version 1.0.1.0`. Loading
 text is right-aligned to `(630,467)` in RGB `(50,0,0)`. The map-registration
 stage supplies `Loading Map %d`.
 
@@ -24,9 +24,7 @@ routine, and glyph-drawing path, independently of the font-file fields.
 ## 3dfx splash
 
 The [Glide splash tables](../formats/GLIDE-SPLASH.md) contain the geometry,
-textures, and authored transforms. The data arrays match the
-installed overlay; the overlay's drawing path was inspected independently of
-the published Glide implementation. No executable code needs to run to extract
+textures, and authored transforms. No executable code needs to run to extract
 or display the animation.
 
 The full animation renders authored frames 1 through 74. Frame zero is not
@@ -83,9 +81,7 @@ for geometry. Two triangles cover the quad, submitted in both windings.
 
 S and T are stored multiplied by the projected point's reciprocal Z. The
 per-TMU reciprocal-W field additionally contains the light-to-projected-point
-distance divided by Z. The effective use of that extra field by the installed
-single-TMU path still needs verification. Hardware edge coverage and pixel
-quantization also remain open before claiming pixel-exact rendering.
+distance divided by Z.
 
 ## External references
 

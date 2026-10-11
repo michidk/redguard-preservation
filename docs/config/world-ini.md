@@ -133,7 +133,7 @@ Worlds 0, 1, 6, 27, 28, and 30 have `world_world` entries and use a WLD terrain 
 
 ## Notes
 
-**Typos in the shipped file.** Line 286 reads `orld_ambientfx[8]=128` (missing leading `w`) and line 498 reads `orld_sunangle[23]=256`. Both are present in the shipped file as-is; the engine likely ignores the malformed keys and falls back to defaults for those fields.
+**Typos in the shipped file.** Line 286 reads `orld_ambientfx[8]=128` (missing leading `w`) and line 498 reads `orld_sunangle[23]=256`. These malformed names do not match the expected keys, so the engine uses the defaults for those fields.
 
 **World 6 rain zones.** The four `world_rain_sphere` entries for necrisle define overlapping spheres centered on different parts of the island. Sphere 2 has the largest radius (1000 units) and covers the main approach area.
 

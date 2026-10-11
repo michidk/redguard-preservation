@@ -21,10 +21,10 @@ Some fields use big-endian encoding (a remnant of the original Sega Saturn devel
 
 | Offset | Size | Type | Endian | Name | Description |
 |---|---|---|---|---|---|
-| 0x00 | 4 | `[u8; 4]` | — | magic | `"OARC"` — possibly "Object ARChive"; exact expansion unknown. |
-| 0x04 | 4 | `u32` | BE | unused_04 | Always 4. Unused at runtime — the engine reads the file but never dereferences or tests this field. Likely a build-tool artifact. |
+| 0x00 | 4 | `[u8; 4]` | — | magic | `"OARC"`; exact expansion unknown. |
+| 0x04 | 4 | `u32` | BE | unused_04 | Always 4. Unused at runtime; the engine reads the file but never dereferences or tests this field. |
 | 0x08 | 4 | `u32` | LE | num_segments | Number of segments. |
-| 0x0C | 4 | `[u8; 4]` | — | magic2 | `"OARD"` — possibly "Object ARchive Data"; exact expansion unknown. |
+| 0x0C | 4 | `[u8; 4]` | — | magic2 | `"OARD"`; exact expansion unknown. |
 | 0x10 | 4 | `u32` | BE | payload_size | File size minus 24 (= file size - 20-byte header - 4-byte footer). |
 
 ## Segment Header (80 bytes)
@@ -125,8 +125,7 @@ Across 4,761 segments in 31 installed ROB archives, the byte values are:
 | `0x08` | 1 |
 
 In ISLAND, `PLANT000`, `PLANT001`, and `PLANT002` use `0x02`;
-`BARREL`, `BASKET01`, and `BASKET02` use `0x01`. All 224 static instances in a
-sampled active spatial list retained their named segment's collision byte.
+`BARREL`, `BASKET01`, and `BASKET02` use `0x01`.
 See [player collision](../engine/player.md#model-distance-candidate-test).
 
 ## Segment Data

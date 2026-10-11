@@ -76,7 +76,7 @@ Page 3 defines cinematic movie entries with timed subtitle overlays:
 | `movie_keys[N]` | Comma-separated forward skip frames, up to twenty entries. Zero terminates the list. |
 | `movieM_text[N]` | Subtitle overlay: `always,red,green,blue,start_frame,stop_frame,text`. |
 
-The examined install defines 11 movie filenames. Five entries are browsable in the movie page; additional definitions supply introduction cutaways. Read the installed file rather than assuming a fixed cinematic list.
+The shipped configuration defines 11 movie filenames. Five entries are browsable in the movie page; additional definitions supply introduction cutaways. Read the installed file rather than assuming a fixed cinematic list.
 
 #### Action id ranges
 

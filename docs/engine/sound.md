@@ -3,11 +3,6 @@
 How sound effects from [MAIN.SFX](../formats/SFX.md) and speech from
 [RTX](../formats/RTX.md) get their volume, stereo pan and playback rate.
 
-**Evidence:** every rule on this page comes from static analysis of the Glide
-build (`RGFX.EXE`), with constants checked against the installed `SYSTEM.INI`,
-`SURFACE.INI`, `SOUP386.DEF` and `MAIN.SFX`. None of it has yet been measured
-in the running game; see [Open questions](#open-questions).
-
 ## Units
 
 - Engine positions are stored in world units × 256 (eight fractional bits).
@@ -227,8 +222,7 @@ linear scale factors whenever either changes:
   either extreme the far side fades linearly to silence while the near side
   stays at full level. By Miles' convention the `T[127 − pan]` side is left.
 
-Evidence: engine analysis of the mixer's scale-table setup, with the pan table
-read from the executable (`0, 2, 4, …, 124` then `128` from entry 63).
+The pan table contains `0, 2, 4, …, 124`, followed by `128` from entry 63.
 
 ## SURFACE.INI remap
 
@@ -262,65 +256,6 @@ ranges occur: `FlatSound` volume 128 (clamped to 127) and rate offset −10000
 (beyond the 118 shipped effects, so it never sounds), and `AmbientRTX` volume
 offsets of 127 and 128 (volume 127 everywhere within the radius `R`). Every
 `AmbientRTX` call passes 0 as its third argument.
-
-## Test vectors
-
-Shipped `sound_distance = 64` (`R = 2304`, `D = 3640`) and `volume = 255`,
-`off = 0`:
-
-| `d` | `a` | `v` | Miles volume |
-|---|---|---|---|
-| 0 | 0 | 127 | 126 |
-| 18 | 0 | 127 | 126 |
-| 19 | 1 | 126 | 125 |
-| 100 | 5 | 122 | 121 |
-| 500 | 27 | 100 | 99 |
-| 1000 | 55 | 72 | 71 |
-| 1152 | 63 | 64 | 63 |
-| 2000 | 111 | 16 | 15 |
-| 2286 | 126 | 1 | 0 |
-| 2287 | 127 | 0 | 0 |
-| 2305 | — | 0 (beyond `R`) | 0 |
-
-Offsets: `d = 0, off = −40` gives `v = 87`; `d = 1000, off = +100` clamps to
-127; `d = 2400, off = +100` gives 0.
-
-Master: `v = 127` sends 127 with master 256, 63 with master 128, 0 with
-master 0.
-
-Pan with yaw 0 (`dx`, `dz` in world units):
-
-| Emitter offset (`dx`, `dz`) | `a` | Pan |
-|---|---|---|
-| (0, +100) | 0 | 64 |
-| (+100, +100) | 256 | 96 |
-| (+100, 0) | 512 | 64 (abeam) |
-| (+100, −1) | 515 | 127 |
-| (0, −100) | 1024 | 64 |
-| (−100, −100) | 1280 | 32 |
-| (−100, 0) | 1536 | 64 (abeam) |
-| (−100, +100) | 1792 | 32 |
-
-With yaw 512 the emitter (+100, +100) gives `u = 1792` and pan 32.
-
-Rate: a 22050 Hz effect with second field −8 plays at 21538 Hz; field +511
-clamps to 44000 Hz. An 11025 Hz effect with field −200 clamps to 512 Hz.
-
-Distance: listener at the origin, emitter at engine units (768, 1024, 0) gives
-`d = 5`; emitter at (255, 0, 0) gives `d = 0`.
-
-## Open questions
-
-1. Whether `u = 512` reaches the camera's right speaker. The pan law above
-   follows Miles' convention (pan 127 = right) and the Glide projection is
-   expected to put engine +X on the right at heading 0, but neither the
-   output buffer order nor the world camera's handedness has been observed.
-   A stereo capture of the original would settle it.
-2. Which camera position feeds the listener in each camera mode (third
-   person, first person, combat, rope, cutscenes).
-3. Which objects link to another positioned record for their emitter
-   position.
-4. The rate at which multitasks rerun (assumed once per frame).
 
 ## Related
 

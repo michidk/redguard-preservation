@@ -77,7 +77,7 @@ Section headers are identical across all 4 shipped WLD files. `unknown1[0]` vari
 
 The loader reads each 22-byte section header but does not decode or reference any fields — it proceeds directly to map-plane reads. The engine hard-wires `texbsi.302` for terrain textures regardless of the per-section `texbsi_file` value.
 
-`unknown1[0]` cannot be a TEXBSI id (values like `568` and `1308` have no matching files). It appears to be build-tooling metadata fixed per section slot.
+`unknown1[0]` is not a TEXBSI id. Values such as `568` and `1308` have no corresponding files.
 
 Section headers (identical across all files):
 
@@ -108,30 +108,24 @@ In `TEXBSI.302`, image names follow `D02xxx`, which aligns with TEXBSI naming ru
 - filename low two digits (`02`) match image-name file number (`D02xxx`)
 - filename hundreds digit (`3`) matches type-char group (`D`)
 
-Notes:
+- `Map 3` packs the texture index and rotation bits described by UESP.
+- Original-engine terrain initialization hard-loads `texbsi.302` and precomputes a 64-entry terrain texture lookup table from that archive for Map 3's 0..63 index space.
+- The terrain initialization path references `texbsi.302`; the generic TEXBSI loader path references `texbsi.%s`.
+- The original engine's terrain renderer does not use per-section `texbsi_file` switching. Terrain textures come from `TEXBSI.302`.
 
-- `Map 3` bit packing (index + rotation) is corroborated by UESP documentation.
-- Original-engine terrain initialization hard-loads `texbsi.302` and precomputes a 64-entry terrain texture lookup table from that archive, matching Map 3's 0..63 index space.
-- Engine string analysis confirms `texbsi.302` is referenced by the terrain initialization path; `texbsi.%s` is referenced by the generic TEXBSI loader path, not the terrain-table initialization path.
-- Conclusion: per-section `texbsi_file` switching is not used by the original engine's terrain renderer; terrain textures come from `TEXBSI.302`.
-
-Cross-check against shipped `fxart/TEXBSI.302`:
+The shipped `fxart/TEXBSI.302` has these properties:
 
 - `Map 3` index range `0..63` is fully covered by image ids in `TEXBSI.302` (name suffixes `00..63`).
-- The previously "missing" ids (`00`, `05`, `06`, `07`, `30`, `31`, `32`, `52`) are present as alternate record forms in the TEXBSI stream (not just the main BSIF image-record form), matching UESP's note that index mapping is not a simple 1:1 record-order lookup.
-- Those alternate-form ids are `IFHD` animated records in `TEXBSI.302`, consistent with lookup by image-id suffix rather than simple static-record order.
-- Rotation bits are still populated when texture index is `0`; this suggests engine-side handling likely treats index `0` as dominant (rotation may be ignored for empty/default tiles).
+- IDs `00`, `05`, `06`, `07`, `30`, `31`, `32`, and `52` are `IFHD` animated records rather than `BSIF` image records. Index mapping therefore does not use simple record order.
 
 Bank summary (`fxart/TEXBSI.*`, D-prefix terrain-style banks):
 
 - Only `TEXBSI.302` has full `0..63` coverage (56 `BSIF` static records + 8 `IFHD` animated records). Other `D*` banks are partial/specialized.
-- Combined with engine evidence (the engine hard-wires `texbsi.302`), the original engine's terrain path should be treated as fixed-bank (`302`) rather than generic per-bank Map 3 lookup behavior.
+- The original engine's terrain path uses fixed bank `302`, not generic per-bank Map 3 lookup behavior.
 
 ### Map 1 High Bit (`0x80`)
 
 The game engine strips the high bit (`& 0x7F`) from every Map 1 byte at WLD load time, before storing height values in its runtime buffer. The high bit is discarded and never used for rendering, height lookup, texture selection, or any other runtime purpose.
-
-The high bit tends to appear on outer-border cells and cells with large height deltas. It may be a build-time artifact (e.g., marking boundary or steep cells for the level editor) that the runtime engine does not consume.
 
 Each section contributes one 128x128 tile per map plane. The four section tiles combine into a 2x2 world grid (256x256) as described by UESP.
 
