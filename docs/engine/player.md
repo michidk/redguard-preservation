@@ -348,6 +348,10 @@ their X and Z coordinates divided by 512 with integer truncation. Within a
 cell, placements occur in reverse
 `MPSO` record order. The resulting lists are concatenated in that order before
 model-distance selection. Actor-only border eligibility does not remove static models.
+For each horizontal center coordinate, the starting map coordinate is zero
+below 4,608; it is 56,319 when the center plus 4,608 exceeds 65,535; otherwise
+it is the center minus 4,608. Divide that starting coordinate by 512 to obtain
+the first cell. The upper-edge start therefore occupies cell 109.
 
 An ISLAND window centered at `(40798, 40971)` contained 223 static nodes across
 119 nonempty static cells. Partitioning all 1,691 installed static placements
@@ -374,6 +378,20 @@ collision flags and the distance test selected the same four models, in order,
 as the original candidate list. Their model radii were 585.80078125,
 435.22265625, 55.421875, and 55.421875 map units.
 
+### Static candidate list separation
+
+Static collision flag 2 excludes a placement before distance selection. Flag 1
+routes an admitted placement to the actor-style list; other admitted placements
+go to the face-model list. Each list holds at most 64 entries. A full actor-style
+list skips further actor-style entries and continues the static scan. Encountering
+another admitted face model when the face-model list is full ends the static scan,
+including any later actor-style placements.
+
+Ground support reads the face-model list, both for its primary segment query and
+its selected-player fallback sphere query. It does not query the separate
+actor-style list. This separation does not exclude actor-style contacts from
+other collision responses.
+
 ### Collision subobject admission
 
 For a sphere center in model coordinates, let `d` be its displacement from a
@@ -389,6 +407,43 @@ radius 22, subobject center `(30.03125, −12.8671875, 4.4765625)`, radius
 310.65625 and extent factors approximately `(1.3398278, 1.0258739, 0.39044145)`.
 A radius-only test would admit that subobject. Coincident centers and exact
 floating-point boundary cases are not established by this sample.
+
+### Segment model admission
+
+Before visiting subobjects, transform both segment endpoints into model-local
+coordinates and test the model radius around the model origin. An endpoint
+inside or on the radius passes. When both endpoints are outside, use the same
+bounded segment/radius test described below, without extent scaling. Here the
+projection may be zero: it must be nonnegative and no greater than the squared
+segment length. The minimum squared length is the single-precision
+representation of 0.1, with equality accepted.
+
+### Segment subobject admission
+
+For segment queries, subtract the subobject center from each model-local
+endpoint and multiply each component by the reciprocal of its corresponding
+extent factor. The reciprocals and scaled endpoint components are stored at
+single precision. Let these scaled endpoints be `a` and `b`, and let `r` be
+the subobject radius.
+
+An endpoint inside or on the radius admits the subobject. When both endpoints
+are outside, set `d = a - b`, `L = d · d`, and `P = a · d`. Admission requires
+all of the following:
+
+- `L` is at least the single-precision representation of 0.1.
+- `P` is greater than zero and no greater than `L`.
+- `(a · a) × L - P × P` is no greater than `r² × L`.
+
+The squared start distance, squared radius, `L`, and `P` are stored at single
+precision before their later comparisons. This test differs from sphere-query
+subobject admission. Sixteen ordinary ISLAND segment decisions included two
+accepted endpoint cases and fourteen rejections; omitting the extent factors
+changes six of those decisions.
+
+Admitted subobjects visit their face references in authored order. Segment
+queries retain repeated successful face references; the successful-face
+suppression used by sphere queries does not apply here. Each model query stops
+after its first 32 successful contacts, including repeated references.
 
 ### Collision face traversal
 
