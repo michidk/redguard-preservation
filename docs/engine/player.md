@@ -391,6 +391,8 @@ Ground support reads the face-model list, both for its primary segment query and
 its selected-player fallback sphere query. It does not query the separate
 actor-style list. This separation does not exclude actor-style contacts from
 other collision responses.
+The ordinary forward obstacle probe also reads only the face-model list and
+reports blocked when any queried model produces a sphere contact.
 
 ### Sphere model admission
 
