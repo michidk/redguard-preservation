@@ -13,6 +13,8 @@ pub mod fnt_ttf;
 pub mod fog_ini;
 /// Extract authored splash data from the installed Glide overlay.
 pub mod glide_splash;
+/// Extract authored splash data from the installed Windows Glide DLL.
+pub mod glide_splash_dll;
 /// Parser for GXA bitmap archives.
 pub mod gxa;
 /// Parser for KEYS.INI player keyboard bindings.
@@ -43,6 +45,7 @@ pub mod rtx;
 pub mod sfx;
 pub mod smacker;
 pub mod soup_def;
+pub mod surface_ini;
 /// Parser and export helpers for WLD world files.
 pub mod wld;
 /// Parser for WORLD.INI world/level database.

@@ -106,6 +106,8 @@ pub struct VertexNormal {
 pub enum FrameType {
     Static3D,
     AnimatedI16,
+    /// Signed i16 deltas in whole model units (frame type 0x12).
+    AnimatedI16Unscaled,
     AnimatedI32,
     Static3DC,
     Unknown(u32),
@@ -120,7 +122,7 @@ pub struct FrameDataEntry {
     pub frame_type: FrameType,
 }
 
-/// Parsed per-frame vertex positions (absolute f32 or scaled i16 depending on frame type).
+/// Absolute per-frame vertex positions in model units, reconstructed from frame-zero deltas.
 #[derive(Debug, Clone)]
 pub struct FrameVertexData {
     pub coords: Vec<VertexCoord>,

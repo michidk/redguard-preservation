@@ -241,9 +241,12 @@ An object's surface value comes from the face it stands on:
 
 - A model face: the surface type that `[surfaces]` assigns to the face's
   texture, or 0 when the texture has no entry.
-- Terrain: `scapewater` (3) over shallow terrain water and `scapedeepwater` (4)
-  over deep terrain water. Over dry terrain the value is whichever of the two
-  the last terrain-water hit produced, for any object; it is not reset.
+- Terrain: each query first resolves texture set 302 and the tile's low-six-bit
+  image index through `[surfaces]`. The terrain blend mask can replace that
+  value with sand or rock at dry shore pixels. A nonzero water result then
+  selects `scapewater` (3), or `scapedeepwater` (4) for full water coverage.
+  A dry result keeps the surface computed by this query, not a previous
+  object's terrain-water result.
 - Any other face: 0.
 
 ## Shipped script calls
