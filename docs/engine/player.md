@@ -574,6 +574,22 @@ intersection accepted the face. The model placement transform returns the
 contact point and normal to world coordinates. The obstacle probe needs only
 whether any model reported a contact; it does not move the actor to that point.
 
+### Body-contact facing admission
+
+The primary body-response loop visits contacts in stored order. Contacts whose
+stored classification is ordinary ground (4) do not enter wall response.
+For other contacts, it computes the opposing normal heading by adding 1024
+to the normal's quantized actor heading and masking to 2047. Subtract the
+movement heading. Differences below −1024 add 2047; differences above 1024
+subtract 2047. A contact faces movement only when the corrected difference is
+strictly greater than −512 and strictly less than 512. Exactly perpendicular
+contacts fail this test.
+
+The movement heading comes from the current-minus-previous X/Z displacement.
+When both horizontal coordinates are unchanged, the actor's current heading
+is used instead. The response retains this heading across the contact loop;
+position or facing changes from earlier contacts do not recompute it.
+
 ### Horizontal body-contact response
 
 Body contacts are processed after the movement and ground-support response.
