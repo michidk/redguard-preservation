@@ -42,7 +42,8 @@ pub struct WldSection {
 /// Parsed WLD file with header, four sections, and footer bytes.
 pub struct WldFile {
     pub header: WldHeader,
-    pub sections: [WldSection; WLD_SECTION_COUNT],
+    // Keep terrain maps off the call stack, including parser return temporaries in WASM.
+    pub sections: Box<[WldSection; WLD_SECTION_COUNT]>,
     pub footer: [u8; WLD_FOOTER_BYTES],
 }
 
@@ -145,9 +146,10 @@ pub fn parse_wld_file(data: &[u8]) -> Result<WldFile> {
         });
     }
 
-    let sections: [WldSection; WLD_SECTION_COUNT] = parsed_sections.try_into().map_err(|_| {
-        Error::Parse("WLD internal section conversion failed (expected 4 sections)".to_string())
-    })?;
+    let sections: Box<[WldSection; WLD_SECTION_COUNT]> =
+        parsed_sections.into_boxed_slice().try_into().map_err(|_| {
+            Error::Parse("WLD internal section conversion failed (expected 4 sections)".to_string())
+        })?;
 
     let footer = read_fixed::<WLD_FOOTER_BYTES>(data, data.len() - WLD_FOOTER_BYTES)?;
 
@@ -322,7 +324,7 @@ mod tests {
             header: WldHeader {
                 fields: [0; WLD_HEADER_DWORDS],
             },
-            sections: [section(10), section(20), section(30), section(40)],
+            sections: Box::new([section(10), section(20), section(30), section(40)]),
             footer: [0; WLD_FOOTER_BYTES],
         };
 
@@ -334,6 +336,25 @@ mod tests {
         assert_eq!(stitched[WLD_MAP_SIDE], 20);
         assert_eq!(stitched[WLD_MAP_SIDE * side], 30);
         assert_eq!(stitched[(WLD_MAP_SIDE * side) + WLD_MAP_SIDE], 40);
+    }
+
+    #[test]
+    fn parse_keeps_terrain_maps_on_heap() {
+        assert!(std::mem::size_of::<WldFile>() < 2048);
+        let mut bytes =
+            vec![0; WLD_HEADER_BYTES + WLD_SECTION_COUNT * WLD_SECTION_BYTES + WLD_FOOTER_BYTES];
+        bytes[24..28].copy_from_slice(&(WLD_SECTION_HEADER_BYTES as u32).to_le_bytes());
+        for index in 0..WLD_SECTION_COUNT {
+            let start = WLD_HEADER_BYTES + index * WLD_SECTION_BYTES;
+            let offset = (36 + index) * 4;
+            bytes[offset..offset + 4].copy_from_slice(&(start as u32).to_le_bytes());
+            bytes[start + WLD_SECTION_HEADER_BYTES] = (index + 1) as u8;
+        }
+        let file = parse_wld_file(&bytes).expect("valid terrain");
+        assert_eq!(
+            file.sections.each_ref().map(|section| section.maps[0][0]),
+            [1, 2, 3, 4]
+        );
     }
 
     #[test]
@@ -355,7 +376,7 @@ mod tests {
             header: WldHeader {
                 fields: [0; WLD_HEADER_DWORDS],
             },
-            sections: [section.clone(), section.clone(), section.clone(), section],
+            sections: Box::new([section.clone(), section.clone(), section.clone(), section]),
             footer: [0; WLD_FOOTER_BYTES],
         };
 
