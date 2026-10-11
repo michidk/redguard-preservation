@@ -392,6 +392,16 @@ its selected-player fallback sphere query. It does not query the separate
 actor-style list. This separation does not exclude actor-style contacts from
 other collision responses.
 
+### Sphere model admission
+
+A sphere query first tests each body sphere against the model radius. Express
+the displacement from the actor origin to the model placement in actor-local
+axes, then subtract it from the local sphere center. The sphere passes when
+this squared displacement is no greater than the sum of the squared model
+radius and squared sphere radius. This is not the square of the sum of the
+radii. Only admitted spheres proceed through the actor/world/model transforms
+to the subgroup and polygon tests.
+
 ### Collision subobject admission
 
 For a sphere center in model coordinates, let `d` be its displacement from a
