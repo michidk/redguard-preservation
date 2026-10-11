@@ -2,8 +2,6 @@
 
 Reference parser for the PVO (Pre-computed Visibility Octree) file format. See [PVO Format](format.md) for format specification.
 
-All field-level details below are validated against all 5 shipped PVO files with byte-exact section boundary matches.
-
 ## Data Types
 
 ```
@@ -192,10 +190,8 @@ The 3-bit octant index encodes spatial position relative to the node center:
 - `leaf_ref`: byte offset into the PLST section data. `0xFFFFFFFF` = no leaf (interior-only node).
 - `child_refs`: byte offset into the OCTR section data. Use to look up child nodes by their `byte_offset` field.
 
-Reference consistency in shipped files:
-
-- 100% of `child_refs` match a node `byte_offset`.
-- 100% of `leaf_refs` fall within PLST bounds.
+Each `child_ref` names a node `byte_offset`. Each `leaf_ref` falls within the
+PLST section bounds.
 
 ## PLST Parser
 

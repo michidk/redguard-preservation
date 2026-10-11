@@ -9,7 +9,7 @@
 [END section — tag `END ` with no payload length field]
 ```
 
-Sections are chunked and can appear in this observed order:
+Sections are chunked and use this order in the shipped files:
 
 ```
 [BMHD — bitmap header (title + frame count)]

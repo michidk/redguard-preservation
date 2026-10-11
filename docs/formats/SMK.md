@@ -22,7 +22,9 @@ The fixed header uses little-endian fields. `import::smacker::SmackerHeader` rea
 | 16 | 4 | `i32` | timing | Positive values are milliseconds; negative values are hundredths of a millisecond. |
 | 20 | 4 | `u32` | flags | Bit 0 adds a ring frame; bits 1 or 2 request doubled display height. |
 
-The examined INTRO.SMK has 640 by 240 source pixels, 6895 authored frames, timing -6666, and doubled display height. FFmpeg independently reports approximately 15.0015 frames per second and stereo 22050 Hz Smacker audio.
+`INTRO.SMK` has 640 by 240 source pixels, 6895 authored frames, timing -6666,
+and doubled display height. Its playback rate is approximately 15.0015 frames
+per second, with stereo 22050 Hz Smacker audio.
 
 ## External references
 

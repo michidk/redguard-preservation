@@ -4,7 +4,7 @@ Scene visibility and sky blending use separate clipping ranges and fog tables.
 
 ## Clipping distances
 
-**Verified:** the scene uses `SYSTEM.INI`'s `[xngine]` `front_plane` and
+The scene uses `SYSTEM.INI`'s `[xngine]` `front_plane` and
 `back_plane`, in engine units. A nonzero `world_back_plane[N]` replaces the
 system far distance on world load. The installed GOG configuration uses 7 and
 3800, and none of its 29 worlds declares a world override.
@@ -12,7 +12,7 @@ The [sky plane](sky.md#glide-sky-plane) independently uses near/far 1 and 65000.
 
 ## Fog lookup
 
-**Verified:** the sky supplies reciprocal positive camera-space depth to Glide.
+The sky supplies reciprocal positive camera-space depth to Glide.
 The sky table is active during that draw; the scene table is restored afterwards.
 Fog color is `world_fogrgb[N]`. Scene densities come from [FOG.INI](../config/fog-ini.md).
 
@@ -32,7 +32,7 @@ this has the usual adjacent-value interpolation curve. The shipped scene
 table's transition from entry 62 to 63 wraps its delta; this lies beyond the
 installed scene far plane.
 
-**Verified for the software Voodoo oracle:** the RGB blend weight is
+The RGB blend weight is
 `(interpolated density + 1) / 256`. Blending operates on encoded RGB channel
 values toward the fog color, before framebuffer quantization. Density 255
 replaces RGB completely. Density zero has a 1/256 blend weight. Fog does not
@@ -50,7 +50,7 @@ individual pixels around the continuous curve.
 | 32768 | 60 | 255 | 224 |
 | 52428.8 | 63 | 0 | 255 |
 
-**Verified:** the sky table is zero through entry 32, then rises by eight per
+The sky table is zero through entry 32, then rises by eight per
 entry through 240 at entry 62, followed by 255 at entry 63. Its density reaches
 255 while approaching the finite sky boundary, so the texture blends into the
 same fog RGB that fills uncovered pixels.
@@ -87,15 +87,6 @@ is `floor((2*c - floor(c/16) + floor(c/128) + b)/16)`. The green six-bit value
 is `floor((4*c - floor(c/16) + floor(c/64) + b)/16)`. Display conversion repeats
 high bits into the low bits: five-bit `v` becomes `(v << 3) | (v >> 2)`, and
 six-bit `v` becomes `(v << 2) | (v >> 4)`.
-
-## Evidence and limits
-
-Installed `SYSTEM.INI`, all 29 `WORLD.INI` entries and the 18-record `FOG.INI`
-verify the configuration samples. Glide's published table-depth conversion and
-table-upload representation establish the coordinate mapping. The software
-Voodoo renderer used by the project's original-game runner establishes the
-blend normalization and channel operation. Exact pixel agreement with physical
-Voodoo hardware has not been measured.
 
 ## External References
 

@@ -1,6 +1,6 @@
 # Redguard Preservation — Documentation
 
-Documented findings from reverse-engineering *The Elder Scrolls Adventures: Redguard* (1998) — file formats, engine behavior, and undocumented features. Analysis is primarily based on the GOG release (Glide renderer), with original-CD differences noted where known.
+Reference documentation for *The Elder Scrolls Adventures: Redguard* (1998) file formats, engine behavior, and undocumented features. The documentation covers the GOG release's Glide renderer and notes known original-CD differences.
 
 ## GOG Version Contents
 

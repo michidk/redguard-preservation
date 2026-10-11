@@ -4,7 +4,7 @@ Glide scene fog density table for models and terrain.
 
 ## Selection and format
 
-**Verified:** the Glide renderer first reads `fxart/FOG<world ID>.INI`, then
+The Glide renderer first reads `fxart/FOG<world ID>.INI`, then
 falls back to `fxart/FOG.INI`. If neither exists, all 64 entries remain zero.
 This selection is independent of the software renderer's `world_haze` field.
 The installed GOG data contains only the fallback file.
@@ -19,7 +19,7 @@ expansion does not interpolate values. Semicolon comments are ignored.
 
 ## Shipped values
 
-**Verified:** the installed fallback contains these 18 index records.
+The installed fallback contains these 18 index records.
 
 | Index | Value |
 |---|---|

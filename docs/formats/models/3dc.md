@@ -53,7 +53,7 @@ nz = (float)((packed <<  2) >> 22) * scale;   // bits 20–29, sign-extended
 // bits 30–31 are shifted out by << 2 — never read
 ```
 
-The values (0 and 3) are likely packing artifacts — 3 (0b11) can result from sign extension during the build tool's encoding step. Parsers should mask or discard these bits.
+The values are 0 and 3. Parsers should mask or discard these bits.
 
 ## Section Layout (v4.0)
 

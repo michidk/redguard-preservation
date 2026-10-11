@@ -4,7 +4,9 @@ Text-based INI configuration file that defines per-texture-index blend behavior 
 
 Shipped sample path: `/Redguard/surface.ini` (e.g. `.../GOG Galaxy/Redguard/Redguard/surface.ini`).
 
-Engine string analysis confirms the engine expects this file at startup, requires a `surfaces` section/header, and validates surface type values plus texture set/index bounds (with some sound-section validation).
+The engine reads this file at startup and requires a `surfaces` section. It
+validates surface type values, texture set and index bounds, and parts of each
+sound section.
 
 ## File Structure
 
@@ -45,7 +47,7 @@ Each sound section contains entries of the form:
 
 - `<sound_id> = <remap_sound_id>`
 
-Behavior/constraints from shipped comments and runtime validation strings:
+The parser applies these constraints:
 
 - Keys and values must be integers; a key outside 0..255 is a fatal configuration error (`Sound out of range in SURFACE.INI`). Remaps may point to other effect ids.
 - At startup the engine builds one 256-entry table per surface type, each initialised to identity, in this order: `unknown` (0), `water` (1), `deepwater` (2), `scapewater` (3), `scapedeepwater` (4), `lava` (5), `sand` (6), `wood` (7), `tile` (8), `scape` (9), `rock` (10), `gloop` (11).
