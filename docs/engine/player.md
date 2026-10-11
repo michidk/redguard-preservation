@@ -509,6 +509,28 @@ face: another subobject reference or another sphere may test it again. Clearing
 the accepted-face set between spheres, or marking every attempted face, changes
 this behavior. Returned contacts retain the order of first successful tests.
 
+### Selected-player fallback support
+
+When the primary terrain/model segment query finds no support, only the
+designated player receives a secondary sphere query. Its world-space center is
+the actor's position shifted right by eight bits plus the collision center
+offset. Add the positive Y extent and subtract three from the center's Y.
+The radius is 10 map units when the shared support-history counter is zero,
+and 14 when that counter is nonzero. The query uses an identity actor rotation.
+
+After the per-candidate actor-state exclusion, this fallback visits face-model
+candidates in order, then each model's returned sphere contacts in order.
+It accepts the first contact whose
+normal classification is not side surface (1), including underside (8).
+It retains that contact's model, normal, texture identity and support metadata,
+and returns the actor's existing runtime Y unchanged. It does not move the
+actor to the contact's projected height or rank the fallback contacts by distance.
+If no such contact exists, support remains absent.
+
+For both primary and fallback model support, a steep classification (2) becomes
+ordinary ground (4) in the stored support state when collision-attribute bit 2
+is clear. The geometric normal itself is unchanged.
+
 ### Ground-support ranking
 
 The ordinary vertical support segment is centered on the actor's integer map
