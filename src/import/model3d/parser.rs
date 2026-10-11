@@ -857,6 +857,11 @@ mod tests {
         let model = super::super::parse_3d_file(&bytes).unwrap();
         let vertex = model.frame_vertex_data[1].coords[0];
         assert_eq!([vertex.x, vertex.y, vertex.z], [4.0, -2.5, 0.5]);
+        let posed = model.at_frame(1).unwrap();
+        let point = posed.vertex_coords[0];
+        assert_eq!([point.x, point.y, point.z], [4.0, -2.5, 0.5]);
+        assert!(posed.frame_data.is_empty());
+        assert!(posed.at_frame(1).is_err());
         let normal = &model.frame_normal_data[1].face_normals[0];
         assert_eq!([normal.x, normal.y, normal.z], [0.0, -1.0, 0.0]);
     }
@@ -893,6 +898,18 @@ mod tests {
             let model = super::super::parse_3d_file(&bytes).unwrap();
             let vertex = model.frame_vertex_data[1].coords[0];
             assert_eq!([vertex.x, vertex.y, vertex.z], [-7.0, 9.0, 2.0]);
+            let posed = model.at_frame(1).unwrap();
+            let point = posed.vertex_coords[0];
+            let expected = if encoding == 2 {
+                [0.02734375, -0.03515625, -0.0078125]
+            } else {
+                [-7.0, 9.0, 2.0]
+            };
+            assert_eq!([point.x, point.y, point.z], expected);
+            assert!(model.at_frame(2).is_err());
+            let mut incomplete = model.clone();
+            incomplete.frame_vertex_data[1].coords.clear();
+            assert!(incomplete.at_frame(1).is_err());
             let normals = &model.frame_normal_data[1].face_normals;
             assert_eq!(normals.len(), 1);
             assert_eq!([normals[0].x, normals[0].y, normals[0].z], [0.0, -1.0, 0.0]);

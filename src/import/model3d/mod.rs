@@ -119,7 +119,8 @@ pub struct FrameDataEntry {
     pub frame_type: FrameType,
 }
 
-/// Parsed per-frame vertex positions (absolute f32 or scaled i16 depending on frame type).
+/// Absolute positions for full-precision frames, or raw signed deltas for compressed frames.
+/// Use `Model3DFile::at_frame` to resolve compressed values to model positions.
 #[derive(Debug, Clone)]
 pub struct FrameVertexData {
     pub coords: Vec<VertexCoord>,
@@ -242,4 +243,68 @@ fn parse_data_internal(input: &[u8], kind: &str) -> Result<Model3DFile> {
 /// Parses a complete 3D/3DC model file from bytes.
 pub fn parse_3d_file(input: &[u8]) -> Result<Model3DFile> {
     parse_data_internal(input, "3D model file")
+}
+
+impl Model3DFile {
+    /// Resolves a frame to absolute positions in parser model units.
+    ///
+    /// Compressed positions use the existing RGMD export convention: subtract
+    /// signed fixed-point deltas from the base positions. This is an inspection
+    /// conversion, not a claim about animation scripts or interpolation timing.
+    /// Frame zero uses the parsed base geometry. Incomplete frames are rejected.
+    /// The returned model is a static snapshot with no animation frame table.
+    pub fn at_frame(&self, frame: usize) -> crate::Result<Self> {
+        use crate::error::Error;
+        let invalid = |message: &str| Error::Conversion(format!("model frame {frame}: {message}"));
+        if frame >= (self.header.num_frames as usize).max(1) {
+            return Err(invalid("outside frame table"));
+        }
+        let mut posed = self.clone();
+        posed.header.num_frames = 1;
+        posed.frame_data.clear();
+        posed.frame_vertex_data.clear();
+        posed.frame_normal_data.clear();
+        if frame == 0 {
+            return Ok(posed);
+        }
+        let encoding = self
+            .frame_data
+            .first()
+            .ok_or_else(|| invalid("missing encoding"))?
+            .frame_type;
+        let positions = &self
+            .frame_vertex_data
+            .get(frame)
+            .ok_or_else(|| invalid("missing positions"))?
+            .coords;
+        let normals = &self
+            .frame_normal_data
+            .get(frame)
+            .ok_or_else(|| invalid("missing normals"))?
+            .face_normals;
+        if positions.len() != self.vertex_coords.len() || normals.len() != self.face_data.len() {
+            return Err(invalid("incomplete geometry"));
+        }
+        posed.vertex_coords = match encoding {
+            FrameType::AnimatedI16 => self
+                .vertex_coords
+                .iter()
+                .zip(positions)
+                .map(|(base, delta)| VertexCoord {
+                    x: base.x - delta.x / 256.0,
+                    y: base.y - delta.y / 256.0,
+                    z: base.z - delta.z / 256.0,
+                })
+                .collect(),
+            FrameType::AnimatedI32 => positions.clone(),
+            FrameType::Static3D
+                if matches!(self.version, ModelVersion::V40 | ModelVersion::V50) =>
+            {
+                positions.clone()
+            }
+            _ => return Err(invalid("unsupported encoding")),
+        };
+        posed.face_normals = normals.clone();
+        Ok(posed)
+    }
 }
