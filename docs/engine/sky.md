@@ -172,7 +172,8 @@ frame with texture scale 256, so the installed sun scale 4000 gives half-size
 5120 engine units. Missing sun image names suppress the disc.
 
 The sun texture is bound as eight-bit alpha: its indexed pixel bytes supply
-opacity, independently of its palette. Constant encoded RGB comes from
+opacity, independently of its palette. The sun draw explicitly selects bilinear
+minification and magnification on texture unit 0. Constant encoded RGB comes from
 `world_sunimgrgb`, defaulting to `(255,255,200)`. The draw uses source-alpha /
 one-minus-source-alpha blending and disables fog for the sun, restoring scene
 fog afterwards. Scene geometry drawn later can cover it.
