@@ -38,7 +38,7 @@ Action `-2` begins a closing-book/camera sequence and exits the game. It does no
 
 Verified against the installed MENU.INI, all six MENU.ROB segments, TEXBSI banks 288/289, the FNT files, and the menu setup, text, traversal, action, camera, and viewport routines. The model frame arrays have full signed-triplet spacing in every book frame. Independent parser probes verified the four nine-frame models and their bounded open/closed geometry.
 
-Lighting inherits engine/environment state. This document does not establish a context-independent light rig or a replacement for the runtime gameplay snapshot. Mouse menu selection and menu audio remain outside this investigation.
+Lighting inherits engine/environment state. This document does not establish a context-independent light rig or a replacement for the runtime gameplay snapshot. The default book menu has no pointer hover or click selection. Pointer coordinates do not determine the selected entry. Mouse buttons and motion have input codes in KEYS.INI, but the shipped menu bindings use keyboard and joystick logical actions. Controls key capture accepts the left and right mouse button codes on release.
 
 ## Options and settings pages
 
@@ -68,7 +68,7 @@ Configuration lookup matches section/key names without case and returns the firs
 
 Page turns use the authored frame arrays, not an independent hinge rotation. A turn request supplies an initial frame, a target frame, and an update delay. The delay counts down first; at zero it selects the initial frame. Later menu updates move one integer frame toward the target. There is no geometric interpolation between those authored frames in this path.
 
-MB_PG01 changes Z by +4 when a forward turn reaches frame four, and by -4 when a reverse turn reaches frame four. MB_PG03 applies the opposite depth changes. These shifts happen at the middle-frame crossing, not at the final frame. Returning to Main reverses the appropriate page turns. Cover motion and page-turn start can also dispatch menu sound cues; those cues require the existing effect playback path.
+MB_PG01 changes Z by +4 when a forward turn reaches frame four, and by -4 when a reverse turn reaches frame four. MB_PG03 applies the opposite depth changes. These shifts happen at the middle-frame crossing, not at the final frame. Returning to Main reverses the appropriate page turns. Cover motion and delayed page-turn starts dispatch the effects listed below.
 
 The startup camera move to the origin uses a fractional step of `0.15`.
 
@@ -97,3 +97,21 @@ view_z = y * sin(angle) + z * cos(angle)
 ```
 
 The sine and cosine samples use the shared [rotation table](water.md#wave-lookup-table), with cosine starting one quarter revolution after sine. The coordinates keep positive Y down. A negative first angle rotates positive-depth points downward on the screen.
+
+## Sound cues
+
+Book motion dispatches these zero-based `MAIN.SFX` effect indices:
+
+| Model | Event | Effect |
+|---|---|---:|
+| MENUA001 | Forward turn reaches frame 7 | 65 |
+| MENUA001 | Reverse turn reaches frame 0 | 64 |
+| MB_PG01 | Nonzero turn delay counts down to zero and selects the initial frame | 66 |
+| MB_PG02 | Nonzero turn delay counts down to zero and selects the initial frame | 67 |
+| MB_PG03 | Nonzero turn delay counts down to zero and selects the initial frame | 68 |
+
+Page cues occur in either direction, once at delayed start, before later frame stepping. A turn without a nonzero delay does not dispatch that page cue. MB_TABLE has no turn cue. The startup camera entry leaves the cover at frame zero and does not dispatch a cover cue. Display and Sound camera moves do not turn a page.
+
+These are [FlatSound](sound.md#soup-functions) requests: centered pan 64, zero volume offset, zero rate offset, and no owner or positional attenuation. Playback uses the effect header's base volume and sample rate with the saved master volume.
+
+Successful directional selection or widget adjustment plays effect 13. Accepted control rebinding also plays effect 13; rejected capture plays effect 18.
