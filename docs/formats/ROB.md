@@ -93,6 +93,18 @@ A single byte of per-segment attribute flags.
 | 0x02 | PALMTR01–04 (CAVERNS, EXTPALAC, ISLAND) | Texture pre-load trigger (bit 1). Engine calls a texture pre-caching function for all face textures in this segment. |
 | 0x40 | SS_OBJ01–06, IGRING, IWATER1 (shop items, inventory) | Special object flag (bit 6). Stored as model metadata. |
 
+### Runtime archive selection
+
+Model lookup searches the active primary archive first, then the active world
+archive. Within each archive it follows stored segment order and returns the
+first matching name. It does not search every installed ROB archive.
+Loading a world archive replaces the previous world archive registry.
+
+The ISLAND world uses `FXART\ISLAND.ROB`. Its ordinary in-world registry has no
+primary archive. The names `BARREL`, `BASKET02`, `LANTERN4`, `LANTHOL1`, `MKCARP1`
+and `MKCRATE1` resolve to this world archive even though other installed archives
+contain different payloads under the same names.
+
 ### Collision flags (0x11)
 
 Static object loading copies this byte from the named ROB segment into the
