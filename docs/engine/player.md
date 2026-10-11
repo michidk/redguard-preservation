@@ -36,6 +36,20 @@ for group zero. The installed ISLAND `CYRUS` definition supplies zero.
 This selection precedes the ordinary animation advancement and default request.
 Combat, rope and special-action states use separate selection branches.
 
+## Upright actor orientation
+
+Actor orientation stores pitch, heading and roll modulo 2048. Assigning an
+orientation rebuilds the actor matrix from identity, applying negative heading,
+negative pitch and negative roll in that order. The rotations use the floating
+point [shared rotation table](water.md#wave-lookup-table).
+
+For zero pitch and roll, let `s` be the table sample at negative heading modulo
+2048, and `c` the sample 512 entries later. The matrix rows are `(c, 0, s)`,
+`(0, 1, 0)` and `(-s, 0, c)`. It maps local forward onto `(s, 0, c)` in original
+world axes. Use the stored table samples even at quarter and half turns;
+replacing their small residual values with exact mathematical zeros changes
+integer collision conversion at some distances.
+
 ## Ground-turn arithmetic
 
 Left and right input have independent turn accumulators. Releasing one direction
@@ -159,6 +173,14 @@ Before an ordinary ground walk is accepted, the engine probes ahead of the
 actor. The local forward probe distance is the actor's forward extent plus
 `attr_forward_walk`, converted to runtime position units. Actor orientation
 transforms the offset; the probe retains the actor's current Y coordinate.
+
+The local offset has zero X and Y components. Its Z component is the sum of
+forward extent and `attr_forward_walk`, multiplied by 256. The integer matrix
+transform converts its input components to single precision, computes each
+rotated component, and stores that component as single precision before
+converting it back to an integer with nearest-even rounding. The transformed
+integer X and Z offsets are added to the actor's runtime X and Z coordinates;
+the transformed Y offset is discarded.
 
 The probe must pass three checks, in order:
 
