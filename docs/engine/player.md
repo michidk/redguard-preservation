@@ -585,3 +585,8 @@ Requesting an already-current group before its exit marker is set only clears
 the pending request; it does not necessarily restart or advance the animation.
 The initial default group is distinct from the state-dependent default selected
 during subsequent ordinary player updates.
+
+A world reload can restore temporary per-world saved state after player
+initialization. The restored player record replaces position and animation state;
+passing through marker initialization does not establish that the final loaded
+player is a fresh spawn. Temporary world snapshots use the map's `.TSG` file.
