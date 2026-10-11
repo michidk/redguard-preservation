@@ -53,6 +53,19 @@ The full documentation is published at **<https://michidk.github.io/redguard-pre
 - [**Engine Details**](https://michidk.github.io/redguard-preservation/engine/) ([source](docs/engine/README.md)) — reverse-engineered engine internals: cheat system, item attachment, SOUP scripting, sky renderer, water waves
 - [**Configuration**](https://michidk.github.io/redguard-preservation/config/) ([source](docs/config/README.md)) — text-based INI files shipped with the game (surface types, combat, keys, etc.)
 
+## Acknowledgements
+
+[RGUnity](https://github.com/RGUnity/redguard-unity) inspired both this project
+and [cyrus](https://github.com/michidk/cyrus), and provided foundational Redguard
+research used by both. RGUnity is a human-developed Unity reimplementation built
+without AI assistance. Its contributors focus on meticulous fidelity and the
+small details that make the original game behave correctly.
+
+redguard-preservation and cyrus use AI-assisted development to reach broad
+working coverage quickly. This complements RGUnity's detail-first work. We are
+grateful to its contributors for their research, implementation, and continued
+care for Redguard.
+
 ## Repository Layout
 
 - `src/` - Rust source
