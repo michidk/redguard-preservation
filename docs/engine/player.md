@@ -357,6 +357,22 @@ collision flags and the distance test selected the same four models, in order,
 as the original candidate list. Their model radii were 585.80078125,
 435.22265625, 55.421875, and 55.421875 map units.
 
+### Collision subobject admission
+
+For a sphere center in model coordinates, let `d` be its displacement from a
+subobject center, `R` the subobject radius, `e` its three extent factors, and `r`
+the sphere radius. For nonzero `length(d)`, form each component of
+`d × R / length(d) × e` and store it at single precision. The subobject passes
+when the squared displacement is no greater than the sum of those component
+squares plus `r²`. This is not a test against the subobject radius alone.
+
+In 44 observed ISLAND subgroup decisions, this test matched every admission or
+rejection. One distinguishing rejection used sphere center `(54, 73, 276)` and
+radius 22, subobject center `(30.03125, −12.8671875, 4.4765625)`, radius
+310.65625 and extent factors approximately `(1.3398278, 1.0258739, 0.39044145)`.
+A radius-only test would admit that subobject. Coincident centers and exact
+floating-point boundary cases are not established by this sample.
+
 ### Collision face traversal
 
 A sphere-to-model query uses the model's authored [subobject face lists](../formats/models/3d.md#section4-subobject-bvh).
