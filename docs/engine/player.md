@@ -348,6 +348,10 @@ their X and Z coordinates divided by 512 with integer truncation. Within a
 cell, placements occur in reverse
 `MPSO` record order. The resulting lists are concatenated in that order before
 model-distance selection. Actor-only border eligibility does not remove static models.
+For each horizontal center coordinate, the starting map coordinate is zero
+below 4,608; it is 56,319 when the center plus 4,608 exceeds 65,535; otherwise
+it is the center minus 4,608. Divide that starting coordinate by 512 to obtain
+the first cell. The upper-edge start therefore occupies cell 109.
 
 An ISLAND window centered at `(40798, 40971)` contained 223 static nodes across
 119 nonempty static cells. Partitioning all 1,691 installed static placements
