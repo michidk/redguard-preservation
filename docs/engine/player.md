@@ -572,7 +572,10 @@ sets pitch and roll to zero and heading modulo 2048 before binding the actor
 definition and building its animation groups.
 
 For an animated player definition, group setup makes two ordinary requests for
-group zero with modifier zero. It then clears the current model reference.
+group zero with modifier zero. It then clears the current model reference while retaining the selected animation
+model and frame identifiers. For an admitted animated actor, presentation resolves
+the model reference from those identifiers; a cleared reference alone does not
+mean that no animation frame is selected.
 Player entry follows that setup with a forced request for the actor's default
 group, again with modifier zero. These requests use the existing shared nominal
 ticks; they do not establish a new clock interval.
