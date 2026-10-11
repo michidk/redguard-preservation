@@ -300,6 +300,20 @@ radius and the model radius. Model placement coordinates and radii are floating
 point. The coordinate differences, squared-distance sum, and combined radius
 are stored at single precision before the final comparison. Equality passes.
 
+### Terrain material lookup
+
+Terrain material queries use integer map X/Z converted to single precision.
+Multiply each coordinate by `1/256`, subtract `0.5` from X and add `0.5` to Z,
+store both results at single precision, and round each to the nearest integer
+with ties to even. Valid grid columns are 0 through 254; valid rows are 1
+through 255. Outside that range the lookup returns `-1`.
+
+For valid cells, runtime row `j` reads WLD Map 3 source row `256-j`.
+The returned byte retains the low-six-bit texture index and high-two-bit
+rotation. Surface lookup uses texture set 302 and that texture index before
+applying terrain blend-mask and water overrides, as described in
+[sound surface selection](sound.md#surfaceini-remap).
+
 ### Static candidate list separation
 
 Static collision flag 2 excludes a placement before distance selection. Flag 1
