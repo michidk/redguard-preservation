@@ -161,6 +161,25 @@ its range; the script must call it again to resume.
   volume is refreshed every frame from the speaker's distance (curve with
   `off = 0`); the pan is not updated.
 
+## Mixer gain and pan law
+
+The statically linked Miles mixer turns a sample's volume and pan into two
+linear scale factors whenever either changes:
+
+- Volume and pan are clamped to 0–127. The effective volume is
+  `trunc(volume × driver_master / 127)`, clamped to 0–127; the driver master
+  starts at 127 and the game never changes it, so it equals the volume.
+- A non-zero effective volume `v` scales samples by `(v + 1) / 128`; zero is
+  silent. Loudness is therefore linear in volume.
+- Pan uses a 128-entry table `T`: `T[p] = 2p` for `p` 0–62 and `T[p] = 128`
+  for 63–127. One output side scales by `T[127 − pan] / 128`, the other by
+  `T[pan] / 128`. At the centre (64) both sides play at full level; towards
+  either extreme the far side fades linearly to silence while the near side
+  stays at full level. By Miles' convention the `T[127 − pan]` side is left.
+
+Evidence: engine analysis of the mixer's scale-table setup, with the pan table
+read from the executable (`0, 2, 4, …, 124` then `128` from entry 63).
+
 ## SURFACE.INI remap
 
 At startup the engine builds a table `[surface 0..11][sound 0..255] → effect`,
@@ -222,8 +241,11 @@ Distance: listener at the origin, emitter at engine units (768, 1024, 0) gives
 
 ## Open questions
 
-1. Which physical speaker the high pan values reach, i.e. whether `u = 512`
-   is the camera's right. Needs a stereo capture of the original.
+1. Whether `u = 512` reaches the camera's right speaker. The pan law above
+   follows Miles' convention (pan 127 = right) and the Glide projection is
+   expected to put engine +X on the right at heading 0, but neither the
+   output buffer order nor the world camera's handedness has been observed.
+   A stereo capture of the original would settle it.
 2. Which camera position feeds the listener in each camera mode (third
    person, first person, combat, rope, cutscenes).
 3. How the object's surface value used by the remap is set.
@@ -239,7 +261,6 @@ Distance: listener at the origin, emitter at engine units (768, 1024, 0) gives
    animation-started sounds is not certain.
 8. The alternate owner object scripts can designate for `Sound`, `FlatSound`,
    `AmbientSound` and `EndMySounds`.
-9. How Miles maps sample volume 0–127 to output gain.
 
 ## Related
 
