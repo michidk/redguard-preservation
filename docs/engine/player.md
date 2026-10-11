@@ -422,6 +422,11 @@ subobject admission. Sixteen ordinary ISLAND segment decisions included two
 accepted endpoint cases and fourteen rejections; omitting the extent factors
 changes six of those decisions.
 
+Admitted subobjects visit their face references in authored order. Segment
+queries retain repeated successful face references; the successful-face
+suppression used by sphere queries does not apply here. Each model query stops
+after its first 32 successful contacts, including repeated references.
+
 ### Collision face traversal
 
 A sphere-to-model query uses the model's authored [subobject face lists](../formats/models/3d.md#section4-subobject-bvh).
