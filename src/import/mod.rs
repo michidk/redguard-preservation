@@ -26,6 +26,7 @@ pub mod model3d;
 pub mod palette;
 /// Export helpers for COL palette assets.
 pub mod palette_export;
+pub mod player_ini;
 /// Shared PNG save helper with compression control.
 pub mod png;
 /// Parser for PVO octree collision files.
