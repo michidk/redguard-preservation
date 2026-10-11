@@ -43,6 +43,7 @@ pub mod rtx;
 pub mod sfx;
 pub mod smacker;
 pub mod soup_def;
+pub mod surface_ini;
 /// Parser and export helpers for WLD world files.
 pub mod wld;
 /// Parser for WORLD.INI world/level database.
