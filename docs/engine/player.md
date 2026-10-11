@@ -343,12 +343,16 @@ Static models use the same eighteen-cell spatial window as the
 [placed-actor update list](animation.md#placed-actor-initialization-and-eligibility).
 The four corner cells are omitted. Cells are visited by increasing X within
 increasing Z rows, and each cell's static list retains its existing order.
-The resulting lists are concatenated in that order before model-distance
-selection. Actor-only border eligibility does not remove static models.
+For nonnegative map coordinates, static placements are assigned to cells by
+their X and Z coordinates divided by 512 with integer truncation. Within a
+cell, placements occur in reverse
+`MPSO` record order. The resulting lists are concatenated in that order before
+model-distance selection. Actor-only border eligibility does not remove static models.
 
 An ISLAND window centered at `(40798, 40971)` contained 223 static nodes across
-119 nonempty static cells. Its complete static list retained this cell and
-within-cell order.
+119 nonempty static cells. Partitioning all 1,691 installed static placements
+and retaining reverse record order reproduced the complete list. Fifty-five
+cells contained multiple placements, distinguishing forward from reverse order.
 
 ### Model-distance candidate test
 
