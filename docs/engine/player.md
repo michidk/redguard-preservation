@@ -26,6 +26,16 @@ Initial placement and ground settling are separate. Ground settling can change
 the player's Y coordinate, so the marker's Y coordinate is not a permanent
 ground height.
 
+## Ordinary idle animation default
+
+For the ordinary grounded player at rest with the weapon sheathed and no special
+action override, default animation selection reads `attr_panic_group` from the
+actor's attributes. This is a group number, not a boolean or a hardcoded request
+for group zero. The installed ISLAND `CYRUS` definition supplies zero.
+
+This selection precedes the ordinary animation advancement and default request.
+Combat, rope and special-action states use separate selection branches.
+
 ## Ground-turn arithmetic
 
 Left and right input have independent turn accumulators. Releasing one direction
