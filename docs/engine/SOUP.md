@@ -291,7 +291,7 @@ When a Numeric (`0x07`) or NumericAlt (`0x16`) opcode appears in PARAMETER mode,
 
 ### Function Table
 
-`SOUP386.DEF` declares 367 callable functions (indices 1–367; index 0 is the synthetic `NullFunction`). Functions span the following categories:
+`SOUP386.DEF` declares callable functions in installed order. Index 0 is the synthetic `NullFunction`; authored entries start at index 1. Functions span the following categories:
 
 | Category | Examples | Count |
 |---|---|---|

@@ -12,12 +12,12 @@ The file is plain text and organized as named sections.
 
 | Section | Delimiter | Content |
 |---|---|---|
-| Functions | `[functions]` ... `[refs]` | One callable entry per line: `<type> <name> params <count>` where type is `task` or `function` |
+| Functions | `[functions]` ... `[refs]` | One callable entry per line: `<type> <name> parms <count>` where type is `task`, `multitask`, or `function` |
 | References | `[refs]` ... `auto` | One reference/equate name per line |
 | Attributes | `auto` ... `endauto` | One attribute name per line (maps to per-actor RAAT byte slots) |
 | Flags | `[flags]` ... EOF | One flag per line: `<type> <name> <value>[;<comment>]` with types `BOOL`, `NUMBER`, `FLIPFLOP` |
 
-Function index 0 is treated as `NullFunction` in runtime behavior.
+Function index 0 is treated as `NullFunction` in runtime behavior. Flag initial values accept numeric literals and the boolean words `true` and `false`.
 
 ## Relationship to RGM Script Data
 
