@@ -390,6 +390,16 @@ radius 22, subobject center `(30.03125, −12.8671875, 4.4765625)`, radius
 A radius-only test would admit that subobject. Coincident centers and exact
 floating-point boundary cases are not established by this sample.
 
+### Segment model admission
+
+Before visiting subobjects, transform both segment endpoints into model-local
+coordinates and test the model radius around the model origin. An endpoint
+inside or on the radius passes. When both endpoints are outside, use the same
+bounded segment/radius test described below, without extent scaling. Here the
+projection may be zero: it must be nonnegative and no greater than the squared
+segment length. The minimum squared length is the single-precision
+representation of 0.1, with equality accepted.
+
 ### Segment subobject admission
 
 For segment queries, subtract the subobject center from each model-local
