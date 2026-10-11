@@ -150,6 +150,14 @@ actor. The local forward probe distance is the actor's forward extent plus
 `attr_forward_walk`, converted to runtime position units. Actor orientation
 transforms the offset; the probe retains the actor's current Y coordinate.
 
+The local offset has zero X and Y components. Its Z component is the sum of
+forward extent and `attr_forward_walk`, multiplied by 256. The integer matrix
+transform converts its input components to single precision, computes each
+rotated component, and stores that component as single precision before
+converting it back to an integer with nearest-even rounding. The transformed
+integer X and Z offsets are added to the actor's runtime X and Z coordinates;
+the transformed Y offset is discarded.
+
 The probe must pass three checks, in order:
 
 1. The actor's collision spheres at the probe must not intersect nearby model
