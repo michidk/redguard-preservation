@@ -144,6 +144,16 @@ results.
 
 ## Forward-walking startup
 
+Before startup acceleration, an ordinary forward walk requests its selected
+walking animation. With `[system] animation_system = 1` in `SYSTEM.INI`, if
+that request leaves a different group current, the walk returns before marking
+forward movement accepted, advancing the startup phase, or translating the actor.
+A pending walking group therefore does not by itself permit movement. The walk
+movement classification is set before this gate.
+
+This differs from the animation movement marker gate below, which suppresses
+translation after startup has advanced.
+
 Ordinary forward walking keeps a startup phase from zero through three.
 The selected walking speed is converted to runtime position units by multiplying
 it by 256. For `attr_step_type = 1`, phases zero, one, and two use one quarter,
