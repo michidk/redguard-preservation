@@ -231,6 +231,19 @@ packed face texture assignment; terrain contacts use the actor's integer map
 X/Z position. Other support kinds assign surface zero. A zero return alone
 therefore does not establish that the actor's surface or shared veto is zero.
 
+The ordinary support wrapper captures the actor's previous surface before
+querying support. It commits the designated-player support-history result, then
+invokes the surface updater only when collision attribute mask `0x04` is set.
+This invocation is not conditional on finding support: a miss supplies the
+cleared source kind to the updater. With that attribute mask clear, the wrapper
+does not refresh the actor's surface or shared veto.
+
+Surface-transition handling compares the updater's return value with the saved
+actor surface, rather than checking only whether assignment changed the actor.
+Water surfaces are values 1 through 4; lava is value 5. When both the previous
+and current actor surfaces are outside water and lava, this wrapper does not
+produce water/lava transition effects.
+
 ### Converting support height to actor position
 
 The selected ground surface height is not the actor origin height. For ordinary
