@@ -518,6 +518,13 @@ offset. Add the positive Y extent and subtract three from the center's Y.
 The radius is 10 map units when the shared support-history counter is zero,
 and 14 when that counter is nonzero. The query uses an identity actor rotation.
 
+During the designated player's admitted update, before ordinary animation and
+movement handling, the support-history counter decreases by the supplied nominal
+tick increment, saturating at zero. Other actors do not perform this decrement.
+After a designated-player support query, support metadata with mask `0x04` set
+resets the counter to 12. This also applies to support queries made while probing
+a temporary forward position; restoring the position does not undo the counter.
+
 After the per-candidate actor-state exclusion, this fallback visits face-model
 candidates in order, then each model's returned sphere contacts in order.
 It accepts the first contact whose
