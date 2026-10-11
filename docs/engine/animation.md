@@ -139,6 +139,28 @@ tick increment. A renderer that advances each actor exactly once before or
 after all script execution loses this ordering. These facts do not specify
 the complete script interpreter, movement handling, or every eligibility rule.
 
+## Ordinary actor eligibility
+
+The ordinary actor update traverses the actor update list. It skips the actor
+body for the unselected member of the two designated player actors, a matching
+active script-name exclusion, a nonzero runtime object-update exclusion, or
+script-control mask `0x08`. This suppresses the ordinary animation stage and
+later main-script stage together. Update-list membership alone does not make
+an actor eligible.
+
+The runtime animation-update exclusion is separate. A nonzero value skips the
+ordinary animation stage, including current-group advancement and its default
+request, without itself skipping the later main-script stage. Direct animation
+requests retain their own boundary checks. At each ordinary update, the engine
+clears this exclusion on the selected player actor and sets it on the other
+player actor.
+
+`SYSTEM.INI`'s `[debug] disable_slaves` sets the object-update exclusion for
+actors with `attr_slave` set and `attr_master` clear. `disable_master_slaves`
+sets it for actors with both attributes set. These tests set the runtime
+exclusion; turning off the option does not clear an already-set exclusion in
+this update branch.
+
 ## Timing boundary
 
 Animation consumes the shared whole nominal-tick increment. The normal timing
