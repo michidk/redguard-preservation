@@ -100,6 +100,16 @@ one third, and one half of that speed respectively, with integer division.
 Phase three uses the full speed. A walking speed of 8 therefore gives startup
 amounts 512, 682, 1024, and then 2048.
 
+When the selected walking-speed attribute is zero, the forward-walk helper
+instead uses `attr_forward_speed >> 1` as its runtime-unit startup amount.
+This fallback is not multiplied by 256. Startup division and frame scaling
+still apply to that amount.
+
+For ordinary sheathed, non-combat forward walking, the helper selects animation
+group 20. It checks that the group exists before requesting it or advancing
+startup. The ordinary request precedes the movement-marker test, so a request
+that advances animation immediately can change whether this walk translates.
+
 An eligible walking update advances the startup phase before testing whether
 the current animation permits translation. Suppressed translation does not undo
 that phase advance. Consequently the first visible displacement need not use
