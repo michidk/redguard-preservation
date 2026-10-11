@@ -97,3 +97,30 @@ fn program_traversal_rejects_branches_into_operands_and_keeps_unknowns() {
     let steps = decode_script_program(&[255], 0, &definition()).unwrap();
     assert!(matches!(steps[&0].operation, Operation::Unsupported { .. }));
 }
+
+#[test]
+fn actor_headers_retain_authored_order_and_separate_instance_locals() {
+    let mut headers = vec![0; 8 + 165];
+    headers[..4].copy_from_slice(&1u32.to_le_bytes());
+    let row = &mut headers[8..];
+    row[4..8].copy_from_slice(b"TEST");
+    row[13..15].copy_from_slice(&2u16.to_le_bytes());
+    row[0x4D..0x51].copy_from_slice(&5i32.to_le_bytes());
+    row[0x75..0x79].copy_from_slice(&1i32.to_le_bytes());
+    let variables: Vec<_> = [4i32, 9i32]
+        .into_iter()
+        .flat_map(i32::to_le_bytes)
+        .collect();
+    let actors = rgpre::import::rgm::script::disassemble_actor_scripts(
+        &headers,
+        &[5, 0, 0, 0, 0],
+        &[],
+        &[],
+        &variables,
+        Some(&definition()),
+    );
+    assert_eq!(actors.len(), 1);
+    assert_eq!(actors[0].1.header_index, 0);
+    assert_eq!(actors[0].1.instances, 2);
+    assert_eq!(actors[0].1.instance_variables, [vec![4], vec![9]]);
+}
