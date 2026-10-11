@@ -180,7 +180,7 @@ Notes on specific entries:
 - Items 32/33 are the empty bucket and the bucket filled with water.
 - Items 53/57 are the open and closed versions of Izara's journal, sharing the same `name[x]` label.
 - Item 35 is marked "DO NOT USE" in the file comment; item 36 is the live elven book.
-- Item 45 (torch) uses type `3` in the file, which the comment block does not define. The comment block describes type `2` as the hand-object type; type `3` appears to be an extension of that for the torch specifically.
+- Item 45 (torch) uses type `3`, which the file's comment block does not define.
 - Items 62 and 63 (bar mug, watering can) reuse the journal inventory model (`Ijourn.3D`) as a placeholder, with distinct `game_object_file` paths for the actual in-world mesh.
 - Items 80 and 81 (dram's bow and arrow) reuse the bone key inventory model (`ibone.3d`) as a placeholder.
 - Item 86 is labeled "last" with no meaningful content, serving as a sentinel or end-of-list marker.

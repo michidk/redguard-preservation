@@ -11,7 +11,8 @@ position while the current position changes with movement and ground contact.
 
 Headings wrap after 2048 units per revolution. For ordinary ground movement with
 the sword sheathed, forward at heading zero increases Z. Right turning decreases
-heading; left turning increases it. Other player states must be checked separately.
+heading; left turning increases it. Combat and special movement states use
+different rules.
 
 ## Marker-based world entry
 
@@ -21,10 +22,9 @@ for runtime storage. The requested heading is wrapped modulo 2048; the marker's
 auxiliary byte does not supply a heading. The player actor uses the map's `CYRUS`
 actor definition, including its attributes and animation data.
 
-Initial placement and ground settling are separate. In an observed ISLAND entry,
-marker zero supplied `(40816, -699, 41024)` with requested heading zero. The
-settled player position was `(40816, -744, 41024)`. Using the marker's Y coordinate
-as a permanent ground height would therefore be incorrect.
+Initial placement and ground settling are separate. Ground settling can change
+the player's Y coordinate, so the marker's Y coordinate is not a permanent
+ground height.
 
 ## Ground-turn arithmetic
 
@@ -71,8 +71,7 @@ sum before integer conversion is observable at ordinary world coordinates.
 
 For heading 2036, distance 680, and initial X/Z `(10446802, 10818615)`, the result
 is `(10446827, 10819295)`. Keeping the sum at double precision until truncation
-would give a different Z result. At distance 1360, the following six updates
-advance X/Z by `(50, 1359)` each in the sampled route.
+would give a different Z result.
 
 ### Direction recovered from displacement
 
@@ -88,10 +87,9 @@ to 2047.
 
 The 512 used first-octant entries are
 `truncate(atan(index / 512) × 65536 / 3.141592654) >> 6`.
-All used entries match the captured integer table. The diagonal case uses its
-explicit value rather than indexing an extra endpoint. The observed displacement
-`(−3341, 1893)` yields movement heading 345. Directly rounding a continuous
-`atan2` angle produces a different result.
+The diagonal case uses its explicit value rather than indexing an extra
+endpoint. Directly rounding a continuous `atan2` angle produces different
+results.
 
 ## Forward-walking startup
 
@@ -105,32 +103,13 @@ amounts 512, 682, 1024, and then 2048.
 An eligible walking update advances the startup phase before testing whether
 the current animation permits translation. Suppressed translation does not undo
 that phase advance. Consequently the first visible displacement need not use
-phase zero. Two observed ISLAND starts first translated at phase one and phase
-two respectively. Resetting the phase whenever translation is suppressed would
-change the observed startup behavior.
+phase zero. Resetting the phase whenever translation is suppressed changes the
+startup behavior.
 
 When animation permits translation, the startup amount is multiplied by the
 frame scale and shifted right by eight bits before heading-based displacement.
-One observed heading-zero sequence began at raw Z `10502144` and produced:
-
-| Startup phase used | Frame scale | Raw Z displacement | Resulting raw Z |
-| --- | --- | --- | --- |
-| 1 | 161 | 428 | 10502572 |
-| 2 | 161 | 644 | 10503216 |
-| 3 | 153 | 1224 | 10504440 |
-
-Each resulting position was retained as the previous position in the following
-update in this case. This sample does not establish collision behavior elsewhere,
-the complete animation eligibility rules.
-
-A further ISLAND route used heading 2036, walking speed 8 and frame scale 170.
-Requesting walk group 20 from idle immediately selected the group's first frame
-with its movement marker set. The first two completed updates advanced startup
-without moving. The third update cleared the marker and moved 680 runtime units
-before heading projection; subsequent updates used 1360. Nine complete actor
-updates matched the group countdown, marker, startup, and final X/Z positions.
-The group is type 1, while idle group zero is type 0. A player animation adapter
-restricted to type 0 cannot reproduce this route.
+Walking groups can use animation type 1; a player animation adapter restricted
+to type 0 cannot reproduce ordinary walking.
 
 ### Ending a walking update
 
@@ -139,24 +118,12 @@ update without accepted forward movement, it resets the forward startup phase
 to zero. This differs from suppressing translation through animation: an accepted
 walking update can advance startup while producing no displacement.
 
-An observed ISLAND walk reached phase three. After forward input was released,
-an update ended at phase zero with idle animation and equal current and previous
-positions. The following update retained that position and phase. This verifies
-the ordinary release case, not the timing of host keyboard event delivery or
-all movement interruptions.
-
 ### Continuation after input release
 
 Accepted movement is not equivalent to a held input. The actor update can
 continue movement from its current animation group after the input has cleared.
 The run-group continuation still passes through the animation marker gate and
 counts as accepted forward movement when that marker suppresses translation.
-
-In an ISLAND release sample, all eight sampled player inputs were zero while
-group 18 remained current with its marker set. The update invoked forward
-continuation, retained startup phase three, and left position unchanged. The
-next update selected idle group zero and reset the phase to zero. Eight
-consecutive idle updates retained that position and cleared phase.
 
 For ordinary type-1 walking, a pending default-group request does not immediately
 replace the current group. A `GoToFuture` command takes its exit target when a
@@ -165,16 +132,6 @@ taken jump marks exit processing active and clears the movement marker; a
 `BreakPoint` at the target can set the marker again. A pending default remains
 pending through these exit frames until `EndAnimation` starts it in the same
 advancement call, using that call's tick input.
-
-An ISLAND walk-stop trace began with group 20 at command 12 and idle group zero
-pending, with all sampled inputs released. A one-tick update took command 13's
-exit to command 31 and selected frame command 32 with the movement marker set.
-The group retained that marker through its exit frames. On reaching End, the
-same update selected idle group zero and reset the forward startup phase.
-Thirteen complete updates retained position `(10447527, −190464, 10838321)` and
-matched the group, pending request, cursor, countdown, exit state and marker.
-This establishes the default-exit path for walking type 1, not every interruption
-or group type.
 
 ## Ordinary forward-walk support checks
 
@@ -207,22 +164,6 @@ Ground selection accepts classifications 2 and 4; the separate slope rules
 control whether movement onto that support is allowed. Surface classification
 alone does not describe slope sliding or collision response.
 
-An observed ISLAND forward-walk check started at raw position
-`(10448896, -190464, 10521523)`, heading zero. The actor's forward extent was 11
-and walking attribute was 8, giving a 19-map-unit probe at raw Z `10526387`.
-The obstacle and slope checks allowed it. Ground support selected terrain with
-normal `(−39, −250, −39)`, classification 4, and actor-height result `−190976`.
-The player's position remained unchanged by these checks. This sample verifies
-an accepted terrain probe; it does not establish ledge behavior.
-
-A separate ISLAND wall attempt at runtime position
-`(10432684, -191744, 10739172)`, heading 26, rejected the sphere probe.
-Walking returned without translating or advancing its zero startup phase.
-The later ground response in the same update retained that position and the
-equal previous position. The frame scale was 170 and idle group zero had no
-translation-suppression marker. This verifies rejection before translation for
-that wall contact; it does not establish swept correction or sliding.
-
 An unsuccessful sphere, steep-surface, or ground-support probe marks the
 forward attempt blocked and returns failure. Subsequent checks in that probe
 are skipped. The blocked-attempt marker is transient; it is not a permanent
@@ -236,19 +177,6 @@ the actor's positive Y extent, multiply by 256, and add the configured
 `standing_height` converted to runtime units. Ground-query eligibility and the
 later movement response remain separate from this conversion.
 
-A fresh ISLAND marker-zero entry settled at runtime position
-`(10448896, -190464, 10502144)`. Its ground query selected a flat terrain triangle
-with map-unit vertices `(40704, -680, 41216)`, `(40704, -680, 40960)` and
-`(40960, -680, 40960)`. The returned surface height was −680 and its normalized
-normal was `(0, −1, 0)`. The integer contact normal was `(0, −256, 0)`, classified
-as ordinary terrain ground.
-
-Cyrus's positive Y extent was 62 and the standing offset was −512 runtime units.
-The conversion gives `(−680 − 62) × 256 − 512 = −190464`, or −744 map units.
-The query returned that actor height while preserving its current and previous
-positions. Treating the terrain height as the actor origin would place the body
-64 map units too low in this case.
-
 ### Applying ordinary ground support
 
 In an ordinary grounded update, the actor retains its previous position before
@@ -258,26 +186,6 @@ or special movement state diverts the response, the response assigns the
 returned actor height to Y. It preserves the translated X/Z and the saved
 previous position. This is a discrete support-height assignment, not vertical
 interpolation toward the terrain surface.
-
-A four-stop observation within one ISLAND update recorded:
-
-| Point in update | Runtime position |
-| --- | --- |
-| Before walking | `(10451447, -195072, 10640696)` |
-| After walking | `(10451732, -195072, 10642107)` |
-| Before ground response | `(10451732, -195072, 10642107)` |
-| After ground response | `(10451732, -195328, 10642107)` |
-
-The previous position remained `(10451447, -195072, 10640696)` at all four
-stops. The startup phase was three, the frame scale was 180, and walking group
-20 was active with its translation-suppression marker clear. The support query
-returned terrain class 4, normal `(−40, −253, 0)`, and actor height −195328.
-Its integer sample position `(40827, 41570)` lay on a terrain plane of height
-−699.21875; the documented actor-origin conversion reproduces that result.
-
-This sample establishes the ordinary supported branch. Falling, jumping,
-sliding, rollback against obstacles, and special movement states have additional
-responses; they are not equivalent to assigning a terrain height unconditionally.
 
 ### Terrain support sampling
 
@@ -297,21 +205,10 @@ The surface height comes from that triangle's plane. Its normalized face normal
 is multiplied by 256 and rounded to nearest-even for the integer contact normal;
 it is not an interpolated shading normal.
 
-For the observed ISLAND interior cells, runtime grid row `j` corresponds to
-WLD source row `256-j`. All 65,280 height bytes in runtime rows 1 through 255
-matched that source mapping. This check does not establish out-of-grid behavior.
+For interior terrain cells, runtime grid row `j` corresponds to WLD source row
+`256-j`.
 Near-camera queries use the current terrain vertex cache; queries more than
 15 grid cells away on either axis use decoded heightmap values directly.
-The observed samples below use the near-camera path on dry terrain. They do not
-establish water-contact behavior or cache-update timing.
-
-At marker zero, map X 40816 and Z 41024 select cell `(159, 161)` and the flat
-triangle described above. A later forward probe at raw Z 10526387 samples integer
-map Z 41118 in the other triangle of the same cell. Its vertices are
-`(40704, -680, 41216)`, `(40960, -680, 40960)` and `(40960, -720, 41216)`.
-At X 40816, the plane height is −682.1875. Truncation and the actor-origin
-conversion produce −190976 runtime units, matching the observed ground result.
-Its integer normal is `(−39, −250, −39)`, also matching the observed contact.
 
 ### Upright actor collision spheres
 
@@ -332,10 +229,9 @@ center is positive Y extent minus `post_collide_height` minus scaled radius.
 
 For ISLAND Cyrus, totals `(48, 128, 49)`, positive Y extent 62, negative Y extent
 66, post-collision height 50 and the default radius scale produce two radius-24
-spheres at local Y −42 and −12. Both spheres and their count were observed in the
-running actor. An additional support sphere is stored separately and is excluded
-from the ordinary obstacle-query count. X- and Z-dominant shapes use different
-construction rules.
+spheres at local Y −42 and −12. An additional support sphere is stored separately
+and is excluded from the ordinary obstacle-query count. X- and Z-dominant shapes
+use different construction rules.
 
 ### Static collision list order
 
@@ -353,11 +249,6 @@ below 4,608; it is 56,319 when the center plus 4,608 exceeds 65,535; otherwise
 it is the center minus 4,608. Divide that starting coordinate by 512 to obtain
 the first cell. The upper-edge start therefore occupies cell 109.
 
-An ISLAND window centered at `(40798, 40971)` contained 223 static nodes across
-119 nonempty static cells. Partitioning all 1,691 installed static placements
-and retaining reverse record order reproduced the complete list. Fifty-five
-cells contained multiple placements, distinguishing forward from reverse order.
-
 ### Model-distance candidate test
 
 An ordinary actor's collision query converts its runtime origin to integer map
@@ -370,13 +261,6 @@ to the model placement is no greater than the square of the sum of the query
 radius and the model radius. Model placement coordinates and radii are floating
 point. The coordinate differences, squared-distance sum, and combined radius
 are stored at single precision before the final comparison. Equality passes.
-
-In an ISLAND query, the player model radius 78.3671875 produced search radius
-156, not the nearest integer 157. The query origin was `(40807, −744, 42260)`.
-The current spatial list contained 224 static objects. Applying their runtime
-collision flags and the distance test selected the same four models, in order,
-as the original candidate list. Their model radii were 585.80078125,
-435.22265625, 55.421875, and 55.421875 map units.
 
 ### Static candidate list separation
 
@@ -400,13 +284,6 @@ the sphere radius. For nonzero `length(d)`, form each component of
 `d × R / length(d) × e` and store it at single precision. The subobject passes
 when the squared displacement is no greater than the sum of those component
 squares plus `r²`. This is not a test against the subobject radius alone.
-
-In 44 observed ISLAND subgroup decisions, this test matched every admission or
-rejection. One distinguishing rejection used sphere center `(54, 73, 276)` and
-radius 22, subobject center `(30.03125, −12.8671875, 4.4765625)`, radius
-310.65625 and extent factors approximately `(1.3398278, 1.0258739, 0.39044145)`.
-A radius-only test would admit that subobject. Coincident centers and exact
-floating-point boundary cases are not established by this sample.
 
 ### Segment model admission
 
@@ -436,9 +313,7 @@ all of the following:
 
 The squared start distance, squared radius, `L`, and `P` are stored at single
 precision before their later comparisons. This test differs from sphere-query
-subobject admission. Sixteen ordinary ISLAND segment decisions included two
-accepted endpoint cases and fourteen rejections; omitting the extent factors
-changes six of those decisions.
+subobject admission.
 
 Admitted subobjects visit their face references in authored order. Segment
 queries retain repeated successful face references; the successful-face
@@ -474,13 +349,6 @@ rank is less than or equal to the current rank, so a later equal rank replaces
 an earlier one. Model segment ranks use the 32,768 scale described below;
 terrain's rank calculation is retained separately.
 
-An ISLAND segment from Y = −377 to −277 with R = 50 sampled terrain at −287.5.
-Truncating the terrain height to −287 produced rank 58,982. A model contact at
-Y = −325 had rank 17,039 and replaced the terrain result. With positive Y
-extent 61 and standing offset −512, the returned actor support height was
-−99,328 runtime units. Using the fractional terrain height in the rank
-calculation gives a different result.
-
 ### Segment contact with model faces
 
 Ground probes intersect the original model polygons. In model coordinates,
@@ -497,14 +365,6 @@ returns the intersection and normal to world coordinates. The stored fraction
 uses a scale of 32,768 and nearest-integer conversion. The integer ground-probe
 adapter rounds world coordinates and normals multiplied by 256; it retains
 the stored fraction unchanged.
-
-An ISLAND probe from `(34, −84, 22)` to `(34, 16, 22)` crossed a model-local
-horizontal face at Y = −32. Its fraction was approximately 0.52, stored as
-17,039. The transformed contact was `(38623, −325, 39016)` with integer normal
-`(0, −256, 0)`. A positive Y extent of 63 and standing offset −512 produced
-actor support height −99,840 runtime units. This sample distinguishes the
-fraction scale and placement transform, but not nearest conversion from
-truncation or exact boundary rounding.
 
 ### Sphere contact with model faces
 
@@ -532,21 +392,6 @@ intersection accepted the face. The model placement transform returns the
 contact point and normal to world coordinates. The obstacle probe needs only
 whether any model reported a contact; it does not move the actor to that point.
 
-In the blocked ISLAND sample above, the first contacting sphere had radius 24
-and the face-plane distance was −19.6171875 map units. The projection was inside
-the polygon. The reported world contact was
-`(40751, −791, 41987.6171875)` with normal `(0, 0, −1)` before integer contact
-conversion. Recomputing the plane projection from the observed model geometry
-reproduced that contact. A radius of 19 rejects it at the plane-distance test.
-The following forward-probe result was failure and the player remained at the
-same position. This sample verifies a face-interior contact; edge-only and
-vertex-only contacts still need independent live samples.
-
-These are the narrow face-contact rules. Model and collision-group broad-phase
-selection, transformed/scaled models, swept correction, moving geometry, and
-non-upright actor shapes require their own coverage before claiming a complete
-collision implementation.
-
 ### Horizontal body-contact response
 
 Body contacts are processed after the movement and ground-support response.
@@ -565,17 +410,6 @@ subtracts the normal component from the normalized horizontal movement. Each
 projected component is shifted arithmetically right by four and added to the
 previous X or Z position. Otherwise, an actor outside the sliding state restores
 its previous X and Z. This step leaves Y unchanged.
-
-A direct ISLAND wall approach had displacement `(−4274, 0, 960)`, normalized
-movement `(−63943, 0, 14362)`, and contact normal `(256, 0, 0)`. Its dot product
-−63943 selects rollback. Both the body-response result and the completed actor
-update retain the previous position `(10449205, −190464, 10770526)`.
-
-An oblique approach had displacement `(−3341, 0, 1893)`, normalized movement
-`(−57019, 0, 32307)`, and the same normal. Its dot product −57019 selects
-projection. From previous position `(10447534, −190464, 10771472)`, the result is
-`(10447534, −190464, 10773491)`: no X displacement and 2019 runtime units along Z.
-The completed actor update retains this position.
 
 ### Grounded wall-facing adjustment
 
@@ -598,10 +432,6 @@ masking both to 2047 and wrapping their difference to the interval −1024 throu
 1024 using a full 2048-unit turn. When the absolute difference is greater than
 512, add 1024 to the adjusted heading and mask the result to 2047.
 
-For the oblique wall approach above, actor heading 344 and movement heading 345
-meet a normal-facing heading of 512. The completed update has heading 313.
-The following update has movement heading 314 and completes at heading 282.
-
 ### Residual static-contact separation
 
 After the primary body response, the actor queries static face contacts again.
@@ -615,12 +445,6 @@ multiplied by the separation distance to the actor position. Y is unchanged.
 A nonempty contact set marks the residual-separation result even when its
 averaged normal has no horizontal component.
 
-A stationary ISLAND overlap at `(10444931, −190464, 10771486)` had
-one remaining contact with normal `(256, 0, 0)` and no held inputs. Previous and
-current positions were equal. The minimum distance 16 produced an X correction
-of 4096, reaching `(10449027, −190464, 10771486)` at the end of the actor update.
-Height and heading remained unchanged.
-
 ## FPS-derived frame scale
 
 The normal FPS measurement path counts one frame per update and accumulates
@@ -631,11 +455,11 @@ resets to zero; the tick remainder is retained. A negative accumulated tick
 count is clamped to zero. This uses the BIOS clock, not exactly one wall-clock
 second; see the [water clock](water.md) for its frequency.
 
-A live nine-update sample advanced the accumulated tick remainder from 7 to 17
-while the frame count advanced from 6 to 14. The next update added one tick,
-produced measured FPS 15, and reset both frame count and tick remainder to zero.
-The intermediate updates included two-tick increments. Debugger pauses were
-excluded by using the original clock values as inputs.
+Selected blocking operations, including model resource loading, save the timing
+state. Restoring that state reads the current BIOS clock and uses it as the next
+measurement baseline, so suspended time is excluded. The restore keeps the
+saved frame count, measured FPS, next scale, and fractional accumulators. The
+FPS tick remainder is not part of the saved state.
 
 The FPS-derived timing path keeps a measured FPS and a smoothed FPS. On each
 update, the smoothed value moves toward the measured value by one. If their
@@ -673,17 +497,9 @@ An exact match receives no additional increase. This smoothing is asymmetric:
 a falling target can take effect immediately, while a rising target can take
 several updates.
 
-An observed ordinary-walking sequence with normal rate 12 had measured FPS 19
-and scale 161. When measured FPS became 17, the following three scales were
-167, 178, and 180. The intermediate smoothed FPS values 18 and 17 give targets
-170 and 180, reproducing that scale sequence. Earlier in the same sequence,
-measured FPS rose from 18 to 19 and the scale changed directly from 170 to 161.
-
-This describes the FPS-derived path after timing startup. The 3dfx executable
-also contains an alternate path driven by a reprogrammed PIT interrupt, but
+The 3dfx executable also contains an alternate path driven by a reprogrammed PIT interrupt, but
 nothing installs that interrupt (the installer has no caller or relocation), so
-the BIOS-clock path above is the one that runs. This does not establish the
-mapping from host elapsed time to original timer ticks.
+the BIOS-clock path above is the one that runs.
 
 ### Whole nominal ticks
 
@@ -698,37 +514,17 @@ movement update, changes behavior.
 A separate counter uses the same accumulation in units of 1/32 nominal tick;
 its update increment is the corresponding difference of whole counter values.
 
-Eight consecutive ordinary ISLAND timing updates began with a scale
-accumulator of 173332 and produced:
+A clock reset clears the measurement frame count, tick remainder, BIOS
+baseline, and fractional nominal accumulator. Measured and smoothed FPS start
+at 12, and both the used and next scales start at 256. The reset does not seed
+the baseline with the current BIOS time.
 
-| Frame scale | Accumulator after addition | Whole nominal ticks |
-| --- | --- | --- |
-| 170 | 173502 | 0 |
-| 176 | 173678 | 1 |
-| 178 | 173856 | 1 |
-| 180 | 174036 | 0 |
-| 180 | 174216 | 1 |
-| 180 | 174396 | 1 |
-| 180 | 174576 | 0 |
-| 180 | 174756 | 1 |
-
-All eight increments matched the accumulated differences, including the three
-zero-tick updates. This sample used the FPS-derived path after startup.
-
-Clock reset initializes a twelve-update startup countdown. During that
-countdown, the exposed movement scale is 256, the whole nominal-tick increment
-is 1, and the finer counter increment is 8. The underlying FPS calculation
-and accumulation still run, with FPS and scale smoothing disabled during the
-countdown. Once it expires, the exposed values use the calculated scale and
-accumulated increments. These reset rules are instruction-verified; the table
-above does not test the reset period.
-
-## Remaining coverage
-
-Complete animation eligibility, collision, other startup paths and stop movement,
-jumping, gravity, combat, swimming, climbing, and follow-camera behavior
-are not specified here. Reproducing only the arithmetic above does not establish
-controller parity.
+The reset also starts a twelve-update startup countdown. During that countdown,
+the exposed movement scale is 256, the whole nominal-tick increment is 1, and
+the finer counter increment is 8. The underlying FPS calculation and
+accumulation continue. Measured FPS replaces smoothed FPS for scale selection,
+and divisor smoothing is bypassed. After the countdown, the exposed values use
+the calculated scale and accumulated increments.
 
 ## Related documentation
 

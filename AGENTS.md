@@ -9,7 +9,7 @@ Most formats are binary little-endian; ROB includes mixed endianness (some big-e
 Primary outcomes in this repo:
 
 - parser and converter behavior in `src/`
-- verified format documentation in `docs/`
+- format reference documentation in `docs/`
 - engine discoveries not yet recorded on UESP or other community wikis (e.g. the hidden cheat system in `docs/engine/cheats.md`)
 
 ## Repository map
@@ -48,10 +48,12 @@ Release notes are auto-generated from these prefixes via `cliff.toml`.
 
 ## Working style for agents
 
-- Verify claims from code or sample files before writing docs.
-- In published docs, state only established behavior. Do not include verification methods, research notes, or topics that still need investigation.
-- Use neutral field names (`field_xx`, `unknown_xx`) when meaning is unproven.
-- Do not promote hypotheses to facts.
+- Verify claims from code, game data, or sample files before publishing them.
+- Treat `docs/` as finished reference material, not a research log.
+- Keep verification methods, evidence sections, debugger traces, runtime observations, test vectors, measurement logs, research history, open questions, coverage notes, and implementation status out of published docs. Put that material in the pull request, commit message, or untracked research notes.
+- State established behavior directly. Write "The field is zero in all shipped files," not "Verified across all shipped files."
+- Include counts and statistics only when they are stable, implementation-relevant properties of the format or engine. State them as direct facts.
+- Remove unresolved hypotheses instead of publishing them. Use neutral names such as `field_xx` or `unknown_xx` when a field's meaning is not established.
 - Keep edits focused and consistent with local style.
 
 ## Development checks
@@ -72,7 +74,7 @@ cargo test
 - Add `Endian` only where mixed endianness is relevant.
 - In field tables, **always backtick Type column values** (`` `u32` ``, `` `[u8; 4]` ``, `` `i16` ``). Use `—` (no backticks) when no type applies.
 - Do not put endianness annotations inline in the Type column (e.g. `` `u32` (LE) ``). Use a separate `Endian` column or state endianness above the table.
-- Include **verified counts/statistics** where known.
+- Include stable, implementation-relevant counts and statistics as direct facts.
 - Cross-link related formats (for example `3DC` -> `3D`, `ROB` -> `3D`).
 - End each format doc with `## External References`.
 - In references, link to the **exact file/folder page**, not generic repo root links.

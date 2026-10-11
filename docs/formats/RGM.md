@@ -112,7 +112,6 @@ Rotation parity note:
   - row 0 = `[m0, m3, m6]`
   - row 1 = `[m1, m4, m7]`
   - row 2 = `[m2, m5, m8]`
-- Earlier row-major mapping (`[m0,m1,m2]`, `[m3,m4,m5]`, `[m6,m7,m8]`) produced incorrect static-object orientation for cases like `TV_SEAT` and `BT_BOARD`.
 
 ## MPRP (Rope Chains)
 
@@ -515,9 +514,11 @@ Invariant: `total = neg + pos` for each axis. Center is always zero in shipped f
 
 At runtime, the engine copies these 49 bytes and calls the fsphere builder to create a 3D bounding volume for the actor. RAHD provides three index fields per actor, allowing reference to different bounding records. Only a subset of actors have direct RAHD indices — other records may be referenced by MPOB objects or other runtime systems.
 
-Verified across 806 records in all 27 shipped RGM files: flags and centers are zero, and each total equals its positive plus negative extent. The flag byte precedes the integers; placing it last shifts every decoded field.
+Across all 806 records in the 27 shipped RGM files, flags and centers are zero,
+and each total equals its positive plus negative extent. The flag byte precedes
+the integers; placing it last shifts every decoded field.
 
-ISLAND `CYRUS` references primary record 120 and secondary record 121, with no tertiary record. Its primary totals are `(48, 128, 49)`, positive extents `(24, 62, 11)`, and negative extents `(24, 66, 38)`. This record matches the runtime actor bounds.
+ISLAND `CYRUS` references primary record 120 and secondary record 121, with no tertiary record. Its primary totals are `(48, 128, 49)`, positive extents `(24, 62, 11)`, and negative extents `(24, 66, 38)`.
 
 ## MPSF (Flat Objects)
 

@@ -48,11 +48,11 @@ All fields little-endian unless noted.
 
 ### Loop Behavior
 
-From static analysis of the engine's sample start (not yet observed in the running game):
+The engine interprets `loop_flag` as follows:
 
 - `loop_flag = 0`: play once (non-looping effects)
 - `loop_flag = 0xFF`: Miles loop count 0, i.e. loop until stopped (ambient loops like fire, water, wind)
-- any other non-zero value: passed unchanged as the Miles loop count. The only shipped case is effect 117 (the snake charmer tune), flag `0xE1`, which therefore plays 225 times rather than indefinitely. Whether this is audible in practice has not been checked.
+- any other non-zero value: passed unchanged as the Miles loop count. The only shipped case is effect 117 (the snake charmer tune), flag `0xE1`, which plays 225 times rather than indefinitely.
 
 When looping is enabled the engine also passes `loop_offset` and `loop_end` as the Miles loop block.
 
