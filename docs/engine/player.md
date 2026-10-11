@@ -390,6 +390,28 @@ radius 22, subobject center `(30.03125, −12.8671875, 4.4765625)`, radius
 A radius-only test would admit that subobject. Coincident centers and exact
 floating-point boundary cases are not established by this sample.
 
+### Segment subobject admission
+
+For segment queries, subtract the subobject center from each model-local
+endpoint and multiply each component by the reciprocal of its corresponding
+extent factor. The reciprocals and scaled endpoint components are stored at
+single precision. Let these scaled endpoints be `a` and `b`, and let `r` be
+the subobject radius.
+
+An endpoint inside or on the radius admits the subobject. When both endpoints
+are outside, set `d = a - b`, `L = d · d`, and `P = a · d`. Admission requires
+all of the following:
+
+- `L` is at least the single-precision representation of 0.1.
+- `P` is greater than zero and no greater than `L`.
+- `(a · a) × L - P × P` is no greater than `r² × L`.
+
+The squared start distance, squared radius, `L`, and `P` are stored at single
+precision before their later comparisons. This test differs from sphere-query
+subobject admission. Sixteen ordinary ISLAND segment decisions included two
+accepted endpoint cases and fourteen rejections; omitting the extent factors
+changes six of those decisions.
+
 ### Collision face traversal
 
 A sphere-to-model query uses the model's authored [subobject face lists](../formats/models/3d.md#section4-subobject-bvh).
