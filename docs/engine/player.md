@@ -432,6 +432,11 @@ other collision responses.
 The ordinary forward obstacle probe also reads only the face-model list and
 reports blocked when any queried model produces a sphere contact.
 
+Each static face candidate retains its collision flag byte as support metadata.
+When primary or fallback support selects that candidate, the selected support
+receives that byte unchanged. Terrain selection instead sets support metadata
+to zero.
+
 ### Sphere model admission
 
 A sphere query first tests each body sphere against the model radius. Express
