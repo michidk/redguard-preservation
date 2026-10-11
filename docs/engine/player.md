@@ -36,6 +36,20 @@ for group zero. The installed ISLAND `CYRUS` definition supplies zero.
 This selection precedes the ordinary animation advancement and default request.
 Combat, rope and special-action states use separate selection branches.
 
+## Upright actor orientation
+
+Actor orientation stores pitch, heading and roll modulo 2048. Assigning an
+orientation rebuilds the actor matrix from identity, applying negative heading,
+negative pitch and negative roll in that order. The rotations use the floating
+point [shared rotation table](water.md#wave-lookup-table).
+
+For zero pitch and roll, let `s` be the table sample at negative heading modulo
+2048, and `c` the sample 512 entries later. The matrix rows are `(c, 0, s)`,
+`(0, 1, 0)` and `(-s, 0, c)`. It maps local forward onto `(s, 0, c)` in original
+world axes. Use the stored table samples even at quarter and half turns;
+replacing their small residual values with exact mathematical zeros changes
+integer collision conversion at some distances.
+
 ## Ground-turn arithmetic
 
 Left and right input have independent turn accumulators. Releasing one direction
