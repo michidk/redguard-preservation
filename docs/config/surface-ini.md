@@ -35,6 +35,10 @@ first matching assignment wins. A zero key terminates lookup before matching,
 so an assignment to set zero, index zero hides itself and every later assignment.
 An unmatched key returns surface zero (`unknown`).
 
+For v4/v5 model faces, solid-color materials resolve to packed surface key zero,
+and therefore to surface zero. Both palette-indexed and directly encoded solid
+colors follow this rule; their color value does not select a texture assignment.
+
 ### Sound Remap Records
 
 Each sound section contains entries of the form:
