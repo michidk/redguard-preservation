@@ -63,6 +63,8 @@ The `0x04` path is distinct from the usual entry, existing-task, then main-body
 order. These runtime flags are not RAHD attribute indices. See
 [actor update order](animation.md#ordinary-actor-update-order).
 
+Ordinary entry processing is suppressed by an unpaused blocking slot whose call operand address is at or before the saved entry cursor. This test is separate from the later main-body blocking test and from direct interrupt invocation.
+
 ### Value Modes
 
 The same opcode byte is interpreted differently depending on the calling context. There is no separate addressing-mode byte — the calling instruction determines how trailing bytes are consumed.
@@ -96,7 +98,7 @@ All integers are little-endian. The VM reads a leading opcode byte and dispatche
 | `0x0A` | LocalVar | `u8` var_index, mode-dependent | Local variable read/write |
 | `0x0F` | ObjDot++ | object encoding, `u16` ref_id | Increment object property |
 | `0x10` | ObjDot-- | object encoding, `u16` ref_id | Decrement object property |
-| `0x11` | Gosub | `u32` target | Subroutine call (pushes return address) |
+| `0x11` | Gosub | `u32` target | Subroutine call (overwrites actor return continuation) |
 | `0x12` | Return | *(none)* | Return from subroutine |
 | `0x13` | Endint | *(none)* | End secondary thread |
 | `0x14` | ObjectDot | object encoding, `u16` ref_id, mode-dependent | Object property read/write |
@@ -265,6 +267,8 @@ Resets the active cursor to the script base and returns from the current invocat
 
 Active tasks reevaluate their encoded operands on every task invocation. A task therefore observes changes to locals, global flags, and queried values while it is active. Literal arguments are a special case of this rule.
 
+Native calls evaluate their parameters from the last authored argument to the first. The handler receives the resulting values in authored argument order. This evaluation order also applies when starting or revisiting a task; nested function side effects are observable by earlier arguments.
+
 SOUP386 distinguishes three call types, encoded in the opcode byte:
 
 | Type | Behavior | Script syntax |
@@ -274,6 +278,8 @@ SOUP386 distinguishes three call types, encoded in the opcode byte:
 | Function | Immediate — returns a value | `FunctionName(...)` (context determines) |
 
 Self-calls use opcodes `0x00`/`0x01`/`0x02`. Object-targeted calls use `0x19`/`0x1A` with an additional dispatch-type byte (`0x00` = task, `0x01` = multitask, `0x02` = function) when used as a top-level statement. In non-MAIN modes, the dispatch-type byte is absent and the call is always treated as a function.
+
+Object-targeted task dispatch differs from a self task statement. The receiver owns the task slot, and the calling body continues immediately. The self task statement checks the active result and yields when blocking. Both encodings must remain distinguishable even when the explicit object selector resolves to the current actor.
 
 ### Call Encoding
 
@@ -299,6 +305,10 @@ When a Numeric (`0x07`) or NumericAlt (`0x16`) opcode appears in PARAMETER mode,
 ### Actor task controls and return state
 
 An actor has six task slots shared by its entry and main invocations. Existing-task processing traverses those slots in allocation order, skips paused slots, reevaluates encoded operands, and removes a slot when its handler reports completion. Unpaused blocking slots suppress the subsequent main-body invocation; multitask slots do not. Reissuing a call whose operand address is already in a slot does not execute its handler again. Task labels refer to the call statement's actor-relative offset; matching uses the operand address immediately following that statement's opcode. `TaskStop` removes every matching slot and clears its blocking and pause state. `TaskPause` and `TaskResume` set and clear the matching slots' pause state.
+
+Each active slot has a 16-bit invocation counter. Allocation sets it to one. An eligible existing-task pass computes its elapsed input as the low 32 bits of counter times the current frame scale, shifted right by eight, then increments the counter with 16-bit wrapping. Paused slots do not advance. The initial native call receives elapsed input zero.
+
+`Wait(duration)` stays active while the elapsed input is less than the wrapping 32-bit value `duration - 1`, compared as signed integers. `WaitOnTasks` stays active when more than one unpaused slot is occupied. `WaitNonMulti` stays active when more than one unpaused blocking slot is occupied. These count tests include the current wait slot when it has already been allocated.
 
 `Anchor` stores its operand byte as the actor's anchor state. `Yield` retains the following cursor without issuing the `End` notifications.
 
@@ -344,6 +354,8 @@ For the weapon/attachment function interface, see [Item Attachment — SOUP Scri
 | `BOOL` | Binary state (0 or 1) |
 | `NUMBER` | Integer counter or timer |
 | `FLIPFLOP` | Toggled state (doors, switches, puzzle elements) |
+
+The loader maps `BOOL`, `FLIPFLOP`, `COUNTER`, and `NUMBER` to runtime kinds zero through three. Initializing a flag stores its authored numeric value and clears the latch. A BOOL set toggles its numeric value only when unlatched, then latches it. FLIPFLOP toggles on every set. COUNTER decrements a nonzero value and latches it; a zero value remains unchanged. NUMBER sets the latch without changing the numeric value. The SOUP `SetGlobalFlag` and `ResetGlobalFlag` wrappers return zero. `TestGlobalFlag` returns one or zero according to the latch.
 
 Native flag functions maintain a separate latch in addition to the numeric flag value. `TestGlobalFlag` reads that latch; `ResetGlobalFlag` clears it. `SetGlobalFlag` dispatches according to the runtime type bits and can toggle, decrement, or latch a flag. It is not a generic assignment of one to the numeric flag.
 

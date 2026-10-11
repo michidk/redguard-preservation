@@ -15,6 +15,9 @@ pub enum Operation {
     Call {
         call: Call,
     },
+    ObjectCall {
+        call: Call,
+    },
     Assign {
         destination: Place,
         formula: Formula,
@@ -373,7 +376,7 @@ impl Decoder<'_> {
             25 | 26 => {
                 let target = self.object()?;
                 let kind = self.kind()?;
-                Operation::Call {
+                Operation::ObjectCall {
                     call: self.call(target, kind)?,
                 }
             }

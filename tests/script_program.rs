@@ -47,7 +47,7 @@ fn parameter_modes_and_nested_functions_preserve_values() {
 fn target_calls_preserve_dispatch_and_low_reference_byte() {
     let step = decode_script_step(&[25, 4, 3, 2, 2, 0, 0, 99], 0, &definition()).unwrap();
     assert_eq!(step.next, 7);
-    let Operation::Call { call } = step.operation else {
+    let Operation::ObjectCall { call } = step.operation else {
         panic!("call expected")
     };
     assert_eq!(call.target, Object::Named { string: 3 });

@@ -26,7 +26,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let result = decode_script_program(&source.bytecode, entry, &definition);
             actors.insert(name,match result {
                 Ok(steps)=> {
-                    let calls:Vec<_>=steps.values().filter_map(|step| match &step.operation { Operation::Call{call}=>Some(call.function.clone()), _=>None }).collect();
+                    let calls:Vec<_>=steps.values().filter_map(|step| match &step.operation { Operation::Call{call} | Operation::ObjectCall{call}=>Some(call.function.clone()), _=>None }).collect();
                     let unsupported:Vec<_>=steps.values().filter_map(|step| match &step.operation { Operation::Unsupported{reason}=>Some(reason.clone()), _=>None }).collect();
                     serde_json::json!({"entry":entry,"instructions":steps.len(),"calls":calls,"unsupported":unsupported})
                 }
