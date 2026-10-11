@@ -139,7 +139,9 @@ pub fn parse_windows_glide_splash(data: &[u8]) -> Result<WindowsGlideSplash, Err
         let count = usize::from(u16::from_le_bytes(counts[..2].try_into().unwrap()))
             + usize::from(u16::from_le_bytes(counts[2..].try_into().unwrap()));
         r.take(count * 8)?
-            .chunks_exact(8)
+            .as_chunks::<8>()
+            .0
+            .iter()
             .map(|entry| Ok((at_word(entry, 0)?, at_word(entry, 4)?)))
             .collect()
     };
@@ -211,9 +213,11 @@ fn parse_animation(data: &[u8]) -> Result<WindowsGlideSplash, Error> {
             return Err(invalid("truncated texture mip chain"));
         }
         let rgba = pixels[..(side * side * 2) as usize]
-            .chunks_exact(2)
+            .as_chunks::<2>()
+            .0
+            .iter()
             .flat_map(|p| {
-                let p = u16::from_le_bytes(p.try_into().unwrap());
+                let p = u16::from_le_bytes(*p);
                 [
                     ((p >> 11) * 255 / 31) as u8,
                     (((p >> 5) & 63) * 255 / 63) as u8,
@@ -363,7 +367,7 @@ fn parse_animation(data: &[u8]) -> Result<WindowsGlideSplash, Error> {
                     (value >> 24) as u8
                 };
             }
-            11 | 12 | 13 => {}
+            11..=13 => {}
             14 => {
                 let v = r.floats::<7>()?;
                 light_color = v[..3].try_into().unwrap();
