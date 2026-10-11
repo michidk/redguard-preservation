@@ -50,6 +50,21 @@ world axes. Use the stored table samples even at quarter and half turns;
 replacing their small residual values with exact mathematical zeros changes
 integer collision conversion at some distances.
 
+## Incremental orientation refresh
+
+Assigning an orientation and refreshing an existing actor matrix are distinct
+operations. In the ordinary unattached refresh branch, changed angles with
+`attr_rotation = 0` rotate the existing matrix by the negated differences between
+current and previous heading, pitch and roll, in that order. Each difference is
+wrapped modulo 2048 for the shared rotation-table lookup. Unchanged angles leave
+the matrix intact. The stored matrix therefore retains its accumulated
+single-precision rotation history; it is not reconstructed from the current
+heading on every refresh.
+
+In that branch, `attr_rotation = 2` instead rebuilds from identity using the
+negated current angles. A selected player with nonzero roll takes a separate
+rebuild branch. These rules do not replace attached-actor matrix composition.
+
 ## Ground-turn arithmetic
 
 Left and right input have independent turn accumulators. Releasing one direction
