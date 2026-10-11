@@ -574,6 +574,19 @@ intersection accepted the face. The model placement transform returns the
 contact point and normal to world coordinates. The obstacle probe needs only
 whether any model reported a contact; it does not move the actor to that point.
 
+### Body-contact integer conversion
+
+After transforming sphere contacts to world coordinates, the adapter converts
+contact positions to nearest integers in map units. Each world normal component
+is multiplied by 256, stored at single precision, then converted to a nearest
+integer under the default nearest-even rounding mode. It does not normalize the
+transformed normal again.
+
+The ordinary body query copies these integer normals into its ordered contact
+list and classifies their integer Y components using the ground-normal thresholds
+above. Classification therefore follows world transformation and integer
+conversion; it is not the source polygon's local classification.
+
 ### Body-contact facing admission
 
 The primary body-response loop visits contacts in stored order. Contacts whose
