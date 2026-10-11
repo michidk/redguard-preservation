@@ -149,3 +149,5 @@ Worlds 0, 1, 6, 27, 28, and 30 have `world_world` entries and use a WLD terrain 
 ## External References
 
 - [UESP: Redguard:Console](https://en.uesp.net/wiki/Redguard:Console) — the `show world` console command displays the current world index at runtime
+
+`NewGameEntry` also retains the selected world's optional `world_flash_filename`.

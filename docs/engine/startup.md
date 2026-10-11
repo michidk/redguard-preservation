@@ -151,3 +151,23 @@ distance divided by Z.
 
 - [Glide splash renderer](https://github.com/sezero/glide/blob/master/glide2x/sst1/glide/src/gsplash.c)
 - [Glide splash data declarations](https://github.com/sezero/glide/blob/master/glide2x/sst1/glide/src/splshdat.c)
+
+## World loading screen
+
+World entry uses the destination's `WORLD.INI` `world_flash_filename` GXA.
+An archive with several frames supplies a randomly selected background; a
+single-frame archive uses its only frame. The full-screen picture uses its
+own palette. New-game entry uses `start_world` and `start_marker` from the
+`[world]` section.
+
+At the 640 by 480 logical viewport, the progress bar starts at `(32,448)`,
+is 576 pixels wide and 6 pixels high. Its background is black and its fill
+is VGA RGB `(63,0,0)`. Fill width is the nearest-integer product of the bar
+width and the completed fraction. The displayed integer percentage also
+rounds to nearest. Percentage updates advance monotonically; a zero-percent
+update does not draw the bar or label.
+
+The percentage label uses `FONTS/REDSEL.FNT` at `(32,451)`, with foreground
+alpha 255 and shadow alpha 180. The ordinary label is `%d%%`; debug output
+can include world indices before it. These are world-entry loading visuals,
+separate from the startup title's small bottom-edge labels.
