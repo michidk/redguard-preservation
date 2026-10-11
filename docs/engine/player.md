@@ -648,7 +648,12 @@ masking both to 2047 and wrapping their difference to the interval −1024 throu
 
 After the primary body response, the actor queries static face contacts again.
 The separation distance is the current horizontal displacement length shifted
-right by eight, with a minimum from `SYSTEM.INI` `poly_push_units`. The installed
+right by eight, with a minimum from `SYSTEM.INI` `poly_push_units`. To obtain
+that length, first store each integer X/Z displacement component at single
+precision. Sum their squares at extended precision, store the sum at double
+precision, take its square root, and store the result at single precision.
+Convert that result to an integer using the default nearest-even rounding mode
+before shifting. The displacement is measured after primary body response. The installed
 minimum is 16. For remaining contacts, sum their integer normals, divide each
 component by the contact count with truncation toward zero, and normalize the
 result to length 65536 using the body-response normalization above. Shift each
