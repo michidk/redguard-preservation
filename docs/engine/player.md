@@ -404,6 +404,31 @@ face: another subobject reference or another sphere may test it again. Clearing
 the accepted-face set between spheres, or marking every attempted face, changes
 this behavior. Returned contacts retain the order of first successful tests.
 
+### Segment contact with model faces
+
+Ground probes intersect the original model polygons. In model coordinates,
+let A and B be segment endpoints, V a face vertex, and N the stored face normal.
+The signed endpoint distances are `(V − A) · N` and `(V − B) · N`.
+When collision sidedness is enabled, an A distance greater than 4 rejects the
+face. A crossing requires one endpoint distance to be negative and the other
+nonnegative. A segment lying entirely in the plane is rejected.
+
+The intersection fraction is the A distance divided by the difference between
+A and B distances. The intersection must pass the same oriented polygon-edge
+inside test as a sphere's projected contact. The model placement transform
+returns the intersection and normal to world coordinates. The stored fraction
+uses a scale of 32,768 and nearest-integer conversion. The integer ground-probe
+adapter rounds world coordinates and normals multiplied by 256; it retains
+the stored fraction unchanged.
+
+An ISLAND probe from `(34, −84, 22)` to `(34, 16, 22)` crossed a model-local
+horizontal face at Y = −32. Its fraction was approximately 0.52, stored as
+17,039. The transformed contact was `(38623, −325, 39016)` with integer normal
+`(0, −256, 0)`. A positive Y extent of 63 and standing offset −512 produced
+actor support height −99,840 runtime units. This sample distinguishes the
+fraction scale and placement transform, but not nearest conversion from
+truncation or exact boundary rounding.
+
 ### Sphere contact with model faces
 
 The forward obstacle query converts the proposed actor origin to integer map
