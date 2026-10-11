@@ -133,6 +133,17 @@ Animation opcode 4 ([attachment](attachment.md)) starts a positional sound:
 - The handle is stored on the animation; EndAnimation (opcode 1) stops it.
   No later volume or pan update was found for these sounds.
 
+Each encountered PlaySound advances to the next command without consuming a
+frame skip. A second PlaySound replaces the animation's remembered handle
+without stopping the previous channel. Selecting a replacement group clears
+that handle without issuing a stop. EndAnimation stops only the handle still
+remembered by that animation. Channel validity and completion are handled by
+the audio mixer independently.
+
+The metadata field historically named `volume_shift` contains the second
+signed ten-bit operand. It is a rate offset in units of 64 Hz, not a volume
+adjustment.
+
 ### SOUP functions
 
 `SOUP386.DEF` declares these sound functions:
