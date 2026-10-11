@@ -169,6 +169,44 @@ forward attempt blocked and returns failure. Subsequent checks in that probe
 are skipped. The blocked-attempt marker is transient; it is not a permanent
 collision state.
 
+### Forward slope surface selection
+
+The forward steep-surface check uses `post_collide_height` as the half-length
+of its vertical segment, centered on integer actor Y plus the positive Y extent.
+It is bypassed when collision attribute bit 2 is clear, or when the designated
+player's alternate collision mode is active.
+
+For the proposed position, face-model contacts of classification 2 or 4 compete
+by `abs(16384 - segment_rank)`. Strictly smaller values replace the current
+contact, preserving the first equal candidate. The initial comparison value is
+999999 and the initial model height is 9999999 map units.
+
+Terrain participates when its height is no lower than the segment's lower end.
+Its height difference from the segment center is truncated toward zero before
+taking the absolute value. That value must be strictly less than the absolute
+difference of the current model height from that center.
+A winning terrain sample replaces the normal and height. When the proposed
+position has a selected surface, classification 2 rejects the attempt and other
+classifications allow this slope check. This selection is separate from the
+ordinary ground-support rank comparison.
+
+### Forward ground-support admission
+
+The forward ground check saves the actor position, queries support at the
+proposed position, then restores all three position coordinates before deciding
+whether the attempt succeeds. The support query retains its other state changes.
+
+The attempt fails when collision attribute bit 2 is set and the resulting
+support classification is 2. It also fails when support is absent or the shared
+surface veto equals one. Bypassing the earlier slope check does not bypass this
+final classification check.
+
+When the surface-state updater reaches its ordinary assignment path, it sets
+the shared veto to one for actor surface states 5 and 11, and zero for other
+states. Its early-return paths do not perform that assignment. The forward
+check reads the shared veto after the support query; it does not recompute it
+solely from the actor's current surface state.
+
 ### Converting support height to actor position
 
 The selected ground surface height is not the actor origin height. For ordinary
@@ -275,8 +313,30 @@ Ground support reads the face-model list, both for its primary segment query and
 its selected-player fallback sphere query. It does not query the separate
 actor-style list. This separation does not exclude actor-style contacts from
 other collision responses.
+The ordinary forward obstacle probe also reads only the face-model list and
+reports blocked when any queried model produces a sphere contact.
+
+Each static face candidate retains its collision flag byte as support metadata.
+When primary or fallback support selects that candidate, the selected support
+receives that byte unchanged. Terrain selection instead sets support metadata
+to zero.
+
+### Sphere model admission
+
+A sphere query first tests each body sphere against the model radius. Express
+the displacement from the actor origin to the model placement in actor-local
+axes, then subtract it from the local sphere center. The sphere passes when
+this squared displacement is no greater than the sum of the squared model
+radius and squared sphere radius. This is not the square of the sum of the
+radii. Only admitted spheres proceed through the actor/world/model transforms
+to the subgroup and polygon tests.
 
 ### Collision subobject admission
+
+The model runtime loader retains authored subobjects only for version 5 models.
+For other model versions, including version 4, it clears both the subobject
+list and its count. Version 4 subobjects therefore do not participate in these
+queries; the loader does not synthesize extent factors for them.
 
 For a sphere center in model coordinates, let `d` be its displacement from a
 subobject center, `R` the subobject radius, `e` its three extent factors, and `r`
@@ -333,6 +393,35 @@ including references reached by later spheres. A failed test does not mark the
 face: another subobject reference or another sphere may test it again. Clearing
 the accepted-face set between spheres, or marking every attempted face, changes
 this behavior. Returned contacts retain the order of first successful tests.
+
+### Selected-player fallback support
+
+When the primary terrain/model segment query finds no support, only the
+designated player receives a secondary sphere query. Its world-space center is
+the actor's position shifted right by eight bits plus the collision center
+offset. Add the positive Y extent and subtract three from the center's Y.
+The radius is 10 map units when the shared support-history counter is zero,
+and 14 when that counter is nonzero. The query uses an identity actor rotation.
+
+During the designated player's admitted update, before ordinary animation and
+movement handling, the support-history counter decreases by the supplied nominal
+tick increment, saturating at zero. Other actors do not perform this decrement.
+After a designated-player support query, support metadata with mask `0x04` set
+resets the counter to 12. This also applies to support queries made while probing
+a temporary forward position; restoring the position does not undo the counter.
+
+After the per-candidate actor-state exclusion, this fallback visits face-model
+candidates in order, then each model's returned sphere contacts in order.
+It accepts the first contact whose
+normal classification is not side surface (1), including underside (8).
+It retains that contact's model, normal, texture identity and support metadata,
+and returns the actor's existing runtime Y unchanged. It does not move the
+actor to the contact's projected height or rank the fallback contacts by distance.
+If no such contact exists, support remains absent.
+
+For both primary and fallback model support, a steep classification (2) becomes
+ordinary ground (4) in the stored support state when collision-attribute bit 2
+is clear. The geometric normal itself is unchanged.
 
 ### Ground-support ranking
 
