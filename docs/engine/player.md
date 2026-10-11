@@ -582,8 +582,9 @@ For other contacts, it computes the opposing normal heading by adding 1024
 to the normal's quantized actor heading and masking to 2047. Subtract the
 movement heading. Differences below −1024 add 2047; differences above 1024
 subtract 2047. A contact faces movement only when the corrected difference is
-strictly greater than −512 and strictly less than 512. Exactly perpendicular
-contacts fail this test.
+strictly greater than −512 and strictly less than 512. The 2047 correction
+makes geometric quarter-turn boundaries asymmetric: an uncorrected difference
+of 1536 becomes −511 and passes, whereas 512 remains 512 and fails.
 
 The movement heading comes from the current-minus-previous X/Z displacement.
 When both horizontal coordinates are unchanged, the actor's current heading
