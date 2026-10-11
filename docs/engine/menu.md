@@ -70,7 +70,9 @@ Page turns use the authored frame arrays, not an independent hinge rotation. A t
 
 MB_PG01 changes Z by +4 when a forward turn reaches frame four, and by -4 when a reverse turn reaches frame four. MB_PG03 applies the opposite depth changes. These shifts happen at the middle-frame crossing, not at the final frame. Returning to Main reverses the appropriate page turns. Cover motion and page-turn start can also dispatch menu sound cues; those cues require the existing effect playback path.
 
-Camera requests form an ordered queue. Each request specifies a target position, angle changes, and a fractional step. Position interpolates linearly from the previous settled position; angles interpolate from their previous values by the supplied changes. The first rendered sample uses the request's fractional step, rather than zero. Each update adds that same step; a value greater than one settles the target and advances to the next request. Rendering converts the interpolated values to engine integers.
+The startup camera move to the origin uses a fractional step of `0.15`.
+
+Camera requests form an ordered queue. Each request specifies a target position, angle changes, and a fractional step. Position interpolates linearly from the previous settled position; angles interpolate from their previous values by the supplied changes. The first rendered sample uses the request's fractional step, rather than zero. Each update samples the current fraction, then adds that same step. If the incremented value is greater than one, that update replaces the sample with the settled target and advances to the next request. Camera coordinates and angle samples truncate toward zero to engine integers before rendering.
 
 The submenu requests use these camera paths. Each row's targets execute in order. Angle values are changes in the first camera angle, in 2048 units per revolution; the other two angles do not change.
 
@@ -83,7 +85,7 @@ The submenu requests use these camera paths. Each row's targets execute in order
 | Display or Sound to Options | `(0, 0, 0)` | `0` | `0.15` |
 | Quit | `(232, 284, -96)`, `(232, 284, -96)`, `(408, 0, 0)` | `-152`, `0`, `+152` | `0.15`, `0.12`, `0.15` |
 
-The repeated target holds the position while the request fraction advances. Main to Movies delays the first page turn by four menu updates. Main to Options delays MB_PG01 by three and MB_PG02 by five; its return delays them by five and three respectively. Options to Controls and back delay MB_PG03 by four. Quit delays the cover turn by two. Normal menu direction, activation, and Escape handling wait until the camera queue and page turns finish, including the update that settles their final targets.
+The repeated target holds the position while the request fraction advances. Main to Movies and its return delay the first page turn by four menu updates. Main to Options delays MB_PG01 by three and MB_PG02 by five; its return delays them by five and three respectively. Options to Controls and back delay MB_PG03 by four. Quit delays the cover turn by two. Normal menu direction, activation, and Escape handling wait until the camera queue and page turns finish, including the update that settles their final targets.
 
 For these paths, only the first camera angle changes. Subtract the camera position from a world point to obtain `(x, y, z)`, then apply the view rotation before viewport projection:
 

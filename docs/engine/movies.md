@@ -2,7 +2,7 @@
 
 Movies use the installed MENU.INI definitions and Smacker files, not recorded playback.
 
-`import::menu_movies::parse_menu_movies` reads ordered names, skip points, and subtitle records from [page3]. A subtitle has seven comma-separated fields: an always-display flag, red, green, blue, start frame, stop frame, and text. Text can contain commas. The examined install defines eleven filenames and five browsable cinematics. Names are uppercased and the original filename buffer holds fifteen characters. Original skip tables hold up to twenty frame numbers.
+`import::menu_movies::parse_menu_movies` reads ordered names, skip points, and subtitle records from [page3]. A subtitle has seven comma-separated fields: an always-display flag, red, green, blue, start frame, stop frame, and text. Text can contain commas. The examined install defines eleven filenames and five browsable cinematics. Names are uppercased and the original filename buffer holds fifteen characters. Original skip tables hold up to twenty frame numbers. Zero terminates a skip table; a single zero defines no skip points. Values after the terminator or twentieth entry are ignored.
 
 Playback numbers frames from one. A new skip input advances to the next configured forward point; after the last point it finishes the movie. Passed skip points are consumed during normal playback. Held input must be released before another skip. Returning from playback restores the menu and retains its selection. Playback marks the cinematic unlocked.
 

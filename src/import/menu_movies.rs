@@ -21,6 +21,7 @@ pub struct MovieDefinition {
 
 /// Parse sequential cinematic definitions. First case-insensitive fields win.
 /// Names are single filenames, never paths. Commas inside subtitle text survive.
+/// Skip tables retain at most twenty entries and end at the first zero.
 pub fn parse_menu_movies(content: &str) -> Result<Vec<MovieDefinition>, String> {
     let mut fields = BTreeMap::new();
     let mut active = false;
@@ -47,17 +48,17 @@ pub fn parse_menu_movies(content: &str) -> Result<Vec<MovieDefinition>, String> 
             return Err(error(&format!("movie_name[{index}]")));
         }
         let key = format!("movie_keys[{index}]");
-        let keys: Vec<u32> = fields
-            .get(&key)
-            .filter(|v| !v.is_empty())
-            .map(|v| {
-                v.split(',')
-                    .map(|n| n.trim().parse().map_err(|_| error(&key)))
-                    .collect()
-            })
-            .transpose()?
-            .unwrap_or_default();
-        if keys.contains(&0) || keys.windows(2).any(|v| v[0] >= v[1]) {
+        let mut keys = Vec::new();
+        if let Some(value) = fields.get(&key).filter(|v| !v.is_empty()) {
+            for number in value.split(',').take(20) {
+                let frame = number.trim().parse::<u32>().map_err(|_| error(&key))?;
+                if frame == 0 {
+                    break;
+                }
+                keys.push(frame);
+            }
+        }
+        if keys.windows(2).any(|v| v[0] >= v[1]) {
             return Err(error(&key));
         }
         let mut subtitles = Vec::new();
@@ -109,6 +110,41 @@ pub fn parse_menu_movies(content: &str) -> Result<Vec<MovieDefinition>, String> 
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn skip_table_ends_at_zero_or_twenty_entries() {
+        for (value, expected) in [("0", vec![]), ("2,10,0,invalid", vec![2, 10])] {
+            let movies = parse_menu_movies(&format!(
+                "[page3]\nmovie_name[0]=TEST.SMK\nmovie_keys[0]={value}"
+            ))
+            .unwrap();
+            assert_eq!(movies[0].keys, expected);
+        }
+        let value = (1..=20)
+            .map(|v| v.to_string())
+            .collect::<Vec<_>>()
+            .join(",");
+        let movies = parse_menu_movies(&format!(
+            "[page3]\nmovie_name[0]=TEST.SMK\nmovie_keys[0]={value},invalid"
+        ))
+        .unwrap();
+        assert_eq!(movies[0].keys, (1..=20).collect::<Vec<_>>());
+    }
+
+    #[test]
+    fn installed_cinematic_definitions() {
+        let Some(root) = std::env::var_os("REDGUARD_DIR") else {
+            eprintln!("SKIP installed cinematic definitions: REDGUARD_DIR is absent");
+            return;
+        };
+        let path = std::path::PathBuf::from(root).join("MENU.INI");
+        let content = std::fs::read_to_string(&path).unwrap();
+        let movies = parse_menu_movies(&content).unwrap();
+        assert_eq!(movies.len(), 11);
+        assert_eq!(movies[0].keys, [1508, 4502, 5801]);
+        assert!(movies[1].keys.is_empty());
+        assert!(movies.iter().any(|movie| !movie.subtitles.is_empty()));
+    }
+
     #[test]
     fn subtitles_preserve_commas_and_first_fields_win() {
         let movies = parse_menu_movies("[PAGE3]\nmovie_name[0]=INTRO.SMK\nmovie_name[0]=OTHER.SMK\nmovie_keys[0]=2,10\nmovie0_text[0]=1,255,0,9,2,10,Hello, Cyrus.").unwrap();
