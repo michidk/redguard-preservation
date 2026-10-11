@@ -185,6 +185,27 @@ interpolate vertex positions between model frames. These rules describe a
 forward current group; reverse playback, pending-group eligibility, delays,
 and event dispatch have additional state.
 
+## Forward animation delays
+
+`DelayCounter`, opcode twelve, narrows its operand to a byte, advances the
+command cursor, and yields without selecting a new model frame when that byte
+is nonzero. Zero continues interpreting commands in the same invocation.
+The previous displayed pose remains selected during the wait.
+
+At the start of subsequent advancements, byte value 255 yields indefinitely.
+For another nonzero value, the engine subtracts the shared whole nominal ticks
+with wrapping 32-bit arithmetic and tests the signed result. A positive result
+is narrowed back to the delay byte and yields. Otherwise the delay clears and
+ordinary advancement continues in that same call, using the original tick
+input in full. The delay does not consume a portion of the frame-skip input.
+A zero-tick advancement therefore preserves a finite delay.
+
+Waiting neither ends the current group nor completes a task waiting for a group
+change. Selecting a replacement group clears its delay state. The cursor has
+already moved past the delay command; the usual countdown and frame-skip rules
+still apply when the delay expires. `ConditionalDelay` and `LoopControl` use
+separate state from `DelayCounter`.
+
 ## Breakpoints and walking translation
 
 `BreakPoint`, opcode five, sets a marker in the current animation state and
