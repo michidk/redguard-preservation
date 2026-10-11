@@ -423,6 +423,17 @@ For both primary and fallback model support, a steep classification (2) becomes
 ordinary ground (4) in the stored support state when collision-attribute bit 2
 is clear. The geometric normal itself is unchanged.
 
+### Support-query misses
+
+A support-query miss clears the selected model, source kind and classification,
+and sets the returned actor height to the no-support sentinel. It retains the
+previous contact normal, texture identity and support metadata byte. These
+retained fields do not constitute a valid contact when the source kind is zero.
+
+The designated-player wrapper copies the result and tests its support metadata
+for the support-history reset even when the query returned no support. A retained
+metadata byte with mask `0x04` therefore resets the counter to 12 after a miss.
+
 ### Ground-support ranking
 
 The ordinary vertical support segment is centered on the actor's integer map
