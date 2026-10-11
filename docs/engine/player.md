@@ -65,9 +65,8 @@ previous-angle fields before selecting the default animation and running the
 ordinary animation block. Movement later in that update can change the current
 angles. The admitted incremental refresh does not advance this snapshot.
 In the normal main-loop order, map-list presentation, which can refresh actor
-matrices, precedes the ordinary actor update. A heading changed by movement is
-therefore not itself a request to rebuild the matrix before that movement's
-collision queries. Other explicit orientation operations remain separate.
+matrices, precedes the ordinary actor update. Explicit orientation assignment
+and attached-actor composition remain separate operations.
 
 In that branch, `attr_rotation = 2` instead rebuilds from identity using the
 negated current angles. A selected player with nonzero roll takes a separate
