@@ -226,11 +226,6 @@ pub(crate) fn serialize_model_3d(
     }
 
     // Emit animation frame delta blocks
-    let frames_use_i32 = !model.frame_data.is_empty()
-        && matches!(
-            model.frame_data[0].frame_type,
-            crate::import::model3d::FrameType::AnimatedI32
-        );
     for frame_idx in 0..anim_frame_count {
         let frame_verts = &model.frame_vertex_data[frame_idx].coords;
         let frame_face_normals = model
@@ -261,22 +256,9 @@ pub(crate) fn serialize_model_3d(
                             z: 0.0,
                         });
 
-                // Match rgunity-main RG3DStore frame delta math exactly.
-                let (dx, dy, dz) = if frame_idx == 0 || frames_use_i32 {
-                    let ddx = (frame_coord.x - base_coord.x) / ENGINE_UNIT_SCALE;
-                    let ddy = (frame_coord.y - base_coord.y) / ENGINE_UNIT_SCALE;
-                    let ddz = (frame_coord.z - base_coord.z) / ENGINE_UNIT_SCALE;
-                    // Old path then applies MESH_VERT_FLIP=(1,-1,1), and Unity deserializer later negates X.
-                    (-ddx, -ddy, ddz)
-                } else {
-                    let scale = 1.0 / 5120.0;
-                    // frame_coord stores raw i16 delta values from parser
-                    (
-                        frame_coord.x * scale,
-                        frame_coord.y * scale,
-                        -frame_coord.z * scale,
-                    )
-                };
+                let dx = -(frame_coord.x - base_coord.x) / ENGINE_UNIT_SCALE;
+                let dy = -(frame_coord.y - base_coord.y) / ENGINE_UNIT_SCALE;
+                let dz = (frame_coord.z - base_coord.z) / ENGINE_UNIT_SCALE;
 
                 // Normal delta: frame face normal - base face normal
                 let base_fn = s
