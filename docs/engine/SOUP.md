@@ -384,6 +384,184 @@ Ordinary actor updates select the playback default using actor state; these
 attribute writes do not directly replace that selection step. See
 [ordinary default selection](animation.md#placed-actor-initialization-and-eligibility).
 
+### Player distance and facing
+
+`PlayerDistance()` returns the sum of the absolute X, Y and Z differences
+between the selected player's current position and the receiver's effective
+position. Positions and the result use the runtime coordinate scale of 256
+units per world unit. Without a selected player, it uses the global fallback
+position. A global override selects the fixed result `9999999` instead of
+calculating distance.
+
+Effective receiver position follows the same selection used by
+[positional sound](sound.md#distance): a nonzero `attr_slave`
+selects attached position; otherwise a valid linked positioned record supplies
+position, with the receiver's ordinary position as the final fallback.
+
+`PlayerFacing(offset, tolerance)` compares orientations. It adds `offset` to
+the receiver's effective yaw, wraps the sum modulo 2048, and compares it with
+the selected player's current yaw. The signed difference is wrapped into
+`[-1024, 1024]`; the result is one when its absolute value is less than or equal
+to the signed `tolerance`, otherwise zero. The offset and tolerance are full
+signed 32-bit arguments. The receiver's attached yaw is used when `attr_slave`
+is nonzero; otherwise its ordinary yaw is used. This function requires a
+selected player. See [coordinate and heading units](player.md#coordinate-and-heading-units).
+
+### Actor families and attached transforms
+
+`attr_master` and `attr_slave` are byte-sized group identities. A nonzero slave
+identity attaches an actor to the matching master group. An actor can be both a
+slave of one group and the master of another, forming a nested family.
+
+Family initialization scans identities 1 through 255. For each identity it
+selects the first matching master without a slave identity from the actor
+traversal list. It collects attached child masters separately from attached
+actors without a master identity. Each collection prepends matching actors,
+so its traversal reverses their encounter order.
+
+Initialization saves each master's original position and angles before
+processing its descendants. Descendants are initialized before the child
+master's own coordinates become local. For each attached actor:
+
+1. Subtract the parent's saved original position from the actor's position.
+2. Multiply that displacement by the transpose of the parent's orientation
+   matrix to obtain the local offset.
+3. If the parent's `attr_no_slave_rot` is zero, subtract the parent's saved
+   original angles from the actor's angles, wrapping each component modulo 2048.
+4. Initialize the attached-position storage with the resulting local offset.
+
+The angle subtraction tests the parent's attribute. The later composition
+branch tests the attached actor's own attribute.
+
+#### Family refresh
+
+Each family refresh caches the root master's current position and angles.
+It composes each child master before visiting that child's descendants, then
+processes the remaining attached actors. Attached positions use the runtime
+coordinate scale of 256 units per world unit:
+
+```
+effective_position = parent_effective_position + parent_matrix * local_offset
+```
+
+Refresh preserves the previous attached position before storing the new one.
+Render position components use the effective integer coordinate shifted
+arithmetically right by eight bits, then converted to single precision.
+
+When the attached actor's `attr_no_slave_rot` is zero, refresh copies the parent
+matrix and applies negative local yaw, pitch and roll in that order. Its
+effective angle fields separately add the parent's effective angles and local
+angles, wrapping each sum modulo 2048. A child master publishes its effective
+position and angles for descendants. Matrix composition and effective Euler
+angle addition are separate operations.
+
+When the attached actor's `attr_no_slave_rot` is nonzero, position still uses
+the parent matrix and translation. Its existing orientation matrix instead
+receives negative local yaw, pitch and roll changes relative to the saved
+previous local angles. Its effective angle fields use the local angles modulo
+2048 without adding parent angles.
+
+#### Integer matrix arithmetic
+
+Both local-offset initialization and position composition convert each signed
+integer input to single precision first. Matrix elements are single precision.
+Products and additions use x87 intermediates; each completed component is
+stored to single precision before conversion to an integer. Single-precision
+stores and integer conversion use the ordinary nearest-even rounding mode,
+as in the
+[forward-probe transform](player.md#ordinary-forward-walk-support-checks).
+Parent translation is integer addition after conversion.
+
+For row-major matrix entries `m00` through `m22`, ordinary composition evaluates:
+
+```
+X = (y * m01 + x * m00) + z * m02
+Y = (x * m10 + y * m11) + z * m12
+Z = (x * m20 + y * m21) + z * m22
+```
+
+The transpose used during initialization evaluates:
+
+```
+X = (y * m10 + x * m00) + z * m20
+Y = (x * m01 + y * m11) + z * m21
+Z = (x * m02 + y * m12) + z * m22
+```
+
+#### Matrix axis updates
+
+Axis rotations use the [shared rotation table](water.md#wave-lookup-table).
+For the supplied wrapped angle `a`, `s` is table entry `a` and `c` is entry
+`a + 512`. For each existing matrix row `(x, y, z)`, the helpers write:
+
+| Axis operation | Temporary single-precision result | Other single-precision result | Unchanged component |
+|---|---|---|---|
+| Yaw | `x_new = x * c - z * s` | `z_new = z * c + x * s` | `y` |
+| Pitch | `y_new = y * c + z * s` | `z_new = z * c - y * s` | `x` |
+| Roll | `x_new = x * c + y * s` | `y_new = y * c - x * s` | `z` |
+
+Both expressions use the row values from before that axis operation. The helper
+rounds the temporary result first, stores the other result in the matrix, then
+copies the temporary into the matrix. Each result is single precision before
+the next axis operation. Products
+and sums use x87 intermediates. Family composition applies these operations to
+the copied parent matrix with negative local yaw, negative local pitch and
+negative local roll, each wrapped modulo 2048.
+
+#### Angle snapshots and script ordering
+
+Explicit [orientation assignment](player.md#upright-actor-orientation) initializes
+the previous-angle fields from the assigned angles. The ordinary actor update
+copies current local angles into those fields before animation, movement and
+main script processing. Actors excluded from that update do not take this
+snapshot.
+
+The ordinary family-composition branch reuses these fields for propagated
+angle deltas. Each component becomes
+`(local_angle - saved_local_angle + parent_delta) & 2047` and supplies the delta
+for descendant processing. The `attr_no_slave_rot` branch leaves these fields
+unchanged and passes their stored values onward.
+
+In the normal main loop, family refresh precedes map-list rendering and the
+ordinary actor update. A separate ground-settling path also invokes family
+refresh. A local-angle write does not itself refresh attached position, matrix
+or effective angles. Consequently, an ordinary script's `RotateByAxis` followed
+by `PlayerFacing` reads the previously composed attached yaw until another
+family refresh occurs.
+
+### Relative axis rotation
+
+`RotateByAxis(axis, delta, duration)` modifies the receiver's local angles.
+Axis zero selects X, axis one selects Y, and every other axis value selects Z.
+Angles wrap modulo 2048. A zero delta or zero duration completes without
+changing an angle.
+
+The task keeps a target and accumulator with eight fractional bits. When the
+saved target and the task elapsed input are both zero, it initializes the target
+to `((current_angle + delta) & 2047) << 8` and the accumulator to
+`current_angle << 8`.
+
+Each invocation computes a fixed-point step by shifting `delta` left eight
+bits, dividing by `duration` with signed truncation toward zero, multiplying by
+the current shared frame scale, then arithmetic-shifting right eight bits.
+The intermediate shifts and multiplication retain their low 32 bits. If this
+step is zero and the shared whole nominal-tick increment is nonzero, that tick
+increment becomes the step, negated only when the saved target is negative.
+
+The task compares the absolute shortest wrapped angle difference between the
+current angle and `target >> 8` with `abs(step >> 8)`. If the difference is
+larger, it adds the step to the accumulator, writes
+`(accumulator >> 8) & 2047`, and remains active. Otherwise it writes
+`target >> 8` and completes. The initial invocation can change the angle.
+Arguments are reevaluated on later invocations, while the saved target and
+accumulator persist unless the initialization condition is met again.
+
+Each task slot owns its target and accumulator; the receiver's angle is shared.
+Stopping the task removes its slot without restoring an earlier angle.
+Transform and attachment updates consume the changed local angles separately;
+the handler does not update their matrices itself. Frame scale and nominal ticks
+are distinct inputs; see [animation timing](animation.md#timing-boundary).
+
 ### Function Table
 
 `SOUP386.DEF` declares callable functions in installed order. Index 0 is the synthetic `NullFunction`; authored entries start at index 1. Functions span the following categories:
