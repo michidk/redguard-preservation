@@ -93,7 +93,9 @@ The actor loader chooses its model path from the RAHD record. A zero
 `raan_count` is one, the complete signed `anim_control_prefix` field is −1,
 and the signed `anim_frame_data` field is less than two. All other nonzero-model
 cases build the animation model table. This classification precedes group
-requests and the model-path message-group attribute assignment.
+requests and the model-path message-group attribute assignment. Exported actor
+metadata records the result as `model_load_path`: `none`, `static`, or
+`animation_table`.
 
 The MPOB activation byte selects storage and update-list membership. Zero stores
 an ordinary placed actor in its spatial map cell; a nonzero value uses the

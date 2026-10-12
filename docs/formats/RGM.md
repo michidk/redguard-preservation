@@ -251,7 +251,7 @@ All typed fields are little-endian.
 | 0x21 | 4 | `i32` | raan_count | Number of RAAN entries for this actor |
 | 0x25 | 4 | `u32` | raan_data_size | Total byte size of this actor's RAAN entries. Zero when `raan_count` = 0. |
 | 0x29 | 4 | `i32` | raan_offset | Byte offset into RAAN section data (rebased to pointer at load) |
-| 0x2D | 4 | — | anim_control_prefix | Low byte stored at animation control struct offset `+0x12` during RAGR loading. Remaining bytes are not decoded. |
+| 0x2D | 4 | — | anim_control_prefix | Low byte stored at animation control struct offset `+0x12` during RAGR loading. The complete signed field is compared with −1 when selecting the static-model shortcut; see [model loading](../engine/animation.md#placed-actor-initialization-and-eligibility). |
 | 0x31 | 4 | `u32` | ragr_offset | Byte offset into RAGR section data (rebased to pointer at load) |
 | 0x35 | 8 | — | padding | Always 0. |
 | 0x3D | 4 | `u32` | rafs_index | Index into RAFS data (vestigial — RAFS is 1 byte in all shipped files) |

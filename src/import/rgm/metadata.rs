@@ -718,6 +718,19 @@ pub(super) fn export_rgm_metadata_json_impl(
             actor.insert("index".into(), i.into());
             actor.insert("script_name".into(), script_name.clone().into());
 
+            // Actor-loader branch conditions, documented in engine/animation.md.
+            let model_path = match read_i32_le(item, 0x21) {
+                Some(0) => "none",
+                Some(1)
+                    if read_i32_le(item, 0x2D) == Some(-1)
+                        && read_i32_le(item, 0x85).is_some_and(|frames| frames < 2) =>
+                {
+                    "static"
+                }
+                _ => "animation_table",
+            };
+            actor.insert("model_load_path".into(), model_path.into());
+
             if let Some(ragr) = ragr_data
                 && let Ok(ragr_offset) = usize::try_from(ragr_offset)
             {
