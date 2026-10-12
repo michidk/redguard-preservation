@@ -1,5 +1,8 @@
 # GXA bitmap archive format for UI and sky textures.
 
+`system/pointers.bmp` also uses this chunked format, despite its BMP extension.
+It is not a Windows BMP image.
+
 ## Overall Structure
 
 ```
@@ -27,7 +30,8 @@ Sections are chunked and use this order in the shipped files:
 
 ## BMHD Section
 
-All shipped files use the title `GXlib image conversion`.
+Files with the GXA extension use the title `GXlib image conversion`.
+The cursor archive `system/pointers.bmp` has an empty title.
 
 | Offset | Size | Type | Name | Description |
 |---|---:|---|---|---|
