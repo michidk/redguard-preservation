@@ -289,6 +289,20 @@ When a Numeric (`0x07`) or NumericAlt (`0x16`) opcode appears in PARAMETER mode,
 | `ActiveItem`, `AddItem`, `DropItem`, `HandItem`, `HaveItem`, `SelectItem`, `ShowItem`, `ShowItemNoRtx` | Item ID | `i32` item identifier |
 | All others | Integer | `i32` signed integer |
 
+### Attribute default-group side effects
+
+The `SetAttribute` attribute-44 animation-default path releases the actor's two
+held walk-node reservations before storing the full supplied value as the
+model's default group. A node's ownership byte is cleared only when it matches
+the low byte of the actor identifier; both actor-held node indices are then
+cleared. This operation does not reset the animation cursor, current group,
+or loop countdown.
+
+`SetMyAttr` stores the low byte of its value in the attribute table. For
+attribute 44, when the actor has an active model record, it also stores that
+truncated byte as the model default. This path does not release walk-node
+reservations. Both attribute setters return zero.
+
 ### Function Table
 
 `SOUP386.DEF` declares 367 callable functions (indices 1–367; index 0 is the synthetic `NullFunction`). Functions span the following categories:
