@@ -88,6 +88,13 @@ ordinary object with an animation model table, group setup builds the RAGR table
 and makes two ordinary requests for group zero with modifier zero. These requests
 reuse the shared nominal ticks.
 
+The actor loader chooses its model path from the RAHD record. A zero
+`raan_count` means no model. Otherwise, the static-model shortcut applies when
+`raan_count` is one, the complete signed `anim_control_prefix` field is −1,
+and the signed `anim_frame_data` field is less than two. All other nonzero-model
+cases build the animation model table. This classification precedes group
+requests and the model-path message-group attribute assignment.
+
 The MPOB activation byte selects storage and update-list membership. Zero stores
 an ordinary placed actor in its spatial map cell; a nonzero value uses the
 persistent actor list. The active update list combines nearby cell actors with
