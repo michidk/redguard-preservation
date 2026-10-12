@@ -1,5 +1,8 @@
 # GXA bitmap archive format for UI and sky textures.
 
+The cursor sprite sheet `system/pointers.bmp` also uses this chunked format.
+Its `.bmp` extension does not describe a Windows bitmap.
+
 ## Overall Structure
 
 ```
