@@ -30,6 +30,10 @@ The file contains a single `[items]` section with two parts:
 
 All fields are optional. Missing fields are treated as unused. The index `x` in each field name is the item ID used in all script commands.
 
+A field with no text after `=` is equivalent to an omitted field. Explicit zero
+remains a stored value. Item lists contain comma-separated decimal item IDs.
+Paths, script names, and RTX labels retain their spelling and capitalization.
+
 #### General fields
 
 | Field | Description |
@@ -50,7 +54,7 @@ All fields are optional. Missing fields are treated as unused. The index `x` in 
 | Field | Description |
 |---|---|
 | `use_script[x]` | AI script file to execute when the item is used through the shell system. |
-| `script_instances[x]` | Maximum concurrent instances of the use script. `1` prevents a new instance from starting if one is already running. `0` means unlimited instances. |
+| `script_instances[x]` | Maximum concurrent instances of the use script. `1` prevents a new instance from starting if one is already running. Zero or a negative value means unlimited instances. |
 
 #### Objects and bitmaps
 

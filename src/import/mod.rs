@@ -5,6 +5,8 @@ pub mod bsi;
 pub mod cdrom;
 /// Parser for REDGUARD.CHT cheat persistence files.
 pub mod cht;
+/// Typed COMBAT.INI attacks, defenses, and taunts.
+pub mod combat_ini;
 /// Parser for FNT bitmap font files.
 pub mod fnt;
 /// Export helpers for FNT assets.
@@ -21,6 +23,9 @@ pub mod glide_splash_dll;
 pub mod gxa;
 /// Shared indexed bitmap representation.
 pub mod indexed_image;
+mod ini;
+/// Typed ITEM.INI inventory settings and item definitions.
+pub mod item_ini;
 /// Parser for KEYS.INI player keyboard bindings.
 pub mod keys_ini;
 /// Parser for IFF PBM bitmaps.
@@ -55,6 +60,8 @@ pub mod smacker;
 pub mod soup_def;
 pub mod soup_ini;
 pub mod surface_ini;
+/// Typed SYSTEM.INI engine configuration.
+pub mod system_ini;
 /// Parser and export helpers for WLD world files.
 pub mod wld;
 /// Parser for WORLD.INI world/level database.

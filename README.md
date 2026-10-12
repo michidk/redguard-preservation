@@ -53,6 +53,40 @@ Each format has its own subcommand with scoped flags. `convert <FILE>` auto-dete
 
 ¹ Exported TTF fonts are bitmap-traced vector outlines without hinting. They can be installed on Windows, used in game engines (Unity, Godot, etc.), and previewed at [fontdrop.info](https://fontdrop.info).
 
+## Typed configuration parsers
+
+The Rust library parses the gameplay configuration files into named structs:
+
+| File | Entry point | Contents |
+|---|---|---|
+| `SYSTEM.INI` | `rgpre::import::system_ini::SystemIni::parse` | Display, engine, debug, gameplay, player, object-manager, renderer, camera, dialogue, and Glide settings. |
+| `COMBAT.INI` | `rgpre::import::combat_ini::CombatIni::parse` | Global combat settings and attacks, defenses, and taunts indexed by section ID. |
+| `ITEM.INI` | `rgpre::import::item_ini::ItemIni::parse` | Inventory settings and item definitions indexed by item ID. |
+
+```rust
+use rgpre::import::{combat_ini::CombatIni, item_ini::ItemIni, system_ini::SystemIni};
+
+let system = SystemIni::parse(&std::fs::read_to_string("SYSTEM.INI")?)?;
+let combat = CombatIni::parse(&std::fs::read_to_string("COMBAT.INI")?)?;
+let items = ItemIni::parse(&std::fs::read_to_string("ITEM.INI")?)?;
+```
+
+These APIs require `[system]`, `[misc]`, and `[items]`, respectively. Other
+sections and individual fields can be absent. Missing or empty fields are
+`None`; explicit zero remains `Some(0)`. Signed engine units, floating-point
+camera factors, paths, RTX labels, and sparse IDs retain their values. Documented
+type codes have named enum variants, and undocumented codes use `Unknown(i32)`.
+
+Section and key matching ignores case. The first duplicate key wins. Semicolon
+comments, LF or CRLF line endings, and an initial UTF-8 BOM are accepted. Unknown
+fields are ignored. Invalid INI records, malformed recognized values, overflowing
+integers, non-finite floats, and invalid indexed identifiers return `Error::Parse`.
+Parsing retains stored values without applying engine defaults or runtime clamps.
+
+The narrower `rgpre::import::player_ini::PlayerConfig` API remains available for
+ordinary grounded movement. It requires its six player settings and rejects
+duplicate relevant keys.
+
 ## Documentation
 
 The full documentation is published at **<https://michidk.github.io/redguard-preservation/>** (rendered with `mdBook`). The Markdown sources live under [`docs/`](docs/README.md) and are organised into three sections:

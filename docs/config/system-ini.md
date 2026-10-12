@@ -4,10 +4,11 @@ Primary engine configuration file controlling rendering, gameplay, camera, dialo
 
 Shipped sample path: `/Redguard/SYSTEM.INI` (e.g. `.../GOG Galaxy/Redguard/Redguard/SYSTEM.INI`).
 
-The `import::player_ini::PlayerConfig` parser exposes the installed ordinary
-grounded-player settings from `[system]` and `[cyrus]`. It requires explicit
-values and rejects duplicate relevant keys; missing-value defaults and duplicate
-precedence are not supplied by this API.
+Settings use `key=value` records grouped by section. Semicolons introduce
+comments. Switches use `0`/`1`, `no`/`yes`, or `off`/`on`. Most numeric fields
+contain decimal integers, including negative position offsets and thresholds.
+Camera glide factors and `cam_prox_up` contain decimal floating-point values.
+The `[3dfx]` scale and font-color settings contain comma-separated integer pairs.
 
 ## File Structure
 
@@ -198,7 +199,7 @@ Player character (Cyrus) movement, control, and camera-follow parameters.
 |---|---|---|
 | `sheath_sword_delay` | `6` | Frames before the sword auto-sheathes after combat. |
 | `auto_defend` | `1` | Enable automatic defense. `1` = on. |
-| `walk_mode` | `1` | Walk mode index. |
+| `walk_mode` | `0` | Walk mode index. |
 | `turn_speed` | `12` | Base turning speed. |
 | `turn_max_speed` | `48` | Maximum turning speed. |
 | `mouse_turn` | `0` | Mouse-driven turning. `0` = disabled. |
