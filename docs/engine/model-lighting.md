@@ -75,7 +75,19 @@ Accumulate local lights before clamping and solid-color tinting. Retained
 instance RGB receives local contributions and clamping without a second tint.
 The distance-table initializer selects single-precision x87 arithmetic with
 round-to-nearest; intermediate arithmetic rounds to single precision. The
-attenuation denominator evaluates as `(2 * d + q) + d`.
+attenuation denominator evaluates as `(2 * d + q) + d`; its numerator evaluates
+as `((2 * radius + radius * radius) + radius) / 256`.
+
+## Retained instance colors
+
+Prelighting traverses faces in authored order and vertices in each face's
+order. It uses each face's brightness and material together with the vertex
+position and supplied normal, through the same model-lighting calculation.
+The resulting clamped, tinted RGB channels are rounded to integers with
+round-to-nearest, ties to even, then packed as `0x00RRGGBB`. The retained
+array contains one packed entry per face vertex, including repeated mesh
+vertices shared by different faces. An existing instance buffer is reused
+when prelighting is recalculated.
 
 ## Export metadata
 
