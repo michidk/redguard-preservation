@@ -120,6 +120,38 @@ The installed ISLAND map has three FLAG2 placements, all ordinary objects with
 a zero activation byte and no static model override. Their FLAG2 attribute
 record is all zero, including byte 44. These values define their initial state.
 
+## Living actor default selection
+
+For an actor that does not satisfy `IsDead`, ordinary default selection uses
+these branches in order. The first matching branch wins.
+
+| Condition | Default group |
+|---|---|
+| Selected player satisfies `IsInDeepWater` | 141 |
+| Actor is attached to a rope | 79 |
+| Actor state is 15 | 7 |
+| `IsSheathingSword` is true | Attribute byte 44 |
+| `IsDrawingSword` or `IsHoldingWeapon` is true | 8 |
+| Actor's torch-burning counter is nonzero | 5 |
+| Otherwise | Attribute byte 44 |
+
+The selected-player deep-water branch also invokes weapon-state cleanup;
+selecting group 141 alone does not perform that transition.
+
+The sword predicates require the item system to be loaded, an actor with
+animation state, and ordinary rather than shell execution. `IsSheathingSword`
+accepts actor state 21 or current group 129; `IsDrawingSword` accepts actor
+state 20 or current group 91. `IsHoldingWeapon` returns true immediately for a
+nonzero attribute byte 110. Otherwise it requires combat capability, a set
+weapon-drawn flag, and a false `IsSheathingSword` result, under the same item,
+animation and execution-context gates.
+
+After selection, when animation state exists and execution is outside the
+shell context, a changed default replaces the current group immediately if
+the current group was the old default and its exit marker is clear. A pending
+group equal to the old default is separately replaced by an ordinary request
+for the new default. These checks use the old default captured before selection.
+
 ## Forced requests
 
 A forced request for the current group, before its exit marker is set, clears
