@@ -14,7 +14,7 @@ The file uses:
 - per-chunk on-disk headers (`tag` + big-endian payload size)
 - a footer that points to a central index table
 
-All values below are validated against `ENGLISH.RTX`.
+The values below describe `ENGLISH.RTX`.
 
 ## File Layout
 
@@ -58,7 +58,7 @@ The index is an array of 12-byte entries. Each entry points to one chunk payload
 | 0x04 | 4 | u32 | LE | payload_offset | Absolute file offset of payload (not header) |
 | 0x08 | 4 | u32 | LE | payload_size | Payload byte size |
 
-Validation notes (all 4866 entries):
+All 4866 entries satisfy these invariants:
 
 - `payload_offset - 8` points to a chunk header with matching `tag`
 - header `payload_size` (big-endian) matches indexed `payload_size`

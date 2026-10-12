@@ -20,7 +20,7 @@ All four book/page models have nine uncompressed frames. The settled main menu u
 
 The Glide viewport has horizontal half-field tangent `0.788`. At 640 by 480, screen coordinates for camera-space `(x, y, z)` are `(320 + 320*x/(0.788*z), 240 + 320*y/(0.788*z))`. Texture UVs follow the model format's cumulative 1/16-texel coordinates. `REDGUARD.COL` is the initial palette; game/save context can replace the image on the main page with a gameplay snapshot. That snapshot is runtime content, not static book artwork.
 
-Book surfaces are single-sided. With positive screen Y down, visible triangles have negative signed area; the opposite winding is culled. Each main, Movies, Options, and Controls page surface has sixteen projected triangles in the examined models. Turning the page reverses their winding and exposes its other surface, rather than a mirrored copy of the previous page.
+Book surfaces are single-sided. With positive screen Y down, visible triangles have negative signed area; the opposite winding is culled. Each main, Movies, Options, and Controls page surface has sixteen projected triangles. Turning the page reverses their winding and exposes its other surface, rather than a mirrored copy of the previous page.
 
 ## Text
 
@@ -34,11 +34,12 @@ Entries form a circular ordered list. Up selects the previous eligible entry, Do
 
 Action `-2` begins a closing-book/camera sequence and exits the game. It does not ask for confirmation. Action `-1` resumes; positive IDs dispatch the configured submenu or game function. Those functions must be implemented separately from rendering their labels.
 
-## Evidence and limits
-
-Verified against the installed MENU.INI, all six MENU.ROB segments, TEXBSI banks 288/289, the FNT files, and the menu setup, text, traversal, action, camera, and viewport routines. The model frame arrays have full signed-triplet spacing in every book frame. Independent parser probes verified the four nine-frame models and their bounded open/closed geometry.
-
-Lighting inherits engine/environment state. This document does not establish a context-independent light rig or a replacement for the runtime gameplay snapshot. Mouse menu selection and menu audio remain outside this investigation.
+The menu inherits the current engine lighting and environment state. The default
+book menu has no pointer hover or click selection. Pointer coordinates do not
+determine the selected entry. Mouse buttons and motion have input codes in
+KEYS.INI, but the shipped menu bindings use keyboard and joystick logical
+actions. Controls key capture accepts the left and right mouse button codes on
+release.
 
 ## Options and settings pages
 
@@ -48,19 +49,19 @@ The Glide executable omits actions 501, 502, and 503 when constructing Display e
 
 Options turns MB_PG01 and MB_PG02 to their last frames. MB_PG01 moves four units farther along Z when passing its middle frame. The settled camera is at the origin. Display uses camera `(336, -128, 0)` and Sound uses `(336, 176, 0)`, retaining those page frames. Controls additionally turns MB_PG03 to its last frame, moving it four units nearer along Z; the camera returns to the origin. Returning reverses those changes. Camera pitch changes during the transition cancel at the settled endpoint.
 
-Left and Right subtract or add one within the installed slider bounds without wrapping. Enter or the primary activation key toggles actions 504, 505, and 603. These preferences map to SYSTEM.INI `[dialog] dialog_print_text`, `[screen] smk_interlace`, and `[dialog] dialog_use_speech`. Sound and Music actions 601 and 602 initialize from `[system] volume` and `redbook_volume`, divided by 12.8 and truncated toward zero. Updates multiply the menu value by 12.8 and truncate to the engine volume. Sound controls range from zero to twenty in the examined install, giving these engine volumes:
+Left and Right subtract or add one within the installed slider bounds without wrapping. Enter or the primary activation key toggles actions 504, 505, and 603. These preferences map to SYSTEM.INI `[dialog] dialog_print_text`, `[screen] smk_interlace`, and `[dialog] dialog_use_speech`. Sound and Music actions 601 and 602 initialize from `[system] volume` and `redbook_volume`, divided by 12.8 and truncated toward zero. Updates multiply the menu value by 12.8 and truncate to the engine volume. The shipped configuration gives Sound a range from zero to twenty and these engine volumes:
 
 | Slider | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | Volume | 0 | 12 | 25 | 38 | 51 | 64 | 76 | 89 | 102 | 115 | 128 | 140 | 153 | 166 | 179 | 192 | 204 | 217 | 230 | 243 | 256 |
 
-The shipped `volume=255` opens at 19, not 20, and `redbook_volume=200` at 15. Because both directions truncate, most values reopen one notch lower (slider 1 writes 12, which reads back as 0). Whether exact multiples of 64 (64, 128, 192, 256) read back as 5, 10, 15, 20 or one lower depends on the floating-point precision in effect and has not been observed. The Sound volume becomes the master volume of [positional sound](sound.md#starting-a-sound); the Music value is described in [music](music.md).
+The shipped `volume=255` opens at 19, not 20, and `redbook_volume=200` at 15. Because both directions truncate, most values reopen one notch lower (slider 1 writes 12, which reads back as 0). The Sound volume becomes the master volume of [positional sound](sound.md#starting-a-sound); the Music value is described in [music](music.md).
 
 Checkboxes use MM_CHECK.GXA frames indexed by the toggle value. Sound sliders use MM_SLIDE.GXA, selecting the rounded product of the value and `(frame_count - 1) / (slider_max - slider_min)`, clamped at the endpoints. Widgets paint at output coordinates; their labels retain normal text without a numeric suffix.
 
-Controls actions 710 through 717 map to up, down, left, right, A, B, C, D. Actions 718 through 724 map to inventory, sword, health, map, log, next, previous. Output names come from KEYS.INI `[defined] key[code]`. While capturing, the book alternates `<prompt>` and `>prompt<` in the selection font. Its prompt buffer initializes to `WAITING` and uses KEYS.INI `[misc] waiting_message` when configured; the examined install displays `HIT KEY`. Key names and the configured prompt are uppercased and limited to fifteen characters before display. Escape cancels capture. Tab, Enter, F1 through F10, F11 and F12 are rejected during capture; Minus and Equal are also rejected by binding validation. Rebinding a used code clears the first conflicting binding. Zero displays the installed name for an empty binding. Mouse/joystick input shares the original code table but requires separate device handling.
+Controls actions 710 through 717 map to up, down, left, right, A, B, C, D. Actions 718 through 724 map to inventory, sword, health, map, log, next, previous. Output names come from KEYS.INI `[defined] key[code]`. While capturing, the book alternates `<prompt>` and `>prompt<` in the selection font. Its prompt buffer initializes to `WAITING` and uses KEYS.INI `[misc] waiting_message` when configured; the shipped configuration displays `HIT KEY`. Key names and the configured prompt are uppercased and limited to fifteen characters before display. Escape cancels capture. Tab, Enter, F1 through F10, F11 and F12 are rejected during capture; Minus and Equal are also rejected by binding validation. Rebinding a used code clears the first conflicting binding. Zero displays the installed name for an empty binding. Mouse/joystick input shares the original code table but requires separate device handling.
 
-Movies action 3 turns MB_PG01 to its last frame with the same four-unit depth change, and uses camera `(336, 0, 0)`. Page 3 action 300 returns to Main; actions 301 through 305 select movie definitions zero through four. MM_MOVIE.GXA supplies the corresponding preview images. The original gates movie entries with runtime unlock flags; the installed text alone does not establish unlock state. MENU.INI `[general] force_movies=1` initializes every movie as unlocked. Playing a cinematic sets its unlock flag. The startup game path plays movie zero, so Introduction is visible at the first settled menu. MM_MOVIE.GXA preview data begins at row 33 of the second Movies page texture. The preview copies every indexed pixel into the page, including zero; its black pixels are opaque, unlike transparent widget pixels.
+Movies action 3 turns MB_PG01 to its last frame with the same four-unit depth change, and uses camera `(336, 0, 0)`. Page 3 action 300 returns to Main; actions 301 through 305 select movie definitions zero through four. MM_MOVIE.GXA supplies the corresponding preview images. Runtime unlock flags gate movie entries. MENU.INI `[general] force_movies=1` initializes every movie as unlocked. Playing a cinematic sets its unlock flag. The startup game path plays movie zero, so Introduction is visible at the first settled menu. MM_MOVIE.GXA preview data begins at row 33 of the second Movies page texture. The preview copies every indexed pixel into the page, including zero; its black pixels are opaque, unlike transparent widget pixels.
 
 Configuration lookup matches section/key names without case and returns the first matching occurrence. Settings outside the requested section do not override that section.
 
@@ -68,7 +69,7 @@ Configuration lookup matches section/key names without case and returns the firs
 
 Page turns use the authored frame arrays, not an independent hinge rotation. A turn request supplies an initial frame, a target frame, and an update delay. The delay counts down first; at zero it selects the initial frame. Later menu updates move one integer frame toward the target. There is no geometric interpolation between those authored frames in this path.
 
-MB_PG01 changes Z by +4 when a forward turn reaches frame four, and by -4 when a reverse turn reaches frame four. MB_PG03 applies the opposite depth changes. These shifts happen at the middle-frame crossing, not at the final frame. Returning to Main reverses the appropriate page turns. Cover motion and page-turn start can also dispatch menu sound cues; those cues require the existing effect playback path.
+MB_PG01 changes Z by +4 when a forward turn reaches frame four, and by -4 when a reverse turn reaches frame four. MB_PG03 applies the opposite depth changes. These shifts happen at the middle-frame crossing, not at the final frame. Returning to Main reverses the appropriate page turns. Cover motion and delayed page-turn starts dispatch the effects listed below.
 
 The startup camera move to the origin uses a fractional step of `0.15`.
 
@@ -97,3 +98,21 @@ view_z = y * sin(angle) + z * cos(angle)
 ```
 
 The sine and cosine samples use the shared [rotation table](water.md#wave-lookup-table), with cosine starting one quarter revolution after sine. The coordinates keep positive Y down. A negative first angle rotates positive-depth points downward on the screen.
+
+## Sound cues
+
+Book motion dispatches these zero-based `MAIN.SFX` effect indices:
+
+| Model | Event | Effect |
+|---|---|---:|
+| MENUA001 | Forward turn reaches frame 7 | 65 |
+| MENUA001 | Reverse turn reaches frame 0 | 64 |
+| MB_PG01 | Nonzero turn delay counts down to zero and selects the initial frame | 66 |
+| MB_PG02 | Nonzero turn delay counts down to zero and selects the initial frame | 67 |
+| MB_PG03 | Nonzero turn delay counts down to zero and selects the initial frame | 68 |
+
+Page cues occur in either direction, once at delayed start, before later frame stepping. A turn without a nonzero delay does not dispatch that page cue. MB_TABLE has no turn cue. The startup camera entry leaves the cover at frame zero and does not dispatch a cover cue. Display and Sound camera moves do not turn a page.
+
+These are [FlatSound](sound.md#soup-functions) requests: centered pan 64, zero volume offset, zero rate offset, and no owner or positional attenuation. Playback uses the effect header's base volume and sample rate with the saved master volume.
+
+Successful directional selection or widget adjustment plays effect 13. Accepted control rebinding also plays effect 13; rejected capture plays effect 18.

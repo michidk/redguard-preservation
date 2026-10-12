@@ -1,5 +1,6 @@
 /// Low-level parser for Redguard 3D/3DC binary model data.
 pub mod parser;
+pub mod subobjects;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 /// Recognized model format versions from 3D/3DC headers.
@@ -105,6 +106,8 @@ pub struct VertexNormal {
 pub enum FrameType {
     Static3D,
     AnimatedI16,
+    /// Signed i16 deltas in whole model units (frame type 0x12).
+    AnimatedI16Unscaled,
     AnimatedI32,
     Static3DC,
     Unknown(u32),
@@ -119,8 +122,7 @@ pub struct FrameDataEntry {
     pub frame_type: FrameType,
 }
 
-/// Absolute positions for full-precision frames, or raw signed deltas for compressed frames.
-/// Use `Model3DFile::at_frame` to resolve compressed values to model positions.
+/// Absolute per-frame vertex positions in model units, reconstructed from frame-zero deltas.
 #[derive(Debug, Clone)]
 pub struct FrameVertexData {
     pub coords: Vec<VertexCoord>,
@@ -248,9 +250,7 @@ pub fn parse_3d_file(input: &[u8]) -> Result<Model3DFile> {
 impl Model3DFile {
     /// Resolves a frame to absolute positions in parser model units.
     ///
-    /// Compressed positions use the existing RGMD export convention: subtract
-    /// signed fixed-point deltas from the base positions. This is an inspection
-    /// conversion, not a claim about animation scripts or interpolation timing.
+    /// The parser has already reconstructed compressed frame positions.
     /// Frame zero uses the parsed base geometry. Incomplete frames are rejected.
     /// The returned model is a static snapshot with no animation frame table.
     pub fn at_frame(&self, frame: usize) -> crate::Result<Self> {
@@ -286,17 +286,9 @@ impl Model3DFile {
             return Err(invalid("incomplete geometry"));
         }
         posed.vertex_coords = match encoding {
-            FrameType::AnimatedI16 => self
-                .vertex_coords
-                .iter()
-                .zip(positions)
-                .map(|(base, delta)| VertexCoord {
-                    x: base.x - delta.x / 256.0,
-                    y: base.y - delta.y / 256.0,
-                    z: base.z - delta.z / 256.0,
-                })
-                .collect(),
-            FrameType::AnimatedI32 => positions.clone(),
+            FrameType::AnimatedI16 | FrameType::AnimatedI16Unscaled | FrameType::AnimatedI32 => {
+                positions.clone()
+            }
             FrameType::Static3D
                 if matches!(self.version, ModelVersion::V40 | ModelVersion::V50) =>
             {

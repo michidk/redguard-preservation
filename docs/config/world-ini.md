@@ -17,6 +17,11 @@ Single section: `[world]`
 | `test_map_delay` | `1` | Delay (seconds) between worlds during test-map cycling. |
 | `test_map_order` | `0,1,2,1,...,-2` | Comma-separated world index sequence for the test-map loop. `-2` terminates the list. The shipped file includes a commented-out compact variant and an active interleaved variant that returns to world 1 between each location. |
 
+`import::world_ini::NewGameEntry::parse` reads the required `start_world` and
+`start_marker` indices from this section. Names match without case; the first
+occurrence of each key wins. Missing, negative, or malformed indices return a
+contextual error.
+
 ### Per-World Keys
 
 Each world is identified by an integer index `N`. Keys follow the pattern `key_name[N]=value`.
@@ -133,7 +138,7 @@ Worlds 0, 1, 6, 27, 28, and 30 have `world_world` entries and use a WLD terrain 
 
 ## Notes
 
-**Typos in the shipped file.** Line 286 reads `orld_ambientfx[8]=128` (missing leading `w`) and line 498 reads `orld_sunangle[23]=256`. Both are present in the shipped file as-is; the engine likely ignores the malformed keys and falls back to defaults for those fields.
+**Typos in the shipped file.** Line 286 reads `orld_ambientfx[8]=128` (missing leading `w`) and line 498 reads `orld_sunangle[23]=256`. These malformed names do not match the expected keys, so the engine uses the defaults for those fields.
 
 **World 6 rain zones.** The four `world_rain_sphere` entries for necrisle define overlapping spheres centered on different parts of the island. Sphere 2 has the largest radius (1000 units) and covers the main approach area.
 
@@ -144,3 +149,5 @@ Worlds 0, 1, 6, 27, 28, and 30 have `world_world` entries and use a WLD terrain 
 ## External References
 
 - [UESP: Redguard:Console](https://en.uesp.net/wiki/Redguard:Console) — the `show world` console command displays the current world index at runtime
+
+`NewGameEntry` also retains the selected world's optional `world_flash_filename`.

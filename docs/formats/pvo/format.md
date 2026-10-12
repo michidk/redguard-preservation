@@ -215,7 +215,7 @@ Each `u16` value is a **placed-object visibility ID**, not an individual face in
 | ISLAND | 1,704 | 0–1,690 | 1,691–1,703 | 1,691 | 13 |
 | PALACE | 289 | 0–262 | 263–288 | 263 | 26 |
 
-The MPSO record size (66 bytes = 0x42) appears as the multiplier in visibility lookups.
+Visibility lookups multiply the MPSO index by the 66-byte (`0x42`) record size.
 
 ## END Section — Footer
 

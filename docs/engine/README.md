@@ -1,6 +1,6 @@
 # Engine Details
 
-Findings from engine analysis that go beyond file format documentation.
+Engine behavior that goes beyond file format documentation.
 
 | Topic | Description | Docs |
 |---|---|---|
@@ -10,11 +10,13 @@ Findings from engine analysis that go beyond file format documentation.
 | Music | Red Book CD tracks per world, track switching, repetition, and the ignored `redbook_volume`. | [music.md](music.md) |
 | Positional Sound | Listener, `sound_distance` radius, linear volume curve, triangle-wave pan, 16 channels without stealing, SOUP sound functions, and SURFACE.INI remapping. | [sound.md](sound.md) |
 | Subtitles | REDSEL dialogue, taunt and movie text: slots, wrapping, placement, timing and colours. | [subtitles.md](subtitles.md) |
+| In-game HUD | Candle health levels and animation, active item and count, activation prompt, compass frames, power-up slots, logbook icon, and draw order. | [hud.md](hud.md) |
 | Sky Renderer | Glide BSI plane, fog-colored background, scrolling inputs, sun configuration, and software-renderer limits. | [sky.md](sky.md) |
+| Glide terrain lighting | World RGB inputs, directional vertex lighting, and water-normal updates. | [terrain-lighting.md](terrain-lighting.md) |
 | Glide fog and clipping | Scene and sky ranges, fog-table lookup, and encoded RGB blending. | [fog.md](fog.md) |
 | Water Waves | Per-frame sine-table vertex displacement on water terrain cells. Radial concentric ripples driven by `world_wave` INI parameters (amplitude, speed, spatial frequency) with runtime console tuning. | [water.md](water.md) |
 
-Player movement units, ground-turn arithmetic, and coverage limits are documented in [player.md](player.md).
+Player movement units, ground-turn arithmetic, collision, and timing are documented in [player.md](player.md).
 
 [Startup presentation](startup.md) covers the original splash assets, projection, lighting, and screen sequence.
 

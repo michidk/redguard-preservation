@@ -21,10 +21,10 @@ Some fields use big-endian encoding (a remnant of the original Sega Saturn devel
 
 | Offset | Size | Type | Endian | Name | Description |
 |---|---|---|---|---|---|
-| 0x00 | 4 | `[u8; 4]` | — | magic | `"OARC"` — possibly "Object ARChive"; exact expansion unknown. |
-| 0x04 | 4 | `u32` | BE | unused_04 | Always 4. Unused at runtime — the engine reads the file but never dereferences or tests this field. Likely a build-tool artifact. |
+| 0x00 | 4 | `[u8; 4]` | — | magic | `"OARC"`; exact expansion unknown. |
+| 0x04 | 4 | `u32` | BE | unused_04 | Always 4. Unused at runtime; the engine reads the file but never dereferences or tests this field. |
 | 0x08 | 4 | `u32` | LE | num_segments | Number of segments. |
-| 0x0C | 4 | `[u8; 4]` | — | magic2 | `"OARD"` — possibly "Object ARchive Data"; exact expansion unknown. |
+| 0x0C | 4 | `[u8; 4]` | — | magic2 | `"OARD"`; exact expansion unknown. |
 | 0x10 | 4 | `u32` | BE | payload_size | File size minus 24 (= file size - 20-byte header - 4-byte footer). |
 
 ## Segment Header (80 bytes)
@@ -93,6 +93,20 @@ A single byte of per-segment attribute flags.
 | 0x02 | PALMTR01–04 (CAVERNS, EXTPALAC, ISLAND) | Texture pre-load trigger (bit 1). Engine calls a texture pre-caching function for all face textures in this segment. |
 | 0x40 | SS_OBJ01–06, IGRING, IWATER1 (shop items, inventory) | Special object flag (bit 6). Stored as model metadata. |
 
+### Runtime archive selection
+
+Model lookup searches the active primary archive first, then the active world
+archive. Within each archive it follows stored segment order and returns the
+first matching name. It does not search every installed ROB archive.
+Loading a world archive replaces the previous world archive registry. The
+world loader takes the configured map filename and replaces its extension with
+`ROB` in the configured art directory.
+
+The ISLAND world uses `FXART\ISLAND.ROB`. Its ordinary in-world registry has no
+primary archive. The names `BARREL`, `BASKET02`, `LANTERN4`, `LANTHOL1`, `MKCARP1`
+and `MKCRATE1` resolve to this world archive even though other installed archives
+contain different payloads under the same names.
+
 ### Collision flags (0x11)
 
 Static object loading copies this byte from the named ROB segment into the
@@ -111,8 +125,7 @@ Across 4,761 segments in 31 installed ROB archives, the byte values are:
 | `0x08` | 1 |
 
 In ISLAND, `PLANT000`, `PLANT001`, and `PLANT002` use `0x02`;
-`BARREL`, `BASKET01`, and `BASKET02` use `0x01`. All 224 static instances in a
-sampled active spatial list retained their named segment's collision byte.
+`BARREL`, `BASKET01`, and `BASKET02` use `0x01`.
 See [player collision](../engine/player.md#model-distance-candidate-test).
 
 ## Segment Data

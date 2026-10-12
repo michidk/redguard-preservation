@@ -9,9 +9,6 @@ matching `.COL` file. The texture is projected onto a horizontal quad before
 scene geometry. A separate billboard draws the sun. The GXA file named by
 `world_sky[N]` is not loaded by this renderer's sky setup.
 
-**Unknown:** the software renderer's GXA projection. A GXA panorama must not be
-interpreted as an equirectangular map without evidence for that renderer.
-
 ## Lifecycle
 
 | Phase | Trigger | Action |
@@ -27,19 +24,11 @@ clear the next back buffer after presenting a normal game frame. An omitted
 value defaults to `(0, 0, 0)`. The finite sky plane draws over this fill;
 uncovered regions retain the fog color, including when the sky is disabled.
 
-Installed samples: world 0 uses `(200, 100, 100)`, world 1 uses
+For example, world 0 uses `(200, 100, 100)`, world 1 uses
 `(200, 190, 250)`, world 6 uses `(57, 49, 49)`, world 27 uses `(0, 0, 10)`,
 and world 28 uses `(200, 100, 100)`.
 
 The shipped Glide world-settings reader does not read `world_background[N]`.
-WORLD.INI describes these legacy background modes; their software-renderer
-implementation and special sky-color derivation remain **Unknown**.
-
-| Value | Behavior |
-|---|---|
-| `0` | Black |
-| `2` | Sky color (derived from the palette) |
-| Other | Palette index used as a solid fill color |
 
 ### Sky fog
 
@@ -50,14 +39,12 @@ table contains zero in entries 0 through 32, increases by eight from 8 through
 
 The sky raster supplies reciprocal camera-space depth to Glide. The
 [Glide fog lookup](fog.md#fog-lookup) describes table interpolation and RGB
-blending. A raw texture projection and correct clear color alone do not
-establish the original horizon's appearance.
+blending.
 
 ## GXA assets
 
-`world_sky[N]` names a GXA asset in `system/`. These files exist in the install,
-but their projection and use by the software renderer are **Unknown**. The
-Glide sky is supplied by the BSI asset instead.
+`world_sky[N]` names a GXA asset in `system/`. The Glide renderer does not load
+this asset; its sky comes from the BSI asset instead.
 
 ## Glide sky plane
 
@@ -85,10 +72,20 @@ Coordinates use engine units, with positive Y pointing down.
 
 Glide renderer initialization selects bilinear minification and
 magnification on texture unit 0. The sky texture binding and draw path do not
-change the filter mode. **Inferred:** the initial sky uses this bilinear setting;
-filter-state interactions with other draw paths have not been compared visually.
+change the filter mode. The initial boat sky uses bilinear
+minification and magnification, an eight-bit paletted texture, wrapping in both
+directions, and the base mip level. Palette lookup precedes color filtering.
 
-The installed samples `SKY888.BSI`, `SKY899.BSI`, `SKYNIT.BSI`, and
+For the software Voodoo 1 renderer, bilinear filtering operates on encoded
+eight-bit channels, without an sRGB-to-linear conversion. Texel centers are at
+half-integer coordinates. Each fractional coordinate is rounded down to a
+multiple of `1/16`. Each row is interpolated first, rounding its channel result
+down to an integer; those two results are then interpolated vertically and
+rounded down again. For channel endpoints `a`, `b` and fractional weight `w`,
+each interpolation is `a + floor((b-a)*w)`. For example, the midpoint between
+encoded channel values 0 and 255 is 127.
+
+The installed files `SKY888.BSI`, `SKY899.BSI`, `SKYNIT.BSI`, and
 `SKYNEC.BSI` each contain one 256 by 256 frame and have matching COL files.
 The seven outdoor world entries are 0, 1, 6, 14, 27, 28, and 30.
 
@@ -144,10 +141,6 @@ The `[xngine]` section of `SYSTEM.INI` provides master controls that apply to al
 | `sky_xrotate` | `3` | Global X-axis rotation speed |
 | `sky_yrotate` | `40` | Global Y-axis rotation speed |
 
-**Unknown for Glide:** the effect of the per-world `world_sky_xrotate` and
-`world_sky_yrotate` keys. Their presence in WORLD.INI does not establish that
-the Glide renderer applies them.
-
 ## Sun disc
 
 A separate billboard renders the sun as a textured sprite in the sky, independent of the BSI sky plane:
@@ -172,7 +165,8 @@ frame with texture scale 256, so the installed sun scale 4000 gives half-size
 5120 engine units. Missing sun image names suppress the disc.
 
 The sun texture is bound as eight-bit alpha: its indexed pixel bytes supply
-opacity, independently of its palette. Constant encoded RGB comes from
+opacity, independently of its palette. The sun draw explicitly selects bilinear
+minification and magnification on texture unit 0. Constant encoded RGB comes from
 `world_sunimgrgb`, defaulting to `(255,255,200)`. The draw uses source-alpha /
 one-minus-source-alpha blending and disables fog for the sun, restoring scene
 fog afterwards. Scene geometry drawn later can cover it.
@@ -203,7 +197,7 @@ Seven outdoor world entries define sky parameters, including world 14. All other
 | 28 | Island (sunset variant) | Sunset BSI sky (`sunset.COL` palette) |
 | 30 | Palace exterior | Sunset BSI sky (shares island WLD) |
 
-Worlds 1, 27, and 28 share the same `ISLAND.WLD` terrain and PVO node maps. The visual difference is driven by different palettes, BSI sky textures, and lighting parameters — demonstrating that time-of-day in Redguard is implemented as separate world entries rather than dynamic sky transitions.
+Worlds 1, 27, and 28 share the same `ISLAND.WLD` terrain and PVO node maps. Different palettes, BSI sky textures, and lighting parameters implement the time-of-day variants as separate world entries rather than dynamic sky transitions.
 
 ## External References
 

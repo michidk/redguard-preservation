@@ -4,7 +4,9 @@ Text-based INI configuration file that defines per-texture-index blend behavior 
 
 Shipped sample path: `/Redguard/surface.ini` (e.g. `.../GOG Galaxy/Redguard/Redguard/surface.ini`).
 
-Engine string analysis confirms the engine expects this file at startup, requires a `surfaces` section/header, and validates surface type values plus texture set/index bounds (with some sound-section validation).
+The engine reads this file at startup and requires a `surfaces` section. It
+validates surface type values, texture set and index bounds, and parts of each
+sound section.
 
 ## File Structure
 
@@ -24,17 +26,32 @@ Where:
 - `index`: texture index inside the set
 - `type`: case-insensitive token from `{WATER, DEEPWATER, LAVA, SAND, WOOD, TILE, ROCK, GLOOP}`
 
+The shipped comments describe `all` as a wildcard, but the executable's loader
+converts the index with its decimal integer reader. `all` therefore becomes
+index zero; it does not expand to every texture. Numeric indices must be in
+`0..127`. The reader accepts an optional sign and an initial sequence of decimal
+digits; a token without initial digits produces zero.
+
+Assignments retain file order. Each lookup key is `(set << 7) | index`, and the
+first matching assignment wins. A zero key terminates lookup before matching,
+so an assignment to set zero, index zero hides itself and every later assignment.
+An unmatched key returns surface zero (`unknown`).
+
+For v4/v5 model faces, solid-color materials resolve to packed surface key zero,
+and therefore to surface zero. Both palette-indexed and directly encoded solid
+colors follow this rule; their color value does not select a texture assignment.
+
 ### Sound Remap Records
 
 Each sound section contains entries of the form:
 
 - `<sound_id> = <remap_sound_id>`
 
-Behavior/constraints from shipped comments and runtime validation strings:
+The parser applies these constraints:
 
 - Keys and values must be integers; a key outside 0..255 is a fatal configuration error (`Sound out of range in SURFACE.INI`). Remaps may point to other effect ids.
 - At startup the engine builds one 256-entry table per surface type, each initialised to identity, in this order: `unknown` (0), `water` (1), `deepwater` (2), `scapewater` (3), `scapedeepwater` (4), `lava` (5), `sand` (6), `wood` (7), `tile` (8), `scape` (9), `rock` (10), `gloop` (11).
-- The remap applies **only** to animation PlaySound commands (RAGR opcode 4): when the animated object's surface value is non-zero, the command's effect id is replaced by `table[surface][effect]`. Script sounds (`Sound`, `FlatSound`, `AmbientSound`), combat hit sounds and speech are not remapped. With the shipped file, effect 4 plays 108 on sand, 89 on wood, 112 on tile, 102 on rock and 69 on water. How the object's surface value is set has not been traced. (Static analysis; see [positional sound](../engine/sound.md#surfaceini-remap).)
+- The remap applies **only** to animation PlaySound commands (RAGR opcode 4): when the animated object's surface value is non-zero, the command's effect id is replaced by `table[surface][effect]`. Script sounds (`Sound`, `FlatSound`, `AmbientSound`), combat hit sounds and speech are not remapped. With the shipped file, effect 4 plays 108 on sand, 89 on wood, 112 on tile, 102 on rock and 69 on water. The surface value comes from the face the object stands on (see [positional sound](../engine/sound.md#surfaceini-remap).)
 - Separate `water`/`scapewater` and `deepwater`/`scapedeepwater` sections are expected.
 - Empty sections are valid (for example `[unknown]`, `[lava]`, `[scape]` in shipped sample).
 - The file is parser-tolerant regarding token case (`WOOD` and `wood` both appear).

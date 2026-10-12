@@ -64,18 +64,16 @@ default group with modifier zero. `EndAnimation` clears the current group and
 invokes advancement again, so a pending request or the default can start in
 the same update. Treating End as a permanently stopped actor loses this behavior.
 
-These facts describe ordinary request arbitration and the default fallback.
 Forced requests, group-type interruption rules, actor eligibility, and the
-number of advancement calls made by a complete actor update require separate
-handling. They do not authorize automatic activation of placed actors.
+number of advancement calls made by an actor update use additional rules.
+Request arbitration does not activate placed actors automatically.
 
 ## Placed actor initialization and eligibility
 
 New actor animation state initializes its default group to zero. For a placed
 ordinary object with an animation model table, group setup builds the RAGR table
 and makes two ordinary requests for group zero with modifier zero. These requests
-use the existing shared nominal ticks. They do not establish an extra clock or
-an endless replacement script.
+reuse the shared nominal ticks.
 
 The MPOB activation byte selects storage and update-list membership. Zero stores
 an ordinary placed actor in its spatial map cell; a nonzero value uses the
@@ -89,7 +87,7 @@ coordinates, not the actor body position. It spans eighteen cells per axis, omit
 four corners. The inner sixteen by sixteen cells include ordinary actors.
 On the outer border, actors with a nonzero attribute byte 113 are excluded.
 Debug and global object-processing switches can further restrict this list.
-Membership alone does not establish eligibility for a complete actor update;
+Membership alone does not make an actor eligible for an update;
 its runtime exclusion, pause, state and script checks still apply.
 
 Ordinary default selection can use attribute byte 44, but combat, injury,
@@ -100,8 +98,7 @@ byte 44 unconditionally for every actor.
 
 The installed ISLAND map has three FLAG2 placements, all ordinary objects with
 a zero activation byte and no static model override. Their FLAG2 attribute
-record is all zero, including byte 44. This establishes their initial data,
-not their complete runtime script progression or visibility from a given view.
+record is all zero, including byte 44. These values define their initial state.
 
 ## Forced requests
 
@@ -114,10 +111,9 @@ as an ordinary request. With an accepted group it immediately advances using
 the existing shared nominal ticks. Ordinary numeric pending priority does not
 apply to a forced request.
 
-These rules do not make an ineligible actor eligible. The original request and
-advance boundaries still reject globally disabled animation, an absent animation
-state, and actors using the static model shortcut. Cancellation requests and
-all group-type interruption rules require their own treatment.
+These rules do not make an ineligible actor eligible. The request and advance
+boundaries reject globally disabled animation, an absent animation state, and
+actors using the static model shortcut.
 
 ## Ordinary actor update order
 
@@ -136,8 +132,29 @@ Consequently, a script animation request can follow an animation advancement
 in the same actor update. If the request clears the current default or starts
 an actor with no current group, its immediate advancement reuses the shared
 tick increment. A renderer that advances each actor exactly once before or
-after all script execution loses this ordering. These facts do not specify
-the complete script interpreter, movement handling, or every eligibility rule.
+after all script execution loses this ordering.
+
+## Ordinary actor eligibility
+
+The ordinary actor update traverses the actor update list. It skips the actor
+body for the unselected member of the two designated player actors, a matching
+active script-name exclusion, a nonzero runtime object-update exclusion, or
+script-control mask `0x08`. This suppresses the ordinary animation stage and
+later main-script stage together. Update-list membership alone does not make
+an actor eligible.
+
+The runtime animation-update exclusion is separate. A nonzero value skips the
+ordinary animation stage, including current-group advancement and its default
+request, without itself skipping the later main-script stage. Direct animation
+requests retain their own boundary checks. At each ordinary update, the engine
+clears this exclusion on the selected player actor and sets it on the other
+player actor.
+
+`SYSTEM.INI`'s `[debug] disable_slaves` sets the object-update exclusion for
+actors with `attr_slave` set and `attr_master` clear. `disable_master_slaves`
+sets it for actors with both attributes set. These tests set the runtime
+exclusion; turning off the option does not clear an already-set exclusion in
+this update branch.
 
 ## Timing boundary
 
@@ -147,17 +164,12 @@ between consecutive whole accumulated values. It can therefore supply zero,
 one, or several ticks during an update. The first twelve updates after a timing
 reset use one tick. See [player timing](player.md#fps-derived-frame-scale).
 
-A fixed one-frame-per-render update or a hardcoded twelve-Hertz playback timer
-does not reproduce this boundary. Complete host-clock selection, actor
-eligibility, interruption, unsupported commands, and script scheduling must be
-established before automatic world playback is considered complete.
+Selected blocking operations, including model resource loading, rebase the FPS
+measurement baseline so that suspended time does not enter the next update.
+The [player timing](player.md#fps-derived-frame-scale) section documents the
+save, restore, reset, and startup rules.
 
-## Evidence and limits
-
-The model/frame mapping is established by the original RAAN table construction,
-RAGR load-time patching, and playback storage. Task and loop semantics are
-established by the original task handler and animation interpreter. These are
-engine facts; they do not establish a matched visible-playback comparison.
+## Shipped FLAG2 sequence
 
 The shipped island FLAG2 program contains finite `PushAnimation` requests.
 It requests groups/counts `(1, 25)`, `(10, 1)`, `(1, 3)`, `(10, 2)` and then
@@ -185,14 +197,60 @@ interpolate vertex positions between model frames. These rules describe a
 forward current group; reverse playback, pending-group eligibility, delays,
 and event dispatch have additional state.
 
+## Forward type-one transitions
+
+A forward type-one group uses the ordinary frame countdown and control commands.
+With no finite loop countdown, a pending group different from the current group
+makes `GoToFuture` take its exit target. The jump sets the exit marker and clears
+the movement-suppression marker before interpreting the target commands.
+
+A pending default does not immediately replace a type-one group, even after the
+exit marker is set. Playback continues through the exit tail until
+`EndAnimation`, which selects the pending default in the same advancement with
+the same nominal ticks. With a pending non-default group, an already-set exit
+marker instead permits replacement at the beginning of a subsequent advance,
+before its ordinary countdown update. The pending group number may equal the
+current number. The ordinary request priority rules still determine which
+request becomes pending.
+
+Delay processing precedes that replacement test. An unexpired finite delay or
+an indefinite delay yields before replacement eligibility is checked. When a
+finite delay expires, replacement receives the call's complete tick input.
+Selecting the replacement resets its cursor, countdown, loop state and markers.
+
+Zero-tick updates retain the currently selected frame. The walk group's
+PlaySound command in the exit tail does not end the group or consume a frame
+skip. See [animation sound requests](sound.md#animation-playsound).
+
+The type-two `GoToFuture` exception for a pending default uses separate rules.
+
+## Forward animation delays
+
+`DelayCounter`, opcode twelve, narrows its operand to a byte, advances the
+command cursor, and yields without selecting a new model frame when that byte
+is nonzero. Zero continues interpreting commands in the same invocation.
+The previous displayed pose remains selected during the wait.
+
+At the start of subsequent advancements, byte value 255 yields indefinitely.
+For another nonzero value, the engine subtracts the shared whole nominal ticks
+with wrapping 32-bit arithmetic and tests the signed result. A positive result
+is narrowed back to the delay byte and yields. Otherwise the delay clears and
+ordinary advancement continues in that same call, using the original tick
+input in full. The delay does not consume a portion of the frame-skip input.
+A zero-tick advancement therefore preserves a finite delay.
+
+Waiting neither ends the current group nor completes a task waiting for a group
+change. Selecting a replacement group clears its delay state. The cursor has
+already moved past the delay command; the usual countdown and frame-skip rules
+still apply when the delay expires. `ConditionalDelay` and `LoopControl` use
+separate state from `DelayCounter`.
+
 ## Breakpoints and walking translation
 
 `BreakPoint`, opcode five, sets a marker in the current animation state and
 continues interpreting commands. It does not pause the game or the animation.
 Ordinary forward walking checks this marker after advancing its startup phase;
-a set marker suppresses that update's translation. A native ISLAND walking trace
-confirmed the marker set during a suppressed startup update, followed by a
-later update that translated after the marker cleared.
+a set marker suppresses that update's translation.
 
 For forward playback, advancing the command cursor when its frame countdown
 expires clears the marker. Skipping a `ShowFrame`, taking a `GoToPrevious`
@@ -200,7 +258,3 @@ backward jump, or taking a `GoToFuture` exit jump also clears it. A zero-tick
 update or a countdown decrement that keeps the same cursor does not clear it.
 A later `BreakPoint` can set it again before the selected frame is returned.
 Selecting a new group resets the marker before interpreting its commands.
-
-These rules establish the marker's lifetime and its ordinary walking use.
-They do not establish all movement gates, actor eligibility, or pending-group
-transition scheduling.

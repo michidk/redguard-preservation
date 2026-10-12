@@ -8,9 +8,8 @@ Character models (3D/3DC) are flat polygon meshes with per-frame vertex animatio
 
 Animation commands select the character's model and frame. Attachment vertex
 selection is separate from that frame selection. File `ShowFrame` commands
-must not be interpreted as vertex indices. The grip and scabbard vertex inputs
-are retained in RAEX; this document does not establish their complete selection
-rules for every actor state.
+must not be interpreted as vertex indices. RAEX retains the grip and scabbard
+vertex inputs.
 
 ## Animation command stream
 
@@ -21,7 +20,7 @@ patches them into a runtime model handle and frame index. See
 
 ### Complete Opcode Table
 
-Semantics from engine analysis. Names from UESP where available.
+Names follow UESP where available.
 
 | Opcode | UESP Name | Bit Layout | Parameters | Playback Behavior |
 |---|---|---|---|---|
@@ -42,7 +41,8 @@ Semantics from engine analysis. Names from UESP where available.
 | **14** | LoopControl | 20-bit | target_frame | Decrement loop counter; jump to target frame if counter > 0. |
 | **15** | Transition | 6 + 7 + 7 | trigger_mask, start_frame, target_group | Mid-animation transition to another group. trigger_mask bits: 0=jump right, 1=jump left, 2=anim trigger (0x2500), 3=anim trigger (0x2700), 4=counter increment, 5=unused. Used by 8 combat actors. |
 
-Opcodes 6–10 and 12–14 are implemented in the engine but **never appear in any of the 27 shipped RGM files**. They may exist in standalone `.AI` files or be entirely vestigial.
+Opcodes 6–10 and 12–14 are implemented in the engine but do not appear in any
+of the 27 shipped RGM files.
 
 ### Opcode Usage Census (all 27 shipped maps)
 

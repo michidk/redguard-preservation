@@ -3,11 +3,6 @@
 How sound effects from [MAIN.SFX](../formats/SFX.md) and speech from
 [RTX](../formats/RTX.md) get their volume, stereo pan and playback rate.
 
-**Evidence:** every rule on this page comes from static analysis of the Glide
-build (`RGFX.EXE`), with constants checked against the installed `SYSTEM.INI`,
-`SURFACE.INI`, `SOUP386.DEF` and `MAIN.SFX`. None of it has yet been measured
-in the running game; see [Open questions](#open-questions).
-
 ## Units
 
 - Engine positions are stored in world units × 256 (eight fractional bits).
@@ -50,7 +45,15 @@ units. The square root runs in floating point and is rounded to the nearest
 integer before the shift; the 32-bit float intermediate only matters beyond
 about 65536 world units.
 
-The emitter is the emitting object's position.
+The emitter is the emitting object's position, with two exceptions:
+
+- An object whose `attr_slave` attribute (index 26 in `SOUP386.DEF`) is set
+  emits from its attached position: its master's position plus its own offset
+  rotated by the master.
+- Otherwise, an object that links to another positioned record emits from
+  that record's position.
+
+Animation PlaySound always uses the object's own position.
 
 ## Volume curve
 
@@ -107,12 +110,15 @@ volume and a pan.
 
 - **Playback rate:** `clamp(effect sample_rate + rate_offset, 512, 44000)` Hz.
 - **Looping:** see [SFX loop behaviour](../formats/SFX.md#loop-behavior).
+- **Effect range:** an effect index at or beyond the number of effects in
+  `MAIN.SFX` (118 shipped) starts nothing.
 - **Channels:** 16 sample channels. A start takes the first idle channel at or
   above a start index. When none is idle the sound is dropped; playing sounds
   are never stolen. The start index is 0 for the player's own animation sounds
   and for speech, 4 for combat hit sounds, and 6 otherwise (0 at boot until the
   first sound that resets it).
-- **Ownership:** each channel records its owner object and effect index.
+- **Ownership:** each channel records its owner object and the requested
+  effect index (before any SURFACE.INI remap).
 - **Master volume:** every volume set, at start and on later updates, sends
   `(v × master) >> 8` to Miles, where `master` is `SYSTEM.INI [system]
   volume` (shipped 255, engine default 256 before the file is read) or the
@@ -133,6 +139,17 @@ Animation opcode 4 ([attachment](attachment.md)) starts a positional sound:
 - The handle is stored on the animation; EndAnimation (opcode 1) stops it.
   No later volume or pan update was found for these sounds.
 
+Each encountered PlaySound advances to the next command without consuming a
+frame skip. A second PlaySound replaces the animation's remembered handle
+without stopping the previous channel. Selecting a replacement group clears
+that handle without issuing a stop. EndAnimation stops only the handle still
+remembered by that animation. Channel validity and completion are handled by
+the audio mixer independently.
+
+The metadata field historically named `volume_shift` contains the second
+signed ten-bit operand. It is a rate offset in units of 64 Hz, not a volume
+adjustment.
+
 ### SOUP functions
 
 `SOUP386.DEF` declares these sound functions:
@@ -141,10 +158,24 @@ Animation opcode 4 ([attachment](attachment.md)) starts a positional sound:
 |---|---|---|---|
 | `Sound` | function | effect, volume offset, rate offset | Positional start: volume from the curve with `off` = volume offset, pan at start. Starts even at `v = 0`. No later updates. |
 | `FlatSound` | function | effect, volume, rate offset | Non-positional: pan 64, `v = clamp(base_volume + volume, 0, 127)`, where `base_volume` is SFX header byte `0x0C` (64 in all 118 shipped effects). `FlatSound(e, 0, 0)` plays at 64. |
-| `AmbientSound` | multitask | effect, volume offset, rate offset | Each run: compute volume and pan. If `v = 0`, or a per-object flag is set, stop this task's sound and end the multitask. Otherwise start the sound if it is not playing (never started, or a one-shot finished), then set the current volume and pan. |
+| `AmbientSound` | multitask | effect, volume offset, rate offset | Each run: compute volume and pan. If `v = 0`, or the object has been killed, stop this task's sound and end the multitask. Otherwise start the sound if it is not playing (never started, or a one-shot finished), then set the current volume and pan. |
+| `AmbientRTX` | multitask | RTX label, volume offset, unused | First run: start the label's [RTX](../formats/RTX.md) clip at pan 64 and its header volume, start index 0. Each run: compute volume and pan; if `v = 0` or the object has been killed, stop the clip and end the multitask; otherwise set the volume and pan. The multitask ends once the clip has finished; it is not restarted. No dialogue line or subtitle is created. |
+| `EndSound` | function | effect | Stop every playing channel whose requested effect is `effect`, whatever its owner. |
+| `EndMySound` | function | effect | Stop every playing channel whose requested effect is `effect` and whose owner is this object. |
 | `EndMySounds` | function | — | Stop every playing channel owned by this object. |
 | `StopAllSounds` | function | — | Stop all 16 channels. |
-| `EndSound`, `EndMySound` | function | 1 | Not yet analysed. |
+
+`KillMe` sets the object's killed flag and stops every channel the object
+owns; `Resurrect` clears the flag.
+
+**Owner:** the owner recorded by `Sound`, `FlatSound`, `AmbientSound` and
+`AmbientRTX`, and matched by `EndMySound` and `EndMySounds`, is the calling
+object, except for two kinds of script that run on a temporary object:
+
+- Scripts run by the shell system (for example an item's `use_script`, see
+  [ITEM.INI](../config/item-ini.md)) record the shell entry as owner.
+- Scripts of code objects (scripts without a world object) record the code
+  object as owner.
 
 So an ambient sound follows the listener while its multitask runs, restarts
 non-looping effects when they end, and stops for good once the listener leaves
@@ -160,6 +191,38 @@ its range; the script must call it again to resume.
   `ENGLISH.RTX` audio headers), start index 0. While the dialogue runs, the
   volume is refreshed every frame from the speaker's distance (curve with
   `off = 0`); the pan is not updated.
+- **Rope sounds:** each [MPRP](../formats/RGM.md#mprp-rope-chains) rope
+  record names three effects. A rope plays one of them when its swing
+  velocity changes sign (or stays at zero), chosen by its current swing speed
+  against `q = trunc(m / 4)`, where `m` is the rope's maximum swing speed:
+  the third effect from `3q`, the second from
+  `2q`, the first from `q`; a zero effect falls through to the next lower one.
+  Ropes whose `q` is 2 or less play nothing. Volume from the curve with
+  `off = 0` at the rope's position, rate offset 0, start index 6; not started
+  when `v = 0`. Of the 29 shipped rope records, 23 name effects 62, 62, 63,
+  one 62, 62, 62, and five none.
+- **Torch:** while the player's torch burns, effect 25 plays from the player
+  with `off = −40` on one shared channel, owned by the player. It is
+  restarted whenever it has finished, its volume and pan are refreshed every
+  frame, and it stops when the torch goes out.
+
+## Mixer gain and pan law
+
+The statically linked Miles mixer turns a sample's volume and pan into two
+linear scale factors whenever either changes:
+
+- Volume and pan are clamped to 0–127. The effective volume is
+  `trunc(volume × driver_master / 127)`, clamped to 0–127; the driver master
+  starts at 127 and the game never changes it, so it equals the volume.
+- A non-zero effective volume `v` scales samples by `(v + 1) / 128`; zero is
+  silent. Loudness is therefore linear in volume.
+- Pan uses a 128-entry table `T`: `T[p] = 2p` for `p` 0–62 and `T[p] = 128`
+  for 63–127. One output side scales by `T[127 − pan] / 128`, the other by
+  `T[pan] / 128`. At the centre (64) both sides play at full level; towards
+  either extreme the far side fades linearly to silence while the near side
+  stays at full level. By Miles' convention the `T[127 − pan]` side is left.
+
+The pan table contains `0, 2, 4, …, 124`, followed by `128` from entry 63.
 
 ## SURFACE.INI remap
 
@@ -174,72 +237,28 @@ non-zero, `effect = table[surface][effect]`. `Sound`, `AmbientSound`, combat
 hits and speech are not remapped. With the shipped file, effect 4 plays 108 on
 sand, 89 on wood, 112 on tile, 102 on rock and 69 on water.
 
-## Test vectors
+An object's surface value comes from the face it stands on:
 
-Shipped `sound_distance = 64` (`R = 2304`, `D = 3640`) and `volume = 255`,
-`off = 0`:
+- A model face: the surface type that `[surfaces]` assigns to the face's
+  texture, or 0 when the texture has no entry.
+- Terrain: each query first resolves texture set 302 and the tile's low-six-bit
+  image index through `[surfaces]`. The terrain blend mask can replace that
+  value with sand or rock at dry shore pixels. A nonzero water result then
+  selects `scapewater` (3), or `scapedeepwater` (4) for full water coverage.
+  A dry result keeps the surface computed by this query, not a previous
+  object's terrain-water result.
+- Any other face: 0.
 
-| `d` | `a` | `v` | Miles volume |
-|---|---|---|---|
-| 0 | 0 | 127 | 126 |
-| 18 | 0 | 127 | 126 |
-| 19 | 1 | 126 | 125 |
-| 100 | 5 | 122 | 121 |
-| 500 | 27 | 100 | 99 |
-| 1000 | 55 | 72 | 71 |
-| 1152 | 63 | 64 | 63 |
-| 2000 | 111 | 16 | 15 |
-| 2286 | 126 | 1 | 0 |
-| 2287 | 127 | 0 | 0 |
-| 2305 | — | 0 (beyond `R`) | 0 |
+## Shipped script calls
 
-Offsets: `d = 0, off = −40` gives `v = 87`; `d = 1000, off = +100` clamps to
-127; `d = 2400, off = +100` gives 0.
-
-Master: `v = 127` sends 127 with master 256, 63 with master 128, 0 with
-master 0.
-
-Pan with yaw 0 (`dx`, `dz` in world units):
-
-| Emitter offset (`dx`, `dz`) | `a` | Pan |
-|---|---|---|
-| (0, +100) | 0 | 64 |
-| (+100, +100) | 256 | 96 |
-| (+100, 0) | 512 | 64 (abeam) |
-| (+100, −1) | 515 | 127 |
-| (0, −100) | 1024 | 64 |
-| (−100, −100) | 1280 | 32 |
-| (−100, 0) | 1536 | 64 (abeam) |
-| (−100, +100) | 1792 | 32 |
-
-With yaw 512 the emitter (+100, +100) gives `u = 1792` and pan 32.
-
-Rate: a 22050 Hz effect with second field −8 plays at 21538 Hz; field +511
-clamps to 44000 Hz. An 11025 Hz effect with field −200 clamps to 512 Hz.
-
-Distance: listener at the origin, emitter at engine units (768, 1024, 0) gives
-`d = 5`; emitter at (255, 0, 0) gives `d = 0`.
-
-## Open questions
-
-1. Which physical speaker the high pan values reach, i.e. whether `u = 512`
-   is the camera's right. Needs a stereo capture of the original.
-2. Which camera position feeds the listener in each camera mode (third
-   person, first person, combat, rope, cutscenes).
-3. How the object's surface value used by the remap is set.
-4. For some object kinds the emitter position is a related sub-position
-   rather than the object's own; which kinds is not established. Animation
-   PlaySound volume always uses the object's own position.
-5. The meaning of the `EndSound` / `EndMySound` argument.
-6. The meaning of the per-object flag that stops `AmbientSound`, and the rate
-   at which multitasks rerun (assumed once per frame).
-7. Two further engine starts exist: a sound driven by object speed and a
-   looping effect 25 with `off = −40` on one shared channel; their in-game
-   identity is not established. Whether any other path refreshes
-   animation-started sounds is not certain.
-8. The alternate owner object scripts can designate for `Sound`, `FlatSound`,
-   `AmbientSound` and `EndMySounds`.
-9. How Miles maps sample volume 0–127 to output gain.
+The 27 shipped RGM files contain 137 `Sound`, 477 `FlatSound`, 91
+`AmbientSound`, 97 `AmbientRTX`, 33 `EndMySounds` and 12 `StopAllSounds`
+calls, and none to `EndSound` or `EndMySound`. Values outside the usual
+ranges occur: `FlatSound` volume 128 (clamped to 127) and rate offset −10000
+(clamped to 512 Hz), `AmbientSound` rate offset 2000, `AmbientSound` effect 127
+(beyond the 118 shipped effects, so it never sounds), and `AmbientRTX` volume
+offsets of 127 and 128 (volume 127 everywhere within the radius `R`). Every
+`AmbientRTX` call passes 0 as its third argument.
 
 ## Related
 

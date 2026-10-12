@@ -56,14 +56,14 @@ It does not center the oscillation on the base height.
 
 The shared rotation table contains samples of
 `sin(float32(n * 6.2831852 / 2048))`, stored as 32-bit floats. The angle itself
-is rounded to single precision before taking sine. All 2,560 captured samples,
-including the extended quarter revolution used by cosine, match this rule. Water addresses the table
+is rounded to single precision before taking sine. The table contains 2,560
+entries, including the extended quarter revolution used by cosine. Water addresses the table
 starting at sample 512, so `wave_table[p]` is the float sample
 `sin(float32((p + 512) * 6.2831852 / 2048))`. The 2048 wave phases therefore start near
 one, zero, minus one, and zero at phases 0, 512, 1024, and 1536 respectively.
 The decimal full-period constant is part of the table construction.
 
-**Inferred:** for amplitude 24 and zero base height, engine heights at those
+For amplitude 24 and zero base height, engine heights at those
 four phases are approximately 12, -12, -36, and -12. At speed 28, phase advances
 by 28 per BIOS tick; its continuous period is approximately 4.02 seconds.
 
@@ -100,6 +100,8 @@ The wave renderer runs each frame as part of the terrain update:
 
 4. Rasterize
 ```
+
+The RGB inputs and directional calculation are specified in [terrain-lighting.md](terrain-lighting.md).
 
 The normal recomputation after displacement ensures water surfaces receive correct per-frame lighting as waves move — the normals tilt with the displaced geometry rather than remaining flat.
 

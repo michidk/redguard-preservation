@@ -46,7 +46,7 @@ Action-to-scancode bindings. Two binding slots exist per directional/action key 
 
 A value of `0` in user remap fields means no override (use default binding).
 
-The examined file footer contains `NEXT_KEY = 37` and `PREV_KEY = 38` inside `[defined]`. These do not override bindings in `[input]`. Numeric configuration lookup returns the first matching key in the requested section.
+The shipped file footer contains `NEXT_KEY = 37` and `PREV_KEY = 38` inside `[defined]`. These do not override bindings in `[input]`. Numeric configuration lookup returns the first matching key in the requested section.
 
 ### `[misc]`
 
