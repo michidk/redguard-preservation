@@ -161,3 +161,17 @@ fn actor_collision_metadata_requires_a_valid_record_range() {
         }
     }
 }
+
+#[test]
+fn pvo_world_centers_include_the_map_origin_translation() {
+    let center = super::world_position([35584.0, -16384.0, 36608.0]);
+    assert!((center[0] - -1779.2).abs() < 0.001);
+    assert!((center[1] - 819.2).abs() < 0.001);
+    assert!((center[2] - -1446.3998).abs() < 0.001);
+    for (actual, expected) in center
+        .into_iter()
+        .zip(super::positioning::decode_position(35584, -16384, 36608))
+    {
+        assert!((actual - expected).abs() < 0.001);
+    }
+}
