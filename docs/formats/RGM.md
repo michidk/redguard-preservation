@@ -34,7 +34,7 @@ All fields little-endian.
 | 0x05 | 1 | `u8` | is_active | Activation flag |
 | 0x06 | 9 | `[u8; 9]` | script_name | Script/object name |
 | 0x0F | 9 | `[u8; 9]` | model_name | Model reference |
-| 0x18 | 1 | `u8` | is_static | Static/dynamic flag |
+| 0x18 | 1 | `u8` | is_static | Type-1 model fallback: exactly 1 selects a static model; other values give the animation-table frame count |
 | 0x19 | 2 | `i16` | reserved | Not read at runtime. |
 | 0x1B | 3 | `i24` | pos_x | Position X (fixed scale) |
 | 0x1E | 1 | `u8` | pad_x | Alignment byte |
@@ -76,7 +76,10 @@ degrees = (value % 2048) * (180.0 / 1024.0)
 | 1536 | 270° |
 | 2048 | 360° (wraps to 0) |
 
-MPOB model lookup behavior:
+The original type-1 placement fallback and its message-group assignment are
+described in [actor initialization](../engine/SOUP.md#initial-attribute-copy-and-defaults).
+
+MPOB exporter model lookup behavior:
 
 - Primary source is `model_name` (9 bytes, null-trimmed).
 - If `model_name` is empty, exporter falls back to `RAAN` using `RAHD` script metadata (see [RAAN](#raan-animation-file-references)).

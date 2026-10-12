@@ -395,6 +395,15 @@ is shared across actor definitions and instances, rather than restarting for
 each definition. The static-model shortcut and actors without models do not
 take this assignment path.
 
+A type-1 MPOB placement has a subsequent model fallback. It runs only when
+actor-definition loading left both the animation model table and the static
+model absent, and the placement's model name is nonempty. If the placement's
+`is_static` byte is exactly one, it loads a static model without assigning a
+message group. Any other byte value builds an animation model table, using
+that byte as its frame count. When the actor has an attribute table, this
+fallback replaces attribute 125 with the next shared counter value. A zero
+frame count still takes the animation-table branch.
+
 ### Attribute default-group side effects
 
 The `SetAttribute` attribute-44 animation-default path releases the actor's two
