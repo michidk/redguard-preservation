@@ -296,10 +296,6 @@ fn raex_to_json(rec: &RaexRecord) -> serde_json::Value {
     })
 }
 
-fn hex_encode(data: &[u8]) -> String {
-    data.iter().map(|b| format!("{b:02x}")).collect()
-}
-
 fn mps_to_json(record: &MpsRecord) -> serde_json::Value {
     serde_json::json!({
         "id": record.id,
@@ -340,24 +336,16 @@ fn mpob_to_json(index: usize, record: &MpobRecord) -> serde_json::Value {
 
 fn mpsl_to_json(record: &MpslRecord) -> serde_json::Value {
     serde_json::json!({
-        "color_r": record.color_r,
-        "color_g": record.color_g,
-        "color_b": record.color_b,
-        "color_flags": record.color_flags,
-        "unknown0": record.unknown0,
-        "position": positioning::decode_position(record.pos_x, record.pos_y, record.pos_z),
-        "param0": record.param0,
-        "param1": record.param1,
-        "light_type": record.color_flags,
-        "light_param": record.unknown0,
-        "direction_attenuation": [
-            i16::from_le_bytes([record.unknown1[0], record.unknown1[1]]),
-            i16::from_le_bytes([record.unknown1[2], record.unknown1[3]]),
-            i16::from_le_bytes([record.unknown1[4], record.unknown1[5]]),
-        ],
-        "channel_map": &record.unknown1[6..14],
-        "reserved_26": &record.unknown1[14..18],
-        "unknown1_hex": hex_encode(&record.unknown1),
+        "link": record.link,
+        "world_id": record.world_id,
+        "engine_position": record.position,
+        "radius": record.radius,
+        "field_16": record.field_16,
+        "rgb": record.rgb,
+        "field_1e": record.field_1e,
+        "active": record.active,
+        "field_20": record.field_20,
+        "field_26": record.field_26,
     })
 }
 
@@ -1019,34 +1007,4 @@ pub(super) fn export_rgm_metadata_json_impl(
         "ralc_locations": ralc_locations,
         "mpsz_entries": mpsz_entries,
     })
-}
-
-#[cfg(test)]
-mod inspection_tests {
-    #[test]
-    fn light_metadata_decodes_documented_vector_and_channels() {
-        let light = super::super::MpslRecord {
-            color_r: 1,
-            color_g: 2,
-            color_b: 3,
-            color_flags: 130,
-            unknown0: 28,
-            pos_x: 0,
-            pos_y: 0,
-            pos_z: 0,
-            param0: 4,
-            param1: 5,
-            unknown1: [1, 0, 254, 255, 3, 0, 0, 1, 2, 3, 4, 5, 6, 7, 0, 0, 0, 0],
-        };
-        let metadata = super::mpsl_to_json(&light);
-        assert_eq!(metadata["light_type"], 130);
-        assert_eq!(
-            metadata["direction_attenuation"],
-            serde_json::json!([1, -2, 3])
-        );
-        assert_eq!(
-            metadata["channel_map"],
-            serde_json::json!([0, 1, 2, 3, 4, 5, 6, 7])
-        );
-    }
 }

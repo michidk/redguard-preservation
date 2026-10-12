@@ -119,19 +119,34 @@ pub struct PositionedLight {
     pub name: String,
 }
 
+/// Authored local light in engine coordinates; see `docs/formats/RGM.md`.
 #[derive(Debug, Clone)]
 pub struct MpslRecord {
-    pub color_r: u8,
-    pub color_g: u8,
-    pub color_b: u8,
-    pub color_flags: u8,
-    pub unknown0: u32,
-    pub pos_x: i32,
-    pub pos_y: i32,
-    pub pos_z: u32,
-    pub param0: i16,
-    pub param1: i16,
-    pub unknown1: [u8; 18],
+    pub link: u32,
+    pub world_id: u32,
+    pub position: [i32; 3],
+    pub radius: i16,
+    pub field_16: i16,
+    /// Signed encoded RGB strengths, including subtractive channels.
+    pub rgb: [i16; 3],
+    pub field_1e: u8,
+    pub active: u8,
+    pub field_20: [u8; 6],
+    pub field_26: [u8; 4],
+}
+
+impl RgmFile {
+    /// Map lights admitted for a WORLD.INI entry when map lighting is enabled.
+    pub fn local_lights(&self, world_id: u32) -> impl Iterator<Item = &MpslRecord> {
+        self.sections
+            .iter()
+            .filter_map(|section| match section {
+                RgmSection::MplParsed(_, records) => Some(records.as_slice()),
+                _ => None,
+            })
+            .flatten()
+            .filter(move |light| light.active == 1 && light.world_id == world_id)
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -225,6 +240,8 @@ pub fn parse_rgm_file(input: &[u8]) -> Result<RgmFile> {
 }
 
 #[allow(clippy::missing_errors_doc)] // Public wrapper combines parser/model-loading errors into crate error type.
+/// Load models; authored map lights remain in `RgmFile::local_lights`.
+/// The punctual-light output is empty because local lights require engine shading.
 pub fn parse_rgm_with_models(
     input: &[u8],
     registry: &Registry,
@@ -233,6 +250,8 @@ pub fn parse_rgm_with_models(
 }
 
 #[allow(clippy::missing_errors_doc)]
+/// Load models with a preferred ROB archive; map lights remain in the parsed file.
+/// The punctual-light output is empty.
 pub fn parse_rgm_with_models_for_stem(
     input: &[u8],
     registry: &Registry,
@@ -299,6 +318,8 @@ pub fn disassemble_rgm_scripts(
 }
 
 #[allow(clippy::missing_errors_doc)] // Public wrapper extracts placements without loading models.
+/// Extract placements without loading models. The punctual-light output is empty;
+/// use `parse_rgm_file` and `RgmFile::local_lights` for authored local lights.
 pub fn extract_rgm_placements(input: &[u8]) -> Result<(Vec<Placement>, Vec<PositionedLight>)> {
     let rgm_file = parse_rgm_file(input)?;
     Ok(positioning::extract_placements(input, &rgm_file))

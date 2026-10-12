@@ -56,3 +56,11 @@ vertex order. Each entry is `[brightness, solid]`, where brightness is the
 unsigned face byte and solid is 1 for palette-color faces or 0 for textured
 faces. Material grouping and polygon triangulation retain these inputs for
 every emitted vertex. Terrain primitives omit this metadata.
+
+## Local-light records
+
+`RgmFile::local_lights(world_id)` returns admitted authored records with signed
+RGB, radius and positions in engine coordinates. RGM inspection metadata retains
+these values and the activation and world fields. Placement extraction does not
+convert them to standard punctual lights: their signed contribution and custom
+falloff require engine shading.
