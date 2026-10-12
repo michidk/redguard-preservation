@@ -24,6 +24,64 @@ pub struct WorldIni {
     pub entries: Vec<WorldEntry>,
 }
 
+/// New-game destination from the `[world]` section of `WORLD.INI`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct NewGameEntry {
+    /// World index, as used by `world_map[N]`.
+    pub world: u32,
+    /// Spawn marker index within that world.
+    pub marker: u32,
+    /// Optional transition artwork for the configured destination.
+    pub flash_filename: Option<String>,
+}
+
+impl NewGameEntry {
+    /// Reads required unsigned indices. Section/key matching ignores case;
+    /// the first occurrence of each key wins, including malformed values.
+    pub fn parse(content: &str) -> Result<Self, String> {
+        let mut in_world = false;
+        let mut world = None;
+        let mut marker = None;
+        let mut flashes = HashMap::new();
+        for line in content.lines() {
+            let line = line.split(';').next().unwrap_or_default().trim();
+            if line.starts_with('[') && line.ends_with(']') {
+                in_world = line[1..line.len() - 1].eq_ignore_ascii_case("world");
+            } else if in_world && let Some((key, value)) = line.split_once('=') {
+                if let Some(index) =
+                    parse_indexed_key(&key.trim().to_ascii_lowercase(), "world_flash_filename")
+                {
+                    flashes
+                        .entry(index)
+                        .or_insert_with(|| value.trim().to_string());
+                    continue;
+                }
+                let field = if key.trim().eq_ignore_ascii_case("start_world") {
+                    &mut world
+                } else if key.trim().eq_ignore_ascii_case("start_marker") {
+                    &mut marker
+                } else {
+                    continue;
+                };
+                field.get_or_insert(value.trim());
+            }
+        }
+        let number = |value: Option<&str>, key| {
+            let context = format!("WORLD.INI [world] {key}");
+            value
+                .ok_or_else(|| format!("{context}: missing value"))?
+                .parse::<u32>()
+                .map_err(|error| format!("{context}: invalid index: {error}"))
+        };
+        let world = number(world, "start_world")?;
+        Ok(Self {
+            world,
+            marker: number(marker, "start_marker")?,
+            flash_filename: flashes.remove(&world),
+        })
+    }
+}
+
 /// Extract the filename (last path component) from a WORLD.INI path value,
 /// normalizing backslash separators.
 #[must_use]
@@ -186,6 +244,30 @@ fn parse_indexed_key(key: &str, prefix: &str) -> Option<u32> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn new_game_entry_uses_its_section_and_first_values() {
+        let text = "[other]\nstart_world=99\n[WoRlD]\nSTART_WORLD=7 ; destination\nstart_marker=3\nstart_world=8\nstart_marker=4\nworld_flash_filename[7]=system\\entry.gxa\nworld_flash_filename[7]=ignored\n";
+        assert_eq!(
+            NewGameEntry::parse(text).unwrap(),
+            NewGameEntry {
+                world: 7,
+                marker: 3,
+                flash_filename: Some("system\\entry.gxa".into()),
+            }
+        );
+        for text in [
+            "[world]\nstart_world=0",
+            "[world]\nstart_world=-1\nstart_marker=0",
+            "[world]\nstart_world=bad\nstart_world=0\nstart_marker=0",
+        ] {
+            assert!(
+                NewGameEntry::parse(text)
+                    .unwrap_err()
+                    .contains("WORLD.INI [world]")
+            );
+        }
+    }
 
     const MINIMAL_INI: &str = "\
 [world]

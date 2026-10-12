@@ -1,5 +1,6 @@
 pub(crate) mod cht;
 pub(crate) mod col;
+pub(crate) mod driver;
 pub(crate) mod fnt;
 pub(crate) mod gxa;
 pub(crate) mod pvo;
@@ -393,6 +394,10 @@ fn handle_subcommand(cmd: ConvertCommand) -> Result<()> {
             let output = resolve_output(&io, FileType::Pvo);
             pvo::handle_pvo_convert(&io.file, &output)
         }
+        ConvertCommand::Driver(io) => {
+            let output = resolve_output(&io, FileType::Dig);
+            driver::handle_driver_convert(&io.file, &output)
+        }
     }
 }
 
@@ -508,6 +513,10 @@ fn handle_auto_convert(auto: AutoConvertArgs) -> Result<()> {
             let output = resolve_output(&io, FileType::Pvo);
             info!("Requested output path: {}", output.display());
             pvo::handle_pvo_convert(&io.file, &output)
+        }
+        FileType::Dig | FileType::Mdi => {
+            let output = resolve_output(&io, FileType::Dig);
+            driver::handle_driver_convert(&io.file, &output)
         }
     }
 }

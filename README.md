@@ -22,6 +22,7 @@ Preserving *The Elder Scrolls Adventures: Redguard* (1998) — reverse-engineere
 | Texture bank | `TEXBSI.###` | animated `.gif` + static `.png` files + `index.json` (directory output) |
 | GXA bitmap archive | `.gxa` | animated `.gif` + `index.json` (directory output) |
 | Cheat states | `.cht` | `.json` |
+| Miles DOS driver | `.dig`, `.mdi` | stored header metadata `.json` |
 
 The `scan` command recursively detects known Redguard files in a directory tree.
 
@@ -42,6 +43,11 @@ Each format has its own subcommand with scoped flags. `convert <FILE>` auto-dete
 | `convert sfx` | `.sfx` | `.wav` + `index.json` | (none) |
 | `convert cht` | `.cht` | `.json` | (none) |
 | `convert pvo` | `.pvo` | `.json` | (none) |
+| `convert driver` | `.dig`, `.mdi` | `<FILE>.json` | (none) |
+
+Miles driver inspection reads the VDI header and retains the image as opaque bytes; it does not execute or emulate the driver.
+`rgpre read sound/iwav.dig` prints its stored metadata. `rgpre convert driver sound/iwav.dig` writes `sound/iwav.dig.json`, preserving the extension so `.dig` and `.mdi` names do not collide.
+The Rust API is `rgpre::import::miles_driver::parse_miles_driver(&bytes)`.
 
 ¹ Exported TTF fonts are bitmap-traced vector outlines without hinting. They can be installed on Windows, used in game engines (Unity, Godot, etc.), and previewed at [fontdrop.info](https://fontdrop.info).
 

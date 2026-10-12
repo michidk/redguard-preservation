@@ -111,7 +111,7 @@ Core engine paths, audio configuration, physics constants, HUD element positions
 | `disable_cpu_check` | `yes` | Skip CPU speed check on startup. |
 | `disable_svga_check` | `yes` | Skip SVGA capability check on startup. |
 | `report_machine` | `no` | Log machine hardware info on startup. |
-| `max_active_objects` | `32` | Maximum number of simultaneously active objects. |
+| `max_active_objects` | `32` | Reusable actor-pool capacity, clamped to at least 10. |
 | `max_effects` | `32` | Maximum number of simultaneous particle effects. |
 | `max_particles` | `512` | Maximum number of simultaneous particles. |
 | `max_remap_objects` | `64` | Maximum number of palette-remapped objects. |

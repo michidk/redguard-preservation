@@ -26,6 +26,21 @@ Where:
 - `index`: texture index inside the set
 - `type`: case-insensitive token from `{WATER, DEEPWATER, LAVA, SAND, WOOD, TILE, ROCK, GLOOP}`
 
+The shipped comments describe `all` as a wildcard, but the executable's loader
+converts the index with its decimal integer reader. `all` therefore becomes
+index zero; it does not expand to every texture. Numeric indices must be in
+`0..127`. The reader accepts an optional sign and an initial sequence of decimal
+digits; a token without initial digits produces zero.
+
+Assignments retain file order. Each lookup key is `(set << 7) | index`, and the
+first matching assignment wins. A zero key terminates lookup before matching,
+so an assignment to set zero, index zero hides itself and every later assignment.
+An unmatched key returns surface zero (`unknown`).
+
+For v4/v5 model faces, solid-color materials resolve to packed surface key zero,
+and therefore to surface zero. Both palette-indexed and directly encoded solid
+colors follow this rule; their color value does not select a texture assignment.
+
 ### Sound Remap Records
 
 Each sound section contains entries of the form:

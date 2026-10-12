@@ -10,6 +10,7 @@
   - [WLD](formats/WLD.md)
   - [SFX](formats/SFX.md)
   - [RTX](formats/RTX.md)
+  - [Miles DOS drivers](formats/MILES-DRIVER.md)
   - [TEXBSI](formats/TEXBSI.md)
   - [Glide splash tables](formats/GLIDE-SPLASH.md)
   - [COL](formats/COL.md)

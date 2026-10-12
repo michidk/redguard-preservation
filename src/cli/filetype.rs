@@ -1,7 +1,8 @@
 use color_eyre::Result;
 use log::info;
 use rgpre::import::{
-    FileType, bsi, cht, fnt, gxa, model3d, palette::Palette, pvo, rgm, rob, rtx, sfx, wld,
+    FileType, bsi, cht, fnt, gxa, miles_driver, model3d, palette::Palette, pvo, rgm, rob, rtx, sfx,
+    wld,
 };
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -29,6 +30,10 @@ impl FileTypeCliExt for FileType {
             }
             FileType::Cht | FileType::Pvo => {
                 path.set_extension("json");
+            }
+            FileType::Dig | FileType::Mdi => {
+                let extension = file.extension().unwrap_or_default().to_string_lossy();
+                path.set_extension(format!("{extension}.json"));
             }
             FileType::Sfx | FileType::Rtx => {
                 path.set_extension("");
@@ -73,6 +78,20 @@ impl FileTypeCliExt for FileType {
             FileType::Sfx => print_sfx(file_content),
             FileType::Rtx => print_rtx(file_content),
             FileType::Gxa => print_gxa(file_content),
+            FileType::Dig | FileType::Mdi => {
+                let driver = miles_driver::parse_miles_driver(file_content)?;
+                info!(
+                    "Miles {:?} driver, revision {:#x}",
+                    driver.kind, driver.driver_version
+                );
+                info!(
+                    "Device: {}",
+                    driver.device_name.unwrap_or("<no name block>")
+                );
+                info!("INT 66h dispatcher: {:#x}", driver.dispatcher_offset);
+                info!("Stored header: {}", serde_json::to_string_pretty(&driver)?);
+                Ok(())
+            }
         }
     }
 }

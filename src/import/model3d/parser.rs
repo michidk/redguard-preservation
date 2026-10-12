@@ -294,6 +294,7 @@ fn parse_frame_data_section(input: &[u8], header: &Model3DHeader) -> Vec<FrameDa
         let frame_type = match raw_type {
             0 => FrameType::Static3D,
             2 => FrameType::AnimatedI16,
+            18 => FrameType::AnimatedI16Unscaled,
             4 => FrameType::AnimatedI32,
             8 => FrameType::Static3DC,
             other => FrameType::Unknown(other),
@@ -731,7 +732,20 @@ fn parse_all_frame_data(
         let coords = if frames_use_i32 || frame_index == 0 {
             parse_i32_frame_vertices(input, entry.vertex_offset as usize, num_verts)
         } else {
+            let scale = if frame_data[0].frame_type == FrameType::AnimatedI16Unscaled {
+                1.0
+            } else {
+                1.0 / 256.0
+            };
             parse_i16_frame_vertices(input, entry.vertex_offset as usize, num_verts)
+                .into_iter()
+                .zip(&fvd[0].coords)
+                .map(|(delta, base)| VertexCoord {
+                    x: (f64::from(base.x) - f64::from(delta.x) * scale) as f32,
+                    y: (f64::from(base.y) - f64::from(delta.y) * scale) as f32,
+                    z: (f64::from(base.z) - f64::from(delta.z) * scale) as f32,
+                })
+                .collect()
         };
 
         let face_normals = if uncompressed_frames && entry.normal_offset > 0 {
@@ -857,14 +871,19 @@ mod tests {
         let model = super::super::parse_3d_file(&bytes).unwrap();
         let vertex = model.frame_vertex_data[1].coords[0];
         assert_eq!([vertex.x, vertex.y, vertex.z], [4.0, -2.5, 0.5]);
+        let posed = model.at_frame(1).unwrap();
+        let point = posed.vertex_coords[0];
+        assert_eq!([point.x, point.y, point.z], [4.0, -2.5, 0.5]);
+        assert!(posed.frame_data.is_empty());
+        assert!(posed.at_frame(1).is_err());
         let normal = &model.frame_normal_data[1].face_normals[0];
         assert_eq!([normal.x, normal.y, normal.z], [0.0, -1.0, 0.0]);
     }
 
     #[test]
     fn v40_animated_models_keep_packed_later_normals() {
-        for encoding in [2u32, 4] {
-            let normal_offset = if encoding == 2 { 136usize } else { 142 };
+        for encoding in [2u32, 18, 4] {
+            let normal_offset = if encoding != 4 { 136usize } else { 142 };
             let mut bytes = vec![0u8; normal_offset + 4];
             bytes[..4].copy_from_slice(b"v4.0");
             let words = [1u32, 1, 1, 2, 74, 0, 0, 0, 0, 0, 0, 106, 118, 0, 64];
@@ -880,7 +899,7 @@ mod tests {
                 bytes[offset + 4..offset + 8].copy_from_slice(&normal.to_le_bytes());
             }
             bytes[86..90].copy_from_slice(&encoding.to_le_bytes());
-            if encoding == 2 {
+            if encoding != 4 {
                 for (axis, value) in [-7i16, 9, 2].into_iter().enumerate() {
                     bytes[130 + axis * 2..132 + axis * 2].copy_from_slice(&value.to_le_bytes());
                 }
@@ -892,10 +911,50 @@ mod tests {
             bytes[normal_offset..normal_offset + 4].copy_from_slice(&(768u32 << 10).to_le_bytes());
             let model = super::super::parse_3d_file(&bytes).unwrap();
             let vertex = model.frame_vertex_data[1].coords[0];
-            assert_eq!([vertex.x, vertex.y, vertex.z], [-7.0, 9.0, 2.0]);
+            let expected = match encoding {
+                2 => [7.0 / 256.0, -9.0 / 256.0, -2.0 / 256.0],
+                18 => [7.0, -9.0, -2.0],
+                _ => [-7.0, 9.0, 2.0],
+            };
+            assert_eq!([vertex.x, vertex.y, vertex.z], expected);
+            let posed = model.at_frame(1).unwrap();
+            let point = posed.vertex_coords[0];
+            assert_eq!([point.x, point.y, point.z], expected);
+            assert!(model.at_frame(2).is_err());
+            let mut incomplete = model.clone();
+            incomplete.frame_vertex_data[1].coords.clear();
+            assert!(incomplete.at_frame(1).is_err());
             let normals = &model.frame_normal_data[1].face_normals;
             assert_eq!(normals.len(), 1);
             assert_eq!([normals[0].x, normals[0].y, normals[0].z], [0.0, -1.0, 0.0]);
+        }
+    }
+
+    #[test]
+    fn compressed_frames_subtract_from_base_not_previous_frame() {
+        let mut bytes = vec![0u8; 136];
+        bytes[..4].copy_from_slice(b"v4.0");
+        let words = [1u32, 0, 0, 3, 64, 0, 0, 0, 0, 0, 0, 112, 0, 0, 0];
+        for (index, word) in words.into_iter().enumerate() {
+            bytes[4 + index * 4..8 + index * 4].copy_from_slice(&word.to_le_bytes());
+        }
+        for (index, offset) in [112u32, 124, 130].into_iter().enumerate() {
+            bytes[64 + index * 16..68 + index * 16].copy_from_slice(&offset.to_le_bytes());
+        }
+        bytes[76..80].copy_from_slice(&2u32.to_le_bytes());
+        for (axis, value) in [2560i32, -5120, 7680].into_iter().enumerate() {
+            bytes[112 + axis * 4..116 + axis * 4].copy_from_slice(&value.to_le_bytes());
+        }
+        for offset in [124, 130] {
+            for (axis, delta) in [256i16, -512, 128].into_iter().enumerate() {
+                bytes[offset + axis * 2..offset + axis * 2 + 2]
+                    .copy_from_slice(&delta.to_le_bytes());
+            }
+        }
+        let model = super::super::parse_3d_file(&bytes).unwrap();
+        for frame in [1, 2] {
+            let v = model.frame_vertex_data[frame].coords[0];
+            assert_eq!([v.x, v.y, v.z], [9.0, -18.0, 29.5]);
         }
     }
 
