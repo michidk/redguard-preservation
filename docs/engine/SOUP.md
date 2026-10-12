@@ -389,8 +389,11 @@ These load-time defaults do not run again on ordinary attribute writes.
 
 Actors loaded through the animation model-table path also replace attribute 125,
 `attr_mess_group`, with the next value from a shared counter. The counter returns
-its current value, then increments modulo 256. The static-model shortcut and
-actors without models do not take this assignment path.
+its current value, then increments modulo 256. Opening an actor-definition map
+resets this shared counter to zero before reading the map records. The counter
+is shared across actor definitions and instances, rather than restarting for
+each definition. The static-model shortcut and actors without models do not
+take this assignment path.
 
 ### Attribute default-group side effects
 
