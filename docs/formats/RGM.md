@@ -104,14 +104,11 @@ All fields little-endian.
 | 0x1C | 36 | `i32[9]` | rotation_matrix | 3x3 Q4.28 rotation matrix |
 | 0x40 | 2 | `u8[2]` | unused | Always 0. |
 
-The exporter converts `rotation_matrix` from Q4.28 to float and emits a node matrix with translation.
-
-Rotation parity note:
-
-- MPSO `rotation_matrix` must be interpreted with transposed index mapping when building the scene rotation matrix:
-  - row 0 = `[m0, m3, m6]`
-  - row 1 = `[m1, m4, m7]`
-  - row 2 = `[m2, m5, m8]`
+Matrix entries are row-major: row 0 is `[m0, m1, m2]`, row 1 is
+`[m3, m4, m5]`, and row 2 is `[m6, m7, m8]`. Loading converts each signed
+Q4.28 entry to a float in place without transposition or normalization.
+The matrix maps local column vectors into world coordinates, before adding
+the placement position. Camera transformation multiplies this matrix on the left.
 
 ## MPRP (Rope Chains)
 
