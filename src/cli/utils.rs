@@ -54,7 +54,7 @@ pub fn resolve_asset_root_from_input(input_file: &Path) -> PathBuf {
 pub fn resolve_filetype(path: &Path) -> Result<FileType> {
     FileType::from_path(path).ok_or_else(|| {
         eyre!(
-            "Could not infer file type for '{}'. Supported extensions: .3d, .3dc, .rob, .rgm, .wld, .fnt, .col, .pvo, .sfx, .rtx, .gxa, .cht, and TEXBSI.* by stem.",
+            "Could not infer file type for '{}'. Supported extensions: .3d, .3dc, .rob, .rgm, .wld, .fnt, .col, .pvo, .sfx, .rtx, .gxa, .cht, .dig, .mdi, and TEXBSI.* by stem.",
             path.display()
         )
     })

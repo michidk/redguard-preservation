@@ -73,6 +73,8 @@ fn filetype_resolution_covers_all_variants() {
         ("world.wld", "wld", FileType::Wld),
         ("font.fnt", "fnt", FileType::Fnt),
         ("startup.gxa", "gxa", FileType::Gxa),
+        ("SOUND.DIG", "dig", FileType::Dig),
+        ("MUSIC.MDI", "mdi", FileType::Mdi),
     ];
 
     for (path, token, expected) in cases {
@@ -193,6 +195,9 @@ fn integration_covers_each_filetype_variant() {
             }
             FileType::Cht => {
                 // No fixture for CHT; trivial 256-byte format
+            }
+            FileType::Dig | FileType::Mdi => {
+                // Driver headers are covered by tests/miles_driver.rs.
             }
         }
     }

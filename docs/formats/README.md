@@ -6,6 +6,7 @@ Binary, little-endian file formats.
 |---|---|---|---|---|---|
 | Sound Effects | .sfx | yes | `.wav` files (directory extract) | [SFX.md](SFX.md) | All game sound effects in a single container (`MAIN.SFX`); 118 raw PCM clips. |
 | Dialogue Audio | .rtx | yes | `.wav` files + `index.json` (directory extract) | [RTX.md](RTX.md) | Dialogue text + voice clip container (`ENGLISH.RTX`) with chunk index footer (`RNAV`); 4866 entries (3933 voice clips, 933 text-only). |
+| Miles DOS Driver | .dig, .mdi | yes | stored header metadata `.json` | [Miles drivers](MILES-DRIVER.md) | Digital audio and MIDI hardware driver images with a shared VDI header. |
 | Audio | .ogg | — | — | [Ogg Vorbis spec](https://xiph.org/vorbis/doc/Vorbis_I_spec.html) | Ogg Vorbis format used for game audio. |
 | TEXBSI | .### | yes | `.png` files (directory extract) + metadata `.json` | [TEXBSI.md](TEXBSI.md) | Texture container (`TEXBSI.###`); indexed-color images with optional palettes and animation. |
 | Palette | .col | yes | swatch `.png` + palette `.json` | [COL.md](COL.md) | 256-color palette files; 776 bytes (8-byte header + 256×RGB). |

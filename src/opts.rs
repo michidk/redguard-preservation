@@ -251,6 +251,8 @@ pub enum ConvertCommand {
     Cht(ConvertFileArgs),
     /// Convert PVO visibility octree to JSON
     Pvo(ConvertFileArgs),
+    /// Export stored Miles .DIG/.MDI driver header metadata to JSON
+    Driver(ConvertFileArgs),
 }
 
 // ── Top-level convert args (git-stash pattern) ─────────────────────────────

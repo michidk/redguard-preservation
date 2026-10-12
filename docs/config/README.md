@@ -20,5 +20,5 @@ Text-based INI configuration files shipped with the game.
 | File | Path | Docs | Description |
 |---|---|---|---|
 | `FOG.INI` | `fxart/` | [fog-ini.md](fog-ini.md) | Fog density ramp table for the terrain renderer. |
-| `DIG.INI` | `sound/` | — | Miles Sound System digital audio driver configuration. |
-| `MDI.INI` | `sound/` | — | Miles Sound System MIDI driver configuration. |
+| `DIG.INI` | `sound/` | — | [Miles digital audio driver](../formats/MILES-DRIVER.md) configuration. |
+| `MDI.INI` | `sound/` | — | [Miles MIDI driver](../formats/MILES-DRIVER.md) configuration. |

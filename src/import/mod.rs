@@ -22,6 +22,8 @@ pub mod keys_ini;
 pub mod menu_ini;
 pub mod menu_movies;
 pub mod menu_settings;
+/// Parser for Miles Sound System DOS .DIG and .MDI driver images.
+pub mod miles_driver;
 /// Parser for 3D and 3DC model files.
 pub mod model3d;
 /// Parser for COL palette files.
@@ -70,9 +72,11 @@ pub enum FileType {
     Gxa,      // .gxa
     Sfx,      // .sfx
     Rtx,      // .rtx
+    Dig,      // .dig
+    Mdi,      // .mdi
 }
 
-const ALL_FILE_TYPES: [FileType; 13] = [
+const ALL_FILE_TYPES: [FileType; 15] = [
     FileType::Bsi,
     FileType::Cht,
     FileType::Col,
@@ -86,6 +90,8 @@ const ALL_FILE_TYPES: [FileType; 13] = [
     FileType::Gxa,
     FileType::Sfx,
     FileType::Rtx,
+    FileType::Dig,
+    FileType::Mdi,
 ];
 
 impl FileType {
@@ -110,6 +116,7 @@ impl FileType {
             Self::Gxa => "GXA Bitmap",
             Self::Sfx => "Sound Effects",
             Self::Rtx => "Dialogue Audio",
+            Self::Dig | Self::Mdi => "Miles Driver",
         }
     }
 
@@ -129,6 +136,8 @@ impl FileType {
             Self::Gxa => &[".gxa"],
             Self::Sfx => &[".sfx"],
             Self::Rtx => &[".rtx"],
+            Self::Dig => &[".dig"],
+            Self::Mdi => &[".mdi"],
         }
     }
 
