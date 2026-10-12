@@ -153,19 +153,28 @@ fn optional_resources_can_be_absent_and_errors_identify_the_resource() {
     );
 }
 
-#[cfg(unix)]
 #[test]
-fn rejects_case_collisions_directories_and_symlink_resources() {
+fn rejects_case_collisions_when_filesystem_preserves_distinct_names() {
     let dir = SlotDir::new();
     dir.write("SAVEGAME.SAV", &save_bytes());
     dir.write("savegame.sav", &save_bytes());
-    assert!(
-        load_save_slot(&dir.0)
-            .unwrap_err()
-            .to_string()
-            .contains("duplicate")
-    );
-    std::fs::remove_file(dir.0.join("savegame.sav")).unwrap();
+    if std::fs::read_dir(&dir.0).unwrap().count() == 2 {
+        assert!(
+            load_save_slot(&dir.0)
+                .unwrap_err()
+                .to_string()
+                .contains("duplicate")
+        );
+    } else {
+        assert!(load_save_slot(&dir.0).is_ok());
+    }
+}
+
+#[cfg(unix)]
+#[test]
+fn rejects_directories_and_symlink_resources() {
+    let dir = SlotDir::new();
+    dir.write("SAVEGAME.SAV", &save_bytes());
     std::fs::create_dir(dir.0.join("BAD.TSG")).unwrap();
     assert!(
         load_save_slot(&dir.0)
