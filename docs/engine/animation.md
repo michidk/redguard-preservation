@@ -110,6 +110,18 @@ Debug and global object-processing switches can further restrict this list.
 Membership alone does not make an actor eligible for an update;
 its runtime exclusion, pause, state and script checks still apply.
 
+Cells are visited in increasing X within increasing Z rows. Eligible actors
+retain their current per-cell linked-list order; the persistent actor list is
+appended after the cell actors. New cell actors are inserted at the front of
+their cell list, and new persistent actors at the front of the persistent list.
+Consequently, actor creation order is not ordinary update order.
+
+For each view coordinate, the window origin is zero below 4608, 56319 when
+the coordinate plus 4608 exceeds 65535, and otherwise the coordinate minus
+4608. Dividing this origin by 512 gives the first cell. The regional update
+compares that starting cell with its cached entry and rebuilds the lists when
+they differ.
+
 Ordinary default selection can use attribute byte 44, but combat, injury,
 attachment, movement and player-specific states can select other groups.
 Changing the default can force an immediate replacement when the old default
