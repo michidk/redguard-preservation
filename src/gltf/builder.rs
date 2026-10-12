@@ -546,11 +546,18 @@ impl<'a> GltfBuilder<'a> {
                         );
                     }
                     if !primitive.lighting.is_empty() {
+                        let solid_rgb = match primitive.material_key {
+                            MaterialKey::SolidColor(rgb) | MaterialKey::PaletteTexture(rgb) => {
+                                Some(rgb)
+                            }
+                            _ => None,
+                        };
                         extras.insert(
                             "rgpre_lighting".into(),
                             serde_json::json!({
-                                "version": 2, "vertices": primitive.lighting,
-                                "radius_fixed": primitive.model_radius_fixed
+                                "version": 3, "vertices": primitive.lighting,
+                                "radius_fixed": primitive.model_radius_fixed,
+                                "solid_rgb": solid_rgb
                             }),
                         );
                     }

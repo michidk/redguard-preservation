@@ -102,7 +102,7 @@ fn animated_glb_preserves_vertex_identity_through_material_split_and_quad_fan() 
 }
 
 #[test]
-fn static_glb_retains_face_brightness_without_animation_mapping() {
+fn static_glb_retains_authored_lighting_inputs_without_animation_mapping() {
     let mut model =
         rgpre::model3d::parse_3d_file(include_bytes!("fixtures/model_v40.3dc")).unwrap();
     model.header.num_frames = 1;
@@ -143,12 +143,14 @@ fn static_glb_retains_face_brightness_without_animation_mapping() {
         };
     }
     model.header.radius = 12_345;
-    let (document, _) = rgpre::convert_models_to_gltf(&[model], None, None, false).unwrap();
+    let (document, _) =
+        rgpre::convert_models_to_gltf(std::slice::from_ref(&model), None, None, false).unwrap();
     let primitive = &document.meshes[0].primitives[0];
     let extras: serde_json::Value =
         serde_json::from_str(primitive.extras.as_ref().unwrap().get()).unwrap();
     assert!(extras.get("rgpre_geometry").is_none());
-    assert_eq!(extras["rgpre_lighting"]["version"], 2);
+    assert_eq!(extras["rgpre_lighting"]["version"], 3);
+    assert!(extras["rgpre_lighting"]["solid_rgb"].is_null());
     assert_eq!(extras["rgpre_lighting"]["radius_fixed"], 12_345);
     let vertices = extras["rgpre_lighting"]["vertices"].as_array().unwrap();
     assert!(!vertices.is_empty());
@@ -156,5 +158,31 @@ fn static_glb_retains_face_brightness_without_animation_mapping() {
         vertices
             .iter()
             .all(|vertex| *vertex == serde_json::json!([73, 0]))
+    );
+    model.face_data[0].texture_data = rgpre::model3d::TextureData::SolidColor(7);
+    let mut palette = rgpre::import::palette::Palette {
+        colors: [[0; 3]; 256],
+    };
+    palette.colors[7] = [17, 99, 233];
+    let (document, _) =
+        rgpre::convert_models_to_gltf(&[model], Some(&palette), None, false).unwrap();
+    let extras: serde_json::Value = serde_json::from_str(
+        document.meshes[0].primitives[0]
+            .extras
+            .as_ref()
+            .unwrap()
+            .get(),
+    )
+    .unwrap();
+    assert_eq!(
+        extras["rgpre_lighting"]["solid_rgb"],
+        serde_json::json!([17, 99, 233])
+    );
+    assert!(
+        extras["rgpre_lighting"]["vertices"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|vertex| *vertex == serde_json::json!([73, 1]))
     );
 }

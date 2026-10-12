@@ -105,10 +105,12 @@ can still contribute through the retained-color shading path.
 ## Export metadata
 
 GLTF model primitives retain per-vertex face inputs in the `rgpre_lighting`
-extras object. Version 2 has `version: 2`, the model header radius as
+extras object. Version 3 has `version: 3`, the model header radius as
 `radius_fixed` in 1/256 engine units, and a `vertices` array in exported
-vertex order. Each entry is `[brightness, solid]`, where brightness is the
-unsigned face byte and solid is 1 for palette-color faces or 0 for textured
+vertex order. `solid_rgb` holds the resolved palette RGB for solid-color
+primitives and is null for textured primitives. Retained-color baking applies
+this RGB before integer rounding. Each entry is `[brightness, solid]`, where
+brightness is the unsigned face byte and solid is 1 for palette-color faces or 0 for textured
 faces. Material grouping and polygon triangulation retain these inputs for
 every emitted vertex. Terrain primitives omit this metadata.
 
