@@ -149,6 +149,10 @@ Conditional updates write the adjusted value before the comparison and compare t
 
 In PARAMETER mode, NumericAlt consumes four bytes but returns the unsigned low 16 bits. A String parameter consumes four bytes but uses the low byte as its actor-local string index.
 
+Native parameters use numeric, global flag, local variable, string, or object-property operands. Native calls are value expressions outside PARAMETER mode; PARAMETER dispatch does not evaluate nested native calls.
+
+Object-targeted native calls evaluate local-variable and property operands against the receiving actor. Ordinary entry, task, and main processing establishes the executing actor as the native string-parameter context. A routed initial call preserves that stage actor's string table. A later ordinary task pass on the receiving actor reevaluates those string indices against the receiving actor's table. The stored task operand location remains in the calling actor's bytecode.
+
 ### Object Name Encoding
 
 Used by opcodes `0x0F`, `0x10`, `0x14`, `0x19`, `0x1A`. A leading byte selects the object target:
@@ -160,6 +164,8 @@ Used by opcodes `0x0F`, `0x10`, `0x14`, `0x19`, `0x1A`. A leading byte selects t
 | `0x02` | `u8` padding | `Camera` |
 | `0x04` | `u8` string index | Named object from per-script string table (RASB/RAST) |
 | `0x0A` | `u8` var index | Object name from local variable |
+
+Named object lookup compares bytes with ASCII letters A–Z folded to lowercase. It searches registered object namespace names, rather than actor script names. The registry orders entries by their signed 16-bit runtime object identifier; lookup returns the first matching name. Registering an identifier already in that registry does not add another entry.
 
 ### Reference Name Encoding
 

@@ -239,6 +239,9 @@ impl Decoder<'_> {
     }
     fn value_inner(&mut self, mode: Mode) -> Result<Value, String> {
         let opcode = self.byte()?;
+        if matches!(mode, Mode::Parameter) && matches!(opcode, 2 | 25 | 26) {
+            return Err("unsupported native call in parameter mode".into());
+        }
         Ok(match opcode {
             7 => Value::Integer {
                 value: self.dword()? as i32,
