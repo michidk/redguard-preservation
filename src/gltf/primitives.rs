@@ -28,6 +28,7 @@ pub(crate) struct UnrolledPrimitive {
     pub(crate) uvs: Vec<[f32; 2]>,
     pub(crate) indices: Vec<u32>,
     pub(crate) source_vertices: Vec<[u32; 2]>,
+    pub(crate) lighting: Vec<[u8; 2]>,
     pub(crate) min: [f32; 3],
     pub(crate) max: [f32; 3],
 }
@@ -108,6 +109,7 @@ pub(crate) fn build_unrolled_primitives(
                 uvs: Vec::new(),
                 indices: Vec::new(),
                 source_vertices: Vec::new(),
+                lighting: Vec::new(),
                 min: [f32::INFINITY, f32::INFINITY, f32::INFINITY],
                 max: [f32::NEG_INFINITY, f32::NEG_INFINITY, f32::NEG_INFINITY],
             });
@@ -156,6 +158,10 @@ pub(crate) fn build_unrolled_primitives(
                     SCENE_CONVENTION,
                 );
                 group.normals.push(normal);
+                group.lighting.push([
+                    face.tex_hi,
+                    u8::from(matches!(face.texture_data, TextureData::SolidColor(_))),
+                ]);
 
                 group.uvs.push([f32::from(fv.u), f32::from(fv.v)]);
                 group.indices.push((group.positions.len() - 1) as u32);

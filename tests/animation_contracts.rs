@@ -56,7 +56,7 @@ fn animated_glb_preserves_vertex_identity_through_material_split_and_quad_fan() 
         .into_iter()
         .map(|(color, vertices)| FaceData {
             vertex_count: u8::try_from(vertices.len()).unwrap(),
-            tex_hi: 0,
+            tex_hi: color,
             texture_data: TextureData::SolidColor(color),
             face_vertices: vertices
                 .into_iter()
@@ -84,11 +84,75 @@ fn animated_glb_preserves_vertex_identity_through_material_split_and_quad_fan() 
         .collect();
     assert_eq!(decoded.meshes().next().unwrap().primitives().count(), 2);
     assert_eq!(
+        mapping[0]["rgpre_lighting"]["vertices"],
+        serde_json::json!([[7, 1], [7, 1], [7, 1]])
+    );
+    assert_eq!(
+        mapping[1]["rgpre_lighting"]["vertices"],
+        serde_json::json!([[42, 1], [42, 1], [42, 1], [42, 1], [42, 1], [42, 1]])
+    );
+    assert_eq!(
         mapping[0]["rgpre_geometry"]["source_vertices"],
         serde_json::json!([[2, 1], [1, 1], [3, 1]])
     );
     assert_eq!(
         mapping[1]["rgpre_geometry"]["source_vertices"],
         serde_json::json!([[0, 0], [1, 0], [2, 0], [0, 0], [2, 0], [3, 0]])
+    );
+}
+
+#[test]
+fn static_glb_retains_face_brightness_without_animation_mapping() {
+    let mut model =
+        rgpre::model3d::parse_3d_file(include_bytes!("fixtures/model_v40.3dc")).unwrap();
+    model.header.num_frames = 1;
+    model.vertex_coords = vec![
+        rgpre::model3d::VertexCoord {
+            x: 0.0,
+            y: 0.0,
+            z: 0.0,
+        },
+        rgpre::model3d::VertexCoord {
+            x: 20.0,
+            y: 0.0,
+            z: 0.0,
+        },
+        rgpre::model3d::VertexCoord {
+            x: 0.0,
+            y: 20.0,
+            z: 0.0,
+        },
+    ];
+    model.face_data = vec![rgpre::model3d::FaceData {
+        vertex_count: 3,
+        tex_hi: 0,
+        texture_data: rgpre::model3d::TextureData::SolidColor(0),
+        face_vertices: (0..3)
+            .map(|vertex_index| rgpre::model3d::FaceVertex {
+                vertex_index,
+                u: 0,
+                v: 0,
+            })
+            .collect(),
+    }];
+    for face in &mut model.face_data {
+        face.tex_hi = 73;
+        face.texture_data = rgpre::model3d::TextureData::Texture {
+            texture_id: 12,
+            image_id: 0,
+        };
+    }
+    let (document, _) = rgpre::convert_models_to_gltf(&[model], None, None, false).unwrap();
+    let primitive = &document.meshes[0].primitives[0];
+    let extras: serde_json::Value =
+        serde_json::from_str(primitive.extras.as_ref().unwrap().get()).unwrap();
+    assert!(extras.get("rgpre_geometry").is_none());
+    assert_eq!(extras["rgpre_lighting"]["version"], 1);
+    let vertices = extras["rgpre_lighting"]["vertices"].as_array().unwrap();
+    assert!(!vertices.is_empty());
+    assert!(
+        vertices
+            .iter()
+            .all(|vertex| *vertex == serde_json::json!([73, 0]))
     );
 }
