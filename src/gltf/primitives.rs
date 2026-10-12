@@ -29,6 +29,7 @@ pub(crate) struct UnrolledPrimitive {
     pub(crate) indices: Vec<u32>,
     pub(crate) source_vertices: Vec<[u32; 2]>,
     pub(crate) lighting: Vec<[u8; 2]>,
+    pub(crate) model_radius_fixed: u32,
     pub(crate) min: [f32; 3],
     pub(crate) max: [f32; 3],
 }
@@ -110,6 +111,7 @@ pub(crate) fn build_unrolled_primitives(
                 indices: Vec::new(),
                 source_vertices: Vec::new(),
                 lighting: Vec::new(),
+                model_radius_fixed: model.header.radius,
                 min: [f32::INFINITY, f32::INFINITY, f32::INFINITY],
                 max: [f32::NEG_INFINITY, f32::NEG_INFINITY, f32::NEG_INFINITY],
             });

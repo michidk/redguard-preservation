@@ -142,12 +142,14 @@ fn static_glb_retains_face_brightness_without_animation_mapping() {
             image_id: 0,
         };
     }
+    model.header.radius = 12_345;
     let (document, _) = rgpre::convert_models_to_gltf(&[model], None, None, false).unwrap();
     let primitive = &document.meshes[0].primitives[0];
     let extras: serde_json::Value =
         serde_json::from_str(primitive.extras.as_ref().unwrap().get()).unwrap();
     assert!(extras.get("rgpre_geometry").is_none());
-    assert_eq!(extras["rgpre_lighting"]["version"], 1);
+    assert_eq!(extras["rgpre_lighting"]["version"], 2);
+    assert_eq!(extras["rgpre_lighting"]["radius_fixed"], 12_345);
     let vertices = extras["rgpre_lighting"]["vertices"].as_array().unwrap();
     assert!(!vertices.is_empty());
     assert!(
