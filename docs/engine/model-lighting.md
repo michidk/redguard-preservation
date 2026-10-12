@@ -89,6 +89,19 @@ array contains one packed entry per face vertex, including repeated mesh
 vertices shared by different faces. An existing instance buffer is reused
 when prelighting is recalculated.
 
+## World prelighting
+
+World prelighting is enabled by default. The `npl` command-line option disables
+it. The world-entry pass requires both a nonempty static-object list and a
+nonempty admitted map-light list. It registers the map lights and bakes retained
+face-vertex colors for the static instances. With either list empty, this pass
+does not bake those instances.
+
+Ordinary world drawing registers the map-light list only in editor mode.
+Outside that mode, the retained colors carry the baked map-light contributions;
+the map lights are not reapplied by that draw loop. Other registered local lights
+can still contribute through the retained-color shading path.
+
 ## Export metadata
 
 GLTF model primitives retain per-vertex face inputs in the `rgpre_lighting`
