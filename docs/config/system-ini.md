@@ -52,7 +52,7 @@ Core engine paths, audio configuration, physics constants, HUD element positions
 | Key | Default Value | Description |
 |---|---|---|
 | `game_bitmap` | `system\powerup.gxa` | GXA for the two HUD [power-up slots](../engine/hud.md#power-up-slots) (frame 0 gauntlet, frame 1 shield). |
-| `pointers` | `system\pointers.bmp` | Path to the cursor sprite sheet. |
+| `pointers` | `system\pointers.bmp` | Path to the cursor [GXA bitmap archive](../formats/GXA.md), stored with a BMP extension. |
 | `system_font` | `fonts\redguard.fnt` | Path to the primary system font. |
 | `icon_font` | `fonts\arialvs.fnt` | Path to the icon/small font. |
 | `gui_font` | `fonts\arialbg.fnt` | Path to the main GUI font. |
