@@ -26,6 +26,33 @@ Initial placement and ground settling are separate. Ground settling can change
 the player's Y coordinate, so the marker's Y coordinate is not a permanent
 ground height.
 
+## Startup ground settling
+
+Startup ground settling is separate from the ordinary grounded movement update.
+It prepares the spatial window around the actor X/Z, using the
+[static collision list order](#static-collision-list-order). It queries nearby
+model candidates with radius 1000 map units, excluding the actor's current model.
+The vertical segment keeps the prepared actor X/Z and
+extends 500 map units in each direction from the prepared actor Y plus its
+positive Y extent.
+
+When terrain is enabled, its sampled height is truncated toward zero to an
+integer map height. Terrain is eligible only strictly between the segment
+endpoints. Its rank is `abs(16384 - ((abs(height - start_y) * 8388) >> 8))`.
+The initial rank without eligible terrain is 65536.
+
+Model contacts are visited in candidate and contact order. Only surface
+classifications 2 and 4 participate. Their rank is
+`abs(16384 - contact_rank)`. A model contact replaces the current selection
+only when its rank is strictly smaller. Equal ranks retain the earlier
+selection, including terrain when it was selected first. This differs from
+ordinary support selection's later-equal replacement.
+
+If a support is selected, the actor Y becomes
+`(selected_height - positive_y_extent + standing_height) * 256`, where
+`standing_height` is the configured map-unit value from `SYSTEM.INI`.
+Without a selection, the actor Y is unchanged. This pass does not translate X/Z.
+
 ## Ordinary idle animation default
 
 For the ordinary grounded player at rest with the weapon sheathed and no special
@@ -139,6 +166,16 @@ results.
 
 ## Forward-walking startup
 
+Before startup acceleration, an ordinary forward walk requests its selected
+walking animation. With `[system] animation_system = 1` in `SYSTEM.INI`, if
+that request leaves a different group current, the walk returns before marking
+forward movement accepted, advancing the startup phase, or translating the actor.
+A pending walking group therefore does not by itself permit movement. The walk
+movement classification is set before this gate.
+
+This differs from the animation movement marker gate below, which suppresses
+translation after startup has advanced.
+
 Ordinary forward walking keeps a startup phase from zero through three.
 The selected walking speed is converted to runtime position units by multiplying
 it by 256. For `attr_step_type = 1`, phases zero, one, and two use one quarter,
@@ -170,6 +207,16 @@ Accepted movement is not equivalent to a held input. The actor update can
 continue movement from its current animation group after the input has cleared.
 The run-group continuation still passes through the animation marker gate and
 counts as accepted forward movement when that marker suppresses translation.
+
+For an admitted ordinary sheathed actor whose current group is 20, the update
+continues forward walking if earlier movement in that update did not already
+accept forward motion. This continuation repeats the forward support probe and
+uses the walking speed, startup phase, frame scale, and movement marker. It does
+not request the walking animation again, so the pending default-group request
+survives. Marker-suppressed continuation still counts as accepted forward motion
+and preserves the startup phase. Once the current group becomes idle, this
+walking continuation no longer applies; an update without other accepted forward
+motion resets the phase.
 
 For ordinary type-1 walking, a pending default-group request does not immediately
 replace the current group. A `GoToFuture` command takes its exit target when a
@@ -585,3 +632,30 @@ the calculated scale and accumulated increments.
 - [Keyboard bindings](../config/keys-ini.md)
 - [System configuration](../config/system-ini.md)
 - [RGM markers and actor data](../formats/RGM.md)
+
+## Initial player animation setup
+
+A newly allocated player actor starts with animation default group zero.
+Player entry assigns the supplied map position with eight fractional bits and
+sets pitch and roll to zero and heading modulo 2048 before binding the actor
+definition and building its animation groups.
+
+For an animated player definition, group setup makes two ordinary requests for
+group zero with modifier zero. It then clears the current model reference while retaining the selected animation
+model and frame identifiers. For an admitted animated actor, presentation resolves
+the model reference from those identifiers; a cleared reference alone does not
+mean that no animation frame is selected.
+Player entry follows that setup with a forced request for the actor's default
+group, again with modifier zero. These requests use the existing shared nominal
+ticks; they do not establish a new clock interval.
+
+The final request follows the ordinary [forced-request rules](animation.md#forced-requests).
+Requesting an already-current group before its exit marker is set only clears
+the pending request; it does not necessarily restart or advance the animation.
+The initial default group is distinct from the state-dependent default selected
+during subsequent ordinary player updates.
+
+A world reload can restore temporary per-world saved state after player
+initialization. The restored player record replaces position and animation state;
+passing through marker initialization does not establish that the final loaded
+player is a fresh spawn. Temporary world snapshots use the map's `.TSG` file.
