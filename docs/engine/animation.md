@@ -20,6 +20,13 @@ It remains active while that group is current and completes when the group
 changes. Thus count is a finite loop input, not a speed or wall-clock duration.
 The animation request made by this task has a speed modifier of zero.
 
+The current group is read as a signed sixteen-bit value and compared with the
+complete thirty-two-bit group argument. This comparison does not first narrow
+the argument to sixteen bits. The loop count stores only the low eight bits of
+its argument. Changing the count operand after the task enters its started
+phase does not rewrite the countdown; that phase only compares the current
+group with the reevaluated group operand.
+
 The first invocation has a separate not-started phase. If the requested group
 is not current, it makes an ordinary request and remains active. Even when
 that request starts the group immediately, this invocation does not set the
