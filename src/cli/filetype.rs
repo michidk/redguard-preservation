@@ -1,8 +1,8 @@
 use color_eyre::Result;
 use log::info;
 use rgpre::import::{
-    FileType, anm, bsi, cht, fnt, gxa, lbm, miles_driver, model3d, opl, palette::Palette, pcx, pif,
-    pvo, rgm, rob, rst, rtx, sfx, wld,
+    FileType, anm, bsi, cht, fnt, gxa, lbm, miles_driver, model3d, more, opl, palette::Palette,
+    pcx, pif, pvo, rgm, rob, rst, rtx, sfx, sidewinder, wld,
 };
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -29,7 +29,7 @@ impl FileTypeCliExt for FileType {
                 let suffix = if self == FileType::Anm { "anm" } else { "gxa" };
                 path.set_file_name(format!("{stem}_{suffix}"));
             }
-            FileType::Cht | FileType::Pvo => {
+            FileType::Cht | FileType::Pvo | FileType::More => {
                 path.set_extension("json");
             }
             FileType::Dig
@@ -37,7 +37,9 @@ impl FileTypeCliExt for FileType {
             | FileType::Pif
             | FileType::Opl
             | FileType::Ad
-            | FileType::Rst => {
+            | FileType::Rst
+            | FileType::Swg
+            | FileType::Swx => {
                 let extension = file.extension().unwrap_or_default().to_string_lossy();
                 path.set_extension(format!("{extension}.json"));
             }
@@ -136,6 +138,22 @@ impl FileTypeCliExt for FileType {
                 info!(
                     "{}",
                     serde_json::to_string_pretty(&rst::parse_rst_file(file_content)?)?
+                );
+                Ok(())
+            }
+            FileType::Swg | FileType::Swx => {
+                info!(
+                    "{}",
+                    serde_json::to_string_pretty(&sidewinder::parse_sidewinder_file(
+                        file_content
+                    )?)?
+                );
+                Ok(())
+            }
+            FileType::More => {
+                info!(
+                    "{}",
+                    serde_json::to_string_pretty(&more::parse_more_file(file_content)?)?
                 );
                 Ok(())
             }

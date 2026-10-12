@@ -63,6 +63,8 @@ The Rust API is `rgpre::import::miles_driver::parse_miles_driver(&bytes)`.
 
 `rgpre read` and `rgpre convert` also accept `.pif`, `.opl`, `.ad`, and `.rst` files. Their JSON exports retain the input extension, such as `STATE.RST.json`. The library entry points are `rgpre::import::pif::parse_pif_file`, `rgpre::import::opl::parse_opl_file`, and `rgpre::import::rst::parse_rst_file`. PIF inspection reads settings without launching the referenced program; OPL inspection decodes timbres without synthesizing audio.
 
+SideWinder `.swg` and `.swx` profiles and the extensionless `fxart/more` report also support inspection and JSON export. Use `rgpre convert sidewinder REDGUARD.SWG` or `rgpre convert more fxart/more`, or pass either file directly to `rgpre convert`. Profile exports preserve the raw header and control records and use filenames such as `REDGUARD.SWG.json`. The report exports to `more.json`. The library parsers are `rgpre::import::sidewinder::parse_sidewinder_file` and `rgpre::import::more::parse_more_file`.
+
 `rgpre convert system/SKY_61.PCX` and `rgpre convert system/gui.lbm` export PNG images. `rgpre convert system/gui.anm` writes `system/gui_anm/animation.gif` and timing metadata. The Rust entry points are `rgpre::import::pcx::parse_pcx_file`, `rgpre::import::lbm::parse_lbm_file`, and `rgpre::import::anm::parse_anm_file`. AD banks use the existing `parse_opl_file` API.
 
 ¹ Exported TTF fonts are bitmap-traced vector outlines without hinting. They can be installed on Windows, used in game engines (Unity, Godot, etc.), and previewed at [fontdrop.info](https://fontdrop.info).

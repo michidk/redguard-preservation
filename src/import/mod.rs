@@ -32,6 +32,8 @@ pub mod menu_settings;
 pub mod miles_driver;
 /// Parser for 3D and 3DC model files.
 pub mod model3d;
+/// Parser for Hugh's 3D information reports.
+pub mod more;
 /// Parser for Miles OPL instrument banks.
 pub mod opl;
 /// Parser for COL palette files.
@@ -59,6 +61,8 @@ pub mod rst;
 pub mod rtx;
 /// Parser for SFX sound effect files.
 pub mod sfx;
+/// Parser for Microsoft SideWinder controller profiles.
+pub mod sidewinder;
 pub mod smacker;
 pub mod soup_def;
 pub mod soup_ini;
@@ -95,9 +99,12 @@ pub enum FileType {
     Pcx,      // .pcx
     Lbm,      // .lbm
     Anm,      // .anm
+    Swg,      // .swg
+    Swx,      // .swx
+    More,     // extensionless more
 }
 
-const ALL_FILE_TYPES: [FileType; 22] = [
+const ALL_FILE_TYPES: [FileType; 25] = [
     FileType::Bsi,
     FileType::Cht,
     FileType::Col,
@@ -120,6 +127,9 @@ const ALL_FILE_TYPES: [FileType; 22] = [
     FileType::Pcx,
     FileType::Lbm,
     FileType::Anm,
+    FileType::Swg,
+    FileType::Swx,
+    FileType::More,
 ];
 
 impl FileType {
@@ -151,6 +161,8 @@ impl FileType {
             Self::Pcx => "PCX Image",
             Self::Lbm => "IFF Bitmap",
             Self::Anm => "Deluxe Paint Animation",
+            Self::Swg | Self::Swx => "SideWinder Profile",
+            Self::More => "3D Information Report",
         }
     }
 
@@ -179,6 +191,9 @@ impl FileType {
             Self::Pcx => &[".pcx"],
             Self::Lbm => &[".lbm"],
             Self::Anm => &[".anm"],
+            Self::Swg => &[".swg"],
+            Self::Swx => &[".swx"],
+            Self::More => &[],
         }
     }
 
@@ -205,6 +220,9 @@ impl FileType {
         if stem == "TEXBSI" {
             return Some(Self::Bsi);
         }
+        if p.extension().is_none() && stem == "MORE" {
+            return Some(Self::More);
+        }
         None
     }
 }
@@ -213,6 +231,9 @@ impl std::str::FromStr for FileType {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if s.trim().eq_ignore_ascii_case("more") {
+            return Ok(Self::More);
+        }
         Self::from_extension(s.trim()).ok_or_else(|| {
             let supported = Self::all()
                 .iter()
@@ -221,6 +242,7 @@ impl std::str::FromStr for FileType {
                         .iter()
                         .map(|ext| ext.trim_start_matches('.').to_string())
                 })
+                .chain(std::iter::once("more".to_owned()))
                 .collect::<Vec<_>>()
                 .join(", ");
             format!("Unknown file type: {s}. Supported types: {supported}")

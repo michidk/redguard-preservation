@@ -267,6 +267,10 @@ pub enum ConvertCommand {
     Anm(ConvertFileArgs),
     /// Export RST editor state to JSON
     Rst(ConvertFileArgs),
+    /// Export a Microsoft SideWinder SWG or SWX controller profile to JSON
+    Sidewinder(ConvertFileArgs),
+    /// Export an extensionless 3D information report to JSON
+    More(ConvertFileArgs),
 }
 
 // ── Top-level convert args (git-stash pattern) ─────────────────────────────

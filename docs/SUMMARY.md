@@ -17,6 +17,8 @@
   - [LBM packed bitmaps](formats/LBM.md)
   - [ANM animations](formats/ANM.md)
   - [RST editor state](formats/RST.md)
+  - [SideWinder controller profiles](formats/SIDEWINDER.md)
+  - [MORE model information report](formats/MORE.md)
   - [TEXBSI](formats/TEXBSI.md)
   - [Glide splash tables](formats/GLIDE-SPLASH.md)
   - [COL](formats/COL.md)

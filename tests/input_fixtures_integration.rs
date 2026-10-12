@@ -82,6 +82,9 @@ fn filetype_resolution_covers_all_variants() {
         ("SKY_61.PCX", "pcx", FileType::Pcx),
         ("gui.LBM", "lbm", FileType::Lbm),
         ("gui.ANM", "anm", FileType::Anm),
+        ("REDGUARD.SWG", "swg", FileType::Swg),
+        ("redguard.swx", "swx", FileType::Swx),
+        ("fxart/more", "more", FileType::More),
     ];
 
     for (path, token, expected) in cases {
@@ -211,6 +214,9 @@ fn integration_covers_each_filetype_variant() {
             }
             FileType::Dig | FileType::Mdi => {
                 // Driver headers are covered by tests/miles_driver.rs.
+            }
+            FileType::Swg | FileType::Swx | FileType::More => {
+                // Covered by tests/controller_reports.rs.
             }
         }
     }

@@ -1,6 +1,6 @@
 # File Formats Overview
 
-Binary formats use little-endian integers unless stated otherwise. RST files use sectioned text.
+Binary formats use little-endian integers unless stated otherwise. RST files use sectioned text, and `more` is an ASCII model information report.
 
 | File Type | Extension(s) | Parser | Output | Docs | Description |
 |---|---|---|---|---|---|
@@ -10,6 +10,8 @@ Binary formats use little-endian integers unless stated otherwise. RST files use
 | Windows Program Settings | .pif | yes | launch settings and extension data `.json` | [PIF](PIF.md) | Windows DOS-program launch settings. |
 | FM Instrument Bank | .opl, .ad | yes | timbre register settings `.json` | [OPL](OPL.md) | Miles two-operator FM synthesis instruments. |
 | Editor State | .rst | yes | ordered sections and entries `.json` | [RST](RST.md) | Sectioned editor settings and file-position records. |
+| SideWinder Profile | .swg, .swx | yes | labels and raw profile settings `.json` | [SideWinder](SIDEWINDER.md) | Microsoft SideWinder Gamepad and Freestyle Pro preferences. |
+| 3D Information Report | extensionless `more` | yes | ordered model entries `.json` | [MORE](MORE.md) | Hugh's 3D tool report with filenames, version labels, and a file count. |
 | PCX Image | .pcx | yes | `.png` | [PCX](PCX.md) | Eight-bit indexed PCX image with a trailing palette. |
 | IFF Bitmap | .lbm | yes | `.png` | [LBM](LBM.md) | Packed PBM bitmap with ByteRun1 scanlines. |
 | Deluxe Paint Animation | .anm | yes | `.gif` + timing `.json` | [ANM](ANM.md) | LPF pages containing indexed bitmap deltas. |

@@ -420,6 +420,14 @@ fn handle_subcommand(cmd: ConvertCommand) -> Result<()> {
             let output = resolve_output(&io, FileType::Rst);
             auxiliary::handle_auxiliary_convert(&io.file, &output, FileType::Rst)
         }
+        ConvertCommand::Sidewinder(io) => {
+            let output = resolve_output(&io, FileType::Swg);
+            auxiliary::handle_auxiliary_convert(&io.file, &output, FileType::Swg)
+        }
+        ConvertCommand::More(io) => {
+            let output = resolve_output(&io, FileType::More);
+            auxiliary::handle_auxiliary_convert(&io.file, &output, FileType::More)
+        }
         ConvertCommand::Driver(io) => {
             let output = resolve_output(&io, FileType::Dig);
             driver::handle_driver_convert(&io.file, &output)
@@ -548,7 +556,13 @@ fn handle_auto_convert(auto: AutoConvertArgs) -> Result<()> {
             let output = resolve_output(&io, filetype);
             bitmap::handle_anm_convert(&io.file, &output)
         }
-        FileType::Pif | FileType::Opl | FileType::Ad | FileType::Rst => {
+        FileType::Pif
+        | FileType::Opl
+        | FileType::Ad
+        | FileType::Rst
+        | FileType::Swg
+        | FileType::Swx
+        | FileType::More => {
             let output = resolve_output(&io, filetype);
             auxiliary::handle_auxiliary_convert(&io.file, &output, filetype)
         }
