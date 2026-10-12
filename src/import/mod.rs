@@ -5,6 +5,8 @@ pub mod bsi;
 pub mod cdrom;
 /// Parser for REDGUARD.CHT cheat persistence files.
 pub mod cht;
+/// Typed COMBAT.INI attacks, defenses, and taunts.
+pub mod combat_ini;
 /// Parser for FNT bitmap font files.
 pub mod fnt;
 /// Export helpers for FNT assets.
@@ -21,6 +23,9 @@ pub mod glide_splash_dll;
 pub mod gxa;
 /// Shared indexed bitmap representation.
 pub mod indexed_image;
+mod ini;
+/// Typed ITEM.INI inventory settings and item definitions.
+pub mod item_ini;
 /// Parser for KEYS.INI player keyboard bindings.
 pub mod keys_ini;
 /// Parser for IFF PBM bitmaps.
@@ -28,20 +33,14 @@ pub mod lbm;
 pub mod menu_ini;
 pub mod menu_movies;
 pub mod menu_settings;
-/// Parser for Miles Sound System DOS .DIG and .MDI driver images.
-pub mod miles_driver;
 /// Parser for 3D and 3DC model files.
 pub mod model3d;
-/// Parser for Miles OPL instrument banks.
-pub mod opl;
 /// Parser for COL palette files.
 pub mod palette;
 /// Export helpers for COL palette assets.
 pub mod palette_export;
 /// Parser for 8-bit PCX images.
 pub mod pcx;
-/// Parser for Windows Program Information Files.
-pub mod pif;
 pub mod player_ini;
 /// Shared PNG save helper with compression control.
 pub mod png;
@@ -53,8 +52,6 @@ pub mod registry;
 pub mod rgm;
 /// Parser and model extraction for ROB archives.
 pub mod rob;
-/// Parser for sectioned STATE.RST editor state.
-pub mod rst;
 /// Parser for RTX dialogue/audio container files.
 pub mod rtx;
 /// Parser for SFX sound effect files.
@@ -63,6 +60,8 @@ pub mod smacker;
 pub mod soup_def;
 pub mod soup_ini;
 pub mod surface_ini;
+/// Typed SYSTEM.INI engine configuration.
+pub mod system_ini;
 /// Parser and export helpers for WLD world files.
 pub mod wld;
 /// Parser for WORLD.INI world/level database.
@@ -86,18 +85,12 @@ pub enum FileType {
     Gxa,      // .gxa
     Sfx,      // .sfx
     Rtx,      // .rtx
-    Dig,      // .dig
-    Mdi,      // .mdi
-    Pif,      // .pif
-    Opl,      // .opl
-    Rst,      // .rst
-    Ad,       // .ad
     Pcx,      // .pcx
     Lbm,      // .lbm
     Anm,      // .anm
 }
 
-const ALL_FILE_TYPES: [FileType; 22] = [
+const ALL_FILE_TYPES: [FileType; 16] = [
     FileType::Bsi,
     FileType::Cht,
     FileType::Col,
@@ -111,12 +104,6 @@ const ALL_FILE_TYPES: [FileType; 22] = [
     FileType::Gxa,
     FileType::Sfx,
     FileType::Rtx,
-    FileType::Dig,
-    FileType::Mdi,
-    FileType::Pif,
-    FileType::Opl,
-    FileType::Rst,
-    FileType::Ad,
     FileType::Pcx,
     FileType::Lbm,
     FileType::Anm,
@@ -144,10 +131,6 @@ impl FileType {
             Self::Gxa => "GXA Bitmap",
             Self::Sfx => "Sound Effects",
             Self::Rtx => "Dialogue Audio",
-            Self::Dig | Self::Mdi => "Miles Driver",
-            Self::Pif => "Windows Program Settings",
-            Self::Opl | Self::Ad => "FM Instrument Bank",
-            Self::Rst => "Editor State",
             Self::Pcx => "PCX Image",
             Self::Lbm => "IFF Bitmap",
             Self::Anm => "Deluxe Paint Animation",
@@ -170,12 +153,6 @@ impl FileType {
             Self::Gxa => &[".gxa"],
             Self::Sfx => &[".sfx"],
             Self::Rtx => &[".rtx"],
-            Self::Dig => &[".dig"],
-            Self::Mdi => &[".mdi"],
-            Self::Pif => &[".pif"],
-            Self::Opl => &[".opl"],
-            Self::Rst => &[".rst"],
-            Self::Ad => &[".ad"],
             Self::Pcx => &[".pcx"],
             Self::Lbm => &[".lbm"],
             Self::Anm => &[".anm"],

@@ -19,6 +19,12 @@ The file contains 474 sections in four types:
 
 The file opens with a block of commented-out constants defining animation group IDs and attack type enums, followed by the sections in the order listed above.
 
+Section suffixes are numeric IDs. A missing section leaves a gap in the ID
+space; later sections keep their suffixes. Numeric fields contain decimal
+integers, including signed `arc_center` offsets. An omitted field is distinct
+from an explicit zero in the file. Taunt labels retain their RTX spelling,
+including leading `&` characters in numeric references.
+
 ## Animation Groups
 
 The header comments define the animation group ID table used by `animation` fields throughout the file:

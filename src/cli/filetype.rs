@@ -1,8 +1,8 @@
 use color_eyre::Result;
 use log::info;
 use rgpre::import::{
-    FileType, anm, bsi, cht, fnt, gxa, lbm, miles_driver, model3d, opl, palette::Palette, pcx, pif,
-    pvo, rgm, rob, rst, rtx, sfx, wld,
+    FileType, anm, bsi, cht, fnt, gxa, lbm, model3d, palette::Palette, pcx, pvo, rgm, rob, rtx,
+    sfx, wld,
 };
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -31,15 +31,6 @@ impl FileTypeCliExt for FileType {
             }
             FileType::Cht | FileType::Pvo => {
                 path.set_extension("json");
-            }
-            FileType::Dig
-            | FileType::Mdi
-            | FileType::Pif
-            | FileType::Opl
-            | FileType::Ad
-            | FileType::Rst => {
-                let extension = file.extension().unwrap_or_default().to_string_lossy();
-                path.set_extension(format!("{extension}.json"));
             }
             FileType::Sfx | FileType::Rtx => {
                 path.set_extension("");
@@ -116,41 +107,6 @@ impl FileTypeCliExt for FileType {
                     file.pages.len(),
                     file.loop_delta.is_some()
                 );
-                Ok(())
-            }
-            FileType::Pif => {
-                info!(
-                    "{}",
-                    serde_json::to_string_pretty(&pif::parse_pif_file(file_content)?)?
-                );
-                Ok(())
-            }
-            FileType::Opl | FileType::Ad => {
-                info!(
-                    "{}",
-                    serde_json::to_string_pretty(&opl::parse_opl_file(file_content)?)?
-                );
-                Ok(())
-            }
-            FileType::Rst => {
-                info!(
-                    "{}",
-                    serde_json::to_string_pretty(&rst::parse_rst_file(file_content)?)?
-                );
-                Ok(())
-            }
-            FileType::Dig | FileType::Mdi => {
-                let driver = miles_driver::parse_miles_driver(file_content)?;
-                info!(
-                    "Miles {:?} driver, revision {:#x}",
-                    driver.kind, driver.driver_version
-                );
-                info!(
-                    "Device: {}",
-                    driver.device_name.unwrap_or("<no name block>")
-                );
-                info!("INT 66h dispatcher: {:#x}", driver.dispatcher_offset);
-                info!("Stored header: {}", serde_json::to_string_pretty(&driver)?);
                 Ok(())
             }
         }

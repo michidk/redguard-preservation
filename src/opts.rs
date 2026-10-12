@@ -251,22 +251,12 @@ pub enum ConvertCommand {
     Cht(ConvertFileArgs),
     /// Convert PVO visibility octree to JSON
     Pvo(ConvertFileArgs),
-    /// Export stored Miles .DIG/.MDI driver header metadata to JSON
-    Driver(ConvertFileArgs),
-    /// Export Windows PIF launch settings to JSON
-    Pif(ConvertFileArgs),
-    /// Export Miles OPL instrument banks to JSON
-    Opl(ConvertFileArgs),
-    /// Export Miles AdLib instrument banks to JSON
-    Ad(ConvertFileArgs),
     /// Convert an 8-bit PCX image to PNG
     Pcx(ConvertFileArgs),
     /// Convert an IFF PBM bitmap to PNG
     Lbm(ConvertFileArgs),
     /// Convert a Deluxe Paint animation to GIF and metadata
     Anm(ConvertFileArgs),
-    /// Export RST editor state to JSON
-    Rst(ConvertFileArgs),
 }
 
 // ── Top-level convert args (git-stash pattern) ─────────────────────────────

@@ -1,15 +1,11 @@
 # File Formats Overview
 
-Binary formats use little-endian integers unless stated otherwise. RST files use sectioned text.
+Binary formats use little-endian integers unless stated otherwise. The references also describe the bundled hardware configuration and tool reports listed below.
 
 | File Type | Extension(s) | Parser | Output | Docs | Description |
 |---|---|---|---|---|---|
 | Sound Effects | .sfx | yes | `.wav` files (directory extract) | [SFX.md](SFX.md) | All game sound effects in a single container (`MAIN.SFX`); 118 raw PCM clips. |
 | Dialogue Audio | .rtx | yes | `.wav` files + `index.json` (directory extract) | [RTX.md](RTX.md) | Dialogue text + voice clip container (`ENGLISH.RTX`) with chunk index footer (`RNAV`); 4866 entries (3933 voice clips, 933 text-only). |
-| Miles DOS Driver | .dig, .mdi | yes | stored header metadata `.json` | [Miles drivers](MILES-DRIVER.md) | Digital audio and MIDI hardware driver images with a shared VDI header. |
-| Windows Program Settings | .pif | yes | launch settings and extension data `.json` | [PIF](PIF.md) | Windows DOS-program launch settings. |
-| FM Instrument Bank | .opl, .ad | yes | timbre register settings `.json` | [OPL](OPL.md) | Miles two-operator FM synthesis instruments. |
-| Editor State | .rst | yes | ordered sections and entries `.json` | [RST](RST.md) | Sectioned editor settings and file-position records. |
 | PCX Image | .pcx | yes | `.png` | [PCX](PCX.md) | Eight-bit indexed PCX image with a trailing palette. |
 | IFF Bitmap | .lbm | yes | `.png` | [LBM](LBM.md) | Packed PBM bitmap with ByteRun1 scanlines. |
 | Deluxe Paint Animation | .anm | yes | `.gif` + timing `.json` | [ANM](ANM.md) | LPF pages containing indexed bitmap deltas. |
@@ -28,3 +24,18 @@ Binary formats use little-endian integers unless stated otherwise. RST files use
 | SOUP386.DEF | .def | yes | — | [SOUPDEF.md](../engine/SOUPDEF.md) | Definition-file format for SOUP callable functions, references/equates, attributes, and global flags. |
 
 The library also extracts [Glide splash tables](GLIDE-SPLASH.md) from the supported GOG overlay. This is a scoped data-table extractor, not a generic executable importer.
+
+## Bundled support files
+
+These resources describe DOS hardware interfaces, setup utilities, controller
+presets, and development tools. [Bundled support resources](BUNDLED-RESOURCES.md)
+explains their roles alongside the game assets.
+
+| Resource | Description | Format reference |
+|---|---|---|
+| `.dig`, `.mdi` | Executable Miles DOS digital audio and MIDI hardware drivers. | [Miles drivers](MILES-DRIVER.md) |
+| `.pif` | Windows launch settings for DOS audio utilities. | [PIF](PIF.md) |
+| `.opl`, `.ad` | Two-operator FM MIDI instrument banks. | [OPL and AD](OPL.md) |
+| `.rst` | Sectioned text editor settings and remembered file positions. | [RST](RST.md) |
+| `.swg`, `.swx` | Microsoft SideWinder controller preferences. | [SideWinder](SIDEWINDER.md) |
+| Extensionless `more` | Historical model filenames and version labels. | [MORE](MORE.md) |

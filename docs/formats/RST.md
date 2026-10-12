@@ -2,6 +2,10 @@
 
 `STATE.RST` stores sectioned text editor settings and file-position records.
 
+Its `file` entries refer to editor documents such as `d:\redguard\sound\dig.ini`.
+These are remembered editing positions, separate from game save state and
+runtime audio configuration. See [Miles audio configuration](../config/miles-ini.md).
+
 ## Overall Structure
 
 ```text
@@ -10,8 +14,8 @@
 [Additional sections — further headers and assignments]
 ```
 
-The file is text with CRLF line endings. The parser also accepts LF line
-endings. There is no binary header or byte-order requirement.
+The file is text with CRLF line endings. There is no binary header or
+byte-order requirement.
 
 ## Sections and assignments
 
@@ -26,8 +30,8 @@ endings. There is no binary header or byte-order requirement.
 Section names retain their trailing hyphens. Assignments split at the first
 equals sign. Empty values are valid. Values can contain Windows paths,
 space-separated fields, and further equals signs, such as `c=0` in a `file`
-record. The parser preserves these values as text and retains section order,
-entry order, and duplicate keys.
+record. Repeated `file` keys represent separate editor records, so section and
+entry order are part of the stored state.
 
 ```ini
 [edit-]
@@ -37,13 +41,12 @@ srch=
 file=d:\redguard\sound\dig.ini 1 1 1 7
 ```
 
-Blank lines and lines beginning with a semicolon are ignored. Semicolons within
-values remain part of the value. Assignments require a nonempty key and a
-preceding section header. Malformed lines and non-text control bytes are
-rejected.
+Blank lines separate records, and lines beginning with a semicolon are
+comments. Semicolons within values remain part of the value. Each assignment
+belongs to the preceding section header.
 
-Legacy text bytes map directly to Unicode code points U+0000–U+00FF. The parser
-retains the original image without selecting a DOS code page.
+The file contains legacy text bytes. Their displayed characters depend on the
+editor's code page.
 
 ## External References
 

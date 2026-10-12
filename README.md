@@ -22,15 +22,11 @@ Preserving *The Elder Scrolls Adventures: Redguard* (1998) — reverse-engineere
 | Texture bank | `TEXBSI.###` | animated `.gif` + static `.png` files + `index.json` (directory output) |
 | GXA bitmap archive | `.gxa` | animated `.gif` + `index.json` (directory output) |
 | Cheat states | `.cht` | `.json` |
-| Miles DOS driver | `.dig`, `.mdi` | stored header metadata `.json` |
-| Windows program settings | `.pif` | launch settings and extension data `.json` |
-| FM instrument bank | `.opl`, `.ad` | timbre register settings `.json` |
-| Editor state | `.rst` | ordered sections and entries `.json` |
 | PCX image | `.pcx` | `.png` |
 | IFF packed bitmap | `.lbm` | `.png` |
 | Deluxe Paint animation | `.anm` | directory: `animation.gif` + `index.json` |
 
-The `scan` command recursively detects known Redguard files in a directory tree.
+The `scan` command recursively detects known Redguard files in a directory tree. The CLI and Rust parsers focus on game assets. Hardware drivers, audio utilities, controller profiles, and development reports remain documented in [Bundled support resources](docs/formats/BUNDLED-RESOURCES.md).
 
 ## Convert Subcommands
 
@@ -49,23 +45,47 @@ Each format has its own subcommand with scoped flags. `convert <FILE>` auto-dete
 | `convert sfx` | `.sfx` | `.wav` + `index.json` | (none) |
 | `convert cht` | `.cht` | `.json` | (none) |
 | `convert pvo` | `.pvo` | `.json` | (none) |
-| `convert driver` | `.dig`, `.mdi` | `<FILE>.json` | (none) |
-| `convert pif` | `.pif` | `<FILE>.json` | (none) |
-| `convert opl`, `convert ad` | `.opl`, `.ad` | `<FILE>.json` | (none) |
-| `convert rst` | `.rst` | `<FILE>.json` | (none) |
 | `convert pcx` | `.pcx` | `.png` | (none) |
 | `convert lbm` | `.lbm` | `.png` | (none) |
 | `convert anm` | `.anm` | `animation.gif` + `index.json` | (none) |
 
-Miles driver inspection reads the VDI header and retains the image as opaque bytes; it does not execute or emulate the driver.
-`rgpre read sound/iwav.dig` prints its stored metadata. `rgpre convert driver sound/iwav.dig` writes `sound/iwav.dig.json`, preserving the extension so `.dig` and `.mdi` names do not collide.
-The Rust API is `rgpre::import::miles_driver::parse_miles_driver(&bytes)`.
-
-`rgpre read` and `rgpre convert` also accept `.pif`, `.opl`, `.ad`, and `.rst` files. Their JSON exports retain the input extension, such as `STATE.RST.json`. The library entry points are `rgpre::import::pif::parse_pif_file`, `rgpre::import::opl::parse_opl_file`, and `rgpre::import::rst::parse_rst_file`. PIF inspection reads settings without launching the referenced program; OPL inspection decodes timbres without synthesizing audio.
-
-`rgpre convert system/SKY_61.PCX` and `rgpre convert system/gui.lbm` export PNG images. `rgpre convert system/gui.anm` writes `system/gui_anm/animation.gif` and timing metadata. The Rust entry points are `rgpre::import::pcx::parse_pcx_file`, `rgpre::import::lbm::parse_lbm_file`, and `rgpre::import::anm::parse_anm_file`. AD banks use the existing `parse_opl_file` API.
+`rgpre convert system/SKY_61.PCX` and `rgpre convert system/gui.lbm` export PNG images. `rgpre convert system/gui.anm` writes `system/gui_anm/animation.gif` and timing metadata. The Rust entry points are `rgpre::import::pcx::parse_pcx_file`, `rgpre::import::lbm::parse_lbm_file`, and `rgpre::import::anm::parse_anm_file`.
 
 ¹ Exported TTF fonts are bitmap-traced vector outlines without hinting. They can be installed on Windows, used in game engines (Unity, Godot, etc.), and previewed at [fontdrop.info](https://fontdrop.info).
+
+## Typed configuration parsers
+
+The Rust library parses the gameplay configuration files into named structs:
+
+| File | Entry point | Contents |
+|---|---|---|
+| `SYSTEM.INI` | `rgpre::import::system_ini::SystemIni::parse` | Display, engine, debug, gameplay, player, object-manager, renderer, camera, dialogue, and Glide settings. |
+| `COMBAT.INI` | `rgpre::import::combat_ini::CombatIni::parse` | Global combat settings and attacks, defenses, and taunts indexed by section ID. |
+| `ITEM.INI` | `rgpre::import::item_ini::ItemIni::parse` | Inventory settings and item definitions indexed by item ID. |
+
+```rust
+use rgpre::import::{combat_ini::CombatIni, item_ini::ItemIni, system_ini::SystemIni};
+
+let system = SystemIni::parse(&std::fs::read_to_string("SYSTEM.INI")?)?;
+let combat = CombatIni::parse(&std::fs::read_to_string("COMBAT.INI")?)?;
+let items = ItemIni::parse(&std::fs::read_to_string("ITEM.INI")?)?;
+```
+
+These APIs require `[system]`, `[misc]`, and `[items]`, respectively. Other
+sections and individual fields can be absent. Missing or empty fields are
+`None`; explicit zero remains `Some(0)`. Signed engine units, floating-point
+camera factors, paths, RTX labels, and sparse IDs retain their values. Documented
+type codes have named enum variants, and undocumented codes use `Unknown(i32)`.
+
+Section and key matching ignores case. The first duplicate key wins. Semicolon
+comments, LF or CRLF line endings, and an initial UTF-8 BOM are accepted. Unknown
+fields are ignored. Invalid INI records, malformed recognized values, overflowing
+integers, non-finite floats, and invalid indexed identifiers return `Error::Parse`.
+Parsing retains stored values without applying engine defaults or runtime clamps.
+
+The narrower `rgpre::import::player_ini::PlayerConfig` API remains available for
+ordinary grounded movement. It requires its six player settings and rejects
+duplicate relevant keys.
 
 ## Documentation
 

@@ -7,6 +7,10 @@ The sound directory contains `sample.opl`, `Fatman.opl`, `sample.ad`, and
 These banks provide two-operator instrument settings for FM MIDI playback. See also
 [Miles DOS drivers](MILES-DRIVER.md).
 
+The shipped game disables Miles MIDI initialization. These banks belong to
+the bundled FM MIDI system. Background [music](../engine/music.md) uses CD
+audio and does not use the banks.
+
 ## Overall Structure
 
 ```text
@@ -56,8 +60,10 @@ For melodic channels, `transposition` adjusts the incoming note. On the
 percussion channel it supplies the note directly.
 
 Register values are stored bytes, before playback adjusts pitch, volume,
-or channel assignment. The parser accepts the 14-byte format and rejects other
-timbre sizes. Parsing does not synthesize audio.
+or channel assignment. The two-operator layout described here uses 14-byte
+timbre records. The banks contain synthesis parameters rather than recorded
+samples. Modern playback of the game's sound effects and dialogue uses the
+audio in [SFX](SFX.md) and [RTX](RTX.md).
 
 ## External References
 
