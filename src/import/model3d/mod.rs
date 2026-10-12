@@ -2,7 +2,7 @@
 pub mod parser;
 pub mod subobjects;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(serde::Serialize, Debug, Clone, PartialEq, Eq)]
 /// Recognized model format versions from 3D/3DC headers.
 pub enum ModelVersion {
     V26,
@@ -12,14 +12,14 @@ pub enum ModelVersion {
     Unknown,
 }
 
-#[derive(Debug, Clone)]
+#[derive(serde::Serialize, Debug, Clone)]
 /// Face material reference as either a palette index or texture/image pair.
 pub enum TextureData {
     SolidColor(u8),
     Texture { texture_id: u16, image_id: u8 },
 }
 
-#[derive(Debug, Clone)]
+#[derive(serde::Serialize, Debug, Clone)]
 /// Parsed 64-byte 3D model header.
 pub struct Model3DHeader {
     pub version: [u8; 4],
@@ -46,7 +46,7 @@ pub struct Model3DHeader {
     pub offset_face_data: u32,
 }
 
-#[derive(Debug, Clone)]
+#[derive(serde::Serialize, Debug, Clone)]
 /// One vertex reference and UV delta entry inside a face.
 pub struct FaceVertex {
     pub vertex_index: u32,
@@ -54,7 +54,7 @@ pub struct FaceVertex {
     pub v: i16,
 }
 
-#[derive(Debug, Clone)]
+#[derive(serde::Serialize, Debug, Clone)]
 /// Decoded face record with vertices and material information.
 pub struct FaceData {
     pub vertex_count: u8,
@@ -77,7 +77,7 @@ impl FaceData {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(serde::Serialize, Debug, Clone, Copy)]
 /// Vertex position in model space.
 pub struct VertexCoord {
     pub x: f32,
@@ -85,7 +85,7 @@ pub struct VertexCoord {
     pub z: f32,
 }
 
-#[derive(Debug, Clone)]
+#[derive(serde::Serialize, Debug, Clone)]
 /// Face normal vector.
 pub struct FaceNormal {
     pub x: f32,
@@ -93,7 +93,7 @@ pub struct FaceNormal {
     pub z: f32,
 }
 
-#[derive(Debug, Clone)]
+#[derive(serde::Serialize, Debug, Clone)]
 /// Vertex normal vector.
 pub struct VertexNormal {
     pub x: f32,
@@ -101,7 +101,7 @@ pub struct VertexNormal {
     pub z: f32,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(serde::Serialize, Debug, Clone, Copy, PartialEq, Eq)]
 /// Frame encoding used by frame-table entries.
 pub enum FrameType {
     Static3D,
@@ -113,7 +113,7 @@ pub enum FrameType {
     Unknown(u32),
 }
 
-#[derive(Debug, Clone)]
+#[derive(serde::Serialize, Debug, Clone)]
 /// Parsed frame table entry from animated model data.
 pub struct FrameDataEntry {
     pub vertex_offset: u32,
@@ -123,19 +123,19 @@ pub struct FrameDataEntry {
 }
 
 /// Absolute per-frame vertex positions in model units, reconstructed from frame-zero deltas.
-#[derive(Debug, Clone)]
+#[derive(serde::Serialize, Debug, Clone)]
 pub struct FrameVertexData {
     pub coords: Vec<VertexCoord>,
 }
 
 /// Parsed per-frame face normals.
-#[derive(Debug, Clone)]
+#[derive(serde::Serialize, Debug, Clone)]
 pub struct FrameNormalData {
     pub face_normals: Vec<FaceNormal>,
 }
 
 /// Parsed 3D/3DC model including geometry and frame metadata.
-#[derive(Debug, Clone)]
+#[derive(serde::Serialize, Debug, Clone)]
 pub struct Model3DFile {
     pub header: Model3DHeader,
     pub version: ModelVersion,
@@ -299,4 +299,26 @@ impl Model3DFile {
         posed.face_normals = normals.clone();
         Ok(posed)
     }
+}
+
+/// Exports all decoded model fields and authored collision subsets for inspection.
+/// Positions retain parser model units; face UVs are accumulated sixteenths of a texel.
+/// Frame poses are absolute, as in `frame_vertex_data`; no compressed payload is included.
+#[must_use]
+pub fn export_model_metadata(
+    model: &Model3DFile,
+    subobjects: &[subobjects::Subobject],
+) -> serde_json::Value {
+    serde_json::json!({
+        "model": model,
+        "subobjects": subobjects,
+        "scene_subobjects": subobjects.iter().map(|subobject| serde_json::json!({
+            "center": crate::gltf::model_position(subobject.center.map(|value| value as f32 / 256.0)),
+            "radius": subobject.radius as f32 / 256.0 / crate::gltf::ENGINE_UNIT_SCALE,
+            "extent_factors": subobject.extents,
+            "faces": subobject.faces,
+        })).collect::<Vec<_>>(),
+        "uv_units": "sixteenths_of_a_texel",
+        "bounding_box": model.bounding_box(),
+    })
 }
