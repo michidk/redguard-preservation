@@ -191,6 +191,16 @@ pub enum RgmSection {
     End(RgmSectionHeader),
 }
 
+/// Converts world coordinates in engine map units to the scene coordinates used by GLB exports.
+/// Unlike model-local positions, world positions include the map Z-origin translation.
+/// Use this for PVO cell centers; vectors and extents have no origin translation.
+#[must_use]
+pub fn world_position(position: [f32; 3]) -> [f32; 3] {
+    let origin = positioning::decode_position(0, 0, 0);
+    let local = crate::gltf::model_position(position);
+    std::array::from_fn(|axis| local[axis] + origin[axis])
+}
+
 #[must_use]
 pub fn parse_ragr_actor_groups(ragr_data: &[u8], ragr_offset: usize) -> Vec<RagrAnimGroup> {
     metadata::parse_ragr_actor_groups_impl(ragr_data, ragr_offset)
