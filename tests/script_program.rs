@@ -208,3 +208,20 @@ fn nonbinary_formula_operators_follow_the_invalid_encoding_path() {
         assert!(error.contains("invalid formula operator"), "{error}");
     }
 }
+
+#[test]
+fn native_calls_are_expression_forms_not_parameter_forms() {
+    for parameter in [
+        vec![2, 2, 0, 0],
+        vec![25, 0, 0, 2, 0, 0],
+        vec![26, 0, 0, 2, 0, 0],
+    ] {
+        let mut bytes = vec![0, 1, 0, 2];
+        bytes.extend(parameter);
+        bytes.extend([7, 0, 0, 0, 0]);
+        let error = decode_script_step(&bytes, 0, &definition()).unwrap_err();
+        assert!(error.contains("native call in parameter mode"), "{error}");
+    }
+    let formula = decode_script_step(&[6, 0, 0, 2, 2, 0, 0, 0], 0, &definition()).unwrap();
+    assert!(matches!(formula.operation, Operation::Assign { .. }));
+}
