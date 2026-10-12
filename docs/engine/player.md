@@ -186,6 +186,16 @@ continue movement from its current animation group after the input has cleared.
 The run-group continuation still passes through the animation marker gate and
 counts as accepted forward movement when that marker suppresses translation.
 
+For an admitted ordinary sheathed actor whose current group is 20, the update
+continues forward walking if earlier movement in that update did not already
+accept forward motion. This continuation repeats the forward support probe and
+uses the walking speed, startup phase, frame scale, and movement marker. It does
+not request the walking animation again, so the pending default-group request
+survives. Marker-suppressed continuation still counts as accepted forward motion
+and preserves the startup phase. Once the current group becomes idle, this
+walking continuation no longer applies; an update without other accepted forward
+motion resets the phase.
+
 For ordinary type-1 walking, a pending default-group request does not immediately
 replace the current group. A `GoToFuture` command takes its exit target when a
 different pending group exists, or when exit processing is already active. The
