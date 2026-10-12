@@ -292,7 +292,10 @@ When a Numeric (`0x07`) or NumericAlt (`0x16`) opcode appears in PARAMETER mode,
 ### Ordinary entry gate
 
 Ordinary entry processing uses the actor's saved entry continuation, distinct
-from its main continuation. Before running it, the engine checks occupied,
+from its main continuation. When the initial main entry offset is zero,
+the separate entry continuation is absent. A nonzero initial main offset starts
+main there and initializes the separate entry continuation at the script base.
+An absent entry continuation makes ordinary entry processing return immediately. Before running it, the engine checks occupied,
 unpaused blocking task slots. A slot suppresses entry when its stored operand
 address is less than or equal to the saved entry address. This is an address
 comparison, not a comparison of offsets relative to each task's own script.

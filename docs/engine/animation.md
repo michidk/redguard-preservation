@@ -37,6 +37,12 @@ An initial invocation that already finds its group current sets the count
 immediately and remains active. Each invocation evaluates the call's operands
 again. Task creation and later task invocations are separate scheduling stages.
 
+The task does not test whether the requested group exists. Ordinary request
+fallback still applies, but selecting the default does not change the task's
+requested group. While that requested group is not current, the task remains
+in its not-started phase and makes another ordinary request on each invocation.
+A missing group therefore does not by itself complete the task.
+
 For forward playback, `GoToPrevious` with a nonzero loop countdown decrements
 that countdown. If it becomes zero, playback continues after the command;
 otherwise it jumps to the command's target. With a zero countdown it jumps
