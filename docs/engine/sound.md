@@ -109,6 +109,7 @@ Every effect start takes an effect index, a playback-rate offset in Hz, a
 volume and a pan.
 
 - **Playback rate:** `clamp(effect sample_rate + rate_offset, 512, 44000)` Hz.
+  The addition wraps at 32 bits before the signed clamp.
 - **Looping:** see [SFX loop behaviour](../formats/SFX.md#loop-behavior).
 - **Effect range:** a negative effect index or an index at or beyond the number
   of effects in `MAIN.SFX` (118 shipped) starts nothing.
@@ -164,6 +165,9 @@ adjustment.
 | `EndMySound` | function | effect | Stop every playing channel whose requested effect is `effect` and whose owner is this object. |
 | `EndMySounds` | function | — | Stop every playing channel owned by this object. |
 | `StopAllSounds` | function | — | Stop all 16 channels. |
+
+`FlatSound` adds its volume offset to the header base volume with 32-bit
+wrapping arithmetic before clamping the signed result to 0–127.
 
 `FlatSound`, `EndSound`, `EndMySound` and `EndMySounds` return zero,
 including when they start or stop no channel.
