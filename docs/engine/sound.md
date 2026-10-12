@@ -110,8 +110,8 @@ volume and a pan.
 
 - **Playback rate:** `clamp(effect sample_rate + rate_offset, 512, 44000)` Hz.
 - **Looping:** see [SFX loop behaviour](../formats/SFX.md#loop-behavior).
-- **Effect range:** an effect index at or beyond the number of effects in
-  `MAIN.SFX` (118 shipped) starts nothing.
+- **Effect range:** a negative effect index or an index at or beyond the number
+  of effects in `MAIN.SFX` (118 shipped) starts nothing.
 - **Channels:** 16 sample channels. A start takes the first idle channel at or
   above a start index. When none is idle the sound is dropped; playing sounds
   are never stolen. The start index is 0 for the player's own animation sounds
