@@ -58,6 +58,7 @@ pub struct FaceVertex {
 /// Decoded face record with vertices and material information.
 pub struct FaceData {
     pub vertex_count: u8,
+    /// Unsigned face brightness added to ambient RGB by Glide.
     pub tex_hi: u8,
     pub texture_data: TextureData,
     pub face_vertices: Vec<FaceVertex>,
