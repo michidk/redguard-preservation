@@ -303,6 +303,11 @@ attribute 44, when the actor has an active model record, it also stores that
 truncated byte as the model default. This path does not release walk-node
 reservations. Both attribute setters return zero.
 
+The model default and the animation playback default are separate state.
+Ordinary actor updates select the playback default using actor state; these
+attribute writes do not directly replace that selection step. See
+[ordinary default selection](animation.md#placed-actor-initialization-and-eligibility).
+
 ### Function Table
 
 `SOUP386.DEF` declares 367 callable functions (indices 1–367; index 0 is the synthetic `NullFunction`). Functions span the following categories:
