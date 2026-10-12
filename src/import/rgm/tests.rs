@@ -70,3 +70,37 @@ fn marker_metadata_rejects_truncated_tables_before_allocating() {
     let metadata = export_rgm_metadata_json(&rgm, None);
     assert_eq!(metadata["markers"], serde_json::json!([]));
 }
+
+#[test]
+fn actor_metadata_preserves_model_loader_branch_conditions() {
+    for (models, prefix, frames, expected) in [
+        (0i32, -1i32, 0i32, "none"),
+        (1, -1, 0, "static"),
+        (1, -1, 1, "static"),
+        (1, -1, -1, "static"),
+        (1, -1, 2, "animation_table"),
+        (1, 255, 0, "animation_table"),
+        (1, 0, 0, "animation_table"),
+        (2, -1, 0, "animation_table"),
+    ] {
+        let mut data = vec![0; 8 + 165];
+        data[..4].copy_from_slice(&1u32.to_le_bytes());
+        let record = &mut data[8..];
+        record[4..9].copy_from_slice(b"ACTOR");
+        record[0x21..0x25].copy_from_slice(&models.to_le_bytes());
+        record[0x2D..0x31].copy_from_slice(&prefix.to_le_bytes());
+        record[0x85..0x89].copy_from_slice(&frames.to_le_bytes());
+        let rgm = RgmFile {
+            sections: vec![RgmSection::Rahd(
+                RgmSectionHeader {
+                    name: *b"RAHD",
+                    data_length: 173,
+                    record_count: None,
+                },
+                data,
+            )],
+        };
+        let metadata = export_rgm_metadata_json(&rgm, None);
+        assert_eq!(metadata["actors"][0]["model_load_path"], expected);
+    }
+}
