@@ -95,6 +95,12 @@ The full documentation is published at **<https://michidk.github.io/redguard-pre
 - [**Engine Details**](https://michidk.github.io/redguard-preservation/engine/) ([source](docs/engine/README.md)) — reverse-engineered engine internals: cheat system, item attachment, SOUP scripting, sky renderer, water waves
 - [**Configuration**](https://michidk.github.io/redguard-preservation/config/) ([source](docs/config/README.md)) — text-based INI files shipped with the game (surface types, combat, keys, etc.)
 
+## Related projects
+
+[Cyrus](https://github.com/michidk/cyrus) is a modern, faithful Rust
+reimplementation of Redguard built on this project's research and the
+`redguard-preservation` crate.
+
 ## Acknowledgements
 
 [RGUnity](https://github.com/RGUnity/redguard-unity) inspired
