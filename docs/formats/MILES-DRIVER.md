@@ -94,6 +94,21 @@ Hardware selection and installation messages are separate from the binary header
 `DIG.INI` and `MDI.INI` select the digital and MIDI driver filenames and their I/O parameters. See the [configuration overview](../config/README.md).
 Background [music](../engine/music.md) uses CD audio, separate from these MIDI synthesis drivers.
 
+## Use by the Game
+
+The game initializes digital audio from `DIG.INI`. The shipped configuration
+selects `SB16.DIG` for SoundBlaster sample playback, including sound effects,
+dialogue, and movie audio. The other DIG images provide alternative hardware
+drivers.
+
+The Miles library also contains a MIDI initialization path that reads
+`MDI.INI`. The shipped engine disables that path at startup. Its MDI drivers
+and [OPL and AD instrument banks](OPL.md) remain bundled MIDI resources,
+separate from the CD audio used for background music.
+
+The [PIF files](PIF.md) configure the bundled `DIGPLAY.EXE` and `SETSOUND.EXE`
+utilities. They are Windows launch settings, not sound drivers or audio data.
+
 ## External References
 
 - [Syndicate Wars `mssal.h`, VDI header and driver call definitions](https://github.com/swfans/swars/blob/master/bfsoundlib/include/mssal.h)

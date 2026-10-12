@@ -7,6 +7,10 @@ The sound directory contains `sample.opl`, `Fatman.opl`, `sample.ad`, and
 These banks provide two-operator instrument settings for FM MIDI playback. See also
 [Miles DOS drivers](MILES-DRIVER.md).
 
+The shipped game disables Miles MIDI initialization. These banks belong to
+the bundled FM MIDI system. Background [music](../engine/music.md) uses CD
+audio and does not use the banks.
+
 ## Overall Structure
 
 ```text
