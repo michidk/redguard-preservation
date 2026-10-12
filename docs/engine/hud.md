@@ -198,13 +198,18 @@ A single text line is drawn left-aligned from `x = pickup_xco` with its top at
 The script function `Activate(label)` (also used by `TorchActivate`) offers
 RTX entry `label` as the prompt when lockout is not 1, no dialogue topic menu
 is open, the sword is not drawn, no other object holds the activation, the
-hold-off `A` is 0, and no prompt is already pending for the frame. Additional
-player-state checks can reject the prompt. The prompt text is the RTX entry's
-text.
+hold-off `A` is 0, and no prompt is already pending for the frame. An existing
+activation owner may offer its own prompt again when the other gates permit it.
+When the player's `attr_player_type` is 1, the receiving object's
+`attr_special_activate` must be nonzero. Receiver-state and player-state checks
+can also reject the prompt. The prompt text is the RTX entry's text; a missing
+RTX entry does not activate the object.
 
 - If the use key is held when `Activate` is called, the activation fires:
-  the function returns true and `A` is set to 22 ticks, blanking the icon and
-  prompt area. The script function `Deactivate` clears `A`.
+  the function returns true, the receiving object becomes the activation owner,
+  and `A` is set to 22 ticks, blanking the icon and prompt area. The resolved
+  prompt remains pending even when activation fires. `Deactivate` always clears
+  `A`; it clears the activation owner only when called on that owning object.
 - Otherwise the prompt is drawn in place of the icon.
 - While a prompt is pending, holding the previous/next item key sets an
   override timer to `rtx_pickup_override_time` (shipped 24 ticks). While it
