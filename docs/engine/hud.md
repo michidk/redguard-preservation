@@ -198,7 +198,7 @@ A single text line is drawn left-aligned from `x = pickup_xco` with its top at
 The script function `Activate(label)` (also used by `TorchActivate`) offers
 RTX entry `label` as the prompt when lockout is not 1, no dialogue topic menu
 is open, the sword is not drawn, no other object holds the activation, the
-hold-off `A` is 0, and no prompt is already pending for the frame. An existing
+hold-off `A` is 0, and no prompt is already pending. An existing
 activation owner may offer its own prompt again when the other gates permit it.
 When the player's `attr_player_type` is 1, the receiving object's
 `attr_special_activate` must be nonzero. A receiver attached to a rope or in an
@@ -231,6 +231,20 @@ requires combat capability, the weapon-drawn flag, and no sheathing state.
   It decays by ticks and is cleared when no prompt is pending.
 - While the dialogue topic menu is open, and in some player states, a pending
   prompt draws nothing and still hides the icon.
+
+A pending prompt is consumed when its text is drawn, not at the start or end of
+every frame. Lockout 1, activation hold-off, prompt override, and early exits
+that suppress prompt drawing retain it. The drawing checks use the selected
+player's rope attachment, `IsOnEdge`, and `IsInDeepWater` state, as well as the
+dialogue topic menu. `IsInDeepWater` is true for water states 2 and 4.
+
+Lockout 1 freezes the activation hold-off. Otherwise a nonzero hold-off is
+reduced by supplied ticks, saturating at zero, and that update still draws
+neither prompt nor item. With no hold-off, a nonzero prompt override similarly
+decays and selects the item path for that update, even when it reaches zero.
+An absent pending prompt clears the override before these decisions. Drawing a
+prompt while a previous/next item key is held sets the configured override after
+consuming the prompt; item cycling is deferred to a later item-path update.
 
 ### Item name
 
