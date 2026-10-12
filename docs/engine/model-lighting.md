@@ -48,6 +48,35 @@ Selected light positions are transformed into model coordinates by multiplying
 `L - O` by the transpose of the model's linear matrix. This uses the matrix
 entries directly, including any scale.
 
+## Local-light vertex contribution
+
+For a selected light at transformed model-space position `L`, let
+`V = vertex_position - L` and `q = dot(V, V)`. Normalize `V` with the
+quantized reciprocal square root described in
+[terrain lighting](terrain-lighting.md), retaining the
+supplied model normal's magnitude. Only a negative dot product between that
+normalized vector and the supplied normal contributes light.
+
+The distance calculation uses a separate quantized square-root table. For
+unbiased exponent `e` of `q` and its upper seven fraction bits `m`, the index is
+`m + 128 * (e & 1)`. Table entry `i` contains the upper seven fraction bits of
+the single-precision square root of `(1 + (i % 128) / 128) * 2^(i / 128)`,
+where division of the index by 128 is integer division. Combine those bits
+with exponent `floor(e / 2) + 127` to obtain distance `d`.
+
+The attenuation is `(radius * radius + 3 * radius) / (256 * (q + 3 * d))`.
+A negative attenuation contributes nothing. Multiply a nonnegative attenuation
+by the negated normal dot product, then multiply each signed RGB strength by
+that weight and add it to the current channel. There is no per-vertex cutoff
+at the light radius. A vertex coincident with the light contributes nothing
+because its normalized delta and dot product are zero.
+
+Accumulate local lights before clamping and solid-color tinting. Retained
+instance RGB receives local contributions and clamping without a second tint.
+The distance-table initializer selects single-precision x87 arithmetic with
+round-to-nearest; intermediate arithmetic rounds to single precision. The
+attenuation denominator evaluates as `(2 * d + q) + d`.
+
 ## Export metadata
 
 GLTF model primitives retain per-vertex face inputs in the `rgpre_lighting`
