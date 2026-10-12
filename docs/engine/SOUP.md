@@ -384,6 +384,62 @@ Ordinary actor updates select the playback default using actor state; these
 attribute writes do not directly replace that selection step. See
 [ordinary default selection](animation.md#placed-actor-initialization-and-eligibility).
 
+### Player distance and facing
+
+`PlayerDistance()` returns the sum of the absolute X, Y and Z differences
+between the selected player's current position and the receiver's effective
+position. Positions and the result use the runtime coordinate scale of 256
+units per world unit. Without a selected player, it uses the global fallback
+position. A global override selects the fixed result `9999999` instead of
+calculating distance.
+
+Effective receiver position follows the same selection used by
+[positional sound](sound.md#distance): a nonzero `attr_slave`
+selects attached position; otherwise a valid linked positioned record supplies
+position, with the receiver's ordinary position as the final fallback.
+
+`PlayerFacing(offset, tolerance)` compares orientations. It adds `offset` to
+the receiver's effective yaw, wraps the sum modulo 2048, and compares it with
+the selected player's current yaw. The signed difference is wrapped into
+`[-1024, 1024]`; the result is one when its absolute value is less than or equal
+to the signed `tolerance`, otherwise zero. The offset and tolerance are full
+signed 32-bit arguments. The receiver's attached yaw is used when `attr_slave`
+is nonzero; otherwise its ordinary yaw is used. This function requires a
+selected player. See [coordinate and heading units](player.md#coordinate-and-heading-units).
+
+### Relative axis rotation
+
+`RotateByAxis(axis, delta, duration)` modifies the receiver's local angles.
+Axis zero selects X, axis one selects Y, and every other axis value selects Z.
+Angles wrap modulo 2048. A zero delta or zero duration completes without
+changing an angle.
+
+The task keeps a target and accumulator with eight fractional bits. When the
+saved target and the task elapsed input are both zero, it initializes the target
+to `((current_angle + delta) & 2047) << 8` and the accumulator to
+`current_angle << 8`.
+
+Each invocation computes a fixed-point step by shifting `delta` left eight
+bits, dividing by `duration` with signed truncation toward zero, multiplying by
+the current shared frame scale, then arithmetic-shifting right eight bits.
+The intermediate shifts and multiplication retain their low 32 bits. If this
+step is zero and the shared whole nominal-tick increment is nonzero, that tick
+increment becomes the step, negated only when the saved target is negative.
+
+The task compares the absolute shortest wrapped angle difference between the
+current angle and `target >> 8` with `abs(step >> 8)`. If the difference is
+larger, it adds the step to the accumulator, writes
+`(accumulator >> 8) & 2047`, and remains active. Otherwise it writes
+`target >> 8` and completes. The initial invocation can change the angle.
+Arguments are reevaluated on later invocations, while the saved target and
+accumulator persist unless the initialization condition is met again.
+
+Each task slot owns its target and accumulator; the receiver's angle is shared.
+Stopping the task removes its slot without restoring an earlier angle.
+Transform and attachment updates consume the changed local angles separately;
+the handler does not update their matrices itself. Frame scale and nominal ticks
+are distinct inputs; see [animation timing](animation.md#timing-boundary).
+
 ### Function Table
 
 `SOUP386.DEF` declares callable functions in installed order. Index 0 is the synthetic `NullFunction`; authored entries start at index 1. Functions span the following categories:
