@@ -5,10 +5,16 @@ Primary engine configuration file controlling rendering, gameplay, camera, dialo
 Shipped sample path: `/Redguard/SYSTEM.INI` (e.g. `.../GOG Galaxy/Redguard/Redguard/SYSTEM.INI`).
 
 Settings use `key=value` records grouped by section. Semicolons introduce
-comments. Switches use `0`/`1`, `no`/`yes`, or `off`/`on`. Most numeric fields
+comments. Switches use `0`/`1`, `no`/`yes`, `off`/`on`, or `false`/`true`. Most numeric fields
 contain decimal integers, including negative position offsets and thresholds.
 Camera glide factors and `cam_prox_up` contain decimal floating-point values.
 The `[3dfx]` scale and font-color settings contain comma-separated integer pairs.
+
+The integer configuration reader maps `true`, `yes`, and `on` to 1, and
+`false`, `no`, and `off` to 0. Missing or empty values produce 0. Other values
+use signed decimal conversion; numeric values are not normalized to booleans.
+In particular, `[debug] disable_family` clears actor family links only when its
+value is exactly 1. See [actor initialization](../engine/SOUP.md#initial-attribute-copy-and-defaults).
 
 ## File Structure
 
