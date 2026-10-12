@@ -368,6 +368,30 @@ current playback state in place.
 
 `GetMyAttr` reads an unsigned byte from the receiving actor's attribute table. It returns zero when the table is absent or the index is outside 0–255. `SetMyAttr` returns zero and ignores an absent table or an out-of-range index. A valid write truncates the supplied value to its low byte. Attribute 44 also stores that truncated byte as the model's default group when the actor has an active model record.
 
+### Initial attribute copy and defaults
+
+Loading an actor creates an independent 256-byte copy of its definition's RAAT
+attributes, then applies these adjustments before registering its groups:
+
+| Attribute | Initial adjustment |
+|---|---|
+| 31, `attr_jump_time` | A signed byte value at or below zero is replaced by the low byte of the effective system jump time. Thus zero and byte values 128–255 use the fallback. |
+| 32, `attr_jump_height` | Zero is replaced by the low byte of the effective system jump height. |
+| 35, `attr_draw_frame` | Zero becomes 2. |
+| 34, `attr_sheath_frame` | Zero becomes 10. |
+| 25 and 26, `attr_master` and `attr_slave` | Both become zero when `[debug] disable_family` is exactly 1. |
+| 115, `attr_reserved_weight` | Copies attribute 6, `attr_weight`. |
+| 119, `attr_reserved_collide` | Copies attribute 1, `attr_collide`. |
+
+The effective jump settings come from `[system] jump_time` and `jump_height` in
+[SYSTEM.INI](../config/system-ini.md). Values below 1 use 6 and 80 respectively.
+These load-time defaults do not run again on ordinary attribute writes.
+
+Actors loaded through the animation model-table path also replace attribute 125,
+`attr_mess_group`, with the next value from a shared counter. The counter returns
+its current value, then increments modulo 256. The static-model shortcut and
+actors without models do not take this assignment path.
+
 ### Attribute default-group side effects
 
 The `SetAttribute` attribute-44 animation-default path releases the actor's two
