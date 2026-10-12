@@ -237,6 +237,8 @@ every frame. Lockout 1, activation hold-off, prompt override, and early exits
 that suppress prompt drawing retain it. The drawing checks use the selected
 player's rope attachment, `IsOnEdge`, and `IsInDeepWater` state, as well as the
 dialogue topic menu. `IsInDeepWater` is true for water states 2 and 4.
+Disabling rendering with the `render off` console command also suppresses prompt
+drawing without consuming the pending text. `render on` removes that suppression.
 
 Lockout 1 freezes the activation hold-off. Otherwise a nonzero hold-off is
 reduced by supplied ticks, saturating at zero, and that update still draws
