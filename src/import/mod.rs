@@ -1,3 +1,5 @@
+/// Parser for Deluxe Paint LPF animations.
+pub mod anm;
 /// Parser for BSI/TEXBSI image archives.
 pub mod bsi;
 pub mod cdrom;
@@ -17,8 +19,12 @@ pub mod glide_splash;
 pub mod glide_splash_dll;
 /// Parser for GXA bitmap archives.
 pub mod gxa;
+/// Shared indexed bitmap representation.
+pub mod indexed_image;
 /// Parser for KEYS.INI player keyboard bindings.
 pub mod keys_ini;
+/// Parser for IFF PBM bitmaps.
+pub mod lbm;
 pub mod menu_ini;
 pub mod menu_movies;
 pub mod menu_settings;
@@ -32,6 +38,8 @@ pub mod opl;
 pub mod palette;
 /// Export helpers for COL palette assets.
 pub mod palette_export;
+/// Parser for 8-bit PCX images.
+pub mod pcx;
 /// Parser for Windows Program Information Files.
 pub mod pif;
 pub mod player_ini;
@@ -83,9 +91,13 @@ pub enum FileType {
     Pif,      // .pif
     Opl,      // .opl
     Rst,      // .rst
+    Ad,       // .ad
+    Pcx,      // .pcx
+    Lbm,      // .lbm
+    Anm,      // .anm
 }
 
-const ALL_FILE_TYPES: [FileType; 18] = [
+const ALL_FILE_TYPES: [FileType; 22] = [
     FileType::Bsi,
     FileType::Cht,
     FileType::Col,
@@ -104,6 +116,10 @@ const ALL_FILE_TYPES: [FileType; 18] = [
     FileType::Pif,
     FileType::Opl,
     FileType::Rst,
+    FileType::Ad,
+    FileType::Pcx,
+    FileType::Lbm,
+    FileType::Anm,
 ];
 
 impl FileType {
@@ -130,8 +146,11 @@ impl FileType {
             Self::Rtx => "Dialogue Audio",
             Self::Dig | Self::Mdi => "Miles Driver",
             Self::Pif => "Windows Program Settings",
-            Self::Opl => "FM Instrument Bank",
+            Self::Opl | Self::Ad => "FM Instrument Bank",
             Self::Rst => "Editor State",
+            Self::Pcx => "PCX Image",
+            Self::Lbm => "IFF Bitmap",
+            Self::Anm => "Deluxe Paint Animation",
         }
     }
 
@@ -156,6 +175,10 @@ impl FileType {
             Self::Pif => &[".pif"],
             Self::Opl => &[".opl"],
             Self::Rst => &[".rst"],
+            Self::Ad => &[".ad"],
+            Self::Pcx => &[".pcx"],
+            Self::Lbm => &[".lbm"],
+            Self::Anm => &[".anm"],
         }
     }
 

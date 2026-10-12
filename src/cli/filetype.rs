@@ -1,8 +1,8 @@
 use color_eyre::Result;
 use log::info;
 use rgpre::import::{
-    FileType, bsi, cht, fnt, gxa, miles_driver, model3d, opl, palette::Palette, pif, pvo, rgm, rob,
-    rst, rtx, sfx, wld,
+    FileType, anm, bsi, cht, fnt, gxa, lbm, miles_driver, model3d, opl, palette::Palette, pcx, pif,
+    pvo, rgm, rob, rst, rtx, sfx, wld,
 };
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -16,22 +16,28 @@ impl FileTypeCliExt for FileType {
     fn default_output_path(self, file: &Path) -> PathBuf {
         let mut path = file.to_path_buf();
         match self {
-            FileType::Fnt | FileType::Col | FileType::Wld => {
+            FileType::Fnt | FileType::Col | FileType::Wld | FileType::Pcx | FileType::Lbm => {
                 path.set_extension("png");
             }
-            FileType::Gxa => {
+            FileType::Gxa | FileType::Anm => {
                 path.set_extension("");
                 let stem = path
                     .file_stem()
                     .unwrap_or_default()
                     .to_string_lossy()
                     .to_string();
-                path.set_file_name(format!("{stem}_gxa"));
+                let suffix = if self == FileType::Anm { "anm" } else { "gxa" };
+                path.set_file_name(format!("{stem}_{suffix}"));
             }
             FileType::Cht | FileType::Pvo => {
                 path.set_extension("json");
             }
-            FileType::Dig | FileType::Mdi | FileType::Pif | FileType::Opl | FileType::Rst => {
+            FileType::Dig
+            | FileType::Mdi
+            | FileType::Pif
+            | FileType::Opl
+            | FileType::Ad
+            | FileType::Rst => {
                 let extension = file.extension().unwrap_or_default().to_string_lossy();
                 path.set_extension(format!("{extension}.json"));
             }
@@ -78,6 +84,40 @@ impl FileTypeCliExt for FileType {
             FileType::Sfx => print_sfx(file_content),
             FileType::Rtx => print_rtx(file_content),
             FileType::Gxa => print_gxa(file_content),
+            FileType::Pcx => {
+                let file = pcx::parse_pcx_file(file_content)?;
+                info!(
+                    "PCX: {}x{}, encoding={}, stride={}",
+                    file.image.width, file.image.height, file.encoding, file.bytes_per_line
+                );
+                Ok(())
+            }
+            FileType::Lbm => {
+                let file = lbm::parse_lbm_file(file_content)?;
+                info!(
+                    "IFF PBM: {}x{}, compression={}, masking={}, chunks={}",
+                    file.image.width,
+                    file.image.height,
+                    file.compression,
+                    file.masking,
+                    file.chunks.len()
+                );
+                Ok(())
+            }
+            FileType::Anm => {
+                let file = anm::parse_anm_file(file_content)?;
+                let frame = &file.frames[0];
+                info!(
+                    "LPF ANM: {}x{}, {} frames at {} fps, {} pages, loop delta={}",
+                    frame.width,
+                    frame.height,
+                    file.frames.len(),
+                    file.frames_per_second,
+                    file.pages.len(),
+                    file.loop_delta.is_some()
+                );
+                Ok(())
+            }
             FileType::Pif => {
                 info!(
                     "{}",
@@ -85,7 +125,7 @@ impl FileTypeCliExt for FileType {
                 );
                 Ok(())
             }
-            FileType::Opl => {
+            FileType::Opl | FileType::Ad => {
                 info!(
                     "{}",
                     serde_json::to_string_pretty(&opl::parse_opl_file(file_content)?)?

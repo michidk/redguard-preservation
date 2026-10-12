@@ -8,8 +8,11 @@ Binary formats use little-endian integers unless stated otherwise. RST files use
 | Dialogue Audio | .rtx | yes | `.wav` files + `index.json` (directory extract) | [RTX.md](RTX.md) | Dialogue text + voice clip container (`ENGLISH.RTX`) with chunk index footer (`RNAV`); 4866 entries (3933 voice clips, 933 text-only). |
 | Miles DOS Driver | .dig, .mdi | yes | stored header metadata `.json` | [Miles drivers](MILES-DRIVER.md) | Digital audio and MIDI hardware driver images with a shared VDI header. |
 | Windows Program Settings | .pif | yes | launch settings and extension data `.json` | [PIF](PIF.md) | Windows DOS-program launch settings. |
-| FM Instrument Bank | .opl | yes | timbre register settings `.json` | [OPL](OPL.md) | Miles two-operator FM synthesis instruments. |
+| FM Instrument Bank | .opl, .ad | yes | timbre register settings `.json` | [OPL](OPL.md) | Miles two-operator FM synthesis instruments. |
 | Editor State | .rst | yes | ordered sections and entries `.json` | [RST](RST.md) | Sectioned editor settings and file-position records. |
+| PCX Image | .pcx | yes | `.png` | [PCX](PCX.md) | Eight-bit indexed PCX image with a trailing palette. |
+| IFF Bitmap | .lbm | yes | `.png` | [LBM](LBM.md) | Packed PBM bitmap with ByteRun1 scanlines. |
+| Deluxe Paint Animation | .anm | yes | `.gif` + timing `.json` | [ANM](ANM.md) | LPF pages containing indexed bitmap deltas. |
 | Audio | .ogg | — | — | [Ogg Vorbis spec](https://xiph.org/vorbis/doc/Vorbis_I_spec.html) | Ogg Vorbis format used for game audio. |
 | TEXBSI | .### | yes | `.png` files (directory extract) + metadata `.json` | [TEXBSI.md](TEXBSI.md) | Texture container (`TEXBSI.###`); indexed-color images with optional palettes and animation. |
 | Palette | .col | yes | swatch `.png` + palette `.json` | [COL.md](COL.md) | 256-color palette files; 776 bytes (8-byte header + 256×RGB). |

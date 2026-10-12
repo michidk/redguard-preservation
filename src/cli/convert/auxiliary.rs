@@ -12,7 +12,9 @@ pub(crate) fn handle_auxiliary_convert(
     let bytes = std::fs::read(file)?;
     let json = match filetype {
         FileType::Pif => serde_json::to_string_pretty(&pif::parse_pif_file(&bytes)?)?,
-        FileType::Opl => serde_json::to_string_pretty(&opl::parse_opl_file(&bytes)?)?,
+        FileType::Opl | FileType::Ad => {
+            serde_json::to_string_pretty(&opl::parse_opl_file(&bytes)?)?
+        }
         FileType::Rst => serde_json::to_string_pretty(&rst::parse_rst_file(&bytes)?)?,
         _ => bail!("Unsupported auxiliary format: {filetype:?}"),
     };

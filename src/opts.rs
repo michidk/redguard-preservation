@@ -257,6 +257,14 @@ pub enum ConvertCommand {
     Pif(ConvertFileArgs),
     /// Export Miles OPL instrument banks to JSON
     Opl(ConvertFileArgs),
+    /// Export Miles AdLib instrument banks to JSON
+    Ad(ConvertFileArgs),
+    /// Convert an 8-bit PCX image to PNG
+    Pcx(ConvertFileArgs),
+    /// Convert an IFF PBM bitmap to PNG
+    Lbm(ConvertFileArgs),
+    /// Convert a Deluxe Paint animation to GIF and metadata
+    Anm(ConvertFileArgs),
     /// Export RST editor state to JSON
     Rst(ConvertFileArgs),
 }

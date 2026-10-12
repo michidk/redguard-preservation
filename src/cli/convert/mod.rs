@@ -1,4 +1,5 @@
 pub(crate) mod auxiliary;
+pub(crate) mod bitmap;
 pub(crate) mod cht;
 pub(crate) mod col;
 pub(crate) mod driver;
@@ -399,9 +400,21 @@ fn handle_subcommand(cmd: ConvertCommand) -> Result<()> {
             let output = resolve_output(&io, FileType::Pif);
             auxiliary::handle_auxiliary_convert(&io.file, &output, FileType::Pif)
         }
-        ConvertCommand::Opl(io) => {
+        ConvertCommand::Opl(io) | ConvertCommand::Ad(io) => {
             let output = resolve_output(&io, FileType::Opl);
             auxiliary::handle_auxiliary_convert(&io.file, &output, FileType::Opl)
+        }
+        ConvertCommand::Pcx(io) => {
+            let output = resolve_output(&io, FileType::Pcx);
+            bitmap::handle_bitmap_convert(&io.file, &output, FileType::Pcx, false)
+        }
+        ConvertCommand::Lbm(io) => {
+            let output = resolve_output(&io, FileType::Lbm);
+            bitmap::handle_bitmap_convert(&io.file, &output, FileType::Lbm, false)
+        }
+        ConvertCommand::Anm(io) => {
+            let output = resolve_output(&io, FileType::Anm);
+            bitmap::handle_anm_convert(&io.file, &output)
         }
         ConvertCommand::Rst(io) => {
             let output = resolve_output(&io, FileType::Rst);
@@ -527,7 +540,15 @@ fn handle_auto_convert(auto: AutoConvertArgs) -> Result<()> {
             info!("Requested output path: {}", output.display());
             pvo::handle_pvo_convert(&io.file, &output)
         }
-        FileType::Pif | FileType::Opl | FileType::Rst => {
+        FileType::Pcx | FileType::Lbm => {
+            let output = resolve_output(&io, filetype);
+            bitmap::handle_bitmap_convert(&io.file, &output, filetype, compress)
+        }
+        FileType::Anm => {
+            let output = resolve_output(&io, filetype);
+            bitmap::handle_anm_convert(&io.file, &output)
+        }
+        FileType::Pif | FileType::Opl | FileType::Ad | FileType::Rst => {
             let output = resolve_output(&io, filetype);
             auxiliary::handle_auxiliary_convert(&io.file, &output, filetype)
         }

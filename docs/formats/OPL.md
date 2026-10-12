@@ -1,9 +1,10 @@
-# OPL instrument banks
+# OPL and AD instrument banks
 
-OPL files store Miles FM synthesis timbres indexed by MIDI patch and bank.
+OPL and AD files store Miles FM synthesis timbres indexed by MIDI patch and bank.
 
-The sound directory contains `sample.opl` and `Fatman.opl`. These banks provide
-two-operator instrument settings for FM MIDI playback. See also
+The sound directory contains `sample.opl`, `Fatman.opl`, `sample.ad`, and
+`Fatman.ad`. Each AD bank contains the same bytes as its matching OPL bank.
+These banks provide two-operator instrument settings for FM MIDI playback. See also
 [Miles DOS drivers](MILES-DRIVER.md).
 
 ## Overall Structure

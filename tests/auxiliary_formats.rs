@@ -166,6 +166,13 @@ fn cli_reads_and_exports_auxiliary_formats() {
             serde_json::json!(-2),
         ),
         (
+            "ad",
+            opl_bytes(),
+            "instruments",
+            "/instruments/1/transposition",
+            serde_json::json!(-2),
+        ),
+        (
             "rst",
             b"[edit-]\nscreen=80 50\n".to_vec(),
             "sections",
@@ -257,12 +264,23 @@ fn installed_auxiliary_files() {
             parameters
         );
     }
-    for (name, count) in [("sample.opl", 168), ("Fatman.opl", 181)] {
+    for (name, count) in [
+        ("sample.opl", 168),
+        ("Fatman.opl", 181),
+        ("sample.ad", 168),
+        ("Fatman.ad", 181),
+    ] {
         let bytes = std::fs::read(sound.join(name)).unwrap();
         let opl = parse_opl_file(&bytes).unwrap();
         assert_eq!(opl.instruments.len(), count);
         assert_eq!((opl.instruments[0].patch, opl.instruments[0].bank), (0, 0));
         assert_eq!(opl.instruments.last().unwrap().bank, 127);
+    }
+    for stem in ["sample", "Fatman"] {
+        assert_eq!(
+            std::fs::read(sound.join(format!("{stem}.ad"))).unwrap(),
+            std::fs::read(sound.join(format!("{stem}.opl"))).unwrap()
+        );
     }
     let bytes = std::fs::read(sound.join("STATE.RST")).unwrap();
     let rst = parse_rst_file(&bytes).unwrap();

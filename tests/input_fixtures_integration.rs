@@ -78,6 +78,10 @@ fn filetype_resolution_covers_all_variants() {
         ("SETSOUND.PIF", "pif", FileType::Pif),
         ("Fatman.OPL", "opl", FileType::Opl),
         ("STATE.RST", "rst", FileType::Rst),
+        ("sample.AD", "ad", FileType::Ad),
+        ("SKY_61.PCX", "pcx", FileType::Pcx),
+        ("gui.LBM", "lbm", FileType::Lbm),
+        ("gui.ANM", "anm", FileType::Anm),
     ];
 
     for (path, token, expected) in cases {
@@ -199,7 +203,10 @@ fn integration_covers_each_filetype_variant() {
             FileType::Cht => {
                 // No fixture for CHT; trivial 256-byte format
             }
-            FileType::Pif | FileType::Opl | FileType::Rst => {
+            FileType::Pcx | FileType::Lbm | FileType::Anm => {
+                // Covered by tests/legacy_images.rs.
+            }
+            FileType::Pif | FileType::Opl | FileType::Ad | FileType::Rst => {
                 // Covered by tests/auxiliary_formats.rs.
             }
             FileType::Dig | FileType::Mdi => {
