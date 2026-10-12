@@ -32,6 +32,22 @@ the ambient, face-brightness and directional contribution, including its solid
 color tint. Local lights still add to it, followed by channel clamping; the
 solid tint is not applied a second time.
 
+## Local-light model selection
+
+A local light carries a world position, signed RGB strengths and a radius in
+engine coordinates. Registration retains its squared radius and an attenuation
+numerator `(radius * radius + 3 * radius) / 256`.
+
+For model origin `O`, model radius `R`, light position `L` and light radius `r`,
+the light is selected when `dot(L - O, L - O) - R * R <= r * r`.
+The boundary is inclusive. This differs from testing whether two spheres overlap.
+The model radius is the stored model bound; the selection test does not scale it
+by the instance transform.
+
+Selected light positions are transformed into model coordinates by multiplying
+`L - O` by the transpose of the model's linear matrix. This uses the matrix
+entries directly, including any scale.
+
 ## Export metadata
 
 GLTF model primitives retain per-vertex face inputs in the `rgpre_lighting`
