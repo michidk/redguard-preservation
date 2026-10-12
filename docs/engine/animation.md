@@ -6,11 +6,31 @@ command groups. Model frames contain vertex animation, not skeletal animation.
 ## Model and frame selection
 
 A file `ShowFrame` command uses an unsigned twenty-bit reference into the
-actor's concatenated RAAN table. Each RAAN entry contributes the indicated
+actor instance's frame table. Each RAAN entry contributes the indicated
 number of model frames, starting at zero, in entry order. The loader resolves
 the reference to a runtime model handle and frame index and patches those two
 values into ten-bit command fields. Playback stores that pair as the actor's
 current pose. It does not interpret the second value as an attachment vertex.
+
+### Placed-object frame sources
+
+RAAN is not the only source of an instance's frame table. After initializing
+a type-1 [MPOB object](../formats/RGM.md#mpob-object-instances), the loader uses
+its `model_name` when the instance has no frame table, its static-model flag
+is clear, and the name is nonempty.
+
+- An MPOB `is_static` value of 1 selects the static model path and leaves no
+  animation frame table.
+- Other values select the animated model path. The byte is the number of
+  frame-table entries, each referring to that model and successive frame
+  indices starting at zero. A zero value allocates an empty table.
+
+The group loader installs the actor definition's RAGR groups only when the
+instance has a frame table and its static-model flag is not set. It resolves
+ShowFrame operands against that instance's table and rejects references outside
+the table. RAGR commands can therefore exist in a definition without becoming
+runtime animation groups for a particular placement. Instances sharing one
+definition can obtain their frames from different placed models.
 
 ## Animation tasks
 

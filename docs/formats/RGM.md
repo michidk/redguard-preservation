@@ -34,7 +34,7 @@ All fields little-endian.
 | 0x05 | 1 | `u8` | is_active | Activation flag |
 | 0x06 | 9 | `[u8; 9]` | script_name | Script/object name |
 | 0x0F | 9 | `[u8; 9]` | model_name | Model reference |
-| 0x18 | 1 | `u8` | is_static | Static/dynamic flag |
+| 0x18 | 1 | `u8` | is_static | For a type-1 placed-model fallback, 1 selects a static model; other values give the animation frame-table length. See [placed-object frame sources](../engine/animation.md#placed-object-frame-sources). |
 | 0x19 | 2 | `i16` | reserved | Not read at runtime. |
 | 0x1B | 3 | `i24` | pos_x | Position X (fixed scale) |
 | 0x1E | 1 | `u8` | pad_x | Alignment byte |
