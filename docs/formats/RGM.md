@@ -211,9 +211,15 @@ All fields little-endian.
 | +0x04 | 2 | `u16` | node_pos_x | Local position X |
 | +0x06 | 2 | `s16` | node_pos_y | Local position Y |
 | +0x08 | 2 | `u16` | node_pos_z | Local position Z |
-| +0x0A | 1 | `u8` | reserved | Not read at runtime. |
+| +0x0A | 1 | `u8` | reserved | File value discarded; runtime storage holds node ownership. |
 | +0x0B | 1 | `u8` | route_count | Number of routes from this node |
 | +0x0C | ... | variable | routes | `route_count` × NodeRoute records |
+
+The loader clears the reserved byte before using the node. Runtime reservation
+sets that byte to the low byte of the owning actor identifier. An unowned node
+or a node already owned by the requesting actor can be acquired; another
+actor's reservation prevents acquisition. Releasing a reservation clears the
+byte only when the releasing actor still owns it.
 
 ### NodeRoute Record (4 bytes)
 

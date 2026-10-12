@@ -316,6 +316,25 @@ When a Numeric (`0x07`) or NumericAlt (`0x16`) opcode appears in PARAMETER mode,
 | `ActiveItem`, `AddItem`, `DropItem`, `HandItem`, `HaveItem`, `SelectItem`, `ShowItem`, `ShowItemNoRtx` | Item ID | `i32` item identifier |
 | All others | Integer | `i32` signed integer |
 
+### Ordinary entry gate
+
+Ordinary entry processing uses the actor's saved entry continuation, distinct
+from its main continuation. When the initial main entry offset is zero,
+the separate entry continuation is absent. A nonzero initial main offset starts
+main there and initializes the separate entry continuation at the script base.
+An absent entry continuation makes ordinary entry processing return immediately.
+Before running it, the engine checks occupied, unpaused blocking task slots.
+A slot suppresses entry when its stored operand address is less than or equal
+to the saved entry address. This is an address
+comparison, not a comparison of offsets relative to each task's own script.
+For programs within the same RASC allocation, adding each script's RASC offset
+to its local cursor preserves that ordering.
+
+When entry runs, its saved cursor temporarily becomes the interpreter's active
+cursor. The resulting cursor is saved back as the entry continuation, and the
+main continuation is restored. A yielding entry therefore resumes from its
+saved position. `Endint` resets that entry continuation to the script base.
+
 ### Actor task controls and return state
 
 An actor has six task slots shared by its entry and main invocations. Existing-task processing traverses those slots in allocation order, skips paused slots, reevaluates encoded operands, and removes a slot when its handler reports completion. Unpaused blocking slots suppress the subsequent main-body invocation; multitask slots do not. Reissuing a call whose operand address is already in a slot does not execute its handler again. Task labels resolve against the receiving actor's script base and match the byte immediately after the labelled dispatch opcode. Self task calls store the operand address immediately after their Task or Multitask opcode. Object task calls store the operand address immediately after the embedded dispatch byte following the two-byte object selector. Routing retains that encoded operand location; it does not rebase foreign bytecode into the receiver's script. `TaskStop` removes every matching slot and clears its blocking and pause state. `TaskPause` and `TaskResume` set and clear the matching slots' pause state.
@@ -330,11 +349,40 @@ Each active slot has a 16-bit invocation counter. Allocation sets it to one. An 
 
 `ScriptRV` reads an expected byte. On mismatch it skips the next five bytes. On a match, a following `Return` byte advances the cursor by four bytes; a following `Gosub` saves the current script-return byte before the control instruction runs. Other following instructions remain eligible. `Return` restores that saved byte.
 
+### Animation task ownership and stopping
+
+Each task slot saves and restores its native handler state independently.
+Multiple `PushAnimation` slots therefore retain separate not-started/started
+phases while requesting and observing the same receiving actor's animation.
+Each invocation sees animation changes made by earlier calls; the animation is
+not copied into the task slot.
+
+`TaskStop` clears matching operand slots and their blocking and pause flags.
+It does not invoke the native handler or restore earlier animation state.
+Stopping a `PushAnimation` task therefore leaves its animation request and
+current playback state in place.
+
 ### Attribute reads and writes
 
-`GetAttribute` reads an unsigned byte from the receiving actor's attribute table and returns zero when the table is absent. `SetAttribute` returns zero. When the table exists, it writes the low byte of the supplied value. Writing attribute 6 also copies that byte to attribute 115; writing attribute 1 also copies it to attribute 119. These two handlers do not check the attribute index range. The attribute-44 animation-default path stores the full supplied value as the model's default group.
+`GetAttribute` reads an unsigned byte from the receiving actor's attribute table and returns zero when the table is absent. `SetAttribute` returns zero. When the table exists, it writes the low byte of the supplied value. Writing attribute 6 also copies that byte to attribute 115; writing attribute 1 also copies it to attribute 119. These two handlers do not check the attribute index range.
 
-`GetMyAttr` reads an unsigned byte from the receiving actor's attribute table. It returns zero when the table is absent or the index is outside 0–255. `SetMyAttr` returns zero and ignores an absent table or an out-of-range index. A valid write truncates the supplied value to its low byte. Attribute 44 also updates model state when the actor has an active model record.
+`GetMyAttr` reads an unsigned byte from the receiving actor's attribute table. It returns zero when the table is absent or the index is outside 0–255. `SetMyAttr` returns zero and ignores an absent table or an out-of-range index. A valid write truncates the supplied value to its low byte. Attribute 44 also stores that truncated byte as the model's default group when the actor has an active model record.
+
+### Attribute default-group side effects
+
+The `SetAttribute` attribute-44 animation-default path releases the actor's two
+held walk-node reservations before storing the full supplied value as the
+model's default group. A node's ownership byte is cleared only when it matches
+the low byte of the actor identifier; both actor-held node indices are then
+cleared. This operation does not reset the animation cursor, current group,
+or loop countdown.
+
+`SetMyAttr` does not release walk-node reservations.
+
+The model default and the animation playback default are separate state.
+Ordinary actor updates select the playback default using actor state; these
+attribute writes do not directly replace that selection step. See
+[ordinary default selection](animation.md#placed-actor-initialization-and-eligibility).
 
 ### Function Table
 

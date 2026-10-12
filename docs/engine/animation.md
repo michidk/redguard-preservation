@@ -20,6 +20,13 @@ It remains active while that group is current and completes when the group
 changes. Thus count is a finite loop input, not a speed or wall-clock duration.
 The animation request made by this task has a speed modifier of zero.
 
+The current group is read as a signed sixteen-bit value and compared with the
+complete thirty-two-bit group argument. This comparison does not first narrow
+the argument to sixteen bits. The loop count stores only the low eight bits of
+its argument. Changing the count operand after the task enters its started
+phase does not rewrite the countdown; that phase only compares the current
+group with the reevaluated group operand.
+
 The first invocation has a separate not-started phase. If the requested group
 is not current, it makes an ordinary request and remains active. Even when
 that request starts the group immediately, this invocation does not set the
@@ -29,6 +36,12 @@ completes only when the current group differs; it does not re-request the group.
 An initial invocation that already finds its group current sets the count
 immediately and remains active. Each invocation evaluates the call's operands
 again. Task creation and later task invocations are separate scheduling stages.
+
+The task does not test whether the requested group exists. Ordinary request
+fallback still applies, but selecting the default does not change the task's
+requested group. While that requested group is not current, the task remains
+in its not-started phase and makes another ordinary request on each invocation.
+A missing group therefore does not by itself complete the task.
 
 For forward playback, `GoToPrevious` with a nonzero loop countdown decrements
 that countdown. If it becomes zero, playback continues after the command;
