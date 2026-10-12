@@ -201,9 +201,23 @@ is open, the sword is not drawn, no other object holds the activation, the
 hold-off `A` is 0, and no prompt is already pending for the frame. An existing
 activation owner may offer its own prompt again when the other gates permit it.
 When the player's `attr_player_type` is 1, the receiving object's
-`attr_special_activate` must be nonzero. Receiver-state and player-state checks
-can also reject the prompt. The prompt text is the RTX entry's text; a missing
-RTX entry does not activate the object.
+`attr_special_activate` must be nonzero. A receiver attached to a rope or in an
+`IsOnEdge` state cannot offer a prompt. `IsOnEdge` is true for actor states
+10 through 19 inclusive. These two tests apply to the receiving object.
+
+The selected player must not be holding a weapon, drawing a sword, or sheathing
+a sword. The shared player-lineup result must be zero. `Activate` requires the
+player's torch-burning counter to be zero; `TorchActivate` requires it to be
+nonzero. The prompt text is the RTX entry's text; a missing RTX entry does not
+activate the object.
+
+The weapon predicates use the item system and the actor's current animation.
+Outside shell-script execution, with the item system initialized and a current
+animation present, drawing is actor state 20 or animation group 91; sheathing
+is actor state 21 or animation group 129. Combat capability additionally
+requires an assigned weapon. A nonzero `attr_holding_weapon` makes the actor
+combat-capable and holding a weapon directly. Otherwise holding a weapon
+requires combat capability, the weapon-drawn flag, and no sheathing state.
 
 - If the use key is held when `Activate` is called, the activation fires:
   the function returns true, the receiving object becomes the activation owner,
