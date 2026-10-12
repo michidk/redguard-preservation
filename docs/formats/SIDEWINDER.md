@@ -53,7 +53,11 @@ These profiles are controller configuration files. They do not contain game
 assets, save state, or swap memory. [KEYS.INI](../config/keys-ini.md) describes
 the separate game keyboard bindings.
 
+Modern controller input uses game actions and bindings directly. These profiles
+remain references for the original SideWinder presets; their hardware-specific
+mapping data is separate from the game's input configuration. See
+[Bundled support resources](BUNDLED-RESOURCES.md).
+
 ## External References
 
 - [Microsoft SideWinder controller families](https://en.wikipedia.org/wiki/Microsoft_SideWinder)
-- [SideWinder profile parser](https://github.com/michidk/redguard-preservation/blob/main/src/import/sidewinder.rs)

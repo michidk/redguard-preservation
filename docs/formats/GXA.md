@@ -1,4 +1,9 @@
-# GXA bitmap archive format for UI and sky textures.
+# GXA bitmap archives
+
+GXA files store indexed bitmap frames for UI and sky textures.
+
+`system/pointers.bmp` also uses the GXA container and contains 30 cursor
+frames. Its first chunk is `BMHD`, despite the filename's `.bmp` extension.
 
 ## Overall Structure
 
@@ -27,7 +32,8 @@ Sections are chunked and use this order in the shipped files:
 
 ## BMHD Section
 
-All shipped files use the title `GXlib image conversion`.
+The shipped `.gxa` files use the title `GXlib image conversion`.
+The cursor archive `pointers.bmp` has an empty title.
 
 | Offset | Size | Type | Name | Description |
 |---|---:|---|---|---|

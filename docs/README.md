@@ -32,6 +32,20 @@ Reference documentation for *The Elder Scrolls Adventures: Redguard* (1998) file
 | `system/` | 18 M | 69 | 65 `.GXA` UI graphics (menus, inventory, compass, maps, skies), `gui.anm`, `gui.lbm`, `pointers.bmp`, `SKY_61.PCX` |
 | `SAVEGAME/` | 79 M | 594 | 17 save slots (`SAVEGAME.000`–`016`), each containing per-map `.TSG` trigger-state snapshots + `LOGBOOK.TXT` |
 
+## Asset and support-file roles
+
+Models, textures, fonts, UI images, maps, dialogue, sound effects, movie data,
+and CD music supply the content of a faithful reimplementation. Hardware
+configuration, audio-utility launch settings, SideWinder presets, and tool
+reports describe the original environment. Their layouts remain part of the
+format references in [Bundled support resources](formats/BUNDLED-RESOURCES.md).
+
+The cursor file `system/pointers.bmp` contains a GXA archive despite its
+extension. `fxart/fxart.txt` and `fxart/fxart3dc.txt` are historical directory
+listings, and `fxart/LOGFILE.TXT` records collision-sphere generation.
+[The support-file reference](formats/BUNDLED-RESOURCES.md) describes these
+files and the Miles setup catalog `sound/MSSDRVR.LST`.
+
 ## GOG vs Original CD Differences
 
 Redguard shipped with two parallel sets of 3D model assets for different renderers:

@@ -1,8 +1,6 @@
-pub(crate) mod auxiliary;
 pub(crate) mod bitmap;
 pub(crate) mod cht;
 pub(crate) mod col;
-pub(crate) mod driver;
 pub(crate) mod fnt;
 pub(crate) mod gxa;
 pub(crate) mod pvo;
@@ -396,14 +394,6 @@ fn handle_subcommand(cmd: ConvertCommand) -> Result<()> {
             let output = resolve_output(&io, FileType::Pvo);
             pvo::handle_pvo_convert(&io.file, &output)
         }
-        ConvertCommand::Pif(io) => {
-            let output = resolve_output(&io, FileType::Pif);
-            auxiliary::handle_auxiliary_convert(&io.file, &output, FileType::Pif)
-        }
-        ConvertCommand::Opl(io) | ConvertCommand::Ad(io) => {
-            let output = resolve_output(&io, FileType::Opl);
-            auxiliary::handle_auxiliary_convert(&io.file, &output, FileType::Opl)
-        }
         ConvertCommand::Pcx(io) => {
             let output = resolve_output(&io, FileType::Pcx);
             bitmap::handle_bitmap_convert(&io.file, &output, FileType::Pcx, false)
@@ -415,22 +405,6 @@ fn handle_subcommand(cmd: ConvertCommand) -> Result<()> {
         ConvertCommand::Anm(io) => {
             let output = resolve_output(&io, FileType::Anm);
             bitmap::handle_anm_convert(&io.file, &output)
-        }
-        ConvertCommand::Rst(io) => {
-            let output = resolve_output(&io, FileType::Rst);
-            auxiliary::handle_auxiliary_convert(&io.file, &output, FileType::Rst)
-        }
-        ConvertCommand::Sidewinder(io) => {
-            let output = resolve_output(&io, FileType::Swg);
-            auxiliary::handle_auxiliary_convert(&io.file, &output, FileType::Swg)
-        }
-        ConvertCommand::More(io) => {
-            let output = resolve_output(&io, FileType::More);
-            auxiliary::handle_auxiliary_convert(&io.file, &output, FileType::More)
-        }
-        ConvertCommand::Driver(io) => {
-            let output = resolve_output(&io, FileType::Dig);
-            driver::handle_driver_convert(&io.file, &output)
         }
     }
 }
@@ -555,20 +529,6 @@ fn handle_auto_convert(auto: AutoConvertArgs) -> Result<()> {
         FileType::Anm => {
             let output = resolve_output(&io, filetype);
             bitmap::handle_anm_convert(&io.file, &output)
-        }
-        FileType::Pif
-        | FileType::Opl
-        | FileType::Ad
-        | FileType::Rst
-        | FileType::Swg
-        | FileType::Swx
-        | FileType::More => {
-            let output = resolve_output(&io, filetype);
-            auxiliary::handle_auxiliary_convert(&io.file, &output, filetype)
-        }
-        FileType::Dig | FileType::Mdi => {
-            let output = resolve_output(&io, FileType::Dig);
-            driver::handle_driver_convert(&io.file, &output)
         }
     }
 }

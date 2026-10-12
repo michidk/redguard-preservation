@@ -109,6 +109,13 @@ separate from the CD audio used for background music.
 The [PIF files](PIF.md) configure the bundled `DIGPLAY.EXE` and `SETSOUND.EXE`
 utilities. They are Windows launch settings, not sound drivers or audio data.
 
+A reimplementation with modern audio APIs uses the decoded sample data and
+engine playback rules. The DOS driver images describe the original hardware
+interface and are independent of those recordings. The whitespace-separated
+configuration syntax is described in [Miles audio configuration](../config/miles-ini.md).
+The accompanying setup messages and hardware-selection rules are described in
+[Bundled support resources](BUNDLED-RESOURCES.md#miles-driver-catalog).
+
 ## External References
 
 - [Syndicate Wars `mssal.h`, VDI header and driver call definitions](https://github.com/swfans/swars/blob/master/bfsoundlib/include/mssal.h)

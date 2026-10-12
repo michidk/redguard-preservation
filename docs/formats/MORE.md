@@ -36,7 +36,10 @@ the installed [3D model headers](models/3d.md). For example, the report lists
 `XBUCKETE.3D` as `v2.7`, while the installed file has a `v5.0` header.
 The report is not a model archive and contains no geometry or textures.
 
+The related `fxart.txt` and `fxart3dc.txt` files are directory listings rather
+than version reports. They record historical model sizes and timestamps. See
+[Bundled support resources](BUNDLED-RESOURCES.md#directory-reports).
+
 ## External References
 
 - [UESP model file formats](https://en.uesp.net/wiki/Mod:Model_Files)
-- [Model information report parser](https://github.com/michidk/redguard-preservation/blob/main/src/import/more.rs)

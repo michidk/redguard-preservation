@@ -73,18 +73,9 @@ fn filetype_resolution_covers_all_variants() {
         ("world.wld", "wld", FileType::Wld),
         ("font.fnt", "fnt", FileType::Fnt),
         ("startup.gxa", "gxa", FileType::Gxa),
-        ("SOUND.DIG", "dig", FileType::Dig),
-        ("MUSIC.MDI", "mdi", FileType::Mdi),
-        ("SETSOUND.PIF", "pif", FileType::Pif),
-        ("Fatman.OPL", "opl", FileType::Opl),
-        ("STATE.RST", "rst", FileType::Rst),
-        ("sample.AD", "ad", FileType::Ad),
         ("SKY_61.PCX", "pcx", FileType::Pcx),
         ("gui.LBM", "lbm", FileType::Lbm),
         ("gui.ANM", "anm", FileType::Anm),
-        ("REDGUARD.SWG", "swg", FileType::Swg),
-        ("redguard.swx", "swx", FileType::Swx),
-        ("fxart/more", "more", FileType::More),
     ];
 
     for (path, token, expected) in cases {
@@ -208,15 +199,6 @@ fn integration_covers_each_filetype_variant() {
             }
             FileType::Pcx | FileType::Lbm | FileType::Anm => {
                 // Covered by tests/legacy_images.rs.
-            }
-            FileType::Pif | FileType::Opl | FileType::Ad | FileType::Rst => {
-                // Covered by tests/auxiliary_formats.rs.
-            }
-            FileType::Dig | FileType::Mdi => {
-                // Driver headers are covered by tests/miles_driver.rs.
-            }
-            FileType::Swg | FileType::Swx | FileType::More => {
-                // Covered by tests/controller_reports.rs.
             }
         }
     }

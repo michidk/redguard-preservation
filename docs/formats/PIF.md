@@ -5,6 +5,11 @@ PIF files store Windows launch settings for DOS programs.
 `DIGPLAY.PIF` and `SETSOUND.PIF` describe the corresponding sound utilities.
 They contain a base header, Windows 386 settings, and a Windows VMM extension.
 
+`DIGPLAY.PIF` launches `DigPlay.EXE` with argument `R212.WAV`.
+`SETSOUND.PIF` launches `SETSOUND.EXE` without arguments. These settings belong
+to the audio utilities' Windows environment. They do not control sample
+playback in a modern game engine. See [Bundled support resources](BUNDLED-RESOURCES.md).
+
 ## Overall Structure
 
 ```text
@@ -45,9 +50,8 @@ All multibyte integers are little-endian.
 
 Text fields end at the first NUL or their fixed field boundary. Title padding
 is removed when displayed. Bytes after a NUL are outside the displayed string.
-The parser maps each text byte directly to the corresponding Unicode code point
-in U+0000–U+00FF and retains the original image. It does not select an OEM or
-Windows code page.
+Text fields contain legacy character bytes. A Unicode representation depends
+on the OEM or Windows code page used to display them.
 
 ## Extension chain
 
@@ -62,8 +66,7 @@ Each extension header is 22 bytes. Its offsets are absolute file positions.
 
 The root header starts at `0x171`. Its signature is `MICROSOFT PIFEX`, its
 payload offset is zero, and its payload size is 369. This payload is the base
-header. The parser includes the root in the extension list and retains all
-extension payloads, including unknown extension types.
+header. Each later extension has its own signature, payload position, and size.
 
 ## Windows 386 settings
 
@@ -88,7 +91,7 @@ enhanced-mode execution.
 | `+0x28` | 64 | `[u8; 64]` | parameters | Enhanced-mode arguments |
 
 Memory sizes are in KiB. `0xFFFF` is retained as the stored limit value.
-The `WINDOWS VMM 4.0` payload remains raw bytes.
+The `WINDOWS VMM 4.0` payload occupies 428 bytes in both shipped utility files.
 
 ## External References
 

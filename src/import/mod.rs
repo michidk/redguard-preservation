@@ -28,22 +28,14 @@ pub mod lbm;
 pub mod menu_ini;
 pub mod menu_movies;
 pub mod menu_settings;
-/// Parser for Miles Sound System DOS .DIG and .MDI driver images.
-pub mod miles_driver;
 /// Parser for 3D and 3DC model files.
 pub mod model3d;
-/// Parser for Hugh's 3D information reports.
-pub mod more;
-/// Parser for Miles OPL instrument banks.
-pub mod opl;
 /// Parser for COL palette files.
 pub mod palette;
 /// Export helpers for COL palette assets.
 pub mod palette_export;
 /// Parser for 8-bit PCX images.
 pub mod pcx;
-/// Parser for Windows Program Information Files.
-pub mod pif;
 pub mod player_ini;
 /// Shared PNG save helper with compression control.
 pub mod png;
@@ -55,14 +47,10 @@ pub mod registry;
 pub mod rgm;
 /// Parser and model extraction for ROB archives.
 pub mod rob;
-/// Parser for sectioned STATE.RST editor state.
-pub mod rst;
 /// Parser for RTX dialogue/audio container files.
 pub mod rtx;
 /// Parser for SFX sound effect files.
 pub mod sfx;
-/// Parser for Microsoft SideWinder controller profiles.
-pub mod sidewinder;
 pub mod smacker;
 pub mod soup_def;
 pub mod soup_ini;
@@ -90,21 +78,12 @@ pub enum FileType {
     Gxa,      // .gxa
     Sfx,      // .sfx
     Rtx,      // .rtx
-    Dig,      // .dig
-    Mdi,      // .mdi
-    Pif,      // .pif
-    Opl,      // .opl
-    Rst,      // .rst
-    Ad,       // .ad
     Pcx,      // .pcx
     Lbm,      // .lbm
     Anm,      // .anm
-    Swg,      // .swg
-    Swx,      // .swx
-    More,     // extensionless more
 }
 
-const ALL_FILE_TYPES: [FileType; 25] = [
+const ALL_FILE_TYPES: [FileType; 16] = [
     FileType::Bsi,
     FileType::Cht,
     FileType::Col,
@@ -118,18 +97,9 @@ const ALL_FILE_TYPES: [FileType; 25] = [
     FileType::Gxa,
     FileType::Sfx,
     FileType::Rtx,
-    FileType::Dig,
-    FileType::Mdi,
-    FileType::Pif,
-    FileType::Opl,
-    FileType::Rst,
-    FileType::Ad,
     FileType::Pcx,
     FileType::Lbm,
     FileType::Anm,
-    FileType::Swg,
-    FileType::Swx,
-    FileType::More,
 ];
 
 impl FileType {
@@ -154,15 +124,9 @@ impl FileType {
             Self::Gxa => "GXA Bitmap",
             Self::Sfx => "Sound Effects",
             Self::Rtx => "Dialogue Audio",
-            Self::Dig | Self::Mdi => "Miles Driver",
-            Self::Pif => "Windows Program Settings",
-            Self::Opl | Self::Ad => "FM Instrument Bank",
-            Self::Rst => "Editor State",
             Self::Pcx => "PCX Image",
             Self::Lbm => "IFF Bitmap",
             Self::Anm => "Deluxe Paint Animation",
-            Self::Swg | Self::Swx => "SideWinder Profile",
-            Self::More => "3D Information Report",
         }
     }
 
@@ -182,18 +146,9 @@ impl FileType {
             Self::Gxa => &[".gxa"],
             Self::Sfx => &[".sfx"],
             Self::Rtx => &[".rtx"],
-            Self::Dig => &[".dig"],
-            Self::Mdi => &[".mdi"],
-            Self::Pif => &[".pif"],
-            Self::Opl => &[".opl"],
-            Self::Rst => &[".rst"],
-            Self::Ad => &[".ad"],
             Self::Pcx => &[".pcx"],
             Self::Lbm => &[".lbm"],
             Self::Anm => &[".anm"],
-            Self::Swg => &[".swg"],
-            Self::Swx => &[".swx"],
-            Self::More => &[],
         }
     }
 
@@ -220,9 +175,6 @@ impl FileType {
         if stem == "TEXBSI" {
             return Some(Self::Bsi);
         }
-        if p.extension().is_none() && stem == "MORE" {
-            return Some(Self::More);
-        }
         None
     }
 }
@@ -231,9 +183,6 @@ impl std::str::FromStr for FileType {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if s.trim().eq_ignore_ascii_case("more") {
-            return Ok(Self::More);
-        }
         Self::from_extension(s.trim()).ok_or_else(|| {
             let supported = Self::all()
                 .iter()
@@ -242,7 +191,6 @@ impl std::str::FromStr for FileType {
                         .iter()
                         .map(|ext| ext.trim_start_matches('.').to_string())
                 })
-                .chain(std::iter::once("more".to_owned()))
                 .collect::<Vec<_>>()
                 .join(", ");
             format!("Unknown file type: {s}. Supported types: {supported}")
