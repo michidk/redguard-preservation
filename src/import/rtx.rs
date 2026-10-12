@@ -1,5 +1,6 @@
 use super::sfx::AudioType;
 use crate::{Result, error::Error};
+use std::io::{Read, Seek, SeekFrom};
 
 const FOOTER_TAG: &[u8; 4] = b"RNAV";
 const FOOTER_SIZE: usize = 12;
@@ -99,12 +100,16 @@ fn parse_index_table(
     input: &[u8],
     index_offset: u32,
     index_count: u32,
+    file_size: usize,
 ) -> Result<Vec<RtxIndexEntry>> {
     let offset = usize::try_from(index_offset)
         .map_err(|_| Error::Parse("RTX index_offset does not fit usize".to_string()))?;
     let count = usize::try_from(index_count)
         .map_err(|_| Error::Parse("RTX index_count does not fit usize".to_string()))?;
-    let required = offset + count * INDEX_ENTRY_SIZE;
+    let required = count
+        .checked_mul(INDEX_ENTRY_SIZE)
+        .and_then(|size| offset.checked_add(size))
+        .ok_or_else(|| Error::Parse("RTX index size overflow".into()))?;
 
     if required > input.len() {
         return Err(Error::Parse(format!(
@@ -128,12 +133,14 @@ fn parse_index_table(
             .map_err(|_| Error::Parse(format!("index {i}: payload_offset does not fit usize")))?;
         let payload_size_usize = usize::try_from(payload_size)
             .map_err(|_| Error::Parse(format!("index {i}: payload_size does not fit usize")))?;
-        let end = payload_offset_usize + payload_size_usize;
-        if end > input.len() {
+        let end = payload_offset_usize
+            .checked_add(payload_size_usize)
+            .ok_or_else(|| Error::Parse(format!("index {i}: payload range overflow")))?;
+        if end > file_size {
             return Err(Error::Parse(format!(
                 "index {i} (tag '{}'): payload extends beyond file ({end} > {})",
                 String::from_utf8_lossy(&tag),
-                input.len()
+                file_size
             )));
         }
 
@@ -253,10 +260,66 @@ fn parse_payload(tag: [u8; 4], payload: &[u8]) -> Result<RtxEntry> {
     }
 }
 
+/// Archive directory in authored index order. Reading it does not load entry payloads.
+#[derive(Debug, Clone)]
+pub struct RtxIndex {
+    pub entries: Vec<RtxIndexEntry>,
+}
+impl RtxIndex {
+    /// Reads and validates the footer and index from a seekable original file.
+    pub fn read(reader: &mut (impl Read + Seek)) -> Result<Self> {
+        let size = reader.seek(SeekFrom::End(0))?;
+        let file_size = usize::try_from(size)
+            .map_err(|_| Error::Parse("RTX file size does not fit usize".into()))?;
+        let footer_start = size
+            .checked_sub(FOOTER_SIZE as u64)
+            .ok_or_else(|| Error::Parse("RTX file too small for footer".into()))?;
+        reader.seek(SeekFrom::Start(footer_start))?;
+        let mut footer = [0; FOOTER_SIZE];
+        reader.read_exact(&mut footer)?;
+        let (offset, count) = parse_footer(&footer)?;
+        let table_size = u64::from(count) * INDEX_ENTRY_SIZE as u64;
+        if u64::from(offset) + table_size > footer_start {
+            return Err(Error::Parse(
+                "RTX index table extends beyond data region".into(),
+            ));
+        }
+        reader.seek(SeekFrom::Start(u64::from(offset)))?;
+        let mut table = vec![
+            0;
+            usize::try_from(table_size).map_err(|_| Error::Parse(
+                "RTX index size does not fit usize".into()
+            ))?
+        ];
+        reader.read_exact(&mut table)?;
+        Ok(Self {
+            entries: parse_index_table(&table, 0, count, file_size)?,
+        })
+    }
+
+    /// Loads only the selected payload and parses its text or PCM audio.
+    pub fn read_entry(&self, reader: &mut (impl Read + Seek), index: usize) -> Result<RtxEntry> {
+        let entry = self
+            .entries
+            .get(index)
+            .ok_or_else(|| Error::Parse(format!("RTX index {index}: member missing")))?;
+        reader.seek(SeekFrom::Start(u64::from(entry.payload_offset)))?;
+        let mut payload = vec![
+            0;
+            usize::try_from(entry.payload_size).map_err(|_| Error::Parse(
+                format!("RTX index {index}: payload size does not fit usize")
+            ))?
+        ];
+        reader.read_exact(&mut payload)?;
+        parse_payload(entry.tag, &payload)
+            .map_err(|error| Error::Parse(format!("RTX index {index}: {error}")))
+    }
+}
+
 /// Parses a Redguard RTX dialogue/audio container from raw bytes.
 pub fn parse_rtx_file(input: &[u8]) -> Result<RtxFile> {
     let (index_offset, index_count) = parse_footer(input)?;
-    let index = parse_index_table(input, index_offset, index_count)?;
+    let index = parse_index_table(input, index_offset, index_count, input.len())?;
 
     let mut entries = Vec::with_capacity(index.len());
     for (i, idx) in index.iter().enumerate() {
@@ -351,6 +414,56 @@ impl RtxAudioHeader {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn seekable_index_reads_no_payload_until_selected() {
+        struct Counted {
+            inner: std::io::Cursor<Vec<u8>>,
+            ranges: Vec<(u64, usize)>,
+        }
+        impl Read for Counted {
+            fn read(&mut self, bytes: &mut [u8]) -> std::io::Result<usize> {
+                let start = self.inner.position();
+                let count = self.inner.read(bytes)?;
+                self.ranges.push((start, count));
+                Ok(count)
+            }
+        }
+        impl Seek for Counted {
+            fn seek(&mut self, position: SeekFrom) -> std::io::Result<u64> {
+                self.inner.seek(position)
+            }
+        }
+        let payload = make_text_payload("Selected dialogue");
+        let bytes = make_rtx(&[(b"TEXT", &payload), (b"BAD!", &[0])]);
+        let table_start = bytes.len() - FOOTER_SIZE - 2 * INDEX_ENTRY_SIZE;
+        let mut reader = Counted {
+            inner: std::io::Cursor::new(bytes),
+            ranges: Vec::new(),
+        };
+        let index = RtxIndex::read(&mut reader).expect("directory");
+        assert_eq!(index.entries.len(), 2);
+        assert!(
+            reader
+                .ranges
+                .iter()
+                .all(|(start, _)| *start >= table_start as u64)
+        );
+        assert_eq!(
+            reader.ranges.iter().map(|(_, count)| count).sum::<usize>(),
+            36
+        );
+        reader.ranges.clear();
+        assert!(
+            matches!(index.read_entry(&mut reader, 0).unwrap(), RtxEntry::Text { text, .. } if text == "Selected dialogue")
+        );
+        assert_eq!(reader.ranges, [(8, payload.len())]);
+        assert!(index.read_entry(&mut reader, 1).is_err());
+        assert!(index.read_entry(&mut reader, 2).is_err());
+        let bytes = reader.inner.get_mut();
+        bytes[table_start + 4..table_start + 8].copy_from_slice(&u32::MAX.to_le_bytes());
+        assert!(RtxIndex::read(&mut reader).is_err());
+    }
 
     fn make_rtx(payloads: &[(&[u8; 4], &[u8])]) -> Vec<u8> {
         let mut buf = Vec::new();

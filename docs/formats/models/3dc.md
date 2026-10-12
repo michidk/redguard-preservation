@@ -19,7 +19,7 @@ All shared structures (header, face data, vertex coordinates, face normals, vert
 
 The frame data array at `offset_frame_data` contains `num_frames` × 16-byte records (see [3D.md — Frame Data](3d.md#frame-data) for the record layout).
 
-Frame 0 always points to the base geometry (same as `.3D` files). Frames 1+ contain per-frame vertex positions and face normals in a compact encoding determined by `frame_type`:
+Frame 0 always points to the base geometry (same as `.3D` files). Frames 1+ contain encoded vertex data and face normals. Compressed vertices are deltas from frame zero, not absolute positions.
 
 ### frame_type Values
 
@@ -30,6 +30,19 @@ Frame 0 always points to the base geometry (same as `.3D` files). Frames 1+ cont
 | 8 | Static (single-frame `.3DC`) | N/A | N/A |
 
 `frame_type` is only meaningful in frame 0's record. Frame 1+ records always have `frame_type = 0`.
+
+### Compressed vertex reconstruction
+
+The low four bits of frame zero's type select the vertex encoding. For type 2,
+each later signed i16 component is subtracted from the corresponding decoded
+frame-zero component. When type flag `0x10` is clear, divide the signed delta by
+256 before subtraction. When it is set, subtract the signed delta in whole model
+units. Store the resulting absolute coordinate at single precision. Each frame
+uses frame zero as its base; deltas are not accumulated between frames.
+
+Type 1 uses signed byte deltas subtracted in whole model units. Type 4 stores
+absolute signed i32 components scaled by 1/256. Frame zero itself uses decoded
+base geometry regardless of the later-frame encoding.
 
 ### 10-10-10-2 Packed Normal Format
 

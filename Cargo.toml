@@ -30,6 +30,7 @@ gltf-json = { version = "1.4.1", features = ["KHR_lights_punctual", "names", "ex
 log = "0.4.29"
 nom = "8.0.0"
 serde_json = "1.0"
+serde = { version = "1", features = ["derive"] }
 image = { version = "0.25.8", default-features = false, features = ["png", "gif"] }
 bitmap2ttf = "0.1.1"
 thiserror = "2.0.18"

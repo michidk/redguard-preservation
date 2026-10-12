@@ -1,3 +1,6 @@
+mod index;
+pub use index::{BsiIndex, BsiIndexEntry};
+
 use super::palette::Palette;
 use crate::{Result, error::Error};
 
