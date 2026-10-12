@@ -171,7 +171,8 @@ game the gold count is 53 (`player_total[2] = 52` plus one from
   ID order, wrapping, and skipping items with `hide[x] = 1` or a count of 0.
 - Cycling is disabled while the sword is drawn or `attr_holding_weapon` is
   set; the icon stays visible. Drawing or sheathing does not change the
-  selection.
+  selection. Disabling rendering suppresses item artwork and text, but does not
+  disable otherwise-eligible item cycling.
 - When the selected item's count drops below 1, the selection moves to the
   next valid item; with none, nothing is selected and nothing is drawn.
 
@@ -209,7 +210,9 @@ The selected player must not be holding a weapon, drawing a sword, or sheathing
 a sword. The shared player-lineup result must be zero. `Activate` requires the
 player's torch-burning counter to be zero; `TorchActivate` requires it to be
 nonzero. The prompt text is the RTX entry's text; a missing RTX entry does not
-activate the object.
+activate the object. RTX lookup folds ASCII uppercase letters in the four-byte
+key to lowercase. An existing entry with empty text still supplies a prompt and
+can activate the object.
 
 The weapon predicates use the item system and the actor's current animation.
 Outside shell-script execution, with the item system initialized and a current
