@@ -289,6 +289,34 @@ When a Numeric (`0x07`) or NumericAlt (`0x16`) opcode appears in PARAMETER mode,
 | `ActiveItem`, `AddItem`, `DropItem`, `HandItem`, `HaveItem`, `SelectItem`, `ShowItem`, `ShowItemNoRtx` | Item ID | `i32` item identifier |
 | All others | Integer | `i32` signed integer |
 
+### Ordinary entry gate
+
+Ordinary entry processing uses the actor's saved entry continuation, distinct
+from its main continuation. Before running it, the engine checks occupied,
+unpaused blocking task slots. A slot suppresses entry when its stored operand
+address is less than or equal to the saved entry address. This is an address
+comparison, not a comparison of offsets relative to each task's own script.
+For programs within the same RASC allocation, adding each script's RASC offset
+to its local cursor preserves that ordering.
+
+When entry runs, its saved cursor temporarily becomes the interpreter's active
+cursor. The resulting cursor is saved back as the entry continuation, and the
+main continuation is restored. A yielding entry therefore resumes from its
+saved position. `Endint` resets that entry continuation to the script base.
+
+### Animation task ownership and stopping
+
+Each task slot saves and restores its native handler state independently.
+Multiple `PushAnimation` slots therefore retain separate not-started/started
+phases while requesting and observing the same receiving actor's animation.
+Each invocation sees animation changes made by earlier calls; the animation is
+not copied into the task slot.
+
+`TaskStop` clears matching operand slots and their blocking and pause flags.
+It does not invoke the native handler or restore earlier animation state.
+Stopping a `PushAnimation` task therefore leaves its animation request and
+current playback state in place.
+
 ### Attribute default-group side effects
 
 The `SetAttribute` attribute-44 animation-default path releases the actor's two
