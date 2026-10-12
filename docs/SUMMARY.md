@@ -7,6 +7,7 @@
     - [3DC](formats/models/3dc.md)
   - [ROB](formats/ROB.md)
   - [RGM](formats/RGM.md)
+  - [Save-game containers](formats/SAVEGAME.md)
   - [WLD](formats/WLD.md)
   - [SFX](formats/SFX.md)
   - [RTX](formats/RTX.md)

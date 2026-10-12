@@ -53,6 +53,30 @@ Each format has its own subcommand with scoped flags. `convert <FILE>` auto-dete
 
 ¹ Exported TTF fonts are bitmap-traced vector outlines without hinting. They can be installed on Windows, used in game engines (Unity, Godot, etc.), and previewed at [fontdrop.info](https://fontdrop.info).
 
+## Save-game loading
+
+The read-only Rust API parses version `1.31` save containers and loads a slot directory:
+
+```rust
+use rgpre::import::savegame::{load_save_slot, parse_savegame_file};
+
+let game = parse_savegame_file(&std::fs::read("SAVEGAME.SAV")?)?;
+let slot = load_save_slot("SAVEGAME/SAVEGAME.002")?;
+println!("{}: world {}", game.metadata.description, game.metadata.world_id);
+```
+
+`SaveGame` exposes decoded metadata and every chunk's original bytes in file
+order. `SaveSlot` contains the main save, a map of uppercase `.TSG` filenames to
+snapshots, and optional `LOGBOOK.TXT` bytes. Resource filename matching ignores
+case. Missing main saves, malformed containers, duplicate resource names, and
+non-regular resource files return errors with file context.
+
+The loader only reads files. It does not follow the stored bitmap path, write
+saves, convert files, or restore actors and scripts into a running engine.
+State payloads remain opaque. Display strings use UTF-8 replacement characters
+for invalid bytes; the original bytes remain in `SVGM`. See
+[Save-game containers](docs/formats/SAVEGAME.md).
+
 ## Typed configuration parsers
 
 The Rust library parses the gameplay configuration files into named structs:

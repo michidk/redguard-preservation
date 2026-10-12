@@ -54,6 +54,8 @@ pub mod rgm;
 pub mod rob;
 /// Parser for RTX dialogue/audio container files.
 pub mod rtx;
+/// Read-only SAV/TSG containers and save-slot loading.
+pub mod savegame;
 /// Parser for SFX sound effect files.
 pub mod sfx;
 pub mod smacker;

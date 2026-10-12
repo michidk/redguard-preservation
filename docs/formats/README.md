@@ -21,6 +21,7 @@ Binary formats use little-endian integers unless stated otherwise. The reference
 | World Geometry | .wld | yes | `.glb` + metadata `.json`, or map `.png` set | [WLD.md](WLD.md) | World geometry/height-map data with 4 sections and 128×128 maps; supports terrain GLB export (and companion RGM merge). |
 | Visibility Octree | .pvo | yes | `.json` | [PVO](pvo/format.md) | Pre-computed visibility octree for level geometry culling. |
 | Cheat States | .cht | yes | — | [CHT.md](CHT.md) | Cheat persistence file (`REDGUARD.CHT`); 256-byte raw dump of 64 u32 LE cheat state slots. |
+| Save Games | .sav, .tsg | yes, library | — | [SAVEGAME](SAVEGAME.md) | Save metadata, state chunks, and per-map snapshots. |
 | SOUP386.DEF | .def | yes | — | [SOUPDEF.md](../engine/SOUPDEF.md) | Definition-file format for SOUP callable functions, references/equates, attributes, and global flags. |
 
 The library also extracts [Glide splash tables](GLIDE-SPLASH.md) from the supported GOG overlay. This is a scoped data-table extractor, not a generic executable importer.
