@@ -23,6 +23,9 @@ Preserving *The Elder Scrolls Adventures: Redguard* (1998) — reverse-engineere
 | GXA bitmap archive | `.gxa` | animated `.gif` + `index.json` (directory output) |
 | Cheat states | `.cht` | `.json` |
 | Miles DOS driver | `.dig`, `.mdi` | stored header metadata `.json` |
+| Windows program settings | `.pif` | launch settings and extension data `.json` |
+| FM instrument bank | `.opl` | timbre register settings `.json` |
+| Editor state | `.rst` | ordered sections and entries `.json` |
 
 The `scan` command recursively detects known Redguard files in a directory tree.
 
@@ -44,10 +47,15 @@ Each format has its own subcommand with scoped flags. `convert <FILE>` auto-dete
 | `convert cht` | `.cht` | `.json` | (none) |
 | `convert pvo` | `.pvo` | `.json` | (none) |
 | `convert driver` | `.dig`, `.mdi` | `<FILE>.json` | (none) |
+| `convert pif` | `.pif` | `<FILE>.json` | (none) |
+| `convert opl` | `.opl` | `<FILE>.json` | (none) |
+| `convert rst` | `.rst` | `<FILE>.json` | (none) |
 
 Miles driver inspection reads the VDI header and retains the image as opaque bytes; it does not execute or emulate the driver.
 `rgpre read sound/iwav.dig` prints its stored metadata. `rgpre convert driver sound/iwav.dig` writes `sound/iwav.dig.json`, preserving the extension so `.dig` and `.mdi` names do not collide.
 The Rust API is `rgpre::import::miles_driver::parse_miles_driver(&bytes)`.
+
+`rgpre read` and `rgpre convert` also accept `.pif`, `.opl`, and `.rst` files. Their JSON exports retain the input extension, such as `STATE.RST.json`. The library entry points are `rgpre::import::pif::parse_pif_file`, `rgpre::import::opl::parse_opl_file`, and `rgpre::import::rst::parse_rst_file`. PIF inspection reads settings without launching the referenced program; OPL inspection decodes timbres without synthesizing audio.
 
 ¹ Exported TTF fonts are bitmap-traced vector outlines without hinting. They can be installed on Windows, used in game engines (Unity, Godot, etc.), and previewed at [fontdrop.info](https://fontdrop.info).
 

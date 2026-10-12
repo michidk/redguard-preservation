@@ -1,8 +1,8 @@
 use color_eyre::Result;
 use log::info;
 use rgpre::import::{
-    FileType, bsi, cht, fnt, gxa, miles_driver, model3d, palette::Palette, pvo, rgm, rob, rtx, sfx,
-    wld,
+    FileType, bsi, cht, fnt, gxa, miles_driver, model3d, opl, palette::Palette, pif, pvo, rgm, rob,
+    rst, rtx, sfx, wld,
 };
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -31,7 +31,7 @@ impl FileTypeCliExt for FileType {
             FileType::Cht | FileType::Pvo => {
                 path.set_extension("json");
             }
-            FileType::Dig | FileType::Mdi => {
+            FileType::Dig | FileType::Mdi | FileType::Pif | FileType::Opl | FileType::Rst => {
                 let extension = file.extension().unwrap_or_default().to_string_lossy();
                 path.set_extension(format!("{extension}.json"));
             }
@@ -78,6 +78,27 @@ impl FileTypeCliExt for FileType {
             FileType::Sfx => print_sfx(file_content),
             FileType::Rtx => print_rtx(file_content),
             FileType::Gxa => print_gxa(file_content),
+            FileType::Pif => {
+                info!(
+                    "{}",
+                    serde_json::to_string_pretty(&pif::parse_pif_file(file_content)?)?
+                );
+                Ok(())
+            }
+            FileType::Opl => {
+                info!(
+                    "{}",
+                    serde_json::to_string_pretty(&opl::parse_opl_file(file_content)?)?
+                );
+                Ok(())
+            }
+            FileType::Rst => {
+                info!(
+                    "{}",
+                    serde_json::to_string_pretty(&rst::parse_rst_file(file_content)?)?
+                );
+                Ok(())
+            }
             FileType::Dig | FileType::Mdi => {
                 let driver = miles_driver::parse_miles_driver(file_content)?;
                 info!(

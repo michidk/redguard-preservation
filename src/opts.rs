@@ -253,6 +253,12 @@ pub enum ConvertCommand {
     Pvo(ConvertFileArgs),
     /// Export stored Miles .DIG/.MDI driver header metadata to JSON
     Driver(ConvertFileArgs),
+    /// Export Windows PIF launch settings to JSON
+    Pif(ConvertFileArgs),
+    /// Export Miles OPL instrument banks to JSON
+    Opl(ConvertFileArgs),
+    /// Export RST editor state to JSON
+    Rst(ConvertFileArgs),
 }
 
 // ── Top-level convert args (git-stash pattern) ─────────────────────────────

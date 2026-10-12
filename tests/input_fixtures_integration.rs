@@ -75,6 +75,9 @@ fn filetype_resolution_covers_all_variants() {
         ("startup.gxa", "gxa", FileType::Gxa),
         ("SOUND.DIG", "dig", FileType::Dig),
         ("MUSIC.MDI", "mdi", FileType::Mdi),
+        ("SETSOUND.PIF", "pif", FileType::Pif),
+        ("Fatman.OPL", "opl", FileType::Opl),
+        ("STATE.RST", "rst", FileType::Rst),
     ];
 
     for (path, token, expected) in cases {
@@ -195,6 +198,9 @@ fn integration_covers_each_filetype_variant() {
             }
             FileType::Cht => {
                 // No fixture for CHT; trivial 256-byte format
+            }
+            FileType::Pif | FileType::Opl | FileType::Rst => {
+                // Covered by tests/auxiliary_formats.rs.
             }
             FileType::Dig | FileType::Mdi => {
                 // Driver headers are covered by tests/miles_driver.rs.

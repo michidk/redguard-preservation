@@ -1,12 +1,15 @@
 # File Formats Overview
 
-Binary, little-endian file formats.
+Binary formats use little-endian integers unless stated otherwise. RST files use sectioned text.
 
 | File Type | Extension(s) | Parser | Output | Docs | Description |
 |---|---|---|---|---|---|
 | Sound Effects | .sfx | yes | `.wav` files (directory extract) | [SFX.md](SFX.md) | All game sound effects in a single container (`MAIN.SFX`); 118 raw PCM clips. |
 | Dialogue Audio | .rtx | yes | `.wav` files + `index.json` (directory extract) | [RTX.md](RTX.md) | Dialogue text + voice clip container (`ENGLISH.RTX`) with chunk index footer (`RNAV`); 4866 entries (3933 voice clips, 933 text-only). |
 | Miles DOS Driver | .dig, .mdi | yes | stored header metadata `.json` | [Miles drivers](MILES-DRIVER.md) | Digital audio and MIDI hardware driver images with a shared VDI header. |
+| Windows Program Settings | .pif | yes | launch settings and extension data `.json` | [PIF](PIF.md) | Windows DOS-program launch settings. |
+| FM Instrument Bank | .opl | yes | timbre register settings `.json` | [OPL](OPL.md) | Miles two-operator FM synthesis instruments. |
+| Editor State | .rst | yes | ordered sections and entries `.json` | [RST](RST.md) | Sectioned editor settings and file-position records. |
 | Audio | .ogg | — | — | [Ogg Vorbis spec](https://xiph.org/vorbis/doc/Vorbis_I_spec.html) | Ogg Vorbis format used for game audio. |
 | TEXBSI | .### | yes | `.png` files (directory extract) + metadata `.json` | [TEXBSI.md](TEXBSI.md) | Texture container (`TEXBSI.###`); indexed-color images with optional palettes and animation. |
 | Palette | .col | yes | swatch `.png` + palette `.json` | [COL.md](COL.md) | 256-color palette files; 776 bytes (8-byte header + 256×RGB). |

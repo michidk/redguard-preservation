@@ -26,10 +26,14 @@ pub mod menu_settings;
 pub mod miles_driver;
 /// Parser for 3D and 3DC model files.
 pub mod model3d;
+/// Parser for Miles OPL instrument banks.
+pub mod opl;
 /// Parser for COL palette files.
 pub mod palette;
 /// Export helpers for COL palette assets.
 pub mod palette_export;
+/// Parser for Windows Program Information Files.
+pub mod pif;
 pub mod player_ini;
 /// Shared PNG save helper with compression control.
 pub mod png;
@@ -41,6 +45,8 @@ pub mod registry;
 pub mod rgm;
 /// Parser and model extraction for ROB archives.
 pub mod rob;
+/// Parser for sectioned STATE.RST editor state.
+pub mod rst;
 /// Parser for RTX dialogue/audio container files.
 pub mod rtx;
 /// Parser for SFX sound effect files.
@@ -74,9 +80,12 @@ pub enum FileType {
     Rtx,      // .rtx
     Dig,      // .dig
     Mdi,      // .mdi
+    Pif,      // .pif
+    Opl,      // .opl
+    Rst,      // .rst
 }
 
-const ALL_FILE_TYPES: [FileType; 15] = [
+const ALL_FILE_TYPES: [FileType; 18] = [
     FileType::Bsi,
     FileType::Cht,
     FileType::Col,
@@ -92,6 +101,9 @@ const ALL_FILE_TYPES: [FileType; 15] = [
     FileType::Rtx,
     FileType::Dig,
     FileType::Mdi,
+    FileType::Pif,
+    FileType::Opl,
+    FileType::Rst,
 ];
 
 impl FileType {
@@ -117,6 +129,9 @@ impl FileType {
             Self::Sfx => "Sound Effects",
             Self::Rtx => "Dialogue Audio",
             Self::Dig | Self::Mdi => "Miles Driver",
+            Self::Pif => "Windows Program Settings",
+            Self::Opl => "FM Instrument Bank",
+            Self::Rst => "Editor State",
         }
     }
 
@@ -138,6 +153,9 @@ impl FileType {
             Self::Rtx => &[".rtx"],
             Self::Dig => &[".dig"],
             Self::Mdi => &[".mdi"],
+            Self::Pif => &[".pif"],
+            Self::Opl => &[".opl"],
+            Self::Rst => &[".rst"],
         }
     }
 

@@ -1,3 +1,4 @@
+pub(crate) mod auxiliary;
 pub(crate) mod cht;
 pub(crate) mod col;
 pub(crate) mod driver;
@@ -394,6 +395,18 @@ fn handle_subcommand(cmd: ConvertCommand) -> Result<()> {
             let output = resolve_output(&io, FileType::Pvo);
             pvo::handle_pvo_convert(&io.file, &output)
         }
+        ConvertCommand::Pif(io) => {
+            let output = resolve_output(&io, FileType::Pif);
+            auxiliary::handle_auxiliary_convert(&io.file, &output, FileType::Pif)
+        }
+        ConvertCommand::Opl(io) => {
+            let output = resolve_output(&io, FileType::Opl);
+            auxiliary::handle_auxiliary_convert(&io.file, &output, FileType::Opl)
+        }
+        ConvertCommand::Rst(io) => {
+            let output = resolve_output(&io, FileType::Rst);
+            auxiliary::handle_auxiliary_convert(&io.file, &output, FileType::Rst)
+        }
         ConvertCommand::Driver(io) => {
             let output = resolve_output(&io, FileType::Dig);
             driver::handle_driver_convert(&io.file, &output)
@@ -513,6 +526,10 @@ fn handle_auto_convert(auto: AutoConvertArgs) -> Result<()> {
             let output = resolve_output(&io, FileType::Pvo);
             info!("Requested output path: {}", output.display());
             pvo::handle_pvo_convert(&io.file, &output)
+        }
+        FileType::Pif | FileType::Opl | FileType::Rst => {
+            let output = resolve_output(&io, filetype);
+            auxiliary::handle_auxiliary_convert(&io.file, &output, filetype)
         }
         FileType::Dig | FileType::Mdi => {
             let output = resolve_output(&io, FileType::Dig);

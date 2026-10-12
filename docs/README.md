@@ -27,7 +27,7 @@ Reference documentation for *The Elder Scrolls Adventures: Redguard* (1998) file
 | `fonts/` | 604 K | 29 | 29 `.FNT` bitmap font files (Arial variants, HI/LO menu fonts, Redguard-styled fonts) |
 | `fxart/` | 102 M | 755 | Glide-version 3D assets: 204 `.3DC`, 65 `.3D`, 31 `.ROB`, 27 `.COL`, 415 `TEXBSI.xxx` textures, `FOG.INI`, `more` (build manifest from Hugh's 3D tool) |
 | `maps/` | 12 M | 45 | 27 `.RGM` scene files, 5 `.PVO` visibility octrees, 4 `.WLD` terrain files, 9 `.TSG` trigger-state files |
-| `sound/` | 5.3 M | 49 | `MAIN.SFX` (all 118 sound effects), `R212.WAV`, [Miles Sound System drivers](formats/MILES-DRIVER.md) (`.mdi`, `.dig`), `STATE.RST`, audio configs |
+| `sound/` | 5.3 M | 49 | `MAIN.SFX` (all 118 sound effects), `R212.WAV`, [Miles Sound System drivers](formats/MILES-DRIVER.md) (`.mdi`, `.dig`), [OPL instrument banks](formats/OPL.md), [PIF program settings](formats/PIF.md), [RST editor state](formats/RST.md), audio configs |
 | `soup386/` | 48 K | 1 | `SOUP386.DEF` — script function/flag definitions for the SOUP engine |
 | `system/` | 18 M | 69 | 65 `.GXA` UI graphics (menus, inventory, compass, maps, skies), `gui.anm`, `gui.lbm`, `pointers.bmp`, `SKY_61.PCX` |
 | `SAVEGAME/` | 79 M | 594 | 17 save slots (`SAVEGAME.000`–`016`), each containing per-map `.TSG` trigger-state snapshots + `LOGBOOK.TXT` |
