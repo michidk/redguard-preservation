@@ -28,7 +28,7 @@ compass, power-up icons and logbook icon) over the 3D scene on a virtual
   vertical retrace: these animations advance at most 60 times per second and
   otherwise at the frame rate the machine reaches. `max_frame_rate` limits only
   the tick computation, not drawing.
-- *Lockout* is the value last passed to the script function `LockoutPlayer`;
+- *Lockout* retains the low 16 bits of the value passed to `LockoutPlayer`;
   the engine also resets it to 0, for example after player death. Each element
   below tests it differently.
 - `attr_player_type` uses the SOUP386.DEF values `ply_cyrus` 0,
