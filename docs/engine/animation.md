@@ -152,6 +152,18 @@ the current group was the old default and its exit marker is clear. A pending
 group equal to the old default is separately replaced by an ordinary request
 for the new default. These checks use the old default captured before selection.
 
+## Dead actor default selection
+
+When ordinary default selection reaches the dead-actor branch, an actor with
+combat state takes its default group from that state's death-animation selection.
+Without combat state, it selects group 123 when that group exists, otherwise
+group 124. Group existence requires an animation state with a populated entry
+for the requested group.
+
+Animation-table setup clears the actor's combat-state association and creates
+combat state when attribute byte 14 is nonzero. This state is separate from the
+animation group's playback cursor and from the actor's attribute table.
+
 ## Forced requests
 
 A forced request for the current group, before its exit marker is set, clears
