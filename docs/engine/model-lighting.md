@@ -93,7 +93,7 @@ when prelighting is recalculated.
 
 GLTF model primitives retain per-vertex face inputs in the `rgpre_lighting`
 extras object. Version 2 has `version: 2`, the model header radius as
-`radius_fixed`, and a `vertices` array in exported
+`radius_fixed` in 1/256 engine units, and a `vertices` array in exported
 vertex order. Each entry is `[brightness, solid]`, where brightness is the
 unsigned face byte and solid is 1 for palette-color faces or 0 for textured
 faces. Material grouping and polygon triangulation retain these inputs for
