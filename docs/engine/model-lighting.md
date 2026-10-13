@@ -97,6 +97,13 @@ nonempty admitted map-light list. It registers the map lights and bakes retained
 face-vertex colors for the static instances. With either list empty, this pass
 does not bake those instances.
 
+For world-entry prelighting, spatial cells are allocated in first-occurrence
+order: static placements first, then admitted map lights. The cell key is
+`((z & 0xfe00) >> 2) + ((x & 0xffff) >> 9)` using the low coordinate bits.
+Lights prepend to their cell's list. Collection concatenates cells in ascending
+allocation order, retaining reverse insertion order within each cell. Light
+registration and model selection preserve this order for accumulation.
+
 Ordinary world drawing registers the map-light list only in editor mode.
 Outside that mode, the retained colors carry the baked map-light contributions;
 the map lights are not reapplied by that draw loop. Other registered local lights
@@ -116,7 +123,9 @@ every emitted vertex. Terrain primitives omit this metadata.
 
 ## Local-light records
 
-`RgmFile::local_lights(world_id)` returns admitted authored records with signed
+`RgmFile::prelight_lights(world_id)` returns the world-entry accumulation order
+when static loading is enabled. `RgmFile::local_lights(world_id)` returns
+admitted authored records in file order with signed
 RGB, radius and positions in engine coordinates. RGM inspection metadata retains
 these values and the activation and world fields. Placement extraction does not
 convert them to standard punctual lights: their signed contribution and custom

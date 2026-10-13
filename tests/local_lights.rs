@@ -55,3 +55,68 @@ fn map_lights_are_not_misrepresented_as_standard_point_lights() {
     let (_, lights) = extract_rgm_placements(&scene()).unwrap();
     assert!(lights.is_empty());
 }
+
+#[test]
+fn prelighting_retains_cell_allocation_and_reverse_insertion_order() {
+    use rgpre::import::rgm::{MpsRecord, RgmSection, RgmSectionHeader};
+    for (static_cells, expected) in [
+        (vec![], vec![5, 2, 0, 4, 1, 3]),
+        (vec![2, 0, 1], vec![3, 5, 2, 0, 4, 1]),
+        (vec![1, 1, 0], vec![4, 1, 5, 2, 0, 3]),
+        (vec![0, 2, 0], vec![5, 2, 0, 3, 4, 1]),
+    ] {
+        let mut map = parse_rgm_file(&scene()).unwrap();
+        let template = map.local_lights(20).next().unwrap().clone();
+        let header = RgmSectionHeader {
+            name: *b"MPSL",
+            data_length: 0,
+            record_count: None,
+        };
+        let mut lights: Vec<_> = [0, 1, 0, 2, 1, 0]
+            .into_iter()
+            .enumerate()
+            .map(|(index, cell)| {
+                let mut light = template.clone();
+                light.link = index as u32;
+                light.position = [cell * 512, 0, 0];
+                light
+            })
+            .collect();
+        let mut excluded = template.clone();
+        excluded.link = 99;
+        excluded.world_id = 1;
+        excluded.position = [1536, 0, 0];
+        lights.insert(0, excluded.clone());
+        excluded.world_id = 20;
+        excluded.active = 2;
+        lights.insert(0, excluded);
+        map.sections = vec![
+            RgmSection::Mps(
+                RgmSectionHeader {
+                    name: *b"MPSO",
+                    ..header
+                },
+                static_cells
+                    .into_iter()
+                    .map(|cell| MpsRecord {
+                        id: 0,
+                        model_name: [0; 12],
+                        pos_x: cell * 512,
+                        pos_y: 0,
+                        pos_z: 0,
+                        rotation_matrix: [0; 9],
+                        trailing: [0; 2],
+                    })
+                    .collect(),
+            ),
+            RgmSection::MplParsed(header, lights),
+        ];
+        assert_eq!(
+            map.prelight_lights(20)
+                .iter()
+                .map(|light| light.link)
+                .collect::<Vec<_>>(),
+            expected
+        );
+    }
+}

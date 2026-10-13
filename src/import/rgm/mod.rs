@@ -136,6 +136,40 @@ pub struct MpslRecord {
 }
 
 impl RgmFile {
+    /// Map lights in world-entry prelighting order with static loading enabled.
+    /// Cells are allocated by static records first, then admitted lights; each
+    /// cell contributes its lights in reverse insertion order.
+    pub fn prelight_lights(&self, world_id: u32) -> Vec<&MpslRecord> {
+        let mut cells = HashMap::new();
+        let mut register = |x: i32, z: i32| {
+            let key = ((z as u32 & 0xfe00) >> 2) + ((x as u32 & 0xffff) >> 9);
+            let next = cells.len();
+            *cells.entry(key).or_insert(next)
+        };
+        for section in &self.sections {
+            if let RgmSection::Mps(_, records) = section {
+                for record in records {
+                    register(record.pos_x, record.pos_z as i32);
+                }
+            }
+        }
+        let mut lights: Vec<_> = self
+            .local_lights(world_id)
+            .enumerate()
+            .map(|(index, light)| {
+                (
+                    (
+                        register(light.position[0], light.position[2]),
+                        std::cmp::Reverse(index),
+                    ),
+                    light,
+                )
+            })
+            .collect();
+        lights.sort_by_key(|(key, _)| *key);
+        lights.into_iter().map(|(_, light)| light).collect()
+    }
+
     /// Map lights admitted for a WORLD.INI entry when map lighting is enabled.
     pub fn local_lights(&self, world_id: u32) -> impl Iterator<Item = &MpslRecord> {
         self.sections
