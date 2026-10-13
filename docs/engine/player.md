@@ -707,6 +707,15 @@ list and classifies their integer Y components using the ground-normal threshold
 above. Classification therefore follows world transformation and integer
 conversion; it is not the source polygon's local classification.
 
+### Primary body-contact collection
+
+The primary body query retains contacts in candidate order and each model's
+returned contact order. Collection returns immediately after its sixteenth model
+contact. Later candidates and the optional terrain contact are then omitted.
+When fewer than sixteen model contacts were collected, an available terrain
+contact is appended after them. This limit belongs to the primary body query;
+the residual separation query is separate.
+
 ### Body-contact facing admission
 
 The primary body-response loop visits contacts in stored order. Contacts whose
