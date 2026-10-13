@@ -457,6 +457,25 @@ signed 32-bit arguments. The receiver's attached yaw is used when `attr_slave`
 is nonzero; otherwise its ordinary yaw is used. This function requires a
 selected player. See [coordinate and heading units](player.md#coordinate-and-heading-units).
 
+### Node-marker distance
+
+`AtNodeMarker(marker, distance)` returns one when the receiver's ordinary local
+position is within the supplied distance of the named marker, otherwise zero.
+It uses all three axes and does not select attached or linked positions.
+Marker coordinates are converted from map units to runtime units by a left
+shift of eight bits; coordinate subtraction retains the low 32 bits.
+
+The distance is Euclidean. Each signed difference is first stored as a
+single-precision float. The sum of squares passes through a double-precision
+store before square root; the root is stored at single precision and converted
+to a signed integer with nearest-even rounding. The result is compared with the
+signed `distance` argument using an inclusive bound. The distance argument
+therefore uses 256 units per map unit.
+
+Marker lookup rejects an out-of-range or absent marker. The ordinary world
+marker table has 128 slots; the alternate map path uses its own stored count
+and presence table.
+
 ### Actor families and attached transforms
 
 `attr_master` and `attr_slave` are byte-sized group identities. A nonzero slave
