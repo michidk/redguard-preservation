@@ -467,14 +467,17 @@ shift of eight bits; coordinate subtraction retains the low 32 bits.
 
 The distance is Euclidean. Each signed difference is first stored as a
 single-precision float. The sum of squares passes through a double-precision
-store before square root; the root is stored at single precision and converted
-to a signed integer with nearest-even rounding. The result is compared with the
+store before an extended-precision square root; the root is stored at single
+precision and converted to a signed integer with nearest-even rounding. Rounding
+the root to double precision before the single-precision store can change the
+result at a single-precision midpoint. The result is compared with the
 signed `distance` argument using an inclusive bound. The distance argument
 therefore uses 256 units per map unit.
 
 Marker lookup rejects an out-of-range or absent marker. The ordinary world
-marker table has 128 slots; the alternate map path uses its own stored count
-and presence table.
+marker table has 128 slots and accepts any nonzero presence byte. The alternate
+map path uses its own stored count and requires a presence byte of one. The
+marker argument is an unscaled signed index, distinct from the distance units.
 
 ### Actor families and attached transforms
 
