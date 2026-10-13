@@ -183,6 +183,13 @@ when the world loop starts and advances by the shared whole nominal ticks when
 the runtime inhibition flag is clear. A signed accumulator value greater than
 1400 triggers the reset and clears the accumulator; exactly 1400 does not.
 
+`MenuBegin` sets the runtime menu-state word to one; `MenuEnd` clears it.
+During ordinary actor processing, an active menu-state word or a nonzero
+`WaitOnDialog` result sets the maintenance inhibition flag. When both are zero,
+the flag clears only if player lockout is also zero. A nonzero player lockout
+therefore retains the prior inhibition value. This menu-state word is separate
+from the dialogue-state word controlled by `DialogBegin` and `DialogEnd`.
+
 [`TaskStop`](SOUP.md#animation-task-ownership-and-stopping) removes the native
 task slot without invoking its handler. Stopping an ambient task therefore
 does not itself issue a sample-stop command. Sound ownership commands are separate from task-slot removal.
