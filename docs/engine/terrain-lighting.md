@@ -110,6 +110,8 @@ from Y. RGB is not perspective-weighted during this clipping step.
 The surviving polygon is submitted as a triangle fan, anchored at its first
 vertex. Projection follows clipping. Each projected screen coordinate is
 biased by `786432` and stored as a 32-bit float before Glide receives it.
+The unbiased X coordinate has an additional 32-bit float store before this
+addition; Y remains in the wider intermediate precision until the biased store.
 The float spacing at that magnitude is `1/16` pixel. The common bias cancels
 from the gradient differences and is discarded by the software rasterizer's
 signed 16-bit fixed-coordinate conversion. Triangle color gradients therefore
