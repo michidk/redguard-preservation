@@ -53,6 +53,22 @@ For example, after `oddjob = 2`, entering `oddjob` in the console stores one; en
 
 The cheat names are themed after James Bond films (Moonraker, Dr. No, Goldfinger, Oddjob, Never Say Never Again) and Austin Powers ("Yeah Baby").
 
+## Values other than zero and one
+
+The Glide engine does not apply one shared on/off rule to every cheat. The ordinary gameplay checks use these conditions:
+
+| Cheats | Condition used | Meaning of `2` |
+|---|---|---|
+| `nodemarker`, `task`, `magiccarpet` | Value equals `1` | Does not enable the corresponding check |
+| `moonraker`, `drevil`, `drno`, `goldfinger`, `neversaydie`, `yeahbaby` | Value is nonzero | Enables the check, just like `1` |
+| `animation` | Some checks require `1`; others accept any nonzero value | Enables only the nonzero checks, so it is not equivalent to either ordinary on or off |
+
+`oracle` and `savecheats` execute commands instead of using these gameplay conditions. `oddjob` accepts and stores arbitrary values through the shared cheat-state handling described above.
+
+For example, `neversaydie = 2` still makes `PlayerDistance()` return `9999999`, but `magiccarpet = 2` does not enable its fly-mode check. Values above one are not additional strength levels. Use `0` and `1` for consistent on/off control.
+
+The CHT parser preserves each raw integer. Its `is_on()` helper reports whether that integer is nonzero; it does not reproduce the per-cheat conditions in this table. Callers implementing gameplay must use the raw value and the corresponding condition.
+
 ## Persistence — REDGUARD.CHT
 
 The `savecheats` command (cheat #6) writes the 64-slot state array, including the 13 named cheat slots, to a file called `REDGUARD.CHT` in the game directory. It clears its own slot before writing, then sets that slot to one after closing the file. On startup, the engine checks for this file and restores any previously saved cheat states. Delete the file to reset all cheats. See [CHT format specification](../formats/CHT.md) for the binary layout.
