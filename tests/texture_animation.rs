@@ -4,8 +4,7 @@ use rgpre::{
 };
 use std::collections::HashMap;
 
-#[test]
-fn animated_material_exports_ordered_frames_delay_and_later_transparency() {
+fn texture_bank(pixels: [u8; 4]) -> Vec<u8> {
     let mut chunks = Vec::new();
     let mut header = [0; 26];
     header[4..6].copy_from_slice(&1_u16.to_le_bytes());
@@ -17,7 +16,7 @@ fn animated_material_exports_ordered_frames_delay_and_later_transparency() {
         .into_iter()
         .flat_map(u32::to_le_bytes)
         .collect();
-    rows.extend([1, 2, 0, 4]);
+    rows.extend(pixels);
     for (tag, data) in [
         (b"IFHD", vec![0; 44]),
         (b"BHDR", header.to_vec()),
@@ -31,6 +30,12 @@ fn animated_material_exports_ordered_frames_delay_and_later_transparency() {
     let mut bytes = b"A01000\0\0\0".to_vec();
     bytes.extend(u32::try_from(chunks.len()).unwrap().to_le_bytes());
     bytes.extend(chunks);
+    bytes
+}
+
+#[test]
+fn animated_material_exports_ordered_frames_delay_and_later_transparency() {
+    let bytes = texture_bank([1, 2, 0, 4]);
     let mut cache = TextureCache::from_data(HashMap::from([(1, bytes)]), None);
     let mut model =
         rgpre::model3d::parse_3d_file(include_bytes!("fixtures/model_v40.3dc")).unwrap();
@@ -81,4 +86,58 @@ fn animated_material_exports_ordered_frames_delay_and_later_transparency() {
         assert_eq!(decoded.as_raw(), &expected);
     }
     assert!(images.next().is_none());
+}
+
+#[test]
+fn terrain_frames_keep_opaque_palette_zero_without_changing_model_decoding() {
+    use rgpre::import::{palette::Palette, wld::parse_wld_file};
+    let mut palette = Palette {
+        colors: [[0; 3]; 256],
+    };
+    palette.colors[0] = [19, 37, 83];
+    palette.colors[2] = [101, 103, 107];
+    palette.colors[4] = [211, 223, 227];
+    let mut cache = TextureCache::from_data(
+        HashMap::from([(1, texture_bank([0, 2, 0, 4]))]),
+        Some(Palette {
+            colors: palette.colors,
+        }),
+    );
+    let mut world = parse_wld_file(include_bytes!("fixtures/world.wld")).unwrap();
+    for section in world.sections.iter_mut() {
+        section.maps[2].fill(0);
+    }
+    let (root, buffer) =
+        rgpre::convert_wld_scene_to_gltf(&world, 1, &[], Some(&palette), Some(&mut cache), false)
+            .unwrap();
+    let glb = rgpre::to_glb(&root, &buffer).unwrap();
+    let parsed = gltf::Gltf::from_slice(&glb).unwrap();
+    let material = parsed.materials().next().unwrap();
+    assert_eq!(parsed.materials().count(), 1);
+    assert_eq!(material.alpha_mode(), gltf::material::AlphaMode::Opaque);
+    let extras: serde_json::Value =
+        serde_json::from_str(material.extras().as_ref().unwrap().get()).unwrap();
+    assert_eq!(
+        extras["rgpre_texture_animation"]["textures"],
+        serde_json::json!([0, 1])
+    );
+    let mut images = parsed.images();
+    for expected in [
+        [101, 103, 107, 255, 19, 37, 83, 255],
+        [211, 223, 227, 255, 19, 37, 83, 255],
+    ] {
+        let gltf::image::Source::View { view, .. } = images.next().unwrap().source() else {
+            panic!("embedded PNG expected")
+        };
+        let png = &buffer[view.offset()..view.offset() + view.length()];
+        assert_eq!(
+            image::load_from_memory(png).unwrap().into_rgba8().as_raw(),
+            &expected
+        );
+    }
+    assert!(images.next().is_none());
+    assert_eq!(
+        cache.get_image_rgba(1, 0).unwrap().0,
+        [101, 103, 107, 255, 0, 0, 0, 0]
+    );
 }

@@ -276,12 +276,47 @@ impl TextureCache {
         })
     }
 
+    fn terrain_frame_rgba(&self, image: &BsiImage, frame: usize) -> Option<Vec<u8>> {
+        let mut rgba = flip_rows_vertical(
+            image.decode_frame_rgba(frame, self.palette.as_ref())?,
+            image.width,
+        );
+        let zero = self
+            .palette
+            .as_ref()
+            .map(|palette| palette.colors[0])
+            .or_else(|| image.palette.as_ref().map(|palette| palette[0]))
+            .unwrap_or([0; 3]);
+        for pixel in rgba.as_chunks_mut::<4>().0 {
+            if pixel[3] == 0 {
+                pixel[..3].copy_from_slice(&zero);
+            }
+            pixel[3] = 255;
+        }
+        Some(rgba)
+    }
+
+    /// Terrain disables chroma rejection, retaining palette-zero RGB and opaque alpha.
+    pub(super) fn terrain_image_png(
+        &mut self,
+        texture_id: u16,
+        image_id: u8,
+        compress: bool,
+    ) -> Option<(Vec<u8>, u16, u16, bool)> {
+        let index = self.image_index(texture_id, image_id)?;
+        let image = &self.bsi_files.get(&texture_id)?.images[index];
+        let rgba = self.terrain_frame_rgba(image, 0)?;
+        let png = encode_rgba_png(image.width.into(), image.height.into(), &rgba, compress)?;
+        Some((png, image.width, image.height, false))
+    }
+
     /// Authored animated image identity, delay in milliseconds, and PNG frames after frame zero.
     pub(super) fn animation_pngs(
         &mut self,
         texture_id: u16,
         image_id: u8,
         compress: bool,
+        terrain: bool,
     ) -> Option<AnimatedTexture> {
         let index = self.image_index(texture_id, image_id)?;
         let image = &self.bsi_files.get(&texture_id)?.images[index];
@@ -290,10 +325,14 @@ impl TextureCache {
         }
         let frames = (1..usize::from(image.frame_count))
             .map(|frame| {
-                let rgba = flip_rows_vertical(
-                    image.decode_frame_rgba(frame, self.palette.as_ref())?,
-                    image.width,
-                );
+                let rgba = if terrain {
+                    self.terrain_frame_rgba(image, frame)?
+                } else {
+                    flip_rows_vertical(
+                        image.decode_frame_rgba(frame, self.palette.as_ref())?,
+                        image.width,
+                    )
+                };
                 encode_rgba_png(image.width.into(), image.height.into(), &rgba, compress)
             })
             .collect::<Option<Vec<_>>>()?;
@@ -301,7 +340,7 @@ impl TextureCache {
             name: image.name.clone(),
             delay_ms: image.anim_delay,
             frames,
-            has_alpha: image.extra_frames.iter().any(|pixels| pixels.contains(&0)),
+            has_alpha: !terrain && image.extra_frames.iter().any(|pixels| pixels.contains(&0)),
         })
     }
 
