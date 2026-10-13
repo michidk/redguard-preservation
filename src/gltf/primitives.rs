@@ -19,6 +19,20 @@ pub(crate) enum MaterialKey {
     White,
 }
 
+#[derive(Clone, serde::Serialize)]
+pub(crate) struct ModelAdmission {
+    pub(crate) version: u32,
+    pub(crate) radius_fixed: u32,
+    pub(crate) polygons: Vec<PolygonAdmission>,
+}
+
+#[derive(Clone, serde::Serialize)]
+pub(crate) struct PolygonAdmission {
+    pub(crate) source_face: u32,
+    pub(crate) vertices: Option<Vec<u32>>,
+    pub(crate) normal: Option<[f32; 3]>,
+}
+
 #[derive(Clone)]
 pub(crate) struct UnrolledPrimitive {
     pub(crate) material_key: MaterialKey,
@@ -28,6 +42,7 @@ pub(crate) struct UnrolledPrimitive {
     pub(crate) uvs: Vec<[f32; 2]>,
     pub(crate) indices: Vec<u32>,
     pub(crate) source_vertices: Vec<[u32; 2]>,
+    pub(crate) admission: Option<ModelAdmission>,
     pub(crate) min: [f32; 3],
     pub(crate) max: [f32; 3],
 }
@@ -108,10 +123,16 @@ pub(crate) fn build_unrolled_primitives(
                 uvs: Vec::new(),
                 indices: Vec::new(),
                 source_vertices: Vec::new(),
+                admission: Some(ModelAdmission {
+                    version: 1,
+                    radius_fixed: model.header.radius,
+                    polygons: Vec::new(),
+                }),
                 min: [f32::INFINITY, f32::INFINITY, f32::INFINITY],
                 max: [f32::NEG_INFINITY, f32::NEG_INFINITY, f32::NEG_INFINITY],
             });
 
+        let mut polygon_vertices = vec![None; face.face_vertices.len()];
         for i in 1..(face.face_vertices.len() - 1) {
             let tri_fv_indices = triangle_vertex_offsets(i);
             let tri_fv = [
@@ -134,6 +155,7 @@ pub(crate) fn build_unrolled_primitives(
                 let pos = &model.vertex_coords[idx];
                 let [x, y, z] =
                     transform_position(pos.x, pos.y, pos.z, ENGINE_UNIT_SCALE, SCENE_CONVENTION);
+                polygon_vertices[fv_idx].get_or_insert(group.positions.len() as u32);
                 group.positions.push([x, y, z]);
                 if model.header.num_frames > 1 {
                     group
@@ -162,6 +184,19 @@ pub(crate) fn build_unrolled_primitives(
             }
         }
 
+        if let Some(admission) = &mut group.admission {
+            let normal = model.face_normals.get(face_index).and_then(|normal| {
+                [normal.x, normal.y, normal.z]
+                    .iter()
+                    .all(|value| value.is_finite())
+                    .then(|| transform_normal(normal.x, normal.y, normal.z, SCENE_CONVENTION))
+            });
+            admission.polygons.push(PolygonAdmission {
+                source_face: face_index as u32,
+                vertices: polygon_vertices.into_iter().collect(),
+                normal,
+            });
+        }
         cumulative_fv_base += face.face_vertices.len();
     }
 

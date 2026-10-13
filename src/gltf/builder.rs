@@ -562,12 +562,21 @@ impl<'a> GltfBuilder<'a> {
                 mode: Checked::Valid(json::mesh::Mode::Triangles),
                 targets: None,
                 extensions: None,
-                extras: if primitive.source_vertices.is_empty() {
+                extras: if primitive.source_vertices.is_empty() && primitive.admission.is_none() {
                     None
                 } else {
-                    Some(serde_json::value::to_raw_value(&serde_json::json!({
-                        "rgpre_geometry": {"version": 1, "source_vertices": primitive.source_vertices}
-                    })).expect("finite integer source mapping is serializable"))
+                    let mut extras = serde_json::Map::new();
+                    if !primitive.source_vertices.is_empty() {
+                        extras.insert(
+                            "rgpre_geometry".into(),
+                            serde_json::json!({"version": 1, "source_vertices": primitive.source_vertices}),
+                        );
+                    }
+                    if let Some(admission) = &primitive.admission {
+                        extras.insert("rgpre_admission".into(), serde_json::json!(admission));
+                    }
+                    Some(serde_json::value::to_raw_value(&extras)
+                        .expect("finite geometry metadata is serializable"))
                 },
             });
         }
