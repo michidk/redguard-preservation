@@ -413,6 +413,33 @@ spheres at local Y −42 and −12. An additional support sphere is stored separ
 and is excluded from the ordinary obstacle-query count. X- and Z-dominant shapes
 use different construction rules.
 
+### Horizontal actor collision spheres
+
+An X total strictly greater than both Y and Z selects the X-dominant shape.
+Otherwise, a Z total strictly greater than both X and Y selects the Z-dominant
+shape. Every tie selects the upright shape.
+
+The horizontal shape starts with radius `max(4, max(other totals) / 2)`, using
+signed integer division. If `post_collide_height < 2 * radius`, subtract half
+`post_collide_height` from the radius, clamp it to at least 4, and set the Y
+center to that radius minus the negative Y extent. Otherwise retain the radius
+and set the Y center to negative `post_collide_height`.
+
+The spacing is `(3 * radius) >> 1`. The ordinary sphere count is the dominant
+total divided by spacing, with a minimum of one. The stored radius is
+`(radius * scale) >> 8`, using the same scale default as the upright shape.
+For X-dominant bounds, every ordinary sphere has the same center
+`(radius - negative X extent, Y center, 0)`. The loop advances a separate
+accumulator without applying it to the stored X centers. For Z-dominant bounds,
+centers start at `(0, Y center, radius - negative Z extent)` and advance in Z by
+the spacing. Both horizontal shapes store one additional sphere copied from the
+first ordinary sphere; their ordinary query count excludes this copy.
+
+The upright shape's additional sphere has center
+`(0, positive Y extent - scaled radius - (standing_height << 8) - 2, 0)` and the
+same scaled radius. This expression uses the runtime-scaled standing-height
+value directly, while the stored sphere center is a map-coordinate value.
+
 ### Per-update collision shape preparation
 
 An actor's selected collision shape receives its current position before the
