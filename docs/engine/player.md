@@ -409,6 +409,21 @@ spheres at local Y −42 and −12. An additional support sphere is stored separ
 and is excluded from the ordinary obstacle-query count. X- and Z-dominant shapes
 use different construction rules.
 
+### Per-update collision shape preparation
+
+An actor's selected collision shape receives its current position before the
+ordinary update copies the shape into working buffers. Each signed runtime
+coordinate is arithmetic-shifted right eight bits, then stored as a
+single-precision map coordinate. Each orientation component stores the integer
+`(-angle) & 2047`; these angle fields are not floating-point values.
+
+The ordinary update copies the selected shape into two working records. For
+upright bounds, the second record's sphere count is increased by one, including
+the additional stored support sphere. The first record retains the ordinary
+obstacle count. X- and Z-dominant bounds retain the same count in both records.
+If the actor has no selected shape, this preparation uses the saved
+selected-player shape and the selected player's bounds orientation instead.
+
 ### Static collision list order
 
 Static models use the same eighteen-cell spatial window as the
