@@ -30,7 +30,15 @@ an individual mesh instance.
 ## Loaded-image lifetime
 
 Looking up an already loaded image reuses its texture record and increments its
-reference count. It does not reset the current frame or animation deadline.
+reference count. It does not reset the current frame or animation deadline,
+and does not add the active resource group's ownership bit.
+
+Loading a TEXBSI bank visits every image record in the bank. For each already
+loaded image, it increments the reference count and adds the selected group's
+ownership bit without resetting animation state. Newly decoded images receive
+the selected group's ownership bit. Bank ownership therefore includes images
+that have not been requested by a model or terrain polygon. Repeated records
+increment references again while retaining the same ownership bit.
 
 Images can belong to multiple resource groups. Releasing a group clears that
 group's ownership bit and releases its reference. A record retained by another
