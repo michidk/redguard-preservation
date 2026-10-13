@@ -366,7 +366,7 @@ current playback state in place.
 
 `GetAttribute` reads an unsigned byte from the receiving actor's attribute table and returns zero when the table is absent. `SetAttribute` returns zero. When the table exists, it writes the low byte of the supplied value. Writing attribute 6 also copies that byte to attribute 115; writing attribute 1 also copies it to attribute 119. These two handlers do not check the attribute index range.
 
-`GetMyAttr` reads an unsigned byte from the receiving actor's attribute table. It returns zero when the table is absent or the index is outside 0–255. `SetMyAttr` returns zero and ignores an absent table or an out-of-range index. A valid write truncates the supplied value to its low byte. Attribute 44 also stores that truncated byte as the model's default group when the actor has an active model record.
+`GetMyAttr` reads an unsigned byte from the receiving actor's attribute table. It returns zero when the table is absent or the index is outside 0–255. `SetMyAttr` returns zero and ignores an absent table or an out-of-range index. A valid write truncates the supplied value to its low byte. Attribute 44 also stores that truncated byte as the combat death-default group when the actor has a combat record and its object-update exclusion is nonzero.
 
 ### Initial attribute copy and defaults
 
@@ -397,16 +397,19 @@ take this assignment path.
 
 ### Attribute default-group side effects
 
-The `SetAttribute` attribute-44 animation-default path releases the actor's two
-held walk-node reservations before storing the full supplied value as the
-model's default group. A node's ownership byte is cleared only when it matches
+`SetAttribute` first writes the low byte to attribute 44. Only when `IsDead`
+returns true does it release the actor's two held walk-node reservations and
+store the full supplied value as the combat death-default group. A node's ownership byte is cleared only when it matches
 the low byte of the actor identifier; both actor-held node indices are then
 cleared. This operation does not reset the animation cursor, current group,
 or loop countdown.
 
-`SetMyAttr` does not release walk-node reservations.
+`SetMyAttr` writes the combat death-default group only when a combat record
+exists and the object-update exclusion is nonzero. It stores the truncated
+attribute byte and does not release walk-node reservations. This exclusion
+check is distinct from the `IsDead` predicate used by `SetAttribute`.
 
-The model default and the animation playback default are separate state.
+The combat death-default group and the animation playback default are separate state.
 Ordinary actor updates select the playback default using actor state; these
 attribute writes do not directly replace that selection step. See
 [ordinary default selection](animation.md#placed-actor-initialization-and-eligibility).

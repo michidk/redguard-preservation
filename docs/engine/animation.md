@@ -84,7 +84,7 @@ Request arbitration does not activate placed actors automatically.
 ## Placed actor initialization and eligibility
 
 New actor animation state initializes its default group to zero. For a placed
-ordinary object with an animation model table, group setup builds the RAGR table
+object with MPOB type 1 and an animation model table, group setup builds the RAGR table
 and makes two ordinary requests for group zero with modifier zero. These requests
 reuse the shared nominal ticks.
 
