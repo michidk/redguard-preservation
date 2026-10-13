@@ -254,6 +254,19 @@ an actor with no current group, its immediate advancement reuses the shared
 tick increment. A renderer that advances each actor exactly once before or
 after all script execution loses this ordering.
 
+## Ordinary collision stage
+
+The ordinary collision branch follows main-script processing and the periodic
+actor update. In its admitted nonplayer path, a nonzero collision attribute byte
+1 runs the support query before the movement and ground response selected by
+bit `0x04`. Body-contact collection and response follow that work. Bit `0x01`
+enables those contacts only for living actor state zero, state 15, or states 27
+through 32 inclusive.
+
+After collision handling, support-following runs before attribute-controlled
+axis restoration. These stages can change the result of earlier script movement;
+updating the animation or local transform alone does not perform them.
+
 ## Ordinary actor eligibility
 
 The ordinary actor update traverses the actor update list. It skips the actor
