@@ -29,6 +29,9 @@ an individual mesh instance.
 
 ## Export metadata
 
+Textured glTF material names identify the resolved TEXBSI bank, original image
+name and image ID.
+
 Animated glTF materials carry `extras.rgpre_texture_animation` with version 1.
 It contains the original `image_name`, signed header `delay_ms`, and `textures`,
 an ordered array of glTF texture indices including frame zero. The base-color

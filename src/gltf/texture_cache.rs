@@ -234,6 +234,16 @@ impl TextureCache {
         index
     }
 
+    pub(super) fn material_name(&mut self, texture_id: u16, image_id: u8) -> Option<String> {
+        let index = self.image_index(texture_id, image_id)?;
+        let image = &self.bsi_files.get(&texture_id)?.images[index];
+        let bank = Self::resolve_texture_id(texture_id, |id| self.texbsi_paths.contains_key(&id));
+        Some(format!(
+            "TEXBSI.{bank:03} / {} (image {image_id})",
+            image.name
+        ))
+    }
+
     pub fn get_image_rgba(&mut self, texture_id: u16, image_id: u8) -> Option<(Vec<u8>, u16, u16)> {
         let index = self.image_index(texture_id, image_id)?;
         let image = &self.bsi_files.get(&texture_id)?.images[index];

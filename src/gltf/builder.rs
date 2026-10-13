@@ -431,6 +431,10 @@ impl<'a> GltfBuilder<'a> {
                         .as_ref()
                         .is_some_and(|animation| animation.has_alpha),
             );
+            material.name = self
+                .texture_cache
+                .as_deref_mut()
+                .and_then(|cache| cache.material_name(texture_id, image_id));
             if let Some(animation) = animation {
                 let mut textures = vec![texture_index];
                 textures.extend(
