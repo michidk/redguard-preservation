@@ -123,6 +123,38 @@ every emitted vertex. Terrain primitives omit this metadata.
 
 ## Local-light records
 
+`MPOB` object kind 6 defines a runtime local light. With `objects_load` enabled, its
+signed world ID must match the current world; its activation byte does not
+gate this branch. The loader initializes the light as locked and enabled,
+with zero positional offset and no intensity or radius modulation. Current
+and starting intensity, radius and signed RGB come from the authored record.
+
+These objects enter spatial-cell lists separately from `MPSL` map lights.
+Outside editor mode, world drawing submits their enabled, positive-radius
+lights from the active object list before drawing static models. Their current
+signed RGB and radius contribute through the local-light calculation, including
+when a static model already has retained colors. They are not part of the
+world-entry map-light bake.
+
+`RgmFile::object_lights(world_id)` returns these admitted authored records in
+file order, before runtime script changes and active-region selection.
+
+## Runtime object-light region
+
+The normal world loop selects spatial lists using the target camera's integer
+X/Z coordinates before camera smoothing. Each axis starts at `target - 4608`.
+If that value is negative, the start is zero; otherwise, when `target + 4608`
+exceeds 65535, the start is 56319. Shift each start right by nine bits to obtain
+the first cell coordinate.
+
+Selection visits an 18-by-18 cell square in row order, omitting its four corners.
+The grid has 128 cells per row. Within a cell, object lights follow reverse
+insertion order. Lists are reused while the first selected cell remains the
+same. The final rendered camera position can differ from the target used for
+this selection.
+
+## Map-light records
+
 `RgmFile::prelight_lights(world_id)` returns the world-entry accumulation order
 when static loading is enabled. `RgmFile::local_lights(world_id)` returns
 admitted authored records in file order with signed

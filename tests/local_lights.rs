@@ -1,5 +1,55 @@
 use rgpre::import::rgm::{export_rgm_metadata_json, extract_rgm_placements, parse_rgm_file};
 
+#[test]
+fn object_lights_use_kind_and_world_without_map_light_activation_rules() {
+    let mut payload = 6_u32.to_le_bytes().to_vec();
+    for (index, (kind, world, active)) in [
+        (6_u8, 20_i16, 0_u8),
+        (6, 20, 1),
+        (6, 20, 2),
+        (4, 20, 1),
+        (6, 21, 1),
+        (6, -1, 1),
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        let mut record = [0_u8; 66];
+        record[..4].copy_from_slice(&(index as u32).to_le_bytes());
+        record[4] = kind;
+        record[5] = active;
+        record[6] = b'X';
+        for (offset, value) in [(26, 1967_i32), (30, -96), (34, 2134)] {
+            record[offset..offset + 4].copy_from_slice(&(value * 256).to_le_bytes());
+        }
+        record[54..56].copy_from_slice(&(-100_i16).to_le_bytes());
+        record[58..60].copy_from_slice(&world.to_le_bytes());
+        for (offset, value) in [(60, 160_i16), (62, 60), (64, -255)] {
+            record[offset..offset + 2].copy_from_slice(&value.to_le_bytes());
+        }
+        payload.extend(record);
+    }
+    let mut bytes = b"MPOB".to_vec();
+    bytes.extend((payload.len() as u32).to_be_bytes());
+    bytes.extend(payload);
+    bytes.extend(b"END \0\0\0\0");
+    let map = parse_rgm_file(&bytes).unwrap();
+    let lights: Vec<_> = map.object_lights(20).collect();
+    assert_eq!(
+        lights.iter().map(|light| light.id).collect::<Vec<_>>(),
+        [0, 1, 2]
+    );
+    let light = lights[0];
+    assert_eq!(
+        [light.pos_x, light.pos_y, light.pos_z as i32],
+        [1967, -96, 2134]
+    );
+    assert_eq!([light.red, light.green, light.blue], [160, 60, -255]);
+    assert_eq!(light.radius, -100);
+    assert!(map.object_lights(u32::MAX).next().is_none());
+    assert!(map.local_lights(20).next().is_none());
+}
+
 fn scene() -> Vec<u8> {
     let mut payload = 4_u32.to_le_bytes().to_vec();
     for (world, active) in [(20_u32, 1_u8), (1, 1), (20, 0), (20, 2)] {
