@@ -2,6 +2,18 @@
 
 Model lighting supplies encoded RGB at each polygon vertex before rasterization.
 
+## Texture transparency
+
+The queued-model draw flags come from the ROB segment's attribute byte for
+ordinary archive model submission. Bit 0 selects point filtering instead of
+bilinear; bit 1 enables chroma-key rejection for textured faces. See
+[ROB segment attributes](../formats/ROB.md#segment-attributes-0x10).
+
+The software Voodoo 1 pipeline compares the filtered texture RGB with the
+chroma-key RGB before applying vertex-light modulation. A matching RGB is
+rejected. Filtering uses the encoded palette colors, including the key color;
+it does not interpolate a transparent alpha mask and apply an alpha cutoff.
+
 ## Ambient and directional contribution
 
 Models share the ambient RGB, directional RGB and normalized world direction

@@ -100,3 +100,6 @@ color-combine mode. Lighting therefore modulates texture colors before scene
 fog. Vertex RGB is interpolated across screen space; texture coordinates use
 perspective correction. Terrain does not pass through a scene exposure or
 filmic tone-mapping stage.
+
+Terrain texture binding disables chroma-key rejection. Palette index zero
+therefore remains an opaque color on terrain.

@@ -99,6 +99,11 @@ Archive loading copies the segment attribute byte into model metadata, and
 ordinary model submission copies it into the instance draw flags. The queued
 draw pass restores bilinear filtering when it finishes.
 
+Bit 1 (`0x02`) also enables chroma-key rejection when binding a model face's
+texture. With this bit clear, that binding disables chroma keying. The key
+comes from the texture's stored key color. This is separate from the archive
+loader's texture pre-loading use of the same bit.
+
 ### Runtime archive selection
 
 Model lookup searches the active primary archive first, then the active world
