@@ -352,7 +352,8 @@ For VM architecture, opcode encoding, operator tables, and execution semantics, 
 
 Total payload = first actor `script_data_offset` + sum of all actors' `script_length` values. For each actor, execution starts at `script_pc` relative to that actor's block.
 
-Other `RA*` sections (for example `RAHK`, `RALC`, `RAVC`) provide data referenced by `RASC`, often as `u32` offset arrays rebased to loaded script memory.
+Other `RA*` sections provide separate actor data; their layouts and offset bases
+are section-specific.
 
 ## RAHK (Hook Data)
 
@@ -453,7 +454,7 @@ respectively. See [animation playback](../engine/animation.md) and the
 
 ## RANM (Namespace)
 
-RANM contains object namespace strings used for cross-script object references. Each actor's portion is located by offset and length fields stored in RAHD (within the undecoded gap at 0x5D). The extracted string provides the actor's canonical name for `ObjDot*` opcodes using selector byte 4 (named object from string table).
+RANM contains object namespace strings used for cross-script object references. Each actor's portion is located by the RAHD `ranm_offset` field at 0x19. The extracted string provides the actor's canonical name for `ObjDot*` opcodes using selector byte 4 (named object from string table).
 
 ## MPSL (Lights)
 

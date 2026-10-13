@@ -23,12 +23,13 @@ The SOUP386 VM is a register-free, program-counter-driven bytecode interpreter. 
 
 ### Threading Model
 
-Each script supports up to two concurrent threads sharing the same bytecode buffer:
+An actor retains a main continuation and an optional entry continuation in the
+same bytecode buffer:
 
-| Thread | Start Address | Purpose |
+| Continuation | Start Address | Purpose |
 |---|---|---|
-| Thread 0 | `RAHD.script_pc` | Main execution (dialogue, activation, behavior) |
-| Thread 1 | Offset `0x00` | Interrupt handler — only created when `script_pc != 0` |
+| Main | `RAHD.script_pc` | Main execution (dialogue, activation, behavior) |
+| Entry | Offset `0x00` | Separate entry work, present only when `script_pc != 0` |
 
 The main and entry invocations share bytecode and local variables. Entry processing temporarily replaces the active cursor, then restores the main continuation. The actor has one subroutine return continuation, shared by these invocations, rather than a stack of return addresses.
 
