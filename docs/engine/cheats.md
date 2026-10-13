@@ -20,9 +20,18 @@ In the console, use `<cheatname> = <value>` to set a specific integer value inst
 
 ### Toggle rules
 
-For ordinary state cheats, gameplay typing changes zero to one and any nonzero value to zero. A console toggle sets the value to `(value + 1) & 1`. These rules agree for zero and one, but differ for other even values: after `oddjob = 2`, a console toggle produces one, while a gameplay toggle produces zero. Explicit assignment stores the supplied integer without applying either toggle rule.
+Cheats normally store `0` for off or `1` for on. Typing a cheat name again switches between those two values, whether entered during gameplay or in the console.
 
-`oracle` and `savecheats` have dedicated actions. `oddjob` uses the ordinary state-handling path.
+The console also accepts other numbers, such as `oddjob = 2`. These are raw values, not strength levels. Their gameplay meaning depends on the cheat: some checks accept any nonzero value, while others require exactly one.
+
+Entering the name again handles these unusual values differently:
+
+- During gameplay, any nonzero value becomes zero.
+- In the console, an even value becomes one and an odd value becomes zero.
+
+For example, after `oddjob = 2`, entering `oddjob` in the console stores one; entering it during gameplay stores zero. The console rule is `(value + 1) & 1`.
+
+`oracle` and `savecheats` run dedicated actions. `oddjob` follows the ordinary state-handling rules above.
 
 ## Cheat List
 

@@ -45,7 +45,8 @@ pub struct CheatEntry {
 }
 
 impl CheatEntry {
-    /// Returns `true` when this cheat is active (nonzero value).
+    /// Returns whether the stored value is nonzero.
+    /// This does not establish a gameplay effect; some engine checks require exactly one.
     #[must_use]
     pub const fn is_on(&self) -> bool {
         self.value != 0
