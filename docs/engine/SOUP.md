@@ -713,6 +713,26 @@ Transform and attachment updates consume the changed local angles separately;
 the handler does not update their matrices itself. Frame scale and nominal ticks
 are distinct inputs; see [animation timing](animation.md#timing-boundary).
 
+### Elapsed relative axis rotation
+
+`sRotateByAxis(axis, delta, duration)` stores the selected angle as its origin
+whenever elapsed input is zero. Only axes zero through two select and write an
+angle. The origin remains task-local on later invocations.
+
+For a nonnegative delta, the offset is
+`((delta << 8) / duration * elapsed) >> 8`. For a negative delta, it computes
+that expression using the absolute delta, then negates the shifted result.
+Division truncates toward zero and the right shift is arithmetic. Intermediate
+shifts, multiplication and negation retain their low 32 bits. The handler writes
+`(origin + offset) & 2047`.
+
+When elapsed is at least `duration - 1`, it overwrites that result with
+`(origin + delta) & 2047` and completes. Otherwise it remains active. Thus the
+last invocation snaps to the full delta rather than the interpolated offset.
+Duration one completes on the initial invocation. Duration zero produces a
+division-by-zero fault before the completion check. This task uses elapsed input,
+not shared frame scale or nominal ticks, and does not refresh composed transforms.
+
 ### Absolute axis rotation
 
 `RotateToAxis(axis, target, duration)` modifies the receiver's local angle.
