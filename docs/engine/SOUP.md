@@ -713,6 +713,63 @@ Transform and attachment updates consume the changed local angles separately;
 the handler does not update their matrices itself. Frame scale and nominal ticks
 are distinct inputs; see [animation timing](animation.md#timing-boundary).
 
+### Absolute axis rotation
+
+`RotateToAxis(axis, target, duration)` modifies the receiver's local angle.
+Axis zero selects X, axis one selects Y, and every other value selects Z.
+The target is masked to 2047. A zero duration completes without changing an
+angle.
+
+Let `difference` be the masked current angle minus the masked target. The
+signed movement toward the target is `-(difference & 2047)` when the difference
+is below -1024, `-difference` when it lies between -1024 and 1024 inclusive,
+and `2048 - difference` when it exceeds 1024. Thus the two half-turn ties
+retain the direction determined by the subtraction.
+
+Each task slot stores this movement with eight fractional bits and a separate
+angle accumulator. When the saved movement and elapsed input are both zero,
+it initializes them to `movement << 8` and `current_angle << 8`. Later argument
+reevaluation changes the destination used for completion, but does not
+reinitialize a nonzero saved movement.
+
+Each invocation divides the saved movement by the current duration with signed
+truncation toward zero, multiplies by shared frame scale, then arithmetic-shifts
+right eight bits. Shifts and multiplication retain their low 32 bits. If the
+result is zero and the whole nominal-tick increment is nonzero, the step is
+that increment shifted left eight bits, negated when the saved movement is
+negative.
+
+The handler compares the absolute movement from the current angle to the
+current target with `abs(step >> 8)`. If it is larger, the handler adds the step
+to its accumulator, writes `(accumulator >> 8) & 2047`, and remains active.
+Otherwise it writes the masked target and completes. The initial invocation
+can change the angle. The handler does not refresh the receiver's composed
+transform or attachment matrix.
+
+### Elapsed axis rotation
+
+`sRotateToAxis(axis, target, duration)` stores the selected angle as its origin
+whenever the elapsed input is zero. Only axes zero through two select and
+write an angle. The origin remains task-local on later invocations.
+
+It subtracts the stored origin from the target before masking the target.
+When this signed difference is below -1024, it replaces it with
+`difference & 2047`. When it exceeds 1024, it replaces it with
+`-(difference & 1023)`. Other differences remain unchanged.
+
+The interpolated angle is the origin plus
+`((difference << 8) / (duration - 1) * elapsed) >> 8`, masked to 2047.
+Division truncates toward zero, the right shift is arithmetic, and intermediate
+arithmetic retains its low 32 bits. The interpolation executes before the
+completion check. A duration of one therefore produces a division-by-zero
+fault even at elapsed zero.
+
+When elapsed is at least `duration - 1`, the handler overwrites the interpolated
+angle with `target & 2047` and completes. Otherwise it remains active. The
+positive-difference mask can make the interpolated path approach a different
+angle before this final snap. This task uses elapsed input rather than shared
+frame scale or nominal ticks.
+
 ### Actor-local axis movement
 
 `MoveObjectAxis(axis, delta, duration)` moves along the receiver's orientation,
