@@ -122,6 +122,9 @@ volume and a pan.
   first sound that resets it).
 - **Ownership:** each channel records its owner object and the requested
   effect index (before any SURFACE.INI remap).
+- **Handles:** a remembered sample handle identifies a reusable channel slot,
+  not a particular start. Stopping by handle acts on the slot's current sample
+  without comparing its owner or requested effect.
 - **Master volume:** every volume set, at start and on later updates, sends
   `(v × master) >> 8` to Miles, where `master` is `SYSTEM.INI [system]
   volume` (shipped 255, engine default 256 before the file is read) or the
