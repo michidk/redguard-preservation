@@ -195,6 +195,15 @@ impl Decoder<'_> {
     fn call(&mut self, target: Object, kind: CallKind) -> Result<Call, String> {
         let id = self.word()?;
         let count = if id == 0 { 0 } else { self.byte()? };
+        self.call_arguments(id, count, target, kind)
+    }
+    fn call_arguments(
+        &mut self,
+        id: u16,
+        count: u8,
+        target: Object,
+        kind: CallKind,
+    ) -> Result<Call, String> {
         let function = self
             .definition
             .functions
@@ -412,6 +421,81 @@ impl Decoder<'_> {
             _ => return Err(format!("unsupported opcode {opcode}")),
         })
     }
+}
+
+/// Decode one actor's RAHK native hook, independently of its RASC continuations.
+/// A zero RAHD hook offset means no call; nonzero offsets are relative to RAHK.
+/// The stored record uses a function index, count byte and five-byte parameters.
+///
+/// # Errors
+/// Returns a contextual error for absent/truncated sections, invalid offsets,
+/// definition mismatches or unsupported parameter encodings.
+pub fn decode_native_hook(
+    rgm: &super::RgmFile,
+    header_index: usize,
+    definition: &SoupDef,
+) -> Result<Option<Call>, String> {
+    let decode = || -> Result<Option<Call>, String> {
+        let headers = rgm
+            .sections
+            .iter()
+            .find_map(|section| match section {
+                super::RgmSection::Rahd(_, data) => Some(data.as_slice()),
+                _ => None,
+            })
+            .ok_or("RAHD section absent")?;
+        let count = u32::from_le_bytes(
+            headers
+                .get(..4)
+                .ok_or("RAHD count truncated")?
+                .try_into()
+                .unwrap(),
+        );
+        if header_index >= count as usize {
+            return Err("RAHD index outside record count".into());
+        }
+        let start = header_index
+            .checked_mul(165)
+            .and_then(|offset| offset.checked_add(8))
+            .ok_or("RAHD record offset overflow")?;
+        let end = start.checked_add(165).ok_or("RAHD record end overflow")?;
+        let header = headers.get(start..end).ok_or("RAHD record truncated")?;
+        let offset = super::shared::read_i32_le(header, 0x5d).ok_or("RAHD hook offset absent")?;
+        if offset == 0 {
+            return Ok(None);
+        }
+        let offset = usize::try_from(offset).map_err(|_| "negative RAHK offset")?;
+        let bytes = rgm
+            .sections
+            .iter()
+            .find_map(|section| match section {
+                super::RgmSection::Rahk(_, data) => Some(data.as_slice()),
+                _ => None,
+            })
+            .ok_or("RAHK section absent")?;
+        let mut decoder = Decoder {
+            bytes,
+            cursor: offset,
+            definition,
+            depth: 0,
+        };
+        let function = decoder.word()?;
+        let count = decoder.byte()?;
+        if count > 8 {
+            return Err(format!("RAHK argument count {count} exceeds eight"));
+        }
+        let end = decoder
+            .cursor
+            .checked_add(usize::from(count) * 5)
+            .ok_or("RAHK record end overflow")?;
+        decoder.bytes = bytes.get(..end).ok_or("RAHK arguments truncated")?;
+        let call = decoder.call_arguments(function, count, Object::Me, CallKind::Function)?;
+        if decoder.cursor != end {
+            return Err("RAHK arguments do not occupy five bytes each".into());
+        }
+        Ok(Some(call))
+    };
+    decode().map_err(|error| format!("actor header {header_index} native hook: {error}"))
 }
 
 /// Decodes one statement without traversing branches or executing native handlers.

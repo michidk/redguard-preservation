@@ -680,10 +680,6 @@ pub(super) fn export_rgm_metadata_json_impl(
         RgmSection::Raan(_, data) => Some(data.as_slice()),
         _ => None,
     });
-    let rahk_data = rgm.sections.iter().find_map(|s| match s {
-        RgmSection::Rahk(_, data) => Some(data.as_slice()),
-        _ => None,
-    });
     let ranm_data = rgm.sections.iter().find_map(|s| match s {
         RgmSection::Ranm(_, data) => Some(data.as_slice()),
         _ => None,
@@ -808,25 +804,20 @@ pub(super) fn export_rgm_metadata_json_impl(
                 }
             }
 
-            if let Some(rahk) = rahk_data {
-                let rahk_offset = read_i32_le(item, 0x5D)
-                    .map(|v| usize::try_from(v.max(0)).unwrap_or_default())
-                    .unwrap_or_default();
-                if rahk_offset > 0 && rahk_offset < rahk.len() {
-                    let mut hooks = Vec::new();
-                    let mut cursor = rahk_offset;
-                    while cursor + 4 <= rahk.len() {
-                        let val = read_u32_le(rahk, cursor).unwrap_or_default();
-                        if val == 0 && cursor > rahk_offset {
-                            break;
-                        }
-                        hooks.push(serde_json::Value::from(val));
-                        cursor += 4;
+            if let Some(definition) = soup_def {
+                match super::script_program::decode_native_hook(rgm, i, definition) {
+                    Ok(Some(hook)) => {
+                        actor.insert("native_hook".into(), serde_json::json!(hook));
                     }
-                    if !hooks.is_empty() {
-                        actor.insert("rahk_hooks".into(), serde_json::Value::Array(hooks));
+                    Ok(None) => {}
+                    Err(error) => {
+                        actor.insert("native_hook_error".into(), serde_json::Value::String(error));
                     }
                 }
+            } else if let Some(offset) = read_i32_le(item, 0x5d)
+                && offset != 0
+            {
+                actor.insert("native_hook_offset".into(), serde_json::json!(offset));
             }
 
             if let Some(ranm) = ranm_data {
