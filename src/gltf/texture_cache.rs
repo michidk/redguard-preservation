@@ -3,7 +3,7 @@ use crate::import::{
     palette::Palette,
 };
 use log::warn;
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::path::PathBuf;
 use walkdir::WalkDir;
 
@@ -27,7 +27,7 @@ pub struct TextureCache {
     texbsi_paths: HashMap<u16, PathBuf>,
     software: bool,
     opaque_images: HashSet<(u16, u16)>,
-    missing_texture_requests: HashSet<(u16, u8)>,
+    missing_texture_requests: BTreeMap<(u16, u8), String>,
     remapped_texture_requests: HashSet<(u16, u16)>,
 }
 
@@ -85,7 +85,7 @@ impl TextureCache {
             texbsi_paths,
             software,
             opaque_images: HashSet::new(),
-            missing_texture_requests: HashSet::new(),
+            missing_texture_requests: BTreeMap::new(),
             remapped_texture_requests: HashSet::new(),
         }
     }
@@ -120,7 +120,7 @@ impl TextureCache {
             texbsi_paths,
             software: false,
             opaque_images: HashSet::new(),
-            missing_texture_requests: HashSet::new(),
+            missing_texture_requests: BTreeMap::new(),
             remapped_texture_requests: HashSet::new(),
         }
     }
@@ -136,7 +136,7 @@ impl TextureCache {
             texbsi_paths: HashMap::new(),
             software: true,
             opaque_images: HashSet::new(),
-            missing_texture_requests: HashSet::new(),
+            missing_texture_requests: BTreeMap::new(),
             remapped_texture_requests: HashSet::new(),
         };
         for (id, bytes) in data {
@@ -206,8 +206,17 @@ impl TextureCache {
         self.palette.as_ref()
     }
 
+    /// Referenced texture/image failures retained by the existing fallback path.
+    #[must_use]
+    pub const fn missing_requests(&self) -> &BTreeMap<(u16, u8), String> {
+        &self.missing_texture_requests
+    }
+
     fn warn_missing_once(&mut self, texture_id: u16, image_id: u8, reason: &str) {
-        if self.missing_texture_requests.insert((texture_id, image_id)) {
+        if let std::collections::btree_map::Entry::Vacant(entry) =
+            self.missing_texture_requests.entry((texture_id, image_id))
+        {
+            entry.insert(reason.into());
             let prefix = if self.software { "TEXTURE" } else { "TEXBSI" };
             warn!(
                 "Texture lookup failed for {prefix}.{texture_id:03} image {image_id}: {reason}; using white fallback material"
