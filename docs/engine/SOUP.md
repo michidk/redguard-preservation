@@ -443,6 +443,9 @@ units per world unit. Without a selected player, it uses the global fallback
 position. A global override selects the fixed result `9999999` instead of
 calculating distance.
 
+Fresh ordinary actor allocation starts without a linked-position record.
+This record is separate from the attribute-based master/slave attachment.
+
 Effective receiver position follows the same selection used by
 [positional sound](sound.md#distance): a nonzero `attr_slave`
 selects attached position; otherwise a valid linked positioned record supplies
