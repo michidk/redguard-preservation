@@ -112,9 +112,11 @@ texture remains frame zero for consumers without animation support. Static
 images omit this metadata.
 
 Every frame uses the same palette, row orientation and sampler as frame zero.
-The generic material retains alpha masking when any exported frame contains
-transparent pixels. Runtime render attributes can impose a different chroma
-policy. Consumers sharing one loaded original image must share its playback
+Model materials retain alpha masking when any exported frame contains
+transparent pixels. Terrain materials and every exported terrain frame remain
+opaque, including palette index zero, whose RGB comes from the selected palette.
+Terrain and model uses of the same image have separate exported textures.
+Runtime model render attributes can impose a different chroma policy. Consumers sharing one loaded original image must share its playback
 state even when different materials reference separate exported copies.
 
 Model glTF primitives also carry `extras.rgpre_admission` with version 1. Its
