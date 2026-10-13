@@ -10,7 +10,7 @@ The engine also has a programmatic command entry point. It accepts the long regi
 
 Input is lowercased and normalized before dispatch. A semicolon ends the input; it does not separate commands to execute in sequence. Arguments are parsed by each handler. Spaces and commas are not interchangeable: for example, use `load 1,0,0`, `item add,ID`, `setflag NAME,VALUE`, and `object attr attr_health = 100`. Square brackets in this reference indicate optional arguments and are not typed.
 
-Most numeric handlers accept decimal integers, negative decimal integers, `0x` hexadecimal values, named equates, and named SOUP flag values. An unresolved symbolic value prints a diagnostic and substitutes `1`. The percent-prefixed binary-input path returns zero for ASCII binary digits. Quoted numeric input reads the first four bytes following the quote as a packed value; it is not general string evaluation. `delay` uses decimal conversion directly.
+Most numeric handlers accept decimal integers, negative decimal integers, `0x` hexadecimal values, named equates, and named SOUP flag values. An unresolved symbolic value prints a diagnostic and substitutes `1`. The percent-prefixed binary-input path returns zero for ASCII binary digits. Quoted numeric input reads the first four bytes following the quote as a little-endian 32-bit value; it is not general string evaluation. `delay` uses decimal conversion directly.
 
 The console keeps a selected object, a monitored object, a selected rope and a selected light. These are separate selections. An object selected for inspection does not become the monitor target until `object monitor` is used.
 
@@ -46,6 +46,8 @@ the line, then to the oldest retained line when already at the start. Page Up an
 Page Down move through retained output. Enter dispatches an editable command.
 The interactive console runs its own input and drawing loop before returning to
 the caller's game loop.
+
+Console preferences are stored in [REDGUARD.CPF](../formats/CPF.md).
 
 ## Registered commands
 
