@@ -356,9 +356,21 @@ Other `RA*` sections (for example `RAHK`, `RALC`, `RAVC`) provide data reference
 
 ## RAHK (Hook Data)
 
-RAHK contains hook offset tables. Entries are u32 LE offsets that are rebased against the RASC bytecode base address at load time, enabling scripts to register named entry points (hooks) that external events can invoke.
+RAHK contains native call records. An actor's nonzero `RAHD.rahk_offset` is a
+byte offset into this section's payload; the loader adds the RAHK payload base.
+Zero means no hook. The ordinary actor script wrapper dispatches the referenced
+record through the native function table, separately from its RASC entry and
+main continuations.
 
-Per-actor hook counts and offsets are stored in the corresponding RAHD record. Entries are accessed at `base + index × 4 + 0x25` — the 0x25-byte region before the offset array is a section header. The upper 16 bits of each u32 entry are extracted separately (`>> 0x10`) as a secondary field. No additional per-entry structure beyond the u32 offset array exists.
+A stored record begins with a little-endian `u16` native function index and a
+`u8` argument count, followed by five-byte encoded arguments. Each argument has
+a one-byte parameter-mode tag and four operand bytes. Function indices use the
+installed SOUP definition table. Parameter evaluation uses the receiving actor
+for local-variable references and the executing actor's string context.
+
+The native hook is not a table of RASC offsets and has no group-indexed array.
+Its execution gates are described in
+[SOUP ordinary update gates](../engine/SOUP.md#ordinary-update-gates).
 
 ## RAEX (Extra Data)
 

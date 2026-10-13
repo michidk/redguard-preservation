@@ -46,22 +46,34 @@ cursor to the script base and returns from the current invocation.
 ### Ordinary update gates
 
 `SYSTEM.INI`'s `[system] task_system` enables the ordinary entry, task, and main
-script stages. Disabling it does not disable every script invocation: an
-available interrupt cursor can still run unless its runtime suppression flag
-is set. Actor exclusions and script-name filters apply before these stages.
+script stages. The per-actor RAHK native hook is a separate call record, not the
+entry continuation. With the task system enabled, the hook is dispatched only
+when no unpaused task slot exists. With the task system disabled, task-slot
+occupancy does not suppress that hook. Its own suppression flag still applies
+in both paths. Actor exclusions and script-name filters apply before these stages.
 
 The actor's runtime script-control byte has independent effects:
 
 | Mask | Effect in the ordinary actor update |
 |---|---|
 | `0x01` | Suppress the ordinary main stage, including its entry and task work |
-| `0x02` | Suppress the separate interrupt invocation |
+| `0x02` | Suppress the RAHK native hook |
 | `0x04` | Use entry and main-body processing without the existing-task pass |
 | `0x08` | Exclude the actor from the ordinary actor-update body |
 
 The `0x04` path is distinct from the usual entry, existing-task, then main-body
 order. These runtime flags are not RAHD attribute indices. See
 [actor update order](animation.md#ordinary-actor-update-order).
+
+`DisableScript` sets mask `0x01`; `EnableScript` clears only that mask. Both
+return zero and preserve the other bits. They do not terminate the native call's
+current interpreter invocation or clear existing tasks.
+
+The native hook precedes the ordinary entry/task/main sequence. When the task
+system is enabled and no unpaused task exists, combat processing follows the
+hook for actors with combat state outside shell execution. The entry continuation
+is processed later inside the enabled main stage. Mask `0x01` does not suppress
+the separate native hook.
 
 Ordinary entry processing is suppressed by an unpaused blocking slot whose call operand address is at or before the saved entry cursor. This test is separate from the later main-body blocking test and from direct interrupt invocation.
 
@@ -655,7 +667,7 @@ Flag categories span narrative progression (acts 1–8, for example `After_Catac
 - `RASC` stores compiled script bytecode as a contiguous blob.
 - `RAST`/`RASB` store script string literal data and offset tables.
 - `RAVA` stores initial local variable values (`i32` array).
-- `RAHK` stores hook entry offsets rebased against script base addresses.
+- `RAHK` stores per-actor native call records addressed by RAHD section offsets.
 - `RAAT` stores per-actor attribute tables (256 bytes each), addressed by names from `SOUP386.DEF`.
 
 See [RGM.md](../formats/RGM.md) for record-level layouts and offsets.
