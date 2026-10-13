@@ -74,6 +74,11 @@ Page Down move through retained output. Enter dispatches an editable command.
 The interactive console runs its own input and drawing loop before returning to
 the caller's game loop.
 
+With shadows enabled, the Glide glyph path draws a black glyph copy before the
+main glyph. The console selects a two-pixel offset in each axis at widths of at
+least 640 and one pixel below that threshold. The standard console font uses
+main alpha 255; the shadow alpha is `(255 * 200) >> 8`, or 199.
+
 The cursor uses two report-colored vertical-bar glyphs, four scaled pixels above
 and below the insertion position. It is visible while a key is being handled or
 when the low bit of the console clock counter is set. On the normal BIOS-clock
