@@ -234,6 +234,12 @@ this update branch.
 
 ## Timing boundary
 
+The normal world loop calculates the shared FPS-derived timing before sampling
+gameplay input and building the view-centered actor lists. Ordinary actor
+traversal follows map-list presentation and the rope and shell systems. It runs
+before the scene-rendering call. Timing is calculated for the loop, not separately
+for each actor in that traversal.
+
 Animation consumes the shared whole nominal-tick increment. The normal timing
 path accumulates eight-fractional-bit frame scales and takes the difference
 between consecutive whole accumulated values. It can therefore supply zero,
