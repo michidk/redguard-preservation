@@ -501,8 +501,9 @@ All fields little-endian.
 
 Position fields use the same i24+pad encoding as MPOB/MPSO. No explicit record ID field.
 The auxiliary table begins at `4 + count * 12`; byte `i` belongs to position
-record `i`. The runtime marker lookup accepts a marker only when its auxiliary byte is `1`;
-other values identify an unavailable marker. The metadata exporter retains it
+record `i`. The ordinary-world marker lookup accepts any nonzero auxiliary byte;
+the alternate-map lookup requires `1`. A zero byte identifies an unavailable marker.
+See [node-marker lookup](../engine/SOUP.md#node-marker-distance). The metadata exporter retains it
 as `reserved` for compatibility. `map_position` retains the three signed map
 coordinates before export-axis conversion and scaling; `position` retains the
 existing converted coordinates. Runtime placement can use `map_position` without
