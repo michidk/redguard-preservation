@@ -228,7 +228,9 @@ The loader clears the reserved byte before using the node. Runtime reservation
 sets that byte to the low byte of the owning actor identifier. An unowned node
 or a node already owned by the requesting actor can be acquired; another
 actor's reservation prevents acquisition. Releasing a reservation clears the
-byte only when the releasing actor still owns it.
+byte only when the releasing actor still owns it. The periodic
+[sound-maintenance reset](../engine/sound.md) clears all
+node ownership bytes regardless of owner.
 
 ### Runtime node selection
 

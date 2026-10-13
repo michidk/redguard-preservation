@@ -195,7 +195,8 @@ the runtime inhibition flag is clear. A signed accumulator value greater than
 The reset releases cached RTX text and audio payloads and clears their occupied
 state. It also clears active dialogue records and their text buffers, resets
 their sample handles. These operations precede stopping all sample channels
-and setting the shared reset flag.
+and setting the shared reset flag. It then clears the ownership byte of every
+node in every loaded walk-node map, regardless of the owning actor.
 
 `MenuBegin` sets the runtime menu-state word to one; `MenuEnd` clears it.
 The SOUP `menuProc` task activates this state when it is inactive and clears
