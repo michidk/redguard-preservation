@@ -491,6 +491,16 @@ receives negative local yaw, pitch and roll changes relative to the saved
 previous local angles. Its effective angle fields use the local angles modulo
 2048 without adding parent angles.
 
+#### Ordinary axis locks
+
+Near the end of an ordinary actor update, after script and movement handling,
+nonzero position-lock attributes 40, 41 and 42 restore X, Y and Z respectively
+from that update's saved position. Rotation-lock attributes 38, 37 and 39
+restore pitch, yaw and roll respectively from the saved angles. Each axis is
+independent, and the current attribute values are read when this step runs.
+Actors with nonzero `attr_slave` bypass all six restorations. The step restores
+coordinate and angle fields; it does not rebuild the orientation matrix.
+
 #### Integer matrix arithmetic
 
 Both local-offset initialization and position composition convert each signed
