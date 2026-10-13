@@ -375,6 +375,17 @@ impl TextureCache {
         Some(rgba)
     }
 
+    pub(super) fn material_name(&mut self, texture_id: u16, image_id: u8) -> Option<String> {
+        let index = self.image_index(texture_id, image_id)?;
+        let image = &self.bsi_files.get(&texture_id)?.images[index];
+        let bank = Self::resolve_texture_id(texture_id, |id| self.texbsi_paths.contains_key(&id));
+        let prefix = if self.software { "TEXTURE" } else { "TEXBSI" };
+        Some(format!(
+            "{prefix}.{bank:03} / {} (image {image_id})",
+            image.name
+        ))
+    }
+
     pub(super) fn get_image_chroma_key(
         &mut self,
         texture_id: u16,

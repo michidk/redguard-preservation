@@ -48,7 +48,7 @@ fn animated_material_exports_ordered_frames_delay_and_later_transparency() {
             vertex_count: 3,
             tex_hi: 0,
             texture_data: TextureData::Texture {
-                texture_id: 1,
+                texture_id: 513,
                 image_id: 0
             },
             face_vertices: (0..3)
@@ -66,8 +66,10 @@ fn animated_material_exports_ordered_frames_delay_and_later_transparency() {
     let glb = rgpre::to_glb(&root, &buffer).unwrap();
     let parsed = gltf::Gltf::from_slice(&glb).unwrap();
     let material = parsed.materials().next().unwrap();
+    assert_eq!(material.name(), Some("TEXBSI.001 / A01000 (image 0)"));
     let extras: serde_json::Value =
         serde_json::from_str(material.extras().as_ref().unwrap().get()).unwrap();
+    assert_eq!(extras["rgpre_texture"]["version"], 1);
     let animation = &extras["rgpre_texture_animation"];
     assert_eq!(animation["version"], 1);
     assert_eq!(animation["image_name"], "A01000");
