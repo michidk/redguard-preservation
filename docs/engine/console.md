@@ -110,6 +110,12 @@ Each row is one command. The alias invokes the same handler from the interactive
 
 ### State and scripts
 
+Name patterns are case-insensitive. An asterisk accepts the remainder immediately,
+including any following pattern text. A question mark accepts one character; extra
+trailing question marks also match after a nonempty name ends. Empty patterns
+match in the shared matcher, although flag commands require a nonempty pattern.
+
+
 | Command | Alias | Arguments and behavior |
 |---|---|---|
 | `get` | `g` | `get pattern`. Looks up console variables by name pattern. The Glide build has an empty console-variable table, so no variables match. |
