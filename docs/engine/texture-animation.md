@@ -100,7 +100,9 @@ and unshaded drawing use this test. Solid-color polygons do not bind a texture.
 Queued-model draw flag `0x04` selects a separate explicit-frame path. This path
 prepares only the model's first polygon, bypasses the ordinary facing test and
 uses the instance's explicit texture-frame selection. Ordinary drawing requests
-automatic frame selection.
+automatic frame selection. Shipped ROB segment attribute bytes use only
+`0x00`, `0x02` and `0x40`; none selects the explicit-frame path when copied
+unchanged into the queued-model draw flags.
 
 Both paths prepare a polygon before binding its texture. They bind only when
 preparation returns at least three vertices. Earlier object rejection still
