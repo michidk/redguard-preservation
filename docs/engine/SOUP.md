@@ -682,6 +682,32 @@ performs collision, matrix, or attachment refresh. Stopping a task does not
 restore position. Signed division overflow, including division by zero in
 `sMoveByAxis`, has no successful movement result.
 
+### Random functions
+
+`Rnd(bound)` and `QuickRnd(mask)` each consume one draw from the shared
+engine random stream, also used by [sky scroll initialization](sky.md).
+The generator updates an unsigned 32-bit state with wrapping arithmetic:
+
+```text
+state = state * 1103515245 + 12345
+draw = (state >> 16) & 32767
+```
+
+The executable's stored initial state is 1. The state belongs to the shared
+generator, not to an individual script or actor.
+
+`QuickRnd(mask)` returns `draw & mask`, using the complete 32-bit argument.
+The argument is a bit mask rather than an exclusive upper bound. A zero mask
+still consumes a draw; a negative mask is accepted.
+
+For a positive `bound`, `Rnd(bound)` first masks the draw with the smallest
+mask in `1, 3, 7, ..., 16383` whose range can contain `bound` values. Bounds
+greater than 16384 leave the draw unchanged. It then repeatedly subtracts the
+bound until the result is less than the bound. Equivalently, apply that mask
+and take the remainder modulo the bound. The result is not uniformly
+distributed for every bound. Zero and negative bounds do not define a valid
+bounded draw.
+
 ### Function Table
 
 `SOUP386.DEF` declares callable functions in installed order. Index 0 is the synthetic `NullFunction`; authored entries start at index 1. Functions span the following categories:
