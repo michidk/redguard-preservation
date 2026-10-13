@@ -27,6 +27,18 @@ frame without changing the deadline. A later automatic request continues from
 that selected frame. This state belongs to the loaded texture image, not to
 an individual mesh instance.
 
+## Loaded-image lifetime
+
+Looking up an already loaded image reuses its texture record and increments its
+reference count. It does not reset the current frame or animation deadline.
+
+Images can belong to multiple resource groups. Releasing a group clears that
+group's ownership bit and releases its reference. A record retained by another
+group keeps its animation state. When no ownership bits remain, group cleanup
+forces final release even if repeated lookups within that group increased the
+reference count. Final release frees every frame and clears the image record.
+A subsequently loaded image receives the initial frame and deadline state.
+
 ## Model polygon admission
 
 Before model polygons are prepared, draw submission classifies a bound around
