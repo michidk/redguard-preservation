@@ -29,6 +29,14 @@ an individual mesh instance.
 
 ## Loaded-image lifetime
 
+The loaded-image cache identifies names with a six-digit base-40 key. Its digit
+alphabet, in ascending order, is `0123456789abcdefghijklmnopqrstuvwxyz~_#%`.
+ASCII uppercase letters are converted to lowercase. Conversion stops at the
+first null byte, period, character outside that alphabet, or after six
+characters. Missing trailing digits are filled with `%`. The first character
+is the most significant digit. Characters after the stopping point do not
+distinguish cache entries, and the source bank path is not part of the key.
+
 Looking up an already loaded image reuses its texture record and increments its
 reference count. It does not reset the current frame or animation deadline,
 and does not add the active resource group's ownership bit.
