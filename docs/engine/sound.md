@@ -166,8 +166,8 @@ adjustment.
 | `StopAllSounds` | function | — | Stop all 16 channels. |
 
 `KillMe` releases held walk-node reservations, clears the current model
-reference, sets the object's killed flag and runtime death-state selector to
-8, and stops every channel the object owns.
+reference, sets the object's killed flag to 1 and runtime death-state selector
+to 8, and stops every channel the object owns.
 
 `Resurrect` always releases held walk-node reservations. When the killed flag
 is 1 or the runtime death-state selector is 8, it clears the killed flag. If
