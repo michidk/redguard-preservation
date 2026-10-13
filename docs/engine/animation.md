@@ -181,7 +181,14 @@ for the requested group.
 
 Animation-table setup clears the actor's combat-state association and creates
 combat state when attribute byte 14 is nonzero. This state is separate from the
-animation group's playback cursor and from the actor's attribute table.
+animation group's playback cursor and from the actor's attribute table. The combat
+record's death-animation selection starts at zero; constructing the record does
+not copy attribute byte 44 into that selection.
+
+Ordinary cell and persistent actor allocation clears the actor record before
+common initialization. The death selector and object-update exclusion therefore
+start at zero, and the combat-state association starts absent. These are
+allocation values, separate from later player-role setup and gameplay changes.
 
 The nonplayer death-animation paths pair a forced request for group 122 with
 stored death default 124, and a forced request for group 121 with stored death
