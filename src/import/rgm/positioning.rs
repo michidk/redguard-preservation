@@ -82,15 +82,52 @@ fn build_rob_segment_index(
     index
 }
 
+/// A placement omitted or emitted without geometry by the existing model loader.
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct PlacementDiagnostic {
+    /// Section, record index and field within the source RGM.
+    pub field: String,
+    /// Resolved asset reference, empty when resolution found no name.
+    pub model: String,
+    /// Number of missing mesh placements, including repeated rope links.
+    pub count: usize,
+    /// Loader failure; this does not change fallback or placement selection.
+    pub reason: String,
+}
+
+#[allow(clippy::too_many_arguments)]
+fn placement_model(
+    name: &str,
+    field: String,
+    count: usize,
+    registry: &Registry,
+    cache: &mut HashMap<String, std::result::Result<Model3DFile, String>>,
+    index: &RobSegmentIndex,
+    diagnostics: &mut Vec<PlacementDiagnostic>,
+) -> Option<Model3DFile> {
+    match cached_load_model(name, registry, cache, index) {
+        Ok(model) => Some(model),
+        Err(reason) => {
+            diagnostics.push(PlacementDiagnostic {
+                field,
+                model: name.into(),
+                count,
+                reason,
+            });
+            None
+        }
+    }
+}
+
 /// Cache wrapper around `load_model_from_registry` that avoids redundant disk I/O.
 /// Many MPOB records reference the same model (e.g. SHARKFIN ×30, WATERSND ×30).
-/// The cache stores `None` for models that weren't found, preventing repeated ROB scans.
+/// Failures are cached with their reasons, preventing repeated ROB scans.
 fn cached_load_model(
     model_name: &str,
     registry: &Registry,
-    cache: &mut HashMap<String, Option<Model3DFile>>,
+    cache: &mut HashMap<String, std::result::Result<Model3DFile, String>>,
     rob_index: &RobSegmentIndex,
-) -> Option<Model3DFile> {
+) -> std::result::Result<Model3DFile, String> {
     let key = model_name.trim_matches('\0').trim().to_ascii_uppercase();
     if let Some(cached) = cache.get(&key) {
         return cached.clone();
@@ -105,10 +142,11 @@ pub(super) fn extract_positioned_models(
     rgm_file: &RgmFile,
     registry: &Registry,
     preferred_rob_stem: Option<&str>,
+    diagnostics: &mut Vec<PlacementDiagnostic>,
 ) -> (Vec<PositionedModel>, Vec<PositionedLight>) {
     let mut positioned_models = Vec::new();
     let mut positioned_lights = Vec::new();
-    let mut model_cache: HashMap<String, Option<Model3DFile>> = HashMap::new();
+    let mut model_cache: HashMap<String, std::result::Result<Model3DFile, String>> = HashMap::new();
     let rob_index = build_rob_segment_index(registry, preferred_rob_stem);
     let rahd_data = first_section_payload(input, *b"RAHD");
     let raan_data = first_section_payload(input, *b"RAAN");
@@ -133,6 +171,7 @@ pub(super) fn extract_positioned_models(
                 &mut positioned_models,
                 &mut model_cache,
                 &rob_index,
+                diagnostics,
             ),
             RgmSection::MpobParsed(_, mpob_records) => process_mpob_section(
                 mpob_records,
@@ -143,6 +182,7 @@ pub(super) fn extract_positioned_models(
                 &mut positioned_models,
                 &mut model_cache,
                 &rob_index,
+                diagnostics,
             ),
             RgmSection::MprpParsed(_, records) => {
                 info!("Found MPRP section with {} rope records", records.len());
@@ -152,6 +192,7 @@ pub(super) fn extract_positioned_models(
                     &mut positioned_models,
                     &mut model_cache,
                     &rob_index,
+                    diagnostics,
                 );
             }
             RgmSection::Mprp(_, mprp_data) => {
@@ -166,6 +207,7 @@ pub(super) fn extract_positioned_models(
                     &mut positioned_models,
                     &mut model_cache,
                     &rob_index,
+                    diagnostics,
                 );
             }
             RgmSection::Mpf(_, mpf_data) => append_mpf_models(mpf_data, &mut positioned_models),
@@ -186,8 +228,9 @@ fn process_mps_section(
     mps_records: &[MpsRecord],
     registry: &Registry,
     positioned_models: &mut Vec<PositionedModel>,
-    model_cache: &mut HashMap<String, Option<Model3DFile>>,
+    model_cache: &mut HashMap<String, std::result::Result<Model3DFile, String>>,
     rob_index: &RobSegmentIndex,
+    diagnostics: &mut Vec<PlacementDiagnostic>,
 ) {
     info!(
         "Found MPSO section with {} static objects",
@@ -197,11 +240,25 @@ fn process_mps_section(
     for (idx, record) in mps_records.iter().enumerate() {
         let model_name = record.model_name();
         if model_name.is_empty() {
+            diagnostics.push(PlacementDiagnostic {
+                field: format!("MPSO[{idx}].model_name"),
+                model: model_name,
+                count: 1,
+                reason: "empty model name".into(),
+            });
             continue;
         }
 
         info!("Looking for static model: '{model_name}'");
-        if let Some(model) = cached_load_model(&model_name, registry, model_cache, rob_index) {
+        if let Some(model) = placement_model(
+            &model_name,
+            format!("MPSO[{idx}].model_name"),
+            1,
+            registry,
+            model_cache,
+            rob_index,
+            diagnostics,
+        ) {
             positioned_models.push(PositionedModel {
                 model,
                 transform: mps_transform(record),
@@ -220,8 +277,9 @@ fn process_mpob_section(
     rahd_texture_overrides: &HashMap<String, u16>,
     registry: &Registry,
     positioned_models: &mut Vec<PositionedModel>,
-    model_cache: &mut HashMap<String, Option<Model3DFile>>,
+    model_cache: &mut HashMap<String, std::result::Result<Model3DFile, String>>,
     rob_index: &RobSegmentIndex,
+    diagnostics: &mut Vec<PlacementDiagnostic>,
 ) {
     info!(
         "Found MPOB section with {} object records",
@@ -232,6 +290,12 @@ fn process_mpob_section(
         let script_name = record.script_name();
         let resolved_name = resolve_mpob_model_name(record, &script_name, raan_data, rahd_index);
         if resolved_name.is_empty() {
+            diagnostics.push(PlacementDiagnostic {
+                field: format!("MPOB[{idx}].model_name"),
+                model: resolved_name,
+                count: 1,
+                reason: "model resolution returned an empty name".into(),
+            });
             continue;
         }
 
@@ -240,7 +304,15 @@ fn process_mpob_section(
             resolved_name, script_name, record.is_static
         );
 
-        if let Some(model) = cached_load_model(&resolved_name, registry, model_cache, rob_index) {
+        if let Some(model) = placement_model(
+            &resolved_name,
+            format!("MPOB[{idx}].model_name"),
+            1,
+            registry,
+            model_cache,
+            rob_index,
+            diagnostics,
+        ) {
             positioned_models.push(build_loaded_mpob_model(
                 model,
                 record,
@@ -358,15 +430,23 @@ fn append_rope_records(
     records: &[MprpRecord],
     registry: &Registry,
     positioned_models: &mut Vec<PositionedModel>,
-    model_cache: &mut HashMap<String, Option<Model3DFile>>,
+    model_cache: &mut HashMap<String, std::result::Result<Model3DFile, String>>,
     rob_index: &RobSegmentIndex,
+    diagnostics: &mut Vec<PlacementDiagnostic>,
 ) {
     for (i, record) in records.iter().enumerate() {
         let mut pos = decode_position(record.pos_x, record.pos_y, record.pos_z);
         let link_count = usize::try_from(record.length.max(0)).unwrap_or_default();
         if !record.rope_model.is_empty()
-            && let Some(model) =
-                cached_load_model(&record.rope_model, registry, model_cache, rob_index)
+            && let Some(model) = placement_model(
+                &record.rope_model,
+                format!("MPRP[{i}].rope_model"),
+                link_count,
+                registry,
+                model_cache,
+                rob_index,
+                diagnostics,
+            )
         {
             for j in 0..link_count {
                 pos[1] -= ROPE_LINK_Y_STEP;
@@ -379,8 +459,15 @@ fn append_rope_records(
             }
         }
         if !record.static_model.is_empty()
-            && let Some(model) =
-                cached_load_model(&record.static_model, registry, model_cache, rob_index)
+            && let Some(model) = placement_model(
+                &record.static_model,
+                format!("MPRP[{i}].static_model"),
+                1,
+                registry,
+                model_cache,
+                rob_index,
+                diagnostics,
+            )
         {
             pos[1] -= ROPE_LINK_Y_STEP;
             positioned_models.push(PositionedModel {
@@ -1041,7 +1128,7 @@ fn load_model_from_registry(
     model_name: &str,
     registry: &Registry,
     rob_index: &RobSegmentIndex,
-) -> Option<Model3DFile> {
+) -> std::result::Result<Model3DFile, String> {
     let mut candidates = Vec::new();
     let trimmed = model_name.trim_matches('\0').trim();
     if !trimmed.is_empty() {
@@ -1085,11 +1172,11 @@ fn load_model_from_registry(
                     Ok(data) => match model3d::parse_3d_file(&data) {
                         Ok(model) => {
                             info!("Successfully loaded model '{model_name}'");
-                            Some(model)
+                            Ok(model)
                         }
                         Err(e) => {
                             warn!("Failed to parse model '{model_name}': {e}");
-                            None
+                            Err(format!("{}: decode: {e}", file_entry.path.display()))
                         }
                     },
                     Err(e) => {
@@ -1098,7 +1185,7 @@ fn load_model_from_registry(
                             file_entry.path.display(),
                             e
                         );
-                        None
+                        Err(format!("{}: read: {e}", file_entry.path.display()))
                     }
                 }
             }
@@ -1107,10 +1194,13 @@ fn load_model_from_registry(
                     Ok(archive) => archive
                         .segments
                         .iter()
-                        .find_map(|segment| segment.parse_embedded_3d_data().ok()),
+                        .find_map(|segment| segment.parse_embedded_3d_data().ok())
+                        .ok_or_else(|| {
+                            format!("{}: no decodable model segment", file_entry.path.display())
+                        }),
                     Err(e) => {
                         warn!("Failed to parse ROB file '{model_name}': {e}");
-                        None
+                        Err(format!("{}: decode: {e}", file_entry.path.display()))
                     }
                 },
                 Err(e) => {
@@ -1119,7 +1209,7 @@ fn load_model_from_registry(
                         file_entry.path.display(),
                         e
                     );
-                    None
+                    Err(format!("{}: read: {e}", file_entry.path.display()))
                 }
             },
             _ => {
@@ -1127,7 +1217,10 @@ fn load_model_from_registry(
                     "Unsupported file type for model '{}': {:?}",
                     model_name, file_entry.file_type
                 );
-                None
+                Err(format!(
+                    "{}: unsupported model file type",
+                    file_entry.path.display()
+                ))
             }
         }
     } else {
@@ -1144,12 +1237,14 @@ fn load_model_from_registry(
                 info!(
                     "Resolved model '{model_name}' via ROB segment index (candidate '{candidate}')"
                 );
-                return Some(model);
+                return Ok(model);
             }
         }
 
         warn!("Model '{model_name}' not found in registry or ROB index (tried {candidates:?})");
-        None
+        Err(format!(
+            "model {model_name}: no decodable model in registry or ROB index"
+        ))
     }
 }
 
@@ -1296,6 +1391,39 @@ mod lazy_archive_tests {
     }
 
     #[test]
+    fn skipped_placements_retain_record_and_loader_reason() {
+        let record = MpsRecord {
+            id: 1,
+            model_name: *b"ABSENT      ",
+            pos_x: 0,
+            pos_y: 0,
+            pos_z: 0,
+            rotation_matrix: [0; 9],
+            trailing: [0; 2],
+        };
+        let registry = Registry::new(std::path::PathBuf::new());
+        let mut models = Vec::new();
+        let mut cache = HashMap::new();
+        let index = HashMap::new();
+        let mut diagnostics = Vec::new();
+        process_mps_section(
+            &[record.clone(), record],
+            &registry,
+            &mut models,
+            &mut cache,
+            &index,
+            &mut diagnostics,
+        );
+        assert!(models.is_empty());
+        assert_eq!(diagnostics.len(), 2);
+        assert_eq!(diagnostics[0].field, "MPSO[0].model_name");
+        assert_eq!(diagnostics[1].field, "MPSO[1].model_name");
+        assert_eq!(diagnostics[0].count, 1);
+        assert_eq!(diagnostics[0].reason, diagnostics[1].reason);
+        assert!(diagnostics[0].reason.contains("no decodable model"));
+    }
+
+    #[test]
     fn archive_lookup_keeps_priority_and_skips_invalid_candidates() {
         let registry = Registry::new(Default::default());
         let first = segment(include_bytes!("../../../tests/fixtures/model_v26.3d"));
@@ -1315,7 +1443,7 @@ mod lazy_archive_tests {
             ModelVersion::V40
         );
         index.get_mut("SEGMENT1").unwrap()[1].data.clear();
-        assert!(load_model_from_registry("segment1", &registry, &index).is_none());
-        assert!(load_model_from_registry("absent", &registry, &index).is_none());
+        assert!(load_model_from_registry("segment1", &registry, &index).is_err());
+        assert!(load_model_from_registry("absent", &registry, &index).is_err());
     }
 }

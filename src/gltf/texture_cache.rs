@@ -3,7 +3,7 @@ use crate::import::{
     palette::Palette,
 };
 use log::warn;
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::path::PathBuf;
 use walkdir::WalkDir;
 
@@ -18,7 +18,7 @@ pub struct TextureCache {
     palette: Option<Palette>,
     bsi_files: HashMap<u16, BsiFile>,
     texbsi_paths: HashMap<u16, PathBuf>,
-    missing_texture_requests: HashSet<(u16, u8)>,
+    missing_texture_requests: BTreeMap<(u16, u8), String>,
     remapped_texture_requests: HashSet<(u16, u16)>,
 }
 
@@ -59,7 +59,7 @@ impl TextureCache {
             palette,
             bsi_files: HashMap::new(),
             texbsi_paths,
-            missing_texture_requests: HashSet::new(),
+            missing_texture_requests: BTreeMap::new(),
             remapped_texture_requests: HashSet::new(),
         }
     }
@@ -92,7 +92,7 @@ impl TextureCache {
             palette,
             bsi_files,
             texbsi_paths,
-            missing_texture_requests: HashSet::new(),
+            missing_texture_requests: BTreeMap::new(),
             remapped_texture_requests: HashSet::new(),
         }
     }
@@ -102,8 +102,17 @@ impl TextureCache {
         self.palette.as_ref()
     }
 
+    /// Referenced texture/image failures retained by the existing fallback path.
+    #[must_use]
+    pub const fn missing_requests(&self) -> &BTreeMap<(u16, u8), String> {
+        &self.missing_texture_requests
+    }
+
     fn warn_missing_once(&mut self, texture_id: u16, image_id: u8, reason: &str) {
-        if self.missing_texture_requests.insert((texture_id, image_id)) {
+        if let std::collections::btree_map::Entry::Vacant(entry) =
+            self.missing_texture_requests.entry((texture_id, image_id))
+        {
+            entry.insert(reason.into());
             warn!(
                 "Texture lookup failed for TEXBSI.{texture_id:03} image {image_id}: {reason}; using white fallback material"
             );

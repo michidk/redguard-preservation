@@ -10,7 +10,7 @@ mod shared;
 
 use crate::{Result, error::Error, import::registry::Registry, model3d::Model3DFile};
 use log::warn;
-pub use positioning::{Placement, PlacementType};
+pub use positioning::{Placement, PlacementDiagnostic, PlacementType};
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, Copy)]
@@ -228,10 +228,33 @@ pub fn parse_rgm_with_models_for_stem(
     registry: &Registry,
     preferred_rob_stem: Option<&str>,
 ) -> Result<(RgmFile, Vec<PositionedModel>, Vec<PositionedLight>)> {
+    let (rgm, models, lights, _) =
+        parse_rgm_with_models_report(input, registry, preferred_rob_stem)?;
+    Ok((rgm, models, lights))
+}
+
+/// Load the same placements as `parse_rgm_with_models_for_stem`, retaining skipped-model reasons.
+#[allow(clippy::missing_errors_doc, clippy::type_complexity)]
+pub fn parse_rgm_with_models_report(
+    input: &[u8],
+    registry: &Registry,
+    preferred_rob_stem: Option<&str>,
+) -> Result<(
+    RgmFile,
+    Vec<PositionedModel>,
+    Vec<PositionedLight>,
+    Vec<PlacementDiagnostic>,
+)> {
     let rgm_file = parse_rgm_file(input)?;
-    let (positioned_models, positioned_lights) =
-        positioning::extract_positioned_models(input, &rgm_file, registry, preferred_rob_stem);
-    Ok((rgm_file, positioned_models, positioned_lights))
+    let mut diagnostics = Vec::new();
+    let (positioned_models, positioned_lights) = positioning::extract_positioned_models(
+        input,
+        &rgm_file,
+        registry,
+        preferred_rob_stem,
+        &mut diagnostics,
+    );
+    Ok((rgm_file, positioned_models, positioned_lights, diagnostics))
 }
 
 #[must_use]
