@@ -218,6 +218,19 @@ or a node already owned by the requesting actor can be acquired; another
 actor's reservation prevents acquisition. Releasing a reservation clears the
 byte only when the releasing actor still owns it.
 
+### Runtime node selection
+
+The nearest-node query traverses the loaded map list and each map's nodes in
+index order. It compares the sum of absolute X, Y and Z differences, using
+unsigned X/Z and signed Y from the node record. The query uses unscaled node
+coordinate units.
+
+Only distances strictly below 4096 qualify. Equal distances retain the first
+candidate. When a new candidate has distance strictly below 12, the query
+returns immediately, even if a later node would be closer. Otherwise it returns
+the best candidate after traversing all maps. With no qualifying node, it returns
+no map and node index -1. Node reservations do not filter this selection query.
+
 ### NodeRoute Record (4 bytes)
 
 | Relative Offset | Size | Type | Name | Description |
