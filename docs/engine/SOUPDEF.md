@@ -13,11 +13,28 @@ The file is plain text and organized as named sections.
 | Section | Delimiter | Content |
 |---|---|---|
 | Functions | `[functions]` ... `[refs]` | One callable entry per line: `<type> <name> parms <count>` where type is `task`, `multitask`, or `function` |
-| References | `[refs]` ... `auto` | One reference/equate name per line |
-| Attributes | `auto` ... `endauto` | One attribute name per line (maps to per-actor RAAT byte slots) |
+| References | `[refs]` ... `[equates]` | One reference name per line |
+| Equates | `[equates]` ... `[flags]` | Named values and `auto` ... `endauto` numbering blocks, including attributes and animation groups |
 | Flags | `[flags]` ... EOF | One flag per line: `<type> <name> <value>[;<comment>]` with types `BOOL`, `NUMBER`, `FLIPFLOP` |
 
 Function index 0 is treated as `NullFunction` in runtime behavior. Flag initial values accept numeric literals and the boolean words `true` and `false`.
+
+## Equate values
+
+Outside an automatic block, an equate is written as `name value`. The value may
+be a numeric literal or the name of an earlier equate. An omitted value is zero.
+Duplicate equate names are errors.
+
+Each `auto` block starts its counter at zero. A name without a value receives the
+current counter. `name value` and `name = value` assign an explicit numeric value
+or an earlier equate's value. After every entry, including an alias, the counter
+becomes that entry's value plus one. `endauto` ends the block; reaching another
+section or the end of the file without it is an error.
+
+The equate table is temporary. The flag-state initializer and console flag-name
+loader both release it before returning. The [console numeric reader](console.md)
+can search an equate table while one exists, but normal console use does not
+retain the definition file's equates.
 
 ## Relationship to RGM Script Data
 
