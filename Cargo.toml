@@ -32,7 +32,7 @@ nom = "8.0.0"
 serde_json = "1.0"
 serde = { version = "1", features = ["derive"] }
 image = { version = "0.25.8", default-features = false, features = ["png", "gif"] }
-bitmap2ttf = { git = "https://github.com/michidk/bitmap2ttf", rev = "12b2b2efc67ca9adb9f843e6e9468a7f63552ca6" }
+bitmap2ttf = { git = "https://github.com/michidk/bitmap2ttf", rev = "6801e76ffee2edf96f3086ec70cd163cd6984081" }
 thiserror = "2.0.18"
 walkdir = "2.5.0"
 hound = "3.5"
