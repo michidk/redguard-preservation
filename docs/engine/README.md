@@ -15,6 +15,7 @@ Engine behavior that goes beyond file format documentation.
 | Glide model lighting | Face brightness, model-space directional shading and solid-color tint. | [model-lighting.md](model-lighting.md) |
 | Glide terrain lighting | World RGB inputs, directional vertex lighting, and water-normal updates. | [terrain-lighting.md](terrain-lighting.md) |
 | Glide fog and clipping | Scene and sky ranges, fog-table lookup, and encoded RGB blending. | [fog.md](fog.md) |
+| Glide view projection | Horizontal field of view, viewport scaling and camera coordinates. | [projection.md](projection.md) |
 | Water Waves | Per-frame sine-table vertex displacement on water terrain cells. Radial concentric ripples driven by `world_wave` INI parameters (amplitude, speed, spatial frequency) with runtime console tuning. | [water.md](water.md) |
 
 Player movement units, ground-turn arithmetic, collision, and timing are documented in [player.md](player.md).
