@@ -103,6 +103,11 @@ persistent actor list. The active update list combines nearby cell actors with
 that persistent list. A zero activation byte therefore does not mean that an
 actor can never animate.
 
+Cell assignment uses the decoded MPOB X/Z coordinates directly, with 512
+coordinate units per cell. The runtime position has eight fractional bits;
+shifting that position by eight recovers the decoded file coordinate. The
+three-byte MPOB coordinate itself is not divided by 256 again.
+
 The cell window starts nine 512-unit cells before the supplied horizontal
 center, clamped at the map edge. The main loop supplies the current view
 coordinates, not the actor body position. It spans eighteen cells per axis, omitting its
