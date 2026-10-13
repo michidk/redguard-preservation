@@ -41,6 +41,16 @@ KEYS.INI, but the shipped menu bindings use keyboard and joystick logical
 actions. Controls key capture accepts the left and right mouse button codes on
 release.
 
+## Save and load pages
+
+Main action 1 opens Save on page 1. Its camera moves directly to `(336, 0, 0)` with fractional step `0.15`, without turning a page. Action 100 returns directly to the origin. Main action 2 opens Load on page 2 using the three-part camera sweep to the origin and a forward MB_PG01 turn delayed by four updates. Action 200 reverses that turn and repeats the sweep to the origin.
+
+Save displays `<NEW SAVE GAME>` as its first selectable row on the first list page, followed by eight existing saves. Subsequent list pages contain nine existing saves. Load displays nine existing saves per list page. Rows are addressed by their ordered entry index and list-page offset, not by action alone: existing Save rows share action 102, and Load rows share action 202. Missing saves produce empty, disabled rows. Slot descriptions are copied into menu labels with a limit of forty characters.
+
+Action 101 asks for `Game Description` before creating a save. Action 102 opens the same input dialog with the existing description before overwriting that save. The input accepts at most 64 characters, requires nonempty text to confirm, and permits Escape to cancel. New manual saves use the first free directory number from 2 through 299. The Save list excludes the slot numbered zero; Load may include it. Delete on an existing save opens a `DELETE GAME?` confirmation that includes its description.
+
+The main page and the second surface of each save/load page receive runtime gameplay snapshots. The image begins at texel row 33, spans the 256-texel surface width and is 192 rows high. Save's new-save row shows the current gameplay snapshot; existing rows show their stored snapshot. Load previews the selected save, and selecting it also replaces the main-page snapshot before leaving the menu.
+
 ## Options and settings pages
 
 Main action 4 opens page 4. Actions 405, 406, and 407 open Display, Sound, and Controls on pages 5, 6, and 7. Actions 500, 600, and 700 return to Options; 400 returns to Main. Escape returns from a settings page to Options and from Options or Movies to Main. Each page retains its selection while the menu stays open.
