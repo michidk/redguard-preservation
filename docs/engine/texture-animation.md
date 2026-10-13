@@ -40,3 +40,20 @@ The generic material retains alpha masking when any exported frame contains
 transparent pixels. Runtime render attributes can impose a different chroma
 policy. Consumers sharing one loaded original image must share its playback
 state even when different materials reference separate exported copies.
+
+Model glTF primitives also carry `extras.rgpre_admission` with version 1. Its
+`radius_fixed` retains the model header radius without conversion. `polygons`
+contains the primitive's authored polygons in source order. Each entry has
+`source_face`, the zero-based model face index; `vertices`, indices into that
+primitive's POSITION accessor in original polygon order; and `normal`, the
+authored base-frame face normal in glTF export axes without normalization.
+The normal is independent of the vertex normals used for lighting.
+
+Material splitting and fan triangulation preserve these records for both static
+and animated models. Coincident authored vertices remain separate polygon
+corners. Animated consumers use the source face identity to select the current
+frame's normal, and the vertex mapping to read the updated mesh positions.
+A missing or nonfinite authored normal is `null`. If invalid source vertex
+indices prevent a complete polygon mapping, `vertices` is `null`; consumers
+must not infer faithful admission from the remaining raster triangles.
+Terrain primitives omit this model-specific metadata.

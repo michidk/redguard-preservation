@@ -156,6 +156,7 @@ fn resolve_wld_material(
             source_vertices: Vec::new(),
             lighting: Vec::new(),
             model_radius_fixed: 0,
+            admission: None,
             min: [f32::INFINITY, f32::INFINITY, f32::INFINITY],
             max: [f32::NEG_INFINITY, f32::NEG_INFINITY, f32::NEG_INFINITY],
         })
