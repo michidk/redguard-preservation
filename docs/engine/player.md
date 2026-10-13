@@ -889,7 +889,10 @@ resetting the measurement or accumulation state.
 
 ## Initial player animation setup
 
-A newly allocated player actor starts with animation default group zero.
+A newly allocated player actor starts with animation default group zero and
+stored surface state zero. Player definition and animation-group setup retain
+that surface value; subsequent support updates or restored world state can
+replace it.
 Player entry assigns the supplied map position with eight fractional bits and
 sets pitch and roll to zero and heading modulo 2048 before binding the actor
 definition and building its animation groups.
