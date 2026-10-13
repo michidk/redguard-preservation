@@ -171,6 +171,14 @@ minification and magnification on texture unit 0. Constant encoded RGB comes fro
 one-minus-source-alpha blending and disables fog for the sun, restoring scene
 fog afterwards. Scene geometry drawn later can cover it.
 
+In the software Voodoo 1 renderer, the sun's alpha channel uses the same
+four-bit fractional bilinear interpolation described for sky colors. Texel
+centers are at half-integer coordinates; each fractional coordinate is rounded
+down to a multiple of `1/16`. Horizontal alpha interpolation truncates to an
+eight-bit integer before vertical interpolation, which truncates again. The
+resulting integer alpha feeds framebuffer blending. Sun texture coordinates
+wrap in both directions.
+
 ### Sun framebuffer blending
 
 The sun draw enables four-by-four framebuffer dithering and alpha dither
