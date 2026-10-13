@@ -6,7 +6,8 @@ Each file maps color indices (0–255) to RGB values. Models reference palette e
 
 ## Overall Structure
 
-All COL files are exactly 776 bytes.
+Populated COL files are exactly 776 bytes. `fxart/CLDTEST.COL` is an empty
+placeholder, not a valid palette.
 
 | Offset | Size | Type | Name | Description |
 |---|---|---|---|---|

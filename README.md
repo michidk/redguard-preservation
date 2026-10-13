@@ -184,10 +184,17 @@ Redguard shipped with two parallel sets of 3D assets for different renderers:
 
 | Directory | Renderer | Model versions | Palette files | Included in GOG |
 |---|---|---|---|---|
-| `3dart/` | Software | v2.6, v2.7 | `art_pal.col` only | Original CD only |
-| `fxart/` | Glide (3dfx) | v4.0, v5.0 | 27 `.COL` palettes (per-scene) | ✓ |
+| `3dart/` | Software | v2.6, v2.7 | 18 COL palettes, including `art_pal.col` | Original CD only |
+| `fxart/` | Glide (3dfx) | v4.0, v5.0 | 27 populated COL palettes; one empty placeholder | ✓ |
 
-Both directories are supported. The `fxart/` Glide assets are recommended — they are included in the GOG release and use the newer model format. Each scene uses its own palette (e.g. `ISLAND.COL` for the overworld, `NECRO.COL` for the Necropolis). Pass the matching palette via `--palette` — without it, 3D exports will have no textures.
+The parsers support both model generations. The GLB texture cache indexes
+`TEXBSI.*`; support for the older model headers does not provide textured exports
+from the software `TEXTURE.*` banks. See [CD and GOG differences](docs/README.md#gog-vs-original-cd-differences)
+for resource selection.
+
+The `fxart/` Glide assets are included in GOG and use the newer model format.
+Each scene uses its own palette, such as `ISLAND.COL` or `NECRO.COL`. Pass the
+matching palette via `--palette` for textured exports.
 
 ## Usage Examples
 
