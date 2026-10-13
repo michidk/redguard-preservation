@@ -8,7 +8,7 @@ use log::{debug, trace, warn};
 use nom::{
     IResult,
     bytes::complete::take,
-    number::complete::{be_u32, le_i8, le_i16, le_u16, le_u32},
+    number::complete::{be_u32, le_i8, le_i16, le_i32, le_u8, le_u16, le_u32},
 };
 
 /// Parse a 4-byte section name
@@ -359,41 +359,37 @@ fn mprp_section_data(input: &[u8]) -> IResult<&[u8], Vec<MprpRecord>> {
 }
 
 fn mpsl_record(input: &[u8]) -> IResult<&[u8], MpslRecord> {
-    let (input, red_byte) = take(1usize)(input)?;
-    let color_r = red_byte[0];
-    let (input, green_byte) = take(1usize)(input)?;
-    let color_g = green_byte[0];
-    let (input, blue_byte) = take(1usize)(input)?;
-    let color_b = blue_byte[0];
-    let (input, color_flags_bytes) = take(1usize)(input)?;
-    let color_flags = color_flags_bytes[0];
-    let (input, unknown0) = le_u32(input)?;
-    let (input, pos_x) = le_i24(input)?;
-    let (input, _pad_x) = take(1usize)(input)?;
-    let (input, pos_y) = le_i24(input)?;
-    let (input, _pad_y) = take(1usize)(input)?;
-    let (input, pos_z) = le_u24(input)?;
-    let (input, _pad_z) = take(1usize)(input)?;
-    let (input, param0) = le_i16(input)?;
-    let (input, param1) = le_i16(input)?;
-    let (input, unknown1_bytes) = take(18usize)(input)?;
-    let mut unknown1 = [0_u8; 18];
-    unknown1.copy_from_slice(unknown1_bytes);
-
+    let (input, link) = le_u32(input)?;
+    let (input, world_id) = le_u32(input)?;
+    let (input, x) = le_i32(input)?;
+    let (input, y) = le_i32(input)?;
+    let (input, z) = le_i32(input)?;
+    let (input, radius) = le_i16(input)?;
+    let (input, field_16) = le_i16(input)?;
+    let (input, r) = le_i16(input)?;
+    let (input, g) = le_i16(input)?;
+    let (input, b) = le_i16(input)?;
+    let (input, field_1e) = le_u8(input)?;
+    let (input, active) = le_u8(input)?;
+    let (input, bytes) = take(6usize)(input)?;
+    let mut field_20 = [0; 6];
+    field_20.copy_from_slice(bytes);
+    let (input, bytes) = take(4usize)(input)?;
+    let mut field_26 = [0; 4];
+    field_26.copy_from_slice(bytes);
     Ok((
         input,
         MpslRecord {
-            color_r,
-            color_g,
-            color_b,
-            color_flags,
-            unknown0,
-            pos_x,
-            pos_y,
-            pos_z,
-            param0,
-            param1,
-            unknown1,
+            link,
+            world_id,
+            position: [x, y, z],
+            radius,
+            field_16,
+            rgb: [r, g, b],
+            field_1e,
+            active,
+            field_20,
+            field_26,
         },
     ))
 }
