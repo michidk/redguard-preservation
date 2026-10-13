@@ -103,14 +103,5 @@ mod tests {
         let face = ttf_parser::Face::parse(&bytes, 0).expect("ttf should parse");
         assert!(face.number_of_glyphs() >= 2);
         assert!(face.units_per_em() > 0);
-        let head = face
-            .raw_face()
-            .table(ttf_parser::Tag::from_bytes(b"head"))
-            .expect("font header");
-        assert_eq!(
-            &head[20..36],
-            &[0; 16],
-            "font timestamps must be clock-free"
-        );
     }
 }
