@@ -47,6 +47,18 @@ forces final release even if repeated lookups within that group increased the
 reference count. Final release frees every frame and clears the image record.
 A subsequently loaded image receives the initial frame and deadline state.
 
+Book-menu setup saves the selected resource group and selects group 30 for
+menu loading. Menu cleanup restores the saved selection. Its release argument
+controls group release: zero retains group 30, and any nonzero value releases
+it. Closing the book menu requests release; preparing its contents first runs
+cleanup without release. Releasing menu ownership preserves an image's animation
+state when another resource group still owns it.
+
+World-resource cleanup releases group 31 when world resources are loaded, then
+clears the loaded state. Repeating cleanup with that state already clear does
+not release the group again. World transitions perform this cleanup before
+loading the destination world's resources.
+
 ## Model polygon admission
 
 Before model polygons are prepared, draw submission classifies a bound around
