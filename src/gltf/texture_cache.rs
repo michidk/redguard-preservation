@@ -14,6 +14,13 @@ pub struct AllFramesInfo {
     pub frames: Vec<Option<Vec<u8>>>,
 }
 
+pub(super) struct AnimatedTexture {
+    pub name: String,
+    pub delay_ms: i16,
+    pub frames: Vec<Vec<u8>>,
+    pub has_alpha: bool,
+}
+
 pub struct TextureCache {
     palette: Option<Palette>,
     bsi_files: HashMap<u16, BsiFile>,
@@ -257,6 +264,35 @@ impl TextureCache {
             height: image.height,
             frame_count: image.frame_count,
             frames,
+        })
+    }
+
+    /// Authored animated image identity, delay in milliseconds, and PNG frames after frame zero.
+    pub(super) fn animation_pngs(
+        &mut self,
+        texture_id: u16,
+        image_id: u8,
+        compress: bool,
+    ) -> Option<AnimatedTexture> {
+        let index = self.image_index(texture_id, image_id)?;
+        let image = &self.bsi_files.get(&texture_id)?.images[index];
+        if image.frame_count <= 1 {
+            return None;
+        }
+        let frames = (1..usize::from(image.frame_count))
+            .map(|frame| {
+                let rgba = flip_rows_vertical(
+                    image.decode_frame_rgba(frame, self.palette.as_ref())?,
+                    image.width,
+                );
+                encode_rgba_png(image.width.into(), image.height.into(), &rgba, compress)
+            })
+            .collect::<Option<Vec<_>>>()?;
+        Some(AnimatedTexture {
+            name: image.name.clone(),
+            delay_ms: image.anim_delay,
+            frames,
+            has_alpha: image.extra_frames.iter().any(|pixels| pixels.contains(&0)),
         })
     }
 
