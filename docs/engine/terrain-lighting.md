@@ -103,3 +103,8 @@ filmic tone-mapping stage.
 
 Terrain texture binding disables chroma-key rejection. Palette index zero
 therefore remains an opaque color on terrain.
+
+In the software Voodoo 1 renderer, texture modulation operates on encoded
+8-bit RGB channels. The interpolated lighting channel is converted to an
+integer before combination. For texture channel `T` and lighting channel `L`,
+the result is `floor(T * (L + 1) / 256)`, before fog.
