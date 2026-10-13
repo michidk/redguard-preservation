@@ -435,6 +435,7 @@ impl<'a> GltfBuilder<'a> {
                         .as_ref()
                         .is_some_and(|animation| animation.has_alpha),
             );
+            let mut extras = serde_json::Map::new();
             if let Some(animation) = animation {
                 let mut textures = vec![texture_index];
                 textures.extend(
@@ -443,18 +444,31 @@ impl<'a> GltfBuilder<'a> {
                         .iter()
                         .map(|png| self.push_png_texture(png, sampler_index)),
                 );
-                material.extras = Some(
-                    serde_json::value::to_raw_value(&serde_json::json!({
-                        "rgpre_texture_animation": {
-                            "version": 1,
-                            "image_name": animation.name,
-                            "delay_ms": animation.delay_ms,
-                            "textures": textures,
-                        }
-                    }))
-                    .expect("texture animation metadata is serializable"),
+                extras.insert(
+                    "rgpre_texture_animation".into(),
+                    serde_json::json!({
+                        "version": 1,
+                        "image_name": animation.name,
+                        "delay_ms": animation.delay_ms,
+                        "textures": textures,
+                    }),
                 );
             }
+            if let Some(key) = self
+                .texture_cache
+                .as_deref_mut()
+                .and_then(|cache| cache.get_image_chroma_key(texture_id, image_id))
+            {
+                extras.insert(
+                    "rgpre_texture".into(),
+                    serde_json::json!({
+                        "version": 1, "chroma_key_rgb": key
+                    }),
+                );
+            }
+            material.extras = Some(
+                serde_json::value::to_raw_value(&extras).expect("texture metadata is serializable"),
+            );
             let new_index = self.materials.len();
             self.materials.push(material);
             new_index

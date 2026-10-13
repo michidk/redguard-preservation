@@ -14,6 +14,12 @@ chroma-key RGB before applying vertex-light modulation. A matching RGB is
 rejected. Filtering uses the encoded palette colors, including the key color;
 it does not interpolate a transparent alpha mask and apply an alpha cutoff.
 
+Display initialization selects indexed palette texture mode. Each texture's
+chroma key is the selected palette's entry-zero RGB, copied without channel
+quantization. Palette selection uploads the complete 256-entry RGB table to
+texture unit zero. Palette-zero texels retain their RGB through filtering even
+when the material enables chroma rejection.
+
 ## Ambient and directional contribution
 
 Models share the ambient RGB, directional RGB and normalized world direction
@@ -122,6 +128,11 @@ the map lights are not reapplied by that draw loop. Other registered local light
 can still contribute through the retained-color shading path.
 
 ## Export metadata
+
+Textured GLTF materials retain their effective palette-zero RGB in
+`rgpre_texture` extras with `version: 1` and `chroma_key_rgb: [r, g, b]`.
+Embedded PNGs preserve those RGB bytes at alpha-zero texels. The alpha marker
+supports generic viewers; engine renderers use the RGB key after filtering.
 
 Positioned-model GLTF nodes retain the selected ROB segment attribute byte in
 `rgpre_render`, with `version: 1` and `rob_attributes`. The attribute is null

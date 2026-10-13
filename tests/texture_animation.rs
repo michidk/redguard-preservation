@@ -138,6 +138,6 @@ fn terrain_frames_keep_opaque_palette_zero_without_changing_model_decoding() {
     assert!(images.next().is_none());
     assert_eq!(
         cache.get_image_rgba(1, 0).unwrap().0,
-        [101, 103, 107, 255, 0, 0, 0, 0]
+        [101, 103, 107, 255, 19, 37, 83, 0]
     );
 }
