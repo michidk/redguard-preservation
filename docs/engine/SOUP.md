@@ -772,6 +772,17 @@ and take the remainder modulo the bound. The result is not uniformly
 distributed for every bound. Zero and negative bounds do not define a valid
 bounded draw.
 
+### Object visibility
+
+`HideMe()` sets the receiver's hidden flag and clears its current presentation
+record. `ShowMe()` clears that flag. For a static-model receiver, showing it also
+restores its model presentation record and refreshes its transformed geometry.
+Both calls return zero.
+
+The hidden flag does not exclude the receiver from ordinary script or animation
+updates. It suppresses the ordinary actor's optional sound and light updates.
+Player selection also uses this flag to hide the unselected player model.
+
 ### Function Table
 
 `SOUP386.DEF` declares callable functions in installed order. Index 0 is the synthetic `NullFunction`; authored entries start at index 1. Functions span the following categories:
