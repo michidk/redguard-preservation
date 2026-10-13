@@ -172,7 +172,7 @@ to 8, and stops every channel the object owns.
 `Resurrect` always releases held walk-node reservations. When the killed flag
 is 1 or the runtime death-state selector is 8, it clears the killed flag. If
 the actor has combat state, it reinitializes that state and consumes one waiting
-SOUP message when present. It does not restart previously stopped sound channels.
+SOUP message when present.
 
 **Owner:** the owner recorded by `Sound`, `FlatSound`, `AmbientSound` and
 `AmbientRTX`, and matched by `EndMySound` and `EndMySounds`, is the calling
