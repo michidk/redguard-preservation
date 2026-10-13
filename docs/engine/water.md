@@ -73,7 +73,14 @@ The engine fills a 34-by-34 storage grid around its terrain
 camera-grid coordinates, from `camera-17` through `camera+16`. The wave loop
 selects the inner 32-by-32 vertices, from `camera-16` through `camera+15` on
 each axis, and reads the four corners described above from that storage.
-This is an original rendering window, not a moving ripple origin.
+The center on each axis is the camera's engine coordinate divided by 256,
+rounded to single precision and then to the nearest integer, with ties to even.
+A change on either axis reloads the storage grid before displacement.
+
+Terrain projection transforms the inner 32-by-32 vertices. Triangle submission
+uses only those vertices, covering 31-by-31 cells with two triangles per cell.
+The outer storage ring supplies neighboring heights for selection and normals;
+it is not drawn. This is an original rendering window, not a moving ripple origin.
 
 ## Dirty normals and retained lighting
 
