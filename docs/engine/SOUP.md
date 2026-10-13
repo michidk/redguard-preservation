@@ -44,6 +44,19 @@ It does not permanently terminate the actor's main script. An eligible later
 invocation resumes at the stored target. `Endint` (opcode `0x13`) resets the active
 cursor to the script base and returns from the current invocation.
 
+### World shell-script preparation
+
+After loading map objects, world loading prepares the available `DEBUG`,
+`COMMON`, and map-specific shell scripts in that order. The debug-shell
+suppression switch skips `DEBUG`; disabling shell loading prevents shell-record
+creation. This preparation precedes the separate CYRUS, GREMLIN, and CAMERA
+initialization.
+
+Each shell record takes its script continuations and string-table reference from
+its map definition and receives its own copy of the initial local variables.
+When the initial script cursor is absent or equals the script base, no separate
+entry cursor is stored. New shell records are prepended to the shell list.
+
 ### Ordinary update gates
 
 `SYSTEM.INI`'s `[system] task_system` enables the ordinary entry, task, and main
