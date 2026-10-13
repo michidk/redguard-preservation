@@ -1,4 +1,4 @@
-//! Texture surface assignments; see `docs/config/surface-ini.md`.
+//! Texture surface assignments and animation sound remapping; see `docs/config/surface-ini.md`.
 
 /// Surface codes in the executable's table order.
 pub const SURFACE_NAMES: [&str; 12] = [
@@ -16,6 +16,107 @@ pub const SURFACE_NAMES: [&str; 12] = [
     "gloop",
 ];
 
+/// Parsed texture assignments and twelve independent animation sound tables.
+///
+/// Surface codes index [`SURFACE_NAMES`]. Sound IDs are zero-based effect-bank
+/// indices, not frequencies or durations. See `docs/config/surface-ini.md`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SurfaceIni {
+    pub assignments: SurfaceAssignments,
+    sounds: [[u16; 256]; 12],
+}
+
+impl SurfaceIni {
+    /// Parse `[surfaces]` and any named sound sections from installed text.
+    ///
+    /// Missing/empty sound sections retain identity. Repeated sound keys and
+    /// sections overwrite earlier values, unlike first-match texture assignments.
+    /// Both sound tokens must start with a decimal digit. Their decimal prefixes
+    /// are read as nonnegative signed 32-bit integers; overflow is rejected.
+    /// Sources must fit in 0..=255; targets retain their low 16 bits.
+    /// Unknown sections are ignored. Errors include file, section, line and key.
+    pub fn parse(content: &str) -> Result<Self, String> {
+        let assignments = SurfaceAssignments::parse(content)?;
+        let mut sounds = [std::array::from_fn(|id| id as u16); 12];
+        let mut active = None;
+        for (line_number, line) in records(content) {
+            if let Some(header) = line.strip_prefix('[') {
+                let header = header.strip_suffix(']').ok_or_else(|| {
+                    format!("SURFACE.INI line {line_number}: invalid section header {line:?}")
+                })?;
+                active = SURFACE_NAMES
+                    .iter()
+                    .position(|name| header.eq_ignore_ascii_case(name));
+                continue;
+            }
+            let Some(surface) = active else { continue };
+            // The shared game INI reader separates '=' before reading tokens.
+            let separated = line.replace('=', " = ");
+            let mut tokens = separated.split_ascii_whitespace();
+            let key = tokens.next().unwrap_or_default();
+            let error = |detail: &str| {
+                format!(
+                    "SURFACE.INI [{}] line {line_number}, key {key:?}: {detail}",
+                    SURFACE_NAMES[surface]
+                )
+            };
+            let source = sound_number(key)
+                .filter(|value| *value < 256)
+                .ok_or_else(|| error("sound source must start with a digit and be in 0..255"))?;
+            let mut value = tokens.next().unwrap_or_default();
+            if value == "=" {
+                value = tokens.next().unwrap_or_default();
+            }
+            let target = sound_number(value).ok_or_else(|| {
+                error("sound target must start with a digit and fit in 0..2147483647")
+            })?;
+            sounds[surface][source as usize] = target as u16;
+        }
+        Ok(Self {
+            assignments,
+            sounds,
+        })
+    }
+
+    /// Raw configured row, including the `unknown` row that animation bypasses.
+    /// Missing entries map each source ID to itself. Invalid surface codes return
+    /// `None`; valid codes are 0..=11 in [`SURFACE_NAMES`] order.
+    pub fn sound_table(&self, surface: u8) -> Option<&[u16; 256]> {
+        self.sounds.get(usize::from(surface))
+    }
+
+    /// Resolve an animation PlaySound effect using an actor's assigned surface.
+    ///
+    /// Surface zero bypasses remapping. Returns `None` for surface codes outside
+    /// 0..=11, including the original engine's out-of-bounds code 12. The caller
+    /// must validate a decoded animation operand before converting it to `u8`.
+    /// The returned ID still needs checking against the loaded sound bank.
+    /// Script, combat and speech sounds must not use this remapping.
+    pub fn animation_sound(&self, surface: u8, sound: u8) -> Option<u16> {
+        let row = self.sound_table(surface)?;
+        Some(if surface == 0 {
+            u16::from(sound)
+        } else {
+            row[usize::from(sound)]
+        })
+    }
+}
+
+fn sound_number(token: &str) -> Option<i32> {
+    token
+        .as_bytes()
+        .first()
+        .filter(|byte| byte.is_ascii_digit())?;
+    decimal_prefix(token)
+}
+
+fn records(content: &str) -> impl Iterator<Item = (usize, &str)> {
+    content.lines().enumerate().filter_map(|(index, line)| {
+        let line = line.split(';').next().unwrap_or_default().trim();
+        (!line.is_empty()).then_some((index + 1, line))
+    })
+}
+
 /// Ordered texture assignments. Sound-remap sections are outside this parser.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SurfaceAssignments {
@@ -28,11 +129,7 @@ impl SurfaceAssignments {
     pub fn parse(content: &str) -> Result<Self, String> {
         let mut entries = Vec::new();
         let mut found = false;
-        for (line_number, line) in content.lines().enumerate() {
-            let line = line.split(';').next().unwrap_or_default().trim();
-            if line.is_empty() {
-                continue;
-            }
+        for (line_number, line) in records(content) {
             if line.starts_with('[') {
                 if found {
                     break;
@@ -43,8 +140,9 @@ impl SurfaceAssignments {
             if !found {
                 continue;
             }
-            let error =
-                |detail| format!("SURFACE.INI [surfaces] line {}: {detail}", line_number + 1);
+            let error = |detail| {
+                format!("SURFACE.INI [surfaces] line {line_number}, record {line:?}: {detail}")
+            };
             let fields: Vec<_> = line.split(',').map(str::trim).collect();
             if fields.len() != 3 || fields.iter().any(|field| field.is_empty()) {
                 return Err(error("expected set, index, type"));

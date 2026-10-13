@@ -85,6 +85,7 @@ The Rust library parses the gameplay configuration files into named structs:
 |---|---|---|
 | `SYSTEM.INI` | `rgpre::import::system_ini::SystemIni::parse` | Display, engine, debug, gameplay, player, object-manager, renderer, camera, dialogue, and Glide settings. |
 | `COMBAT.INI` | `rgpre::import::combat_ini::CombatIni::parse` | Global combat settings and attacks, defenses, and taunts indexed by section ID. |
+| `SURFACE.INI` | `rgpre::import::surface_ini::SurfaceIni::parse` | Texture surface classes and animation sound remaps; checked lookup and identity defaults. |
 | `ITEM.INI` | `rgpre::import::item_ini::ItemIni::parse` | Inventory settings and item definitions indexed by item ID. |
 
 ```rust
