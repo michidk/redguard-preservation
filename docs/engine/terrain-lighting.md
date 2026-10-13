@@ -93,6 +93,32 @@ A flat face normal is `0,-1,0`; the sum of six such faces normalizes to
 calculation. With ISLAND day inputs, the resulting flat-terrain RGB is
 approximately `190.99797,190.99797,190.99797`.
 
+## Polygon preparation
+
+Terrain triangles are clipped before projection and Glide submission. In the
+projection-scaled camera coordinates used by the terrain path, the accepted
+volume is `near <= z <= far`, `-z <= x <= z`, and `-z <= y <= z`.
+Points on a plane are inside. Planes are processed in near, far, left, right,
+top, bottom order.
+
+At a crossing edge, camera position, RGB and the two texture coordinates use
+the same linear edge parameter. Each generated component is stored as a 32-bit
+float. Near/far intersections set depth to the corresponding plane. Left/right
+intersections derive depth from the stored X coordinate; top/bottom derive it
+from Y. RGB is not perspective-weighted during this clipping step.
+
+The surviving polygon is submitted as a triangle fan, anchored at its first
+vertex. Projection follows clipping. Each projected screen coordinate is
+biased by `786432` and stored as a 32-bit float before Glide receives it.
+The float spacing at that magnitude is `1/16` pixel. The common bias cancels
+from the gradient differences and is discarded by the software rasterizer's
+signed 16-bit fixed-coordinate conversion. Triangle color gradients therefore
+use these quantized projected positions.
+
+Each fan triangle receives its own Glide color-gradient setup. Clipping a
+previously established screen-space color plane does not reproduce this
+camera-space RGB interpolation and subsequent per-triangle setup.
+
 ## Screen-space color interpolation
 
 Glide triangle setup orders vertices by screen Y. For ordered vertices
