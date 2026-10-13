@@ -12,6 +12,19 @@ Input is lowercased and normalized before dispatch. A semicolon ends the input; 
 
 Most numeric handlers accept decimal integers, negative decimal integers, `0x` hexadecimal values, named equates, and named SOUP flag values. An unresolved symbolic value prints a diagnostic and substitutes `1`. The percent-prefixed binary-input path returns zero for ASCII binary digits. Quoted numeric input reads the first four bytes following the quote as a little-endian 32-bit value; it is not general string evaluation. `delay` uses decimal conversion directly.
 
+Decimal and hexadecimal conversion consume the numeric prefix and stop at the
+first non-digit for that radix. Arithmetic wraps to 32 bits. A leading minus
+selects decimal conversion even when no digits follow, yielding zero in that
+case. `0x` without hexadecimal digits also yields zero. A leading plus does not
+select numeric conversion through the console reader.
+
+Symbol lookup checks equates, console variables, then SOUP flags. Both definition
+loading paths release the temporary equate table before returning. The normal
+console therefore has no retained definition equates, and its console-variable
+table is empty. SOUP flag lookup reads the current raw value, without invoking
+the flag's latch operation. Flag names are matched case-insensitively; the name
+list is built in reverse definition order, so the last duplicate name wins.
+
 The console keeps a selected object, a monitored object, a selected rope and a selected light. These are separate selections. An object selected for inspection does not become the monitor target until `object monitor` is used.
 
 ## Interactive presentation and editor
