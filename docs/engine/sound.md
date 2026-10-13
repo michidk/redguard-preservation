@@ -184,9 +184,8 @@ the runtime inhibition flag is clear. A signed accumulator value greater than
 1400 triggers the reset and clears the accumulator; exactly 1400 does not.
 The reset releases cached RTX text and audio payloads and clears their occupied
 state. It also clears active dialogue records and their text buffers, resets
-their sample handles, and clears actors' retained dialogue references. These
-operations precede stopping all sample channels and setting the shared reset
-flag.
+their sample handles. These operations precede stopping all sample channels
+and setting the shared reset flag.
 
 `MenuBegin` sets the runtime menu-state word to one; `MenuEnd` clears it.
 During ordinary actor processing, an active menu-state word or a nonzero
