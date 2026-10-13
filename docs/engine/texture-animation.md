@@ -27,6 +27,26 @@ frame without changing the deadline. A later automatic request continues from
 that selected frame. This state belongs to the loaded texture image, not to
 an individual mesh instance.
 
+## Model polygon admission
+
+The model draw path prepares a polygon before binding its texture. It binds only
+when preparation returns at least three vertices. Earlier object and face
+rejection still applies.
+
+The clipped preparation path transforms vertices into camera space with the
+horizontal and vertical [projection scales](projection.md) already applied.
+It classifies each vertex against the near and far depth planes and the four
+side planes `x = -z`, `x = z`, `y = -z`, and `y = z`. Points exactly on a
+plane are inside. A polygon whose vertices are all outside the same plane is
+rejected immediately. Otherwise, clipping visits the near, far, left, right,
+negative-Y and positive-Y planes in that order, as needed.
+
+Preparation returns the remaining vertex count. It does not require projected
+area or covered pixels: coincident vertices can still satisfy the count check.
+The unclipped preparation path retains the input vertex count. Thus texture
+binding admission is distinct from both an object's visibility bound and the
+eventual rasterized coverage.
+
 ## Export metadata
 
 Animated glTF materials carry `extras.rgpre_texture_animation` with version 1.
