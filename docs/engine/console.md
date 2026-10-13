@@ -14,6 +14,31 @@ Most numeric handlers accept decimal integers, negative decimal integers, `0x` h
 
 The console keeps a selected object, a monitored object, a selected rope and a selected light. These are separate selections. An object selected for inspection does not become the monitor target until `object monitor` is used.
 
+## Interactive presentation and editor
+
+The interactive console covers the game viewport with `SYSTEM/PAPER.GXA`.
+At widths of at least 640 pixels, its standard font is the FNT named by
+`SYSTEM.INI [system] gui_low_font`. The console draws that font with a single
+ink color rather than the glyph palette colors. Its header and left text margin
+start at the scaled equivalent of eight pixels in a 640 by 480 viewport.
+The header identifies the development console and reports memory usage; a
+horizontal separator precedes retained output and the command prompt.
+
+Standard settings use palette entry zero for editing and header text. Report
+text uses the GUI color nearest to six-bit RGB `(0, 42, 0)` in the active palette.
+The console has 512 retained lines, with at most 100 characters in each editable
+command line. A `>` prompt distinguishes command lines from report lines.
+
+F12 and Escape leave the interactive console. Left and Right move the cursor;
+Backspace removes the preceding character and Delete removes the following
+character. Typing inserts printable characters at the cursor. Up and Down select
+retained lines, including report lines; report lines are not editable. Tab copies
+a preceding command into the current editable line. Home moves to the start of
+the line, then to the oldest retained line when already at the start. Page Up and
+Page Down move through retained output. Enter dispatches an editable command.
+The interactive console runs its own input and drawing loop before returning to
+the caller's game loop.
+
 ## Registered commands
 
 Each row is one command. The alias invokes the same handler from the interactive console.
