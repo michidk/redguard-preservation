@@ -26,6 +26,14 @@ horizontal separator precedes retained output and the command prompt.
 
 Standard settings use palette entry zero for editing and header text. Report
 text uses the GUI color nearest to six-bit RGB `(0, 42, 0)` in the active palette.
+Palette matching examines entries 1 through 255 in six-bit RGB. An exact match
+wins immediately. White entries whose component sum is 189 are otherwise skipped.
+For each component, the difference is target minus candidate when nonnegative,
+and candidate minus target minus one otherwise. Candidates with all three
+differences below nine are compared by the absolute difference of their weighted
+RGB sums, using weights 19661, 38666 and 7209. Equal scores select the later entry.
+If this pass finds no candidate or its score exceeds 24, a second pass minimizes
+the sum of the three component differences, again preferring later ties.
 The console has 512 retained lines, with at most 100 characters in each editable
 command line. A `>` prompt distinguishes command lines from report lines.
 
