@@ -485,6 +485,10 @@ marker argument is an unscaled signed index, distinct from the distance units.
 and sets attribute 94, `attr_node_in_use`, to one. With no current map, validation
 resets the held current-node, next-node and final-destination indices to -1.
 
+Ordinary map loading copies the authored runtime position into the stored home
+position before actor setup and attachment transforms. Actor setup selects its
+initial navigation map and current node through the global nearest-node query.
+
 When the final destination is unset, Wander clears the actor's saved navigation
 scratch state and chooses a candidate around its stored home position. The
 positive radius is converted from runtime units to map units by shifting right
