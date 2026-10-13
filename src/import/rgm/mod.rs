@@ -109,6 +109,8 @@ pub struct PositionedModel {
     pub transform: [f32; 16],
     pub model_name: String,
     pub source_id: Option<String>,
+    /// Attribute byte of the selected ROB segment; absent for standalone or generated models.
+    pub render_attributes: Option<u8>,
 }
 
 #[derive(Debug, Clone)]

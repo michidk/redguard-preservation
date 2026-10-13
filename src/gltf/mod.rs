@@ -138,6 +138,12 @@ fn add_positioned_models(
 
     let mut mesh_instance_cache: HashMap<&str, u32> = HashMap::new();
     for pm in positioned_models {
+        let extras = Some(
+            serde_json::value::to_raw_value(&serde_json::json!({
+                "rgpre_render": { "version": 1, "rob_attributes": pm.render_attributes }
+            }))
+            .expect("integer render metadata is serializable"),
+        );
         if let Some(source_id) = &pm.source_id
             && let Some(&cached_mesh) = mesh_instance_cache.get(source_id.as_str())
         {
@@ -145,6 +151,7 @@ fn add_positioned_models(
                 mesh: Some(Index::new(cached_mesh)),
                 matrix: non_identity_matrix(pm.transform),
                 name: Some(pm.model_name.clone()),
+                extras,
                 ..Default::default()
             });
             continue;
@@ -164,6 +171,7 @@ fn add_positioned_models(
             builder.add_node(Node {
                 matrix: non_identity_matrix(pm.transform),
                 name: Some(pm.model_name.clone()),
+                extras,
                 ..Default::default()
             });
             continue;
@@ -177,6 +185,7 @@ fn add_positioned_models(
             mesh: Some(Index::new(index_u32(mesh_index))),
             matrix: non_identity_matrix(pm.transform),
             name: Some(pm.model_name.clone()),
+            extras,
             ..Default::default()
         });
     }

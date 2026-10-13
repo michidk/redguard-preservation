@@ -123,6 +123,13 @@ can still contribute through the retained-color shading path.
 
 ## Export metadata
 
+Positioned-model GLTF nodes retain the selected ROB segment attribute byte in
+`rgpre_render`, with `version: 1` and `rob_attributes`. The attribute is null
+for standalone model files and generated geometry. The loader retains it from
+the same successful archive segment as the geometry, including fallback
+selection and cached loads. Node metadata keeps instance attributes separate
+when exported instances share one mesh.
+
 GLTF model primitives retain per-vertex face inputs in the `rgpre_lighting`
 extras object. Version 3 has `version: 3`, the model header radius as
 `radius_fixed` in 1/256 engine units, and a `vertices` array in exported

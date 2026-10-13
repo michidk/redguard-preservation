@@ -82,15 +82,30 @@ fn build_rob_segment_index(
     index
 }
 
+#[derive(Clone)]
+struct LoadedModel {
+    model: Model3DFile,
+    render_attributes: Option<u8>,
+}
+
+impl LoadedModel {
+    fn from_segment(segment: &RobSegment) -> Option<Self> {
+        Some(Self {
+            model: segment.parse_embedded_3d_data().ok()?,
+            render_attributes: Some(segment.segment_attribs),
+        })
+    }
+}
+
 /// Cache wrapper around `load_model_from_registry` that avoids redundant disk I/O.
 /// Many MPOB records reference the same model (e.g. SHARKFIN ×30, WATERSND ×30).
 /// The cache stores `None` for models that weren't found, preventing repeated ROB scans.
 fn cached_load_model(
     model_name: &str,
     registry: &Registry,
-    cache: &mut HashMap<String, Option<Model3DFile>>,
+    cache: &mut HashMap<String, Option<LoadedModel>>,
     rob_index: &RobSegmentIndex,
-) -> Option<Model3DFile> {
+) -> Option<LoadedModel> {
     let key = model_name.trim_matches('\0').trim().to_ascii_uppercase();
     if let Some(cached) = cache.get(&key) {
         return cached.clone();
@@ -107,7 +122,7 @@ pub(super) fn extract_positioned_models(
     preferred_rob_stem: Option<&str>,
 ) -> (Vec<PositionedModel>, Vec<PositionedLight>) {
     let mut positioned_models = Vec::new();
-    let mut model_cache: HashMap<String, Option<Model3DFile>> = HashMap::new();
+    let mut model_cache: HashMap<String, Option<LoadedModel>> = HashMap::new();
     let rob_index = build_rob_segment_index(registry, preferred_rob_stem);
     let rahd_data = first_section_payload(input, *b"RAHD");
     let raan_data = first_section_payload(input, *b"RAAN");
@@ -188,7 +203,7 @@ fn process_mps_section(
     mps_records: &[MpsRecord],
     registry: &Registry,
     positioned_models: &mut Vec<PositionedModel>,
-    model_cache: &mut HashMap<String, Option<Model3DFile>>,
+    model_cache: &mut HashMap<String, Option<LoadedModel>>,
     rob_index: &RobSegmentIndex,
 ) {
     info!(
@@ -205,7 +220,8 @@ fn process_mps_section(
         info!("Looking for static model: '{model_name}'");
         if let Some(model) = cached_load_model(&model_name, registry, model_cache, rob_index) {
             positioned_models.push(PositionedModel {
-                model,
+                model: model.model,
+                render_attributes: model.render_attributes,
                 transform: mps_transform(record),
                 model_name: format!("S{idx:03}_{model_name}"),
                 source_id: Some(model_name),
@@ -222,7 +238,7 @@ fn process_mpob_section(
     rahd_texture_overrides: &HashMap<String, u16>,
     registry: &Registry,
     positioned_models: &mut Vec<PositionedModel>,
-    model_cache: &mut HashMap<String, Option<Model3DFile>>,
+    model_cache: &mut HashMap<String, Option<LoadedModel>>,
     rob_index: &RobSegmentIndex,
 ) {
     info!(
@@ -257,6 +273,7 @@ fn process_mpob_section(
                 transform: mpob_transform(record),
                 model_name: format!("B_{idx:03}_{script_name}"),
                 source_id: None,
+                render_attributes: None,
             });
         }
     }
@@ -292,7 +309,7 @@ fn resolve_mpob_model_name(
 }
 
 fn build_loaded_mpob_model(
-    mut model: Model3DFile,
+    mut loaded: LoadedModel,
     record: &MpobRecord,
     idx: usize,
     script_name: &str,
@@ -301,7 +318,7 @@ fn build_loaded_mpob_model(
 ) -> PositionedModel {
     if let Some(tex_id) = texture_override {
         debug!("Applying RAHD texture override for script '{script_name}': TEXBSI.{tex_id:03}");
-        apply_texture_override(&mut model, tex_id);
+        apply_texture_override(&mut loaded.model, tex_id);
     }
 
     let source_id = texture_override.map_or_else(
@@ -310,7 +327,8 @@ fn build_loaded_mpob_model(
     );
 
     PositionedModel {
-        model,
+        model: loaded.model,
+        render_attributes: loaded.render_attributes,
         transform: mpob_transform(record),
         model_name: format!("B_{idx:03}_{script_name}"),
         source_id: Some(source_id),
@@ -333,6 +351,7 @@ fn append_mpf_models(mpf_data: &[u8], positioned_models: &mut Vec<PositionedMode
             )),
             model_name: format!("F{idx:03}_{}/{}", record.texture_id, record.image_id),
             source_id: None,
+            render_attributes: None,
         });
     }
 }
@@ -341,7 +360,7 @@ fn append_rope_records(
     records: &[MprpRecord],
     registry: &Registry,
     positioned_models: &mut Vec<PositionedModel>,
-    model_cache: &mut HashMap<String, Option<Model3DFile>>,
+    model_cache: &mut HashMap<String, Option<LoadedModel>>,
     rob_index: &RobSegmentIndex,
 ) {
     for (i, record) in records.iter().enumerate() {
@@ -354,7 +373,8 @@ fn append_rope_records(
             for j in 0..link_count {
                 pos[1] -= ROPE_LINK_Y_STEP;
                 positioned_models.push(PositionedModel {
-                    model: model.clone(),
+                    model: model.model.clone(),
+                    render_attributes: model.render_attributes,
                     transform: translation_matrix(pos),
                     model_name: format!("R{i:03}_{j:03}_{}", record.rope_model),
                     source_id: Some(record.rope_model.clone()),
@@ -367,7 +387,8 @@ fn append_rope_records(
         {
             pos[1] -= ROPE_LINK_Y_STEP;
             positioned_models.push(PositionedModel {
-                model,
+                model: model.model,
+                render_attributes: model.render_attributes,
                 transform: translation_matrix(pos),
                 model_name: format!("R{i:03}_{link_count:03}_{}", record.static_model),
                 source_id: Some(record.static_model.clone()),
@@ -1015,7 +1036,7 @@ fn load_model_from_registry(
     model_name: &str,
     registry: &Registry,
     rob_index: &RobSegmentIndex,
-) -> Option<Model3DFile> {
+) -> Option<LoadedModel> {
     let mut candidates = Vec::new();
     let trimmed = model_name.trim_matches('\0').trim();
     if !trimmed.is_empty() {
@@ -1059,7 +1080,10 @@ fn load_model_from_registry(
                     Ok(data) => match model3d::parse_3d_file(&data) {
                         Ok(model) => {
                             info!("Successfully loaded model '{model_name}'");
-                            Some(model)
+                            Some(LoadedModel {
+                                model,
+                                render_attributes: None,
+                            })
                         }
                         Err(e) => {
                             warn!("Failed to parse model '{model_name}': {e}");
@@ -1078,10 +1102,7 @@ fn load_model_from_registry(
             }
             crate::import::FileType::Rob => match read_entry_data(file_entry) {
                 Ok(data) => match crate::import::rob::parse_rob_file(&data) {
-                    Ok(archive) => archive
-                        .segments
-                        .iter()
-                        .find_map(|segment| segment.parse_embedded_3d_data().ok()),
+                    Ok(archive) => archive.segments.iter().find_map(LoadedModel::from_segment),
                     Err(e) => {
                         warn!("Failed to parse ROB file '{model_name}': {e}");
                         None
@@ -1106,14 +1127,9 @@ fn load_model_from_registry(
         }
     } else {
         for candidate in &candidates {
-            if let Some(model) =
-                rob_index
-                    .get(&candidate.to_ascii_uppercase())
-                    .and_then(|segments| {
-                        segments
-                            .iter()
-                            .find_map(|segment| segment.parse_embedded_3d_data().ok())
-                    })
+            if let Some(model) = rob_index
+                .get(&candidate.to_ascii_uppercase())
+                .and_then(|segments| segments.iter().find_map(LoadedModel::from_segment))
             {
                 info!(
                     "Resolved model '{model_name}' via ROB segment index (candidate '{candidate}')"
@@ -1257,21 +1273,44 @@ mod lazy_archive_tests {
     #[test]
     fn archive_lookup_keeps_priority_and_skips_invalid_candidates() {
         let registry = Registry::new(Default::default());
-        let first = segment(include_bytes!("../../../tests/fixtures/model_v26.3d"));
-        let second = segment(include_bytes!("../../../tests/fixtures/model_v40.3dc"));
+        let mut first = segment(include_bytes!("../../../tests/fixtures/model_v26.3d"));
+        first.segment_attribs = 65;
+        let mut second = segment(include_bytes!("../../../tests/fixtures/model_v40.3dc"));
+        second.segment_attribs = 2;
         let mut index = RobSegmentIndex::from([("SEGMENT1".into(), vec![first, second])]);
         assert_eq!(
             load_model_from_registry("segment1", &registry, &index)
                 .unwrap()
+                .model
                 .version,
             ModelVersion::V26
+        );
+        let mut cache = HashMap::new();
+        assert_eq!(
+            cached_load_model("segment1", &registry, &mut cache, &index)
+                .unwrap()
+                .render_attributes,
+            Some(65)
         );
         index.get_mut("SEGMENT1").unwrap()[0].data.clear();
         assert_eq!(
             load_model_from_registry("segment1", &registry, &index)
                 .unwrap()
+                .model
                 .version,
             ModelVersion::V40
+        );
+        assert_eq!(
+            load_model_from_registry("segment1", &registry, &index)
+                .unwrap()
+                .render_attributes,
+            Some(2)
+        );
+        assert_eq!(
+            cached_load_model("segment1", &registry, &mut cache, &index)
+                .unwrap()
+                .render_attributes,
+            Some(65)
         );
         index.get_mut("SEGMENT1").unwrap()[1].data.clear();
         assert!(load_model_from_registry("segment1", &registry, &index).is_none());
