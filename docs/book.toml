@@ -12,3 +12,4 @@ build-dir = "book"
 default-theme = "redguard"
 preferred-dark-theme = "redguard"
 additional-css = ["theme/redguard.css"]
+additional-js = ["theme/table-scroll.js"]

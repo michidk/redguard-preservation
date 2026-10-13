@@ -1,6 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Crimson+Pro:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap');
 
 :root {
+  --content-max-width: 1200px;
   --rg-parchment:       #f0e4cf;
   --rg-parchment-light: #f5ead8;
   --rg-parchment-dark:  #e4d4b8;
@@ -138,4 +139,51 @@
 .redguard ::selection {
   background: var(--rg-gold-pale);
   color: var(--rg-burgundy-dark);
+}
+
+/* A range control stays visible even when the OS hides native scrollbars. */
+.table-scrollbar {
+  position: fixed;
+  bottom: 0;
+  z-index: 100;
+  height: 24px;
+  margin: 0;
+  padding: 0;
+  appearance: none;
+  background: var(--bg);
+  cursor: ew-resize;
+}
+
+.table-scrollbar::-webkit-slider-runnable-track {
+  height: 16px;
+  background: var(--table-header-bg);
+  border-radius: 8px;
+}
+
+.table-scrollbar::-moz-range-track {
+  height: 16px;
+  background: var(--table-header-bg);
+  border-radius: 8px;
+}
+
+.table-scrollbar::-webkit-slider-thumb {
+  appearance: none;
+  width: var(--thumb-width);
+  height: 16px;
+  border: 2px solid var(--bg);
+  border-radius: 8px;
+  background: var(--scrollbar);
+}
+
+.table-scrollbar::-moz-range-thumb {
+  box-sizing: border-box;
+  width: var(--thumb-width);
+  height: 16px;
+  border: 2px solid var(--bg);
+  border-radius: 8px;
+  background: var(--scrollbar);
+}
+
+@media print {
+  .table-scrollbar { display: none; }
 }

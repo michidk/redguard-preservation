@@ -1,23 +1,37 @@
-# Engine Details
+# Engine behavior
 
-Engine behavior that goes beyond file format documentation.
+Runtime rules for scripts, actors, world rendering, sound, and presentation.
+The [file format references](../formats/) describe the stored data;
+the [configuration reference](../config/) describes the INI settings.
 
-| Topic | Description | Docs |
-|---|---|---|
-| Cheat System | 13 XOR-obfuscated cheat codes built into the engine | [cheats.md](cheats.md) |
-| Item Attachment | Vertex-tracking system for positioning held items (swords, shields) on characters. No skeleton — the engine tracks a vertex index per animation frame via RAGR opcode 0 (ShowFrame). All 16 animation opcodes documented. | [attachment.md](attachment.md) |
-| SOUP Scripting | SOUP386 virtual machine architecture, bytecode encoding (22 opcodes), value modes, operator tables, threading model, function dispatch (367 functions), and global flag system (369 flags) | [SOUP.md](SOUP.md) |
-| Music | Red Book CD tracks per world, track switching, repetition, and the ignored `redbook_volume`. | [music.md](music.md) |
-| Positional Sound | Listener, `sound_distance` radius, linear volume curve, triangle-wave pan, 16 channels without stealing, SOUP sound functions, and SURFACE.INI remapping. | [sound.md](sound.md) |
-| Subtitles | REDSEL dialogue, taunt and movie text: slots, wrapping, placement, timing and colours. | [subtitles.md](subtitles.md) |
-| In-game HUD | Candle health levels and animation, active item and count, activation prompt, compass frames, power-up slots, logbook icon, and draw order. | [hud.md](hud.md) |
-| Sky Renderer | Glide BSI plane, fog-colored background, scrolling inputs, sun configuration, and software-renderer limits. | [sky.md](sky.md) |
-| Glide terrain lighting | World RGB inputs, directional vertex lighting, and water-normal updates. | [terrain-lighting.md](terrain-lighting.md) |
-| Glide fog and clipping | Scene and sky ranges, fog-table lookup, and encoded RGB blending. | [fog.md](fog.md) |
-| Water Waves | Per-frame sine-table vertex displacement on water terrain cells. Radial concentric ripples driven by `world_wave` INI parameters (amplitude, speed, spatial frequency) with runtime console tuning. | [water.md](water.md) |
+## Scripting and actors
 
-Player movement units, ground-turn arithmetic, collision, and timing are documented in [player.md](player.md).
+| Topic | Behavior |
+|---|---|
+| [SOUP scripting](SOUP.md) | Virtual machine, bytecode, value modes, tasks, function dispatch, and global flags. |
+| [SOUP386.DEF](SOUPDEF.md) | Function, attribute, reference, and flag definitions used by scripts. |
+| [Actor animation](animation.md) | Model frames, animation requests, loop counts, and placed actor eligibility. |
+| [Player movement](player.md) | Coordinate units, turning, collision, and frame timing. |
+| [Item attachment](attachment.md) | Vertex tracking for held weapons and shields. |
+| [Hidden cheats](cheats.md) | Cheat entry, effects, persistence, and developer controls. |
 
-[Startup presentation](startup.md) covers the original splash assets, projection, lighting, and screen sequence.
+## World rendering
 
-[Book menu](menu.md) covers MENU.INI-driven surfaces, model placement, fonts, selection, and Quit.
+| Topic | Behavior |
+|---|---|
+| [Terrain lighting](terrain-lighting.md) | Ambient and directional RGB lighting and terrain normals. |
+| [Fog and clipping](fog.md) | Scene and sky ranges, fog tables, and color blending. |
+| [Sky](sky.md) | Sky planes, background color, scrolling, and sun settings. |
+| [Water waves](water.md) | Terrain vertex displacement and wave settings. |
+
+## Audio and presentation
+
+| Topic | Behavior |
+|---|---|
+| [Positional sound](sound.md) | Distance attenuation, stereo pan, channels, and surface sound remapping. |
+| [Music](music.md) | CD tracks, world selection, switching, and repetition. |
+| [Subtitles](subtitles.md) | Dialogue, taunt, and movie text layout and timing. |
+| [In-game HUD](hud.md) | Health, items, activation prompts, compass, and draw order. |
+| [Book menu](menu.md) | Menu models, text placement, fonts, selection, and actions. |
+| [Cinematic playback](movies.md) | Movie selection, skip points, subtitles, and display rules. |
+| [Startup presentation](startup.md) | Splash assets, projection, lighting, and screen sequence. |

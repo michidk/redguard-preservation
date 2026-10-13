@@ -1,8 +1,24 @@
-# Redguard Preservation — Documentation
+# Redguard Preservation
 
 Reference documentation for *The Elder Scrolls Adventures: Redguard* (1998) file formats, engine behavior, and undocumented features. The documentation covers the GOG release's Glide renderer and notes known original-CD differences.
 
-## GOG Version Contents
+## Reference sections
+
+- [Engine behavior](engine/): scripting, actor animation, movement, rendering, audio, menus, and hidden cheats.
+- [File formats](formats/): binary layouts for models, maps, textures, sound, saved state, and bundled support files.
+- [Configuration](config/): INI settings for worlds, combat, items, input, rendering, and menus.
+
+## Starting points
+
+| Task | References |
+|---|---|
+| Load a world | [RGM scenes](formats/RGM.md), [WLD terrain](formats/WLD.md), [WORLD.INI](config/world-ini.md), and [PVO visibility](formats/pvo/format.md) |
+| Reproduce actor behavior | [SOUP scripting](engine/SOUP.md), [animation playback](engine/animation.md), [player movement](engine/player.md), and [item attachment](engine/attachment.md) |
+| Reproduce the scene renderer | [Terrain lighting](engine/terrain-lighting.md), [fog and clipping](engine/fog.md), [sky](engine/sky.md), and [water](engine/water.md) |
+| Reproduce menus and presentation | [Book menu](engine/menu.md), [HUD](engine/hud.md), [subtitles](engine/subtitles.md), and [cinematics](engine/movies.md) |
+| Inspect or convert assets | [CLI usage and library API](https://github.com/michidk/redguard-preservation/blob/main/README.md) |
+
+## Installation contents
 
 ### Main Files
 
@@ -16,8 +32,8 @@ Reference documentation for *The Elder Scrolls Adventures: Redguard* (1998) file
 | `ENGLISH.RTX` | 177 M | Dialogue text + voice audio container (largest file in the game) |
 | `REDGUARD.SWG` / `redguard.swx` | 18,610 bytes each | [SideWinder Gamepad and Freestyle Pro controller profiles](formats/SIDEWINDER.md) |
 | `OBJECT.SAV` | 4 K | Object state persistence |
-| `*.INI` (7 files) | — | Configuration: `COMBAT`, `ITEM`, `KEYS`, `MENU`, `REGISTRY`, `surface`, `SYSTEM`, `WORLD` |
-| `*.LOG` (14 files) | — | Runtime log files (BITMAP, CAMERA, COMBAT, ERROR, EXIT, GENERAL, GRID, MAINLOOP, MENU, OBJECT, PATH, RAI, SAVEFILE, STARTUP, TESTMAPS) |
+| `*.INI` | — | Configuration: `COMBAT`, `ITEM`, `KEYS`, `MENU`, `REGISTRY`, `surface`, `SYSTEM`, `WORLD` |
+| `*.LOG` | — | Runtime log files (BITMAP, CAMERA, COMBAT, ERROR, EXIT, GENERAL, GRID, MAINLOOP, MENU, OBJECT, PATH, RAI, SAVEFILE, STARTUP, TESTMAPS) |
 | `*.TXT` (3 files) | — | `BETHESDA.TXT`, `CREDITS.TXT`, `ReadMe.TXT` |
 
 ### Asset Directories
@@ -61,5 +77,3 @@ Redguard shipped with two parallel sets of 3D model assets for different rendere
 The two directories contain the same models re-exported for different renderers. The Glide versions (v4.0/v5.0) have a cleaner header layout and different texture encoding. See [3D — v2.6/v2.7 Header Differences](formats/models/3d.md#v26v27-header-differences) for details.
 
 > **Note**: The GOG distribution contains `fxart/` only. The software-renderer `3dart/` directory shipped on the original CD but is not present in the GOG release.
-
-Cinematic playback: [engine rules](engine/movies.md), [Smacker metadata](formats/SMK.md).

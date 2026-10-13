@@ -1,6 +1,17 @@
-# Configuration Files
+# Configuration
 
-Text-based INI configuration files shipped with the game.
+INI settings for worlds, actors, rendering, input, and presentation.
+
+## Settings and runtime behavior
+
+| Area | Configuration | Engine reference |
+|---|---|---|
+| World rendering | [WORLD.INI](world-ini.md), [FOG.INI](fog-ini.md) | [Lighting](../engine/terrain-lighting.md), [fog](../engine/fog.md), [sky](../engine/sky.md), [water](../engine/water.md) |
+| Actors and input | [COMBAT.INI](combat-ini.md), [ITEM.INI](item-ini.md), [KEYS.INI](keys-ini.md) | [Movement](../engine/player.md), [animation](../engine/animation.md), [attachments](../engine/attachment.md) |
+| Menus and movies | [MENU.INI](menu-ini.md) | [Book menu](../engine/menu.md), [cinematics](../engine/movies.md) |
+| Sound | [SURFACE.INI](surface-ini.md), [Miles settings](miles-ini.md) | [Positional sound](../engine/sound.md), [music](../engine/music.md) |
+
+[SYSTEM.INI](system-ini.md) contains the shared engine settings, including camera, dialogue, rendering, and debug options.
 
 ## Game Root Directory
 
