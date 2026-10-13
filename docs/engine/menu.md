@@ -34,6 +34,10 @@ Entries form a circular ordered list. Up selects the previous eligible entry, Do
 
 Action `-2` begins a closing-book/camera sequence and exits the game. It does not ask for confirmation. Action `-1` resumes; positive IDs dispatch the configured submenu or game function. Those functions must be implemented separately from rendering their labels.
 
+Action 10 starts New Game. Before loading world zero at marker zero, the engine
+calls `LockoutPlayer(0)`, clearing the retained lockout and applying its
+[actor and HUD cleanup](hud.md#shared-rules).
+
 The menu inherits the current engine lighting and environment state. The default
 book menu has no pointer hover or click selection. Pointer coordinates do not
 determine the selected entry. Mouse buttons and motion have input codes in
