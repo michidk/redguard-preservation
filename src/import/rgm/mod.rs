@@ -4,11 +4,13 @@ pub mod script;
 pub mod script_program;
 pub mod script_step;
 
+mod locations;
 mod metadata;
 mod positioning;
 mod shared;
 
 use crate::{Result, error::Error, import::registry::Registry, model3d::Model3DFile};
+pub use locations::actor_location_offsets;
 use log::warn;
 pub use positioning::{Placement, PlacementDiagnostic, PlacementType};
 use std::collections::HashMap;
