@@ -23,6 +23,7 @@ the [configuration reference](../config/) describes the INI settings.
 | [Terrain lighting](terrain-lighting.md) | Ambient and directional RGB lighting and terrain normals. |
 | [Fog and clipping](fog.md) | Scene and sky ranges, fog tables, and color blending. |
 | [Sky](sky.md) | Sky planes, background color, scrolling, and sun settings. |
+| [Texture animation](texture-animation.md) | Shared texture frames, authored delays, automatic and explicit selection. |
 | [Water waves](water.md) | Terrain vertex displacement and wave settings. |
 
 ## Audio and presentation
