@@ -170,6 +170,17 @@ adjustment.
 
 `Sound` returns zero as its SOUP scalar result, including when no sample starts.
 
+Each `AmbientSound` task retains its own sample handle in native task state.
+Whenever its elapsed input is zero, or the shared sample-reset flag is set,
+it discards that remembered handle before querying playback status. Discarding
+the handle does not itself stop a channel. The engine's periodic sound-reset
+path stops all sample channels and sets this flag, allowing active ambient
+tasks to acquire replacement channels when they next run.
+
+[`TaskStop`](SOUP.md#animation-task-ownership-and-stopping) removes the native
+task slot without invoking its handler. Stopping an ambient task therefore
+does not itself issue a sample-stop command. Sound ownership commands are separate from task-slot removal.
+
 `KillMe` sets the object's killed flag and stops every channel the object
 owns; `Resurrect` clears the flag.
 
