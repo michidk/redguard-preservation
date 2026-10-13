@@ -70,6 +70,9 @@ attenuation reaches 127 at `d = 2287`, so a sound with `off = 0` is already
 silent there, slightly before the radius. A positive offset cannot make a
 sound beyond `R` audible.
 
+The addition of `off` wraps as a signed 32-bit sum before the final signed
+clamp. An overflowing positive offset can therefore produce zero volume.
+
 ## Pan
 
 Pan uses only the horizontal plane (x, z):
@@ -158,7 +161,7 @@ adjustment.
 |---|---|---|---|
 | `Sound` | function | effect, volume offset, rate offset | Positional start: volume from the curve with `off` = volume offset, pan at start. Starts even at `v = 0`. No later updates. |
 | `FlatSound` | function | effect, volume, rate offset | Non-positional: pan 64, `v = clamp(base_volume + volume, 0, 127)`, where `base_volume` is SFX header byte `0x0C` (64 in all 118 shipped effects). `FlatSound(e, 0, 0)` plays at 64. |
-| `AmbientSound` | multitask | effect, volume offset, rate offset | Each run: compute volume and pan. If `v = 0`, or the object has been killed, stop this task's sound and end the multitask. Otherwise start the sound if it is not playing (never started, or a one-shot finished), then set the current volume and pan. |
+| `AmbientSound` | multitask | effect, volume offset, rate offset | Each run: compute volume and pan. If `v = 0`, or the runtime object-update exclusion is set, stop this task's sound and end the multitask. Otherwise start the sound if it is not playing (never started, or a one-shot finished), then set the current volume and pan. |
 | `AmbientRTX` | multitask | RTX label, volume offset, unused | First run: start the label's [RTX](../formats/RTX.md) clip at pan 64 and its header volume, start index 0. Each run: compute volume and pan; if `v = 0` or the object has been killed, stop the clip and end the multitask; otherwise set the volume and pan. The multitask ends once the clip has finished; it is not restarted. No dialogue line or subtitle is created. |
 | `EndSound` | function | effect | Stop every playing channel whose requested effect is `effect`, whatever its owner. |
 | `EndMySound` | function | effect | Stop every playing channel whose requested effect is `effect` and whose owner is this object. |
