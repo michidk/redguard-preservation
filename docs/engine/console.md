@@ -74,6 +74,14 @@ Page Down move through retained output. Enter dispatches an editable command.
 The interactive console runs its own input and drawing loop before returning to
 the caller's game loop.
 
+The cursor uses two report-colored vertical-bar glyphs, four scaled pixels above
+and below the insertion position. It is visible while a key is being handled or
+when the low bit of the console clock counter is set. On the normal BIOS-clock
+path, the counter increments once whenever accumulated elapsed time reaches
+18 BIOS ticks, retaining the remainder modulo 18. A delayed update increments
+it once even when several such intervals elapsed. An input iteration without a
+key clears the forced-visible state.
+
 Console preferences are stored in [REDGUARD.CPF](../formats/CPF.md).
 
 ## Registered commands
@@ -174,6 +182,13 @@ Each row is one command. The alias invokes the same handler from the interactive
 | `fxscriptname` | `fxsn` | `fxscriptname name`. Assigns the selected light's script name. Retains at most eight characters; requires an active light editor and selected light. |
 
 ### Sky, lighting and water
+
+Sky scale and level read signed 32-bit console numbers and convert them to float
+for rendering. Wave amplitude, speed and frequency do the same conversion.
+These five commands do not clamp their inputs. Sky speed uses the full signed
+value divided by sixteen for immediate scrolling, stores its low byte in the
+world configuration, and chooses a new random scrolling direction.
+
 
 | Command | Alias | Arguments and behavior |
 |---|---|---|
