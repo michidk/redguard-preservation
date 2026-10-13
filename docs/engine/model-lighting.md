@@ -14,6 +14,12 @@ chroma-key RGB before applying vertex-light modulation. A matching RGB is
 rejected. Filtering uses the encoded palette colors, including the key color;
 it does not interpolate a transparent alpha mask and apply an alpha cutoff.
 
+Display initialization selects indexed palette texture mode. Each texture's
+chroma key is the selected palette's entry-zero RGB, copied without channel
+quantization. Palette selection uploads the complete 256-entry RGB table to
+texture unit zero. Palette-zero texels retain their RGB through filtering even
+when the material enables chroma rejection.
+
 ## Ambient and directional contribution
 
 Models share the ambient RGB, directional RGB and normalized world direction
