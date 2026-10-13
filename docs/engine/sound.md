@@ -188,6 +188,9 @@ their sample handles. These operations precede stopping all sample channels
 and setting the shared reset flag.
 
 `MenuBegin` sets the runtime menu-state word to one; `MenuEnd` clears it.
+The SOUP `menuProc` task activates this state when it is inactive and clears
+it when a selection is accepted. These calls occur inside the native task
+handler.
 During ordinary actor processing, an active menu-state word or a nonzero
 `WaitOnDialog` result sets the maintenance inhibition flag. When both are zero,
 the flag clears only if player lockout is also zero. A nonzero player lockout
