@@ -29,6 +29,23 @@ an individual mesh instance.
 
 ## Model polygon admission
 
+Before model polygons are prepared, draw submission classifies a bound around
+the model origin transformed into scaled camera space. Let `(x, y, z)` be that
+origin, `r` the model header radius in engine units, and `(sx, sy)` the
+[projection scales](projection.md). Its depth interval is `[z-r, z+r]`; its
+horizontal and vertical intervals are `[x-hx, x+hx]` and `[y-hy, y+hy]`, where
+`hx = 1.415 * (r*sx)` and `hy = 1.415 * (r*sy)`. The decimal multiplier is
+`1.415`. The scaled radii, multiplied side radii and interval endpoints are
+stored in single precision.
+
+Submission rejects a depth interval whose upper endpoint is at or before the
+near plane, or whose lower endpoint is at or beyond the far plane. It rejects
+a side interval whose upper endpoint is at or below `-z`, or whose lower
+endpoint is at or above `z`. Otherwise it records each plane crossed by an
+interval. An endpoint exactly on a plane does not count as crossing it.
+No crossed planes selects the unclipped polygon preparation path; any crossed
+plane selects the clipped path. A rejected bound does not enter the draw list.
+
 The model draw path prepares a polygon before binding its texture. It binds only
 when preparation returns at least three vertices. Earlier object and face
 rejection still applies.
