@@ -64,6 +64,22 @@ The unclipped preparation path retains the input vertex count. Thus texture
 binding admission is distinct from both an object's visibility bound and the
 eventual rasterized coverage.
 
+## Terrain triangle admission
+
+Terrain submits the cells in its [camera window](water.md#terrain-window).
+Each cell tests its two triangles separately. The dot product of the vector
+from the camera to the cell's anchor vertex with that triangle's stored face
+normal must be strictly negative. A zero result rejects the triangle.
+
+An admitted triangle copies its three prepared camera-space vertices and
+classifies them against the same six clipping planes used for model polygons.
+A common outside plane rejects it. Otherwise it clips as needed and requires
+at least three remaining vertices before binding the cell's texture with an
+automatic frame request. The texture request precedes polygon drawing.
+Clipping boundaries are inclusive, and coincident vertices can still produce
+an automatic request. Rejected or back-facing terrain triangles do not advance
+their texture image.
+
 ## Export metadata
 
 Animated glTF materials carry `extras.rgpre_texture_animation` with version 1.
