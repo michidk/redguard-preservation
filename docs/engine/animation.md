@@ -181,6 +181,11 @@ Animation-table setup clears the actor's combat-state association and creates
 combat state when attribute byte 14 is nonzero. This state is separate from the
 animation group's playback cursor and from the actor's attribute table.
 
+The nonplayer death-animation paths pair a forced request for group 122 with
+stored death default 124, and a forced request for group 121 with stored death
+default 123. The requested death animation and the subsequent ordinary default
+are separate values; the default selector reads the stored combat-state value.
+
 ## Forced requests
 
 A forced request for the current group, before its exit marker is set, clears
