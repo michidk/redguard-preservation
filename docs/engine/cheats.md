@@ -32,7 +32,7 @@ In the console, use `<cheatname> = <value>` to set a specific integer value inst
 | 7 | `drevil` | Prevents player death — suppresses death handling when health reaches zero and bypasses some player damage application paths |
 | 8 | `drno` | Disables part of the non-player actor update path, reducing/skipping some NPC behavior processing |
 | 9 | `goldfinger` | God mode — continuously refreshes the player's post-hit invulnerability timer while active, preventing it from expiring. Once the player takes a hit (which starts the timer), subsequent damage is blocked indefinitely. Differs from `drevil`, which prevents death when health reaches zero rather than blocking incoming damage. |
-| 10 | `neversaydie` | Dead code. The flag can be toggled and persisted in `REDGUARD.CHT`, but it does not change gameplay behavior. |
+| 10 | `neversaydie` | Makes SOUP `PlayerDistance()` return `9999999` instead of calculating distance. |
 | 11 | `oddjob` | Dead code. The flag can be toggled and persisted in `REDGUARD.CHT`, but it does not change gameplay behavior. |
 | 12 | `yeahbaby` | Vertical surface bypass — while active, **Page Up** moves the player upward through surfaces and **Page Down** clips below the current surface. The collision bypass only engages while one of these keys is held; normal surface collision applies otherwise. Not a permanent noclip — horizontal collision is unaffected. |
 

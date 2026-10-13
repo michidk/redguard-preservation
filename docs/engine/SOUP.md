@@ -441,7 +441,9 @@ between the selected player's current position and the receiver's effective
 position. Positions and the result use the runtime coordinate scale of 256
 units per world unit. Without a selected player, it uses the global fallback
 position. A global override selects the fixed result `9999999` instead of
-calculating distance.
+calculating distance. The override is the nonzero `neversaydie` cheat state.
+Cheat initialization clears it before loading the optional `REDGUARD.CHT` file;
+without that file it starts disabled.
 
 Fresh ordinary actor allocation starts without a linked-position record.
 This record is separate from the attribute-based master/slave attachment.
