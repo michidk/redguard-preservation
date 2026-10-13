@@ -560,6 +560,13 @@ traversal list. It collects attached child masters separately from attached
 actors without a master identity. Each collection prepends matching actors,
 so its traversal reverses their encounter order.
 
+The initialization traversal visits allocated map-cell registry identities in
+increasing order, preserving each cell's actor list, then appends the persistent
+actor list. Registry identities are assigned to cells as they are allocated;
+sorting cell coordinates does not define this traversal. Fresh actor allocations
+prepend to their cell or persistent list. Duplicate root masters are permitted:
+the first matching root is selected, and the other roots remain independent.
+
 Initialization saves each master's original position and angles before
 processing its descendants. Descendants are initialized before the child
 master's own coordinates become local. For each attached actor:
