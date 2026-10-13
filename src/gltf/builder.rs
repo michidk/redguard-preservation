@@ -384,16 +384,20 @@ impl<'a> GltfBuilder<'a> {
         texture_id: u16,
         image_id: u8,
         sampler_index: usize,
-        mirrored: bool,
+        terrain: bool,
     ) -> Option<(usize, bool)> {
         if let Some(cached) = self
             .texture_index_cache
-            .get(&(texture_id, image_id, mirrored))
+            .get(&(texture_id, image_id, terrain))
         {
             return *cached;
         }
         let texture_png = if let Some(cache) = self.texture_cache.as_deref_mut() {
-            cache.get_image_png(texture_id, image_id, self.compress_textures)
+            if terrain {
+                cache.terrain_image_png(texture_id, image_id, self.compress_textures)
+            } else {
+                cache.get_image_png(texture_id, image_id, self.compress_textures)
+            }
         } else {
             None
         };
@@ -402,7 +406,7 @@ impl<'a> GltfBuilder<'a> {
         });
 
         self.texture_index_cache
-            .insert((texture_id, image_id, mirrored), resolved);
+            .insert((texture_id, image_id, terrain), resolved);
         resolved
     }
 
@@ -422,7 +426,7 @@ impl<'a> GltfBuilder<'a> {
             self.resolve_textured_texture_index(texture_id, image_id, sampler_index, terrain)
         {
             let animation = self.texture_cache.as_deref_mut().and_then(|cache| {
-                cache.animation_pngs(texture_id, image_id, self.compress_textures)
+                cache.animation_pngs(texture_id, image_id, self.compress_textures, terrain)
             });
             let mut material = Self::create_textured_material(
                 texture_index,
