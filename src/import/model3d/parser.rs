@@ -533,85 +533,6 @@ fn vertex_normals_offset(header: &Model3DHeader) -> u32 {
     }
 }
 
-/// Computes the file offset where vertex coordinate data begins.
-///
-/// v4.0/v5.0 and static v2.6/v2.7 models store vertex coords at
-/// `offset_vertex_coords`.
-///
-/// Animated v2.6/v2.7 models (3DC files with frame data) store vertex
-/// coords after the face data section.  The primary offset is
-/// `face_data_end + frame_data[0].reserved`.  When that offset
-/// produces out-of-range coordinates the function falls back to
-/// `face_data_end` alone.
-///
-/// The validation threshold (raw `i32` magnitude > 1 090 519 040)
-/// catches misplaced offsets while accepting the full range of
-/// coordinates found in game assets.
-fn vertex_coords_offset(
-    input: &[u8],
-    header: &Model3DHeader,
-    frame_data: &[FrameDataEntry],
-) -> u32 {
-    let is_animated_legacy =
-        header.is_v27_or_earlier() && header.num_frames > 0 && !frame_data.is_empty();
-
-    if !is_animated_legacy {
-        return header.offset_vertex_coords;
-    }
-
-    // In v2.6/v2.7, frame_data[0].normal_offset stores the face data byte
-    // count.  The software renderer streams face data for exactly this many
-    // bytes, then continues with vertex data (possibly after a gap encoded
-    // in frame_data[0].reserved).
-    let face_data_end = header
-        .offset_face_data
-        .saturating_add(frame_data[0].normal_offset);
-    let primary = face_data_end.saturating_add(frame_data[0].reserved);
-
-    if vertices_look_valid(input, primary, header.num_vertices) {
-        primary
-    } else {
-        trace!(
-            "v2.6/v2.7 vertex data at primary offset {} looks invalid, falling back to face_data_end {}",
-            primary, face_data_end
-        );
-        face_data_end
-    }
-}
-
-/// Quick sanity check: read the first few vertices at `offset` and reject
-/// if any raw i32 component exceeds the magnitude threshold.
-fn vertices_look_valid(input: &[u8], offset: u32, num_vertices: u32) -> bool {
-    const MAX_RAW: i32 = 1_090_519_040;
-    let check_count = num_vertices.min(8) as usize;
-    let Ok(mut pos) = usize::try_from(offset) else {
-        return false;
-    };
-    for _ in 0..check_count {
-        if pos + 12 > input.len() {
-            return false;
-        }
-        let x = i32::from_le_bytes([input[pos], input[pos + 1], input[pos + 2], input[pos + 3]]);
-        let y = i32::from_le_bytes([
-            input[pos + 4],
-            input[pos + 5],
-            input[pos + 6],
-            input[pos + 7],
-        ]);
-        let z = i32::from_le_bytes([
-            input[pos + 8],
-            input[pos + 9],
-            input[pos + 10],
-            input[pos + 11],
-        ]);
-        if x.abs() > MAX_RAW || y.abs() > MAX_RAW || z.abs() > MAX_RAW {
-            return false;
-        }
-        pos += 12;
-    }
-    true
-}
-
 // Convert normal_indices from file offsets to vertex_normals array indices.
 // Each raw entry is a byte offset into the vertex-normal section; dividing
 // by 12 (size of one f32×3 normal) yields the array index.
@@ -668,12 +589,7 @@ fn parse_i16_frame_vertices(input: &[u8], offset: usize, num_verts: usize) -> Ve
     let mut pos = offset;
     for _ in 0..num_verts {
         if pos + 6 > input.len() {
-            coords.push(VertexCoord {
-                x: 0.0,
-                y: 0.0,
-                z: 0.0,
-            });
-            continue;
+            break;
         }
         let x = i16::from_le_bytes([input[pos], input[pos + 1]]) as f32;
         let y = i16::from_le_bytes([input[pos + 2], input[pos + 3]]) as f32;
@@ -775,6 +691,126 @@ fn parse_all_frame_data(
     (fvd, fnd)
 }
 
+fn parse_software_frames(
+    input: &[u8],
+    header: &Model3DHeader,
+) -> Option<(
+    Vec<FrameDataEntry>,
+    Vec<FrameVertexData>,
+    Vec<FrameNormalData>,
+)> {
+    let metadata = usize::try_from(header.offset_frame_data).ok()?;
+    let bytes = input.get(metadata..metadata.checked_add(24)?)?;
+    let table = usize::try_from(u32::from_le_bytes(bytes[..4].try_into().ok()?)).ok()?;
+    let flags = u16::from_le_bytes(bytes[12..14].try_into().ok()?);
+    let compressed = flags & 1 != 0;
+    let reference = usize::from(u16::from_le_bytes(bytes[14..16].try_into().ok()?));
+    let shift = bytes[23] & 31;
+    let count = usize::try_from(header.num_frames).ok()?;
+    let stride = if compressed { 12 } else { 16 };
+    let table_bytes = input.get(table..table.checked_add(count.checked_mul(stride)?)?)?;
+    if compressed && reference >= count {
+        return None;
+    }
+    let mut entries = Vec::with_capacity(count);
+    for record in table_bytes.chunks_exact(stride) {
+        entries.push(FrameDataEntry {
+            vertex_offset: u32::from_le_bytes(record[..4].try_into().ok()?),
+            normal_offset: u32::from_le_bytes(record[4..8].try_into().ok()?),
+            reserved: u32::from_le_bytes(record[8..12].try_into().ok()?),
+            frame_type: if compressed {
+                FrameType::SoftwareI16 {
+                    base_frame: reference as u16,
+                    shift,
+                }
+            } else {
+                FrameType::AnimatedI32
+            },
+        });
+    }
+    let vertices = header.num_vertices as usize;
+    let faces = header.num_faces as usize;
+    let base: Vec<[i32; 3]> = if compressed {
+        let offset = entries[reference].vertex_offset as usize;
+        input
+            .get(offset..offset.checked_add(vertices.checked_mul(12)?)?)?
+            .as_chunks::<12>()
+            .0
+            .iter()
+            .map(|bytes| {
+                std::array::from_fn(|axis| {
+                    i32::from_le_bytes(bytes[axis * 4..axis * 4 + 4].try_into().unwrap())
+                })
+            })
+            .collect()
+    } else {
+        Vec::new()
+    };
+    let mut positions = Vec::with_capacity(count);
+    let mut normals = Vec::with_capacity(count);
+    for (frame, entry) in entries.iter().enumerate() {
+        let coords = if !compressed || frame == reference {
+            let offset = entry.vertex_offset as usize;
+            input.get(offset..offset.checked_add(vertices.checked_mul(12)?)?)?;
+            parse_i32_frame_vertices(input, entry.vertex_offset as usize, vertices)
+        } else {
+            let offset = entry.vertex_offset as usize;
+            input.get(offset..offset.checked_add(vertices.checked_mul(6)?)?)?;
+            input[offset..offset + vertices * 6]
+                .as_chunks::<6>()
+                .0
+                .iter()
+                .zip(&base)
+                .map(|(bytes, base)| {
+                    let values: [f32; 3] = std::array::from_fn(|axis| {
+                        let delta = i32::from(i16::from_le_bytes(
+                            bytes[axis * 2..axis * 2 + 2].try_into().unwrap(),
+                        ));
+                        base[axis].wrapping_add(delta.wrapping_shl(u32::from(shift))) as f32 / 256.0
+                    });
+                    VertexCoord {
+                        x: values[0],
+                        y: values[1],
+                        z: values[2],
+                    }
+                })
+                .collect()
+        };
+        if coords.len() != vertices {
+            return None;
+        }
+        let offset = entry.normal_offset as usize;
+        let face_normals = if compressed {
+            let bytes = input.get(offset..offset.checked_add(faces.checked_mul(4)?)?)?;
+            bytes
+                .as_chunks::<4>()
+                .0
+                .iter()
+                .map(|bytes| {
+                    let packed = i32::from_le_bytes(*bytes);
+                    FaceNormal {
+                        x: ((packed << 2) >> 22) as f32 / 256.0,
+                        y: ((packed << 12) >> 22) as f32 / 256.0,
+                        z: ((packed << 22) >> 22) as f32 / 256.0,
+                    }
+                })
+                .collect()
+        } else {
+            let mut bytes = input.get(offset..offset.checked_add(faces.checked_mul(12)?)?)?;
+            let mut result = Vec::with_capacity(faces);
+            for _ in 0..faces {
+                let (remaining, normal) = parse_face_normal(bytes).ok()?;
+                result.push(normal);
+                bytes = remaining;
+            }
+            result
+        };
+        positions.push(FrameVertexData { coords });
+        normals.push(FrameNormalData { face_normals });
+    }
+    Some((entries, positions, normals))
+}
+
 /// Parses a full 3D/3DC model and returns decoded geometry sections.
 pub fn parse_3d_file(input: &[u8]) -> IResult<&[u8], Model3DFile> {
     trace!(
@@ -789,12 +825,45 @@ pub fn parse_3d_file(input: &[u8]) -> IResult<&[u8], Model3DFile> {
         version, header.num_vertices, header.num_faces
     );
 
+    if header.is_v27_or_earlier() && header.num_frames > 0 {
+        let (frame_data, frame_vertex_data, frame_normal_data) =
+            parse_software_frames(input, &header).ok_or_else(|| {
+                nom::Err::Failure(nom::error::Error::new(
+                    &input[..0],
+                    nom::error::ErrorKind::Verify,
+                ))
+            })?;
+        let face_data = parse_face_data_section(input, &header, &version);
+        if face_data.len() != header.num_faces as usize {
+            return Err(nom::Err::Failure(nom::error::Error::new(
+                input,
+                nom::error::ErrorKind::Verify,
+            )));
+        }
+        let vertex_coords = frame_vertex_data[0].coords.clone();
+        let face_normals = frame_normal_data[0].face_normals.clone();
+        return Ok((
+            &[],
+            Model3DFile {
+                header,
+                version,
+                frame_data,
+                face_data,
+                vertex_coords,
+                face_normals,
+                normal_indices: Vec::new(),
+                vertex_normals: Vec::new(),
+                frame_vertex_data,
+                frame_normal_data,
+            },
+        ));
+    }
     let frame_data = parse_frame_data_section(input, &header);
     let _ = parse_section4_data_section(input, &header);
     let face_data = parse_face_data_section(input, &header, &version);
 
     let adjusted_offset_normals = vertex_normals_offset(&header);
-    let adjusted_offset_vertex_coords = vertex_coords_offset(input, &header, &frame_data);
+    let adjusted_offset_vertex_coords = header.offset_vertex_coords;
 
     let vertex_coords = parse_vertex_coords_section(input, &header, adjusted_offset_vertex_coords);
     let face_normals = parse_face_normals_section(input, &header);

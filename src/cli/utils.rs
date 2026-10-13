@@ -100,10 +100,11 @@ pub fn parse_file(
     }
 }
 
-pub fn auto_resolve_palette(
+pub fn auto_resolve_palette_for_edition(
     asset_root: &Path,
     input_file: &Path,
     filetype: FileType,
+    software: bool,
 ) -> Result<Option<Palette>> {
     if !matches!(filetype, FileType::Rgm | FileType::Wld) {
         return Ok(None);
@@ -144,7 +145,8 @@ pub fn auto_resolve_palette(
         );
     }
 
-    let Some(palette_path) = world_ini::find_palette_on_disk(asset_root, &matches[0].palette)
+    let Some(palette_path) =
+        world_ini::find_palette_for_edition(asset_root, &matches[0].palette, software)
     else {
         warn!(
             "WORLD.INI specifies palette '{}' for world {}, but file not found under {}",

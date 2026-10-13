@@ -13,6 +13,7 @@
 #define RGPRE_H
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -161,6 +162,7 @@ ByteBuffer *rg_convert_wld_from_path(const char *file_path, const char *assets_d
 /* ── World handle API ──────────────────────────────────────────────── */
 
 RgWorldHandle *rg_open_world(const char *assets_dir, int32_t world_id);
+RgWorldHandle *rg_open_world_for_edition(const char *assets_dir, int32_t world_id, bool software);
 RgWorldHandle *rg_open_world_explicit(const char *assets_dir, const char *rgm_path, const char *wld_path, const char *palette_path);
 void           rg_close_world(RgWorldHandle *world);
 int32_t        rg_world_count(const char *assets_dir);

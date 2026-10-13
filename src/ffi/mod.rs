@@ -169,8 +169,7 @@ pub unsafe extern "C" fn rg_convert_model_from_path(
         })?;
 
         let model_bytes = std::fs::read(&file_path)?;
-        let (palette, mut texture_cache) =
-            build_path_texture_cache(&assets_dir, &file_path, file_type);
+        let palette = auto_resolve_palette(&assets_dir, &file_path, file_type);
 
         run_on_large_stack(move || {
             let models = match file_type {
@@ -189,6 +188,14 @@ pub unsafe extern "C" fn rg_convert_model_from_path(
                 }
             };
 
+            let software = models
+                .first()
+                .is_some_and(|model| model.header.is_v27_or_earlier());
+            let mut texture_cache = TextureCache::new_for_edition(
+                assets_dir,
+                palette.as_ref().map(|p| Palette { colors: p.colors }),
+                software,
+            );
             let (root, buffer) =
                 convert_models_to_gltf(&models, palette.as_ref(), Some(&mut texture_cache), false)?;
             to_glb(&root, &buffer)
@@ -313,6 +320,26 @@ pub unsafe extern "C" fn rg_open_world(
         WorldHandle::open(PathBuf::from(assets_dir), world_id)
     })();
 
+    into_ffi_ptr_result(result)
+}
+
+/// Opens the selected renderer edition in an install containing both art trees.
+///
+/// # Safety
+/// `assets_dir` must be a valid null-terminated UTF-8 string.
+/// Release the returned handle with `rg_close_world`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn rg_open_world_for_edition(
+    assets_dir: *const c_char,
+    world_id: i32,
+    software: bool,
+) -> *mut WorldHandle {
+    let result = (|| -> crate::Result<WorldHandle> {
+        let assets_dir = unsafe { read_c_str(assets_dir, "assets_dir") }?;
+        let world_id = u32::try_from(world_id)
+            .map_err(|_| crate::error::Error::Parse("world_id must be >= 0".into()))?;
+        WorldHandle::open_for_edition(PathBuf::from(assets_dir), world_id, software)
+    })();
     into_ffi_ptr_result(result)
 }
 

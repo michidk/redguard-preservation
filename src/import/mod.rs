@@ -59,6 +59,7 @@ pub mod savegame;
 /// Parser for SFX sound effect files.
 pub mod sfx;
 pub mod smacker;
+pub mod software_texture;
 pub mod soup_def;
 pub mod soup_ini;
 pub mod surface_ini;
@@ -74,6 +75,9 @@ use std::path::Path;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, clap::ValueEnum)]
 /// Supported Redguard file types recognized by this crate.
 pub enum FileType {
+    Texture,
+    Shade,
+    Haze,
     Bsi,      // .bsi
     Cht,      // .cht
     Col,      // .col
@@ -92,7 +96,10 @@ pub enum FileType {
     Anm,      // .anm
 }
 
-const ALL_FILE_TYPES: [FileType; 16] = [
+const ALL_FILE_TYPES: [FileType; 19] = [
+    FileType::Texture,
+    FileType::Shade,
+    FileType::Haze,
     FileType::Bsi,
     FileType::Cht,
     FileType::Col,
@@ -120,6 +127,9 @@ impl FileType {
     #[must_use]
     pub const fn display_name(self) -> &'static str {
         match self {
+            Self::Texture => "Software Texture",
+            Self::Shade => "Shade Lookup",
+            Self::Haze => "Haze Lookup",
             Self::Bsi => "Texture BSI",
             Self::Cht => "Cheat States",
             Self::Col => "Palette",
@@ -142,6 +152,9 @@ impl FileType {
     #[must_use]
     pub const fn extensions(self) -> &'static [&'static str] {
         match self {
+            Self::Texture => &[".texture"],
+            Self::Shade => &[".shade"],
+            Self::Haze => &[".haze"],
             Self::Bsi => &[".bsi"],
             Self::Cht => &[".cht"],
             Self::Col => &[".col"],
@@ -181,10 +194,13 @@ impl FileType {
             return Some(ft);
         }
         let stem = p.file_stem()?.to_str()?.to_ascii_uppercase();
-        if stem == "TEXBSI" {
-            return Some(Self::Bsi);
+        match stem.as_str() {
+            "TEXBSI" => Some(Self::Bsi),
+            "TEXTURE" => Some(Self::Texture),
+            "SHADE" => Some(Self::Shade),
+            "HAZE" => Some(Self::Haze),
+            _ => None,
         }
-        None
     }
 }
 

@@ -6,11 +6,12 @@ pub(crate) mod gxa;
 pub(crate) mod pvo;
 pub(crate) mod rtx;
 pub(crate) mod sfx;
+pub(crate) mod software;
 pub(crate) mod texbsi;
 pub(crate) mod wld;
 
 use super::utils::{
-    auto_resolve_palette, parse_file, resolve_asset_root_from_input, resolve_filetype,
+    auto_resolve_palette_for_edition, parse_file, resolve_asset_root_from_input, resolve_filetype,
 };
 use crate::cli::filetype::FileTypeCliExt;
 use crate::opts::{
@@ -144,6 +145,7 @@ fn load_palette(
     asset_root: &Path,
     file: &Path,
     filetype: FileType,
+    software: bool,
 ) -> Result<Option<Palette>> {
     match palette_path {
         Some(path) => {
@@ -151,11 +153,15 @@ fn load_palette(
             let palette = Palette::parse(&data).map_err(|e| color_eyre::eyre::eyre!("{e}"))?;
             Ok(Some(palette))
         }
-        None => auto_resolve_palette(asset_root, file, filetype),
+        None => auto_resolve_palette_for_edition(asset_root, file, filetype, software),
     }
 }
 
-fn build_texture_cache(palette: Option<&Palette>, asset_root: PathBuf) -> Option<TextureCache> {
+fn build_texture_cache(
+    palette: Option<&Palette>,
+    asset_root: PathBuf,
+    software: Option<bool>,
+) -> Option<TextureCache> {
     palette.map_or_else(
         || {
             warn!(
@@ -164,10 +170,10 @@ fn build_texture_cache(palette: Option<&Palette>, asset_root: PathBuf) -> Option
             None
         },
         |pal| {
-            Some(TextureCache::new(
-                asset_root,
-                Some(Palette { colors: pal.colors }),
-            ))
+            Some(match software {
+                Some(edition) => TextureCache::new_for_edition(asset_root, Some(Palette { colors: pal.colors }), edition),
+                None => TextureCache::new(asset_root, Some(Palette { colors: pal.colors })),
+            })
         },
     )
 }
@@ -191,10 +197,11 @@ fn handle_model_convert(args: &ModelArgs) -> Result<()> {
         &asset_root,
         &args.io.file,
         filetype,
+        false,
     )?;
-    let mut texture_cache = build_texture_cache(palette.as_ref(), asset_root);
-
     let models = parse_file(&args.io.file, Some(filetype), None)?;
+    let software = models.first().map(|model| model.header.is_v27_or_earlier());
+    let mut texture_cache = build_texture_cache(palette.as_ref(), asset_root, software);
 
     if filetype == FileType::Rob {
         warn!(
@@ -226,6 +233,7 @@ fn handle_model_convert(args: &ModelArgs) -> Result<()> {
 fn handle_rgm_convert(args: &RgmArgs) -> Result<()> {
     let output_path = resolve_output(&args.io, FileType::Rgm);
     let asset_root = resolve_asset_root(args.assets.as_deref(), &args.io.file);
+    let software = args.software || registry::detect_software_assets(&asset_root);
     let soup_def = rgpre::import::soup_def::try_load_soup_def(&asset_root);
     let rtx_labels = rgpre::import::rtx::try_load_rtx_labels(&asset_root);
 
@@ -233,15 +241,16 @@ fn handle_rgm_convert(args: &RgmArgs) -> Result<()> {
         "Creating registry from assets root: {}",
         asset_root.display()
     );
-    let registry = registry::scan_dir(asset_root.clone())?;
+    let registry = registry::scan_dir_for_edition(asset_root.clone(), software)?;
 
     let palette = load_palette(
         args.palette.as_deref(),
         &asset_root,
         &args.io.file,
         FileType::Rgm,
+        software,
     )?;
-    let mut texture_cache = build_texture_cache(palette.as_ref(), asset_root);
+    let mut texture_cache = build_texture_cache(palette.as_ref(), asset_root, Some(software));
 
     info!("Converting file: {}", args.io.file.display());
     info!("Requested output path: {}", output_path.display());
@@ -356,6 +365,14 @@ fn handle_rgm_convert(args: &RgmArgs) -> Result<()> {
 
 fn handle_subcommand(cmd: ConvertCommand) -> Result<()> {
     match cmd {
+        ConvertCommand::Texture(args) => {
+            let output = resolve_output(&args.io, FileType::Texture);
+            software::convert_texture(&args, &output)
+        }
+        ConvertCommand::Shade(io) | ConvertCommand::Haze(io) => {
+            let output = resolve_output(&io, FileType::Shade);
+            software::convert_lookup(&io.file, &output)
+        }
         ConvertCommand::Texbsi(args) => {
             let output = resolve_output(&args.io, FileType::Bsi);
             texbsi::handle_texbsi_convert(&args, &output)
@@ -426,6 +443,20 @@ fn handle_auto_convert(auto: AutoConvertArgs) -> Result<()> {
     info!("Converting file: {}", io.file.display());
 
     match filetype {
+        FileType::Texture => {
+            let args = TexbsiArgs {
+                io,
+                format: TexbsiFormat::Gif,
+                palette: None,
+                compress_textures: compress,
+            };
+            let output = resolve_output(&args.io, filetype);
+            software::convert_texture(&args, &output)
+        }
+        FileType::Shade | FileType::Haze => {
+            let output = resolve_output(&io, filetype);
+            software::convert_lookup(&io.file, &output)
+        }
         FileType::Bsi => {
             let args = TexbsiArgs {
                 io,
@@ -469,6 +500,7 @@ fn handle_auto_convert(auto: AutoConvertArgs) -> Result<()> {
         }
         FileType::Wld => {
             let args = WldArgs {
+                software: false,
                 io,
                 assets: None,
                 palette: None,
@@ -491,6 +523,7 @@ fn handle_auto_convert(auto: AutoConvertArgs) -> Result<()> {
         }
         FileType::Rgm => {
             let args = RgmArgs {
+                software: false,
                 io,
                 assets: None,
                 palette: None,

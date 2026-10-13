@@ -109,6 +109,11 @@ pub enum FrameType {
     /// Signed i16 deltas in whole model units (frame type 0x12).
     AnimatedI16Unscaled,
     AnimatedI32,
+    /// Software deltas add to a reference frame after a raw fixed-point shift.
+    SoftwareI16 {
+        base_frame: u16,
+        shift: u8,
+    },
     Static3DC,
     Unknown(u32),
 }
@@ -238,6 +243,13 @@ fn parse_data_internal(input: &[u8], kind: &str) -> Result<Model3DFile> {
             }
             Ok(model)
         }
+        Err(e)
+            if (input.starts_with(b"v2.6") || input.starts_with(b"v2.7")) && input.len() >= 64 =>
+        {
+            Err(Error::Parse(format!(
+                "Failed to parse software {kind}: invalid or incomplete animation directory, positions, normals or faces ({e:?})"
+            )))
+        }
         Err(e) => Err(Error::Parse(format!("Failed to parse {kind}: {e:?}"))),
     }
 }
@@ -286,9 +298,10 @@ impl Model3DFile {
             return Err(invalid("incomplete geometry"));
         }
         posed.vertex_coords = match encoding {
-            FrameType::AnimatedI16 | FrameType::AnimatedI16Unscaled | FrameType::AnimatedI32 => {
-                positions.clone()
-            }
+            FrameType::AnimatedI16
+            | FrameType::AnimatedI16Unscaled
+            | FrameType::AnimatedI32
+            | FrameType::SoftwareI16 { .. } => positions.clone(),
             FrameType::Static3D
                 if matches!(self.version, ModelVersion::V40 | ModelVersion::V50) =>
             {

@@ -92,11 +92,20 @@ impl Registry {
     /// If a file with the same name already exists, it will be overwritten.
     pub fn add_file<P: AsRef<Path>>(&mut self, path: P, file_type: FileType) {
         let path_ref = path.as_ref();
-        let name = path_ref
-            .file_stem()
-            .unwrap_or_default()
-            .to_string_lossy()
-            .into_owned();
+        let numeric_bank = matches!(
+            file_type,
+            FileType::Bsi | FileType::Texture | FileType::Shade | FileType::Haze
+        ) && path_ref
+            .extension()
+            .is_some_and(|extension| extension.to_string_lossy().parse::<u16>().is_ok());
+        let name = (if numeric_bank {
+            path_ref.file_name()
+        } else {
+            path_ref.file_stem()
+        })
+        .unwrap_or_default()
+        .to_string_lossy()
+        .into_owned();
         let file_entry = FileEntry::new(name.clone(), path_ref.to_path_buf(), file_type);
         if let Some(existing) = self.files.get(&name) {
             // When types differ (e.g. ROB vs COL) or same-type duplicates from
@@ -140,7 +149,10 @@ impl Registry {
     pub fn get_file_by_path<P: AsRef<Path>>(&self, path: P) -> Option<&FileEntry> {
         let path_ref = path.as_ref();
         let name = path_ref.file_stem().unwrap_or_default().to_string_lossy();
-        self.files.get(name.as_ref())
+        path_ref
+            .file_name()
+            .and_then(|name| self.files.get(name.to_string_lossy().as_ref()))
+            .or_else(|| self.files.get(name.as_ref()))
     }
 
     /// Get all model names in the registry
@@ -156,12 +168,50 @@ impl Registry {
     }
 }
 
+/// Chooses software art when TEXTURE banks are present and TEXBSI banks are absent.
+/// Mixed installs default to Glide; use explicit edition selection to choose software.
+#[must_use]
+pub fn detect_software_assets(path: &Path) -> bool {
+    let mut software = false;
+    for entry in WalkDir::new(path).into_iter().filter_map(Result::ok) {
+        if !entry.file_type().is_file() {
+            continue;
+        }
+        let name = entry.file_name().to_string_lossy().to_ascii_uppercase();
+        if name.starts_with("TEXBSI.") {
+            return false;
+        }
+        software |= name.starts_with("TEXTURE.");
+    }
+    software
+}
+
 /// Recursively scans a directory and indexes recognized Redguard files.
 pub fn scan_dir<P: AsRef<Path>>(path: P) -> Result<Registry, std::io::Error> {
+    let software = detect_software_assets(path.as_ref());
+    scan_dir_for_edition(path, software)
+}
+
+/// Scans one renderer edition; excludes the other renderer's art directory.
+pub fn scan_dir_for_edition<P: AsRef<Path>>(
+    path: P,
+    software: bool,
+) -> Result<Registry, std::io::Error> {
     let path = path.as_ref();
     let mut registry = Registry::new(path.to_path_buf());
 
-    for entry in WalkDir::new(path).into_iter().filter_map(Result::ok) {
+    for entry in WalkDir::new(path)
+        .into_iter()
+        .filter_entry(|entry| {
+            !entry.file_type().is_dir()
+                || !entry
+                    .file_name()
+                    .to_string_lossy()
+                    .eq_ignore_ascii_case(if software { "fxart" } else { "3dart" })
+                || entry.depth() == 0
+        })
+        .filter_map(Result::ok)
+    {
         if entry.file_type().is_file()
             && let Some(file_type) = FileType::from_path(entry.path())
         {

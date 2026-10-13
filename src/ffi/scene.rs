@@ -394,12 +394,13 @@ pub unsafe extern "C" fn rg_parse_model_data(
         let model_bytes = std::fs::read(&file_path)?;
         let palette =
             super::auto_resolve_palette(&assets_dir, &file_path, crate::import::FileType::Model3d);
-        let mut texture_cache = crate::gltf::TextureCache::new(
-            assets_dir.clone(),
-            palette.as_ref().map(|pal| Palette { colors: pal.colors }),
-        );
         run_on_large_stack(move || {
             let model = model3d::parse_3d_file(&model_bytes)?;
+            let mut texture_cache = crate::gltf::TextureCache::new_for_edition(
+                assets_dir,
+                palette.as_ref().map(|pal| Palette { colors: pal.colors }),
+                model.header.is_v27_or_earlier(),
+            );
             serialize_model_3d(&model, palette.as_ref(), Some(&mut texture_cache))
         })
     })();
@@ -424,9 +425,15 @@ pub unsafe extern "C" fn rg_parse_rob_data(
         let rob_bytes = std::fs::read(&file_path)?;
         let palette =
             super::auto_resolve_palette(&assets_dir, &file_path, crate::import::FileType::Rob);
-        let mut texture_cache = crate::gltf::TextureCache::new(
+        let software = file_path.components().any(|c| {
+            c.as_os_str()
+                .to_string_lossy()
+                .eq_ignore_ascii_case("3dart")
+        }) || crate::import::registry::detect_software_assets(&assets_dir);
+        let mut texture_cache = crate::gltf::TextureCache::new_for_edition(
             assets_dir.clone(),
             palette.as_ref().map(|pal| Palette { colors: pal.colors }),
+            software,
         );
         run_on_large_stack(move || serialize_rob(&rob_bytes, palette.as_ref(), &mut texture_cache))
     })();

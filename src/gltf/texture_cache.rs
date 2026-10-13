@@ -1,5 +1,5 @@
 use crate::import::{
-    bsi::{self, BsiFile},
+    bsi::{self, BsiFile, BsiImage},
     palette::Palette,
 };
 use log::warn;
@@ -25,6 +25,8 @@ pub struct TextureCache {
     palette: Option<Palette>,
     bsi_files: HashMap<u16, BsiFile>,
     texbsi_paths: HashMap<u16, PathBuf>,
+    software: bool,
+    opaque_images: HashSet<(u16, u16)>,
     missing_texture_requests: HashSet<(u16, u8)>,
     remapped_texture_requests: HashSet<(u16, u16)>,
 }
@@ -33,6 +35,17 @@ impl TextureCache {
     /// Builds a texture cache by indexing `TEXBSI.*` files under `asset_dir`.
     #[must_use]
     pub fn new(asset_dir: PathBuf, palette: Option<Palette>) -> Self {
+        let software = Self::detect_software(&asset_dir);
+        Self::new_for_edition(asset_dir, palette, software)
+    }
+
+    pub(crate) fn detect_software(asset_dir: &std::path::Path) -> bool {
+        crate::import::registry::detect_software_assets(asset_dir)
+    }
+
+    /// Selects software TEXTURE banks or Glide TEXBSI banks explicitly.
+    #[must_use]
+    pub fn new_for_edition(asset_dir: PathBuf, palette: Option<Palette>, software: bool) -> Self {
         let mut texbsi_paths = HashMap::new();
         for entry in WalkDir::new(asset_dir)
             .into_iter()
@@ -47,14 +60,18 @@ impl TextureCache {
             };
 
             let upper = file_name.to_ascii_uppercase();
-            if !upper.starts_with("TEXBSI.") {
+            let prefix = if software { "TEXTURE." } else { "TEXBSI." };
+            if !upper.starts_with(prefix) {
                 continue;
             }
 
-            let Some(id_part) = upper.strip_prefix("TEXBSI.") else {
+            let Some(id_part) = upper.strip_prefix(prefix) else {
                 continue;
             };
 
+            if software && id_part.len() != 3 {
+                continue;
+            }
             if let Ok(texture_id) = id_part.parse::<u16>() {
                 texbsi_paths
                     .entry(texture_id)
@@ -66,6 +83,8 @@ impl TextureCache {
             palette,
             bsi_files: HashMap::new(),
             texbsi_paths,
+            software,
+            opaque_images: HashSet::new(),
             missing_texture_requests: HashSet::new(),
             remapped_texture_requests: HashSet::new(),
         }
@@ -99,9 +118,87 @@ impl TextureCache {
             palette,
             bsi_files,
             texbsi_paths,
+            software: false,
+            opaque_images: HashSet::new(),
             missing_texture_requests: HashSet::new(),
             remapped_texture_requests: HashSet::new(),
         }
+    }
+
+    /// Builds a software cache from bank bytes without filesystem access.
+    pub fn from_software_data(
+        data: HashMap<u16, Vec<u8>>,
+        palette: Option<Palette>,
+    ) -> crate::Result<Self> {
+        let mut cache = Self {
+            palette,
+            bsi_files: HashMap::new(),
+            texbsi_paths: HashMap::new(),
+            software: true,
+            opaque_images: HashSet::new(),
+            missing_texture_requests: HashSet::new(),
+            remapped_texture_requests: HashSet::new(),
+        };
+        for (id, bytes) in data {
+            let bank = crate::import::software_texture::parse_texture_bank(&bytes)
+                .map_err(|e| crate::error::Error::Parse(format!("TEXTURE.{id:03}: {e}")))?;
+            cache.insert_software_bank(id, bank);
+            cache.texbsi_paths.insert(id, PathBuf::new());
+        }
+        Ok(cache)
+    }
+
+    fn insert_software_bank(
+        &mut self,
+        id: u16,
+        bank: crate::import::software_texture::SoftwareTextureBank,
+    ) {
+        use crate::import::{bsi::BsiImage, software_texture::SoftwareTextureEntry};
+        let images = bank
+            .entries
+            .into_iter()
+            .enumerate()
+            .filter_map(|(index, entry)| {
+                let image_index = u16::try_from(index).ok()?;
+                let (width, height, x_offset, y_offset, delay, flags, mut frames) = match entry {
+                    SoftwareTextureEntry::SolidColor(color) => {
+                        (1, 1, 0, 0, 0, 0, vec![vec![color]])
+                    }
+                    SoftwareTextureEntry::Image(image) => (
+                        image.width,
+                        image.height,
+                        image.x_offset,
+                        image.y_offset,
+                        image.frame_delay,
+                        image.flags,
+                        image.frames,
+                    ),
+                };
+                if frames.is_empty() {
+                    return None;
+                }
+                if flags & 0x100 == 0 {
+                    self.opaque_images.insert((id, image_index));
+                }
+                Some(BsiImage {
+                    name: format!("{index:03}"),
+                    image_index,
+                    width,
+                    height,
+                    x_offset,
+                    y_offset,
+                    frame_count: u16::try_from(frames.len()).ok()?,
+                    anim_delay: delay as i16,
+                    tex_scale: 256,
+                    data_encoding: 0,
+                    is_animated: frames.len() > 1,
+                    palette: None,
+                    pixel_data: frames.remove(0),
+                    extra_frames: frames,
+                })
+            })
+            .collect();
+        self.bsi_files.insert(id, BsiFile { images });
     }
 
     #[must_use]
@@ -111,8 +208,9 @@ impl TextureCache {
 
     fn warn_missing_once(&mut self, texture_id: u16, image_id: u8, reason: &str) {
         if self.missing_texture_requests.insert((texture_id, image_id)) {
+            let prefix = if self.software { "TEXTURE" } else { "TEXBSI" };
             warn!(
-                "Texture lookup failed for TEXBSI.{texture_id:03} image {image_id}: {reason}; using white fallback material"
+                "Texture lookup failed for {prefix}.{texture_id:03} image {image_id}: {reason}; using white fallback material"
             );
         }
     }
@@ -139,8 +237,11 @@ impl TextureCache {
     }
 
     fn find_texbsi_path(&self, texture_id: u16) -> Option<(u16, PathBuf)> {
-        let resolved_id =
-            Self::resolve_texture_id(texture_id, |id| self.texbsi_paths.contains_key(&id));
+        let resolved_id = if self.software {
+            texture_id
+        } else {
+            Self::resolve_texture_id(texture_id, |id| self.texbsi_paths.contains_key(&id))
+        };
         self.texbsi_paths
             .get(&resolved_id)
             .cloned()
@@ -168,8 +269,11 @@ impl TextureCache {
         }
 
         // Resolve remapped ID and check if it's already loaded (covers from_data pre-loads)
-        let resolved_id =
-            Self::resolve_texture_id(texture_id, |id| self.texbsi_paths.contains_key(&id));
+        let resolved_id = if self.software {
+            texture_id
+        } else {
+            Self::resolve_texture_id(texture_id, |id| self.texbsi_paths.contains_key(&id))
+        };
         if resolved_id != texture_id
             && let Some(bsi) = self.bsi_files.get(&resolved_id).cloned()
         {
@@ -190,6 +294,18 @@ impl TextureCache {
             return false;
         };
 
+        if self.software {
+            match crate::import::software_texture::parse_texture_bank(&data) {
+                Ok(bank) => {
+                    self.insert_software_bank(texture_id, bank);
+                    return true;
+                }
+                Err(_) => {
+                    self.warn_missing_once(texture_id, image_id, "failed to parse TEXTURE bank");
+                    return false;
+                }
+            }
+        }
         let Ok(bsi) = bsi::parse_bsi_file(&data) else {
             self.warn_missing_once(texture_id, image_id, "failed to parse TEXBSI file");
             return false;
@@ -220,16 +336,44 @@ impl TextureCache {
             .iter()
             .position(|entry| entry.image_index == u16::from(image_id));
         if index.is_none() {
-            self.warn_missing_once(texture_id, image_id, "image id not present in TEXBSI file");
+            self.warn_missing_once(texture_id, image_id, "image id not present in texture bank");
         }
         index
+    }
+
+    fn decode_cached_frame(
+        &self,
+        texture_id: u16,
+        image: &BsiImage,
+        frame: usize,
+    ) -> Option<Vec<u8>> {
+        let mut rgba = flip_rows_vertical(
+            image.decode_frame_rgba(frame, self.palette.as_ref())?,
+            image.width,
+        );
+        if self
+            .opaque_images
+            .contains(&(texture_id, image.image_index))
+        {
+            for pixel in rgba.as_chunks_mut::<4>().0 {
+                if pixel[3] == 0 {
+                    pixel[..3]
+                        .copy_from_slice(&self.palette.as_ref().map_or([0; 3], |p| p.colors[0]));
+                }
+                pixel[3] = 255;
+            }
+        }
+        Some(rgba)
     }
 
     pub fn get_image_rgba(&mut self, texture_id: u16, image_id: u8) -> Option<(Vec<u8>, u16, u16)> {
         let index = self.image_index(texture_id, image_id)?;
         let image = &self.bsi_files.get(&texture_id)?.images[index];
-        let rgba = flip_rows_vertical(image.decode_rgba(self.palette.as_ref()), image.width);
-        Some((rgba, image.width, image.height))
+        Some((
+            self.decode_cached_frame(texture_id, image, 0)?,
+            image.width,
+            image.height,
+        ))
     }
 
     pub fn get_image_rgba_with_frame_count(
@@ -239,8 +383,12 @@ impl TextureCache {
     ) -> Option<(Vec<u8>, u16, u16, u16)> {
         let index = self.image_index(texture_id, image_id)?;
         let image = &self.bsi_files.get(&texture_id)?.images[index];
-        let rgba = flip_rows_vertical(image.decode_rgba(self.palette.as_ref()), image.width);
-        Some((rgba, image.width, image.height, image.frame_count))
+        Some((
+            self.decode_cached_frame(texture_id, image, 0)?,
+            image.width,
+            image.height,
+            image.frame_count,
+        ))
     }
 
     pub fn get_all_frames_by_image_id(
@@ -250,15 +398,9 @@ impl TextureCache {
     ) -> Option<AllFramesInfo> {
         let index = self.image_index(texture_id, image_id)?;
         let image = &self.bsi_files.get(&texture_id)?.images[index];
-
-        let mut frames = Vec::with_capacity(usize::from(image.frame_count));
-        for frame_idx in 0..usize::from(image.frame_count) {
-            frames.push(
-                image
-                    .decode_frame_rgba(frame_idx, self.palette.as_ref())
-                    .map(|rgba| flip_rows_vertical(rgba, image.width)),
-            );
-        }
+        let frames = (0..usize::from(image.frame_count))
+            .map(|frame| self.decode_cached_frame(texture_id, image, frame))
+            .collect();
         Some(AllFramesInfo {
             width: image.width,
             height: image.height,
