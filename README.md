@@ -19,6 +19,8 @@ Preserving *The Elder Scrolls Adventures: Redguard* (1998) — reverse-engineere
 | Palette | `.col` | swatch `.png` + palette metadata `.json` |
 | Sound effects bank | `.sfx` | extracted `.wav` files + `index.json` metadata (directory output) |
 | Dialogue audio | `.rtx` | extracted `.wav` files + `index.json` metadata (directory output) |
+| Software texture bank | `TEXTURE.###` | animated `.gif` or frame `.png` files + `index.json` |
+| Software lookup table | `SHADE.###`, `HAZE.###` | grayscale index `.png` |
 | Texture bank | `TEXBSI.###` | animated `.gif` + static `.png` files + `index.json` (directory output) |
 | GXA bitmap archive | `.gxa` | animated `.gif` + `index.json` (directory output) |
 | Cheat states | `.cht` | `.json` |
@@ -187,10 +189,25 @@ Redguard shipped with two parallel sets of 3D assets for different renderers:
 | `3dart/` | Software | v2.6, v2.7 | 18 COL palettes, including `art_pal.col` | Original CD only |
 | `fxart/` | Glide (3dfx) | v4.0, v5.0 | 27 populated COL palettes; one empty placeholder | ✓ |
 
-The parsers support both model generations. The GLB texture cache indexes
-`TEXBSI.*`; support for the older model headers does not provide textured exports
-from the software `TEXTURE.*` banks. See [CD and GOG differences](docs/README.md#gog-vs-original-cd-differences)
-for resource selection.
+The library decodes software and Glide model geometry and animation frames. Textured exports use software `TEXTURE.*` or Glide `TEXBSI.*` banks. Software `SHADE.*` and `HAZE.*` lookup tables have a separate parser. See [CD and GOG differences](docs/README.md#gog-vs-original-cd-differences) for resource selection.
+
+Model exports select their texture format from the model version. For scene or terrain exports from an install containing both art trees, use `convert rgm ... --software` or `convert wld ... --software`. Rust consumers can select the edition with `TextureCache::new_for_edition`, `registry::scan_dir_for_edition`, and `WorldHandle::open_for_edition`. The equivalent C entry point is `rg_open_world_for_edition`.
+
+```sh
+rgpre convert texture 3dart/TEXTURE.302 --palette 3dart/ISLAND.COL --format frames -o output/texture_302
+rgpre convert shade 3dart/SHADE.000 -o output/shade_000
+rgpre convert haze 3dart/HAZE.000 -o output/haze_000
+rgpre convert rgm maps/START.RGM --assets . --software -o output/start.glb
+```
+
+Texture exports include `index.json` with record metadata. Without `--palette`, image exports display indices as grayscale. Lookup exports write `indices.png`, preserving each mapping byte as a grayscale value.
+
+To check every model frame, texture frame and lookup table in a local art directory:
+
+```sh
+cargo run --example check_edition_assets -- /path/to/Redguard/3dart
+cargo run --example check_edition_assets -- /path/to/Redguard/fxart
+```
 
 The `fxart/` Glide assets are included in GOG and use the newer model format.
 Each scene uses its own palette, such as `ISLAND.COL` or `NECRO.COL`. Pass the

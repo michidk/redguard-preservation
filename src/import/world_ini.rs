@@ -202,6 +202,17 @@ pub fn find_world_ini(asset_root: &Path) -> Option<PathBuf> {
 /// `3dart/`) case-insensitively. Returns `None` if no matching file exists.
 #[must_use]
 pub fn find_palette_on_disk(asset_root: &Path, ini_palette_path: &str) -> Option<PathBuf> {
+    find_palette_for_edition(asset_root, ini_palette_path, false)
+        .or_else(|| find_palette_for_edition(asset_root, ini_palette_path, true))
+}
+
+/// Resolves palettes within the selected renderer's art directory.
+#[must_use]
+pub fn find_palette_for_edition(
+    asset_root: &Path,
+    ini_palette_path: &str,
+    software: bool,
+) -> Option<PathBuf> {
     let filename = ini_palette_path
         .trim()
         .rsplit(['\\', '/'])
@@ -209,7 +220,12 @@ pub fn find_palette_on_disk(asset_root: &Path, ini_palette_path: &str) -> Option
         .unwrap_or_else(|| ini_palette_path.trim());
     let filename_lower = filename.to_ascii_lowercase();
 
-    for dir_name in &["fxart", "3dart", "FXART", "3DART"] {
+    let directories = if software {
+        ["3dart", "3DART"]
+    } else {
+        ["fxart", "FXART"]
+    };
+    for dir_name in &directories {
         let dir = asset_root.join(dir_name);
         if !dir.is_dir() {
             continue;

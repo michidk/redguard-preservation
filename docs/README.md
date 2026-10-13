@@ -109,7 +109,7 @@ than substituting a same-named file from the other set.
 Both model generations use renderer-specific headers and texture references.
 See [3D model versions](formats/models/3d.md#v26v27-header-differences).
 Software texture banks are named `TEXTURE.###`, not `TEXBSI.###`; changing the
-filename prefix does not establish format compatibility.
+filename prefix does not establish format compatibility. See [software texture banks](formats/TEXTURE.md) and [software palette lookup tables](formats/SHADE-HAZE.md).
 
 `3dart/` contains 18 COL palettes, including `art_pal.col`, world palettes,
 and sky palettes. It does not use `art_pal.col` exclusively. Matching palette

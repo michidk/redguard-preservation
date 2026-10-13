@@ -1,21 +1,21 @@
 # 3DC Animated Model File Format
 
-Animated variant of the [3D model format](3d.md). Same binary layout — identical header and section structure — but with multiple animation frames.
+Animated variant of the [3D model format](3d.md). The fixed header is shared with 3D models; animation directories depend on the renderer generation.
 
 ## Differences from .3D
 
 | Aspect | .3D | .3DC |
 |---|---|---|
-| Frames | Always 1 | 2+ (animated) |
+| Frames | 0 in software static files, 1 in Glide static files | Multiple animation frames, or a single static frame |
 | frame_type (frame 0) | 0 | 2, 4, or 8 |
 | Animated frame data | None | Frames 1+ with compressed or full-precision geometry |
-| Section4 (SubObject BVH) | Present (v5.0) | Always absent (offset=0, count=0) |
+| Section4 (SubObject BVH) | Present in v5.0 | Absent in Glide animations; software uses a different auxiliary layout |
 | Vertex-normal indirection table | Present | Always absent (offset=0) |
 | Version | v4.0 or v5.0 | v4.0 (`fxart/`), v2.6 or v2.7 (`3dart/`) |
 
 All shared structures (header, face data, vertex coordinates, face normals, vertex normals, texture encoding) are documented in [3D.md](3d.md).
 
-## Animation Frame Data
+## Glide animation frame data
 
 The frame data array at `offset_frame_data` contains `num_frames` × 16-byte records (see [3D.md — Frame Data](3d.md#frame-data) for the record layout).
 
@@ -79,15 +79,51 @@ Same as [3D.md — Section Layout](3d.md#section-layout), but with animated fram
 5. **Animated Frame Vertex/Normal Data** — frames 1+ geometry
 6. **Vertex Normals** — per-vertex normals (f32 × 3)
 
-## Section Layout (v2.6/v2.7)
+## Software animation directory
 
-v2.6/v2.7 `.3DC` files use a different section order, with frame data immediately after the header and vertex coordinates at a computed offset:
+In v2.6/v2.7, `offset_frame_data` points to a 24-byte animation header. It is not the first frame record. Values are little-endian.
 
-1. **Frame Data** — at `offset_frame_data` (immediately after header)
-2. **Face Data** — at `offset_face_data` (variable offset)
-3. **Section4** — at `offset_section4` (may overlap with face data end)
-4. **Vertex Coordinates** — at `face_data_end + frame_data[0].reserved`, or `face_data_end` when the gap is absent (see [3D.md — Vertex Coordinates](3d.md#vertex-coordinates))
-5. **Face Normals** — at `offset_face_normals`
+| Offset | Size | Type | Name | Description |
+|---|---|---|---|---|
+| 0x00 | 4 | `u32` | table_offset | Absolute file offset of the frame directory |
+| 0x04 | 4 | `u32` | face_data_size | Byte length of shared face records |
+| 0x08 | 4 | `u32` | unknown_08 | Auxiliary field |
+| 0x0C | 2 | `u16` | flags | Bit 0 selects compressed frame data |
+| 0x0E | 2 | `u16` | reference_frame | Frame with full i32 positions when compressed |
+| 0x10 | 4 | `u32` | unknown_10 | Auxiliary field |
+| 0x14 | 2 | `u16` | unknown_14 | Auxiliary field |
+| 0x16 | 1 | `u8` | unknown_16 | Auxiliary field |
+| 0x17 | 1 | `u8` | delta_shift | Shift applied to compressed position deltas |
+
+The directory contains `num_frames` records. Compressed records occupy 12 bytes; uncompressed records occupy 16 bytes.
+
+| Offset | Size | Type | Name | Description |
+|---|---|---|---|---|
+| 0x00 | 4 | `u32` | vertex_offset | Absolute file offset of frame positions or deltas |
+| 0x04 | 4 | `u32` | normal_offset | Absolute file offset of face normals |
+| 0x08 | 4 | `u32` | auxiliary_offset | Absolute file offset of per-face auxiliary data |
+| 0x0C | 4 | `u32` | unknown_0c | Present only in uncompressed records |
+
+Uncompressed positions and face normals contain three signed i32 components, each scaled by 1/256.
+
+In compressed animations, the reference frame contains full signed i32 positions. Other frames contain three signed i16 deltas per vertex. Reconstruct each raw component with wrapping i32 arithmetic:
+
+```text
+position = reference_position + (signed_delta << (delta_shift & 31))
+```
+
+Divide the reconstructed raw component by 256. Every frame uses the same reference frame. Deltas are added, not subtracted or accumulated from the preceding frame. Frame zero may itself be compressed.
+
+Every compressed frame's face normals use signed 10-bit components in this order:
+
+```text
+Bits 20-29: x
+Bits 10-19: y
+Bits  0- 9: z
+Bits 30-31: discarded
+```
+
+Sign-extend each component and divide it by 256. This component order differs from Glide's packed normals. Use decoded frame-zero positions and normals as the model's base geometry.
 
 ## External References
 

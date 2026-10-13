@@ -34,17 +34,20 @@ fn handle_wld_glb_convert(args: &WldArgs, output_path: &Path) -> Result<()> {
 
     let asset_root = resolve_asset_root(args.assets.as_deref(), &args.io.file);
 
+    let software = args.software || registry::detect_software_assets(&asset_root);
     let palette = load_palette(
         args.palette.as_deref(),
         &asset_root,
         &args.io.file,
         FileType::Wld,
+        software,
     )?;
 
     let mut texture_cache = if args.terrain_textures {
-        Some(TextureCache::new(
+        Some(TextureCache::new_for_edition(
             asset_root.clone(),
             palette.as_ref().map(|pal| Palette { colors: pal.colors }),
+            software,
         ))
     } else {
         info!("Terrain textures disabled (--terrain-textures false)");
@@ -64,7 +67,7 @@ fn handle_wld_glb_convert(args: &WldArgs, output_path: &Path) -> Result<()> {
     };
 
     let positioned_models = if let Some(rgm_file) = rgm_path {
-        let registry = registry::scan_dir(asset_root)?;
+        let registry = registry::scan_dir_for_edition(asset_root, software)?;
         let rgm_bytes = std::fs::read(&rgm_file)?;
         let preferred_rob_stem = rgm_file.file_stem().and_then(|s| s.to_str());
         let (rgm_parsed, models, _lights) = rgpre::import::rgm::parse_rgm_with_models_for_stem(

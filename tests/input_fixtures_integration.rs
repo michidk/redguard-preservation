@@ -63,6 +63,9 @@ fn minimal_gxa_bytes() -> Vec<u8> {
 #[test]
 fn filetype_resolution_covers_all_variants() {
     let cases = [
+        ("TEXTURE.302", "texture", FileType::Texture),
+        ("SHADE.001", "shade", FileType::Shade),
+        ("HAZE.001", "haze", FileType::Haze),
         ("texture.bsi", "bsi", FileType::Bsi),
         ("palette.col", "col", FileType::Col),
         ("model.3d", "3d", FileType::Model3d),
@@ -196,6 +199,22 @@ fn integration_covers_each_filetype_variant() {
             }
             FileType::Cht => {
                 // No fixture for CHT; trivial 256-byte format
+            }
+            FileType::Texture => {
+                let mut bytes = vec![0; 46];
+                bytes[0] = 1;
+                bytes[27] = 7;
+                let bank = rgpre::import::software_texture::parse_texture_bank(&bytes).unwrap();
+                assert_eq!(
+                    bank.entries,
+                    vec![rgpre::import::software_texture::SoftwareTextureEntry::SolidColor(7)]
+                );
+            }
+            FileType::Shade | FileType::Haze => {
+                let table =
+                    rgpre::import::software_texture::PaletteLookupTable::parse(&vec![7; 16384])
+                        .unwrap();
+                assert_eq!(table.map(63, 255), Some(7));
             }
             FileType::Pcx | FileType::Lbm | FileType::Anm => {
                 // Covered by tests/legacy_images.rs.

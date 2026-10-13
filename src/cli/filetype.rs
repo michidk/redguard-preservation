@@ -41,7 +41,7 @@ impl FileTypeCliExt for FileType {
                     .to_string();
                 path.set_file_name(format!("{stem}_wav"));
             }
-            FileType::Bsi => {
+            FileType::Bsi | FileType::Texture | FileType::Shade | FileType::Haze => {
                 let stem = path
                     .file_stem()
                     .unwrap_or_default()
@@ -70,6 +70,36 @@ impl FileTypeCliExt for FileType {
             FileType::Pvo => print_pvo(file_content),
             FileType::Wld => print_wld(file_content),
             FileType::Rgm => print_rgm(file_content),
+            FileType::Texture => {
+                let bank = rgpre::import::software_texture::parse_texture_bank(file_content)?;
+                info!("TEXTURE: {}, {} entries", bank.name, bank.entries.len());
+                for (index, entry) in bank.entries.iter().enumerate() {
+                    match entry {
+                        rgpre::import::software_texture::SoftwareTextureEntry::SolidColor(
+                            color,
+                        ) => info!("  [{index}] palette color {color}"),
+                        rgpre::import::software_texture::SoftwareTextureEntry::Image(image) => {
+                            info!(
+                                "  [{index}] {}x{}, {} frames, delay {}",
+                                image.width,
+                                image.height,
+                                image.frames.len(),
+                                image.frame_delay
+                            )
+                        }
+                    }
+                }
+                Ok(())
+            }
+            FileType::Shade | FileType::Haze => {
+                let table =
+                    rgpre::import::software_texture::PaletteLookupTable::parse(file_content)?;
+                info!(
+                    "Palette lookup table: {} rows of 256 entries",
+                    table.rows.len()
+                );
+                Ok(())
+            }
             FileType::Bsi => print_bsi(file_content),
             FileType::Col => print_col(file_content),
             FileType::Sfx => print_sfx(file_content),

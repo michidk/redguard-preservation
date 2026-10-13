@@ -152,6 +152,9 @@ pub struct ColArgs {
 /// WLD world → GLB terrain scene or map PNGs
 #[derive(Args, Debug, Clone)]
 pub struct WldArgs {
+    /// Use software-renderer models, textures and palettes
+    #[arg(long)]
+    pub software: bool,
     #[command(flatten)]
     pub io: ConvertFileArgs,
 
@@ -198,6 +201,9 @@ pub struct ModelArgs {
 /// RGM scene → GLB with actor metadata
 #[derive(Args, Debug, Clone)]
 pub struct RgmArgs {
+    /// Use software-renderer models, textures and palettes
+    #[arg(long)]
+    pub software: bool,
     #[command(flatten)]
     pub io: ConvertFileArgs,
 
@@ -231,6 +237,12 @@ pub struct RtxArgs {
 pub enum ConvertCommand {
     /// Convert TEXBSI texture bank (TEXBSI.###) to images
     Texbsi(TexbsiArgs),
+    /// Convert software TEXTURE bank to image frames
+    Texture(TexbsiArgs),
+    /// Export software SHADE lookup indices
+    Shade(ConvertFileArgs),
+    /// Export software HAZE lookup indices
+    Haze(ConvertFileArgs),
     /// Convert GXA bitmap archive to images
     Gxa(GxaArgs),
     /// Convert FNT font to bitmap atlas or TrueType

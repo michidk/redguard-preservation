@@ -51,6 +51,16 @@ impl WorldHandle {
     /// Resolves the palette and initializes the texture cache. Returns an error
     /// if the world index doesn't exist or the palette cannot be loaded.
     pub fn open(assets_dir: PathBuf, world_id: u32) -> crate::Result<Self> {
+        let software = TextureCache::detect_software(&assets_dir);
+        Self::open_for_edition(assets_dir, world_id, software)
+    }
+
+    /// Opens a world with software or Glide art and its matching palette.
+    pub fn open_for_edition(
+        assets_dir: PathBuf,
+        world_id: u32,
+        software: bool,
+    ) -> crate::Result<Self> {
         let ini_path = world_ini::find_world_ini(&assets_dir).ok_or_else(|| {
             crate::error::Error::Parse(format!(
                 "WORLD.INI not found in assets_dir: {}",
@@ -69,22 +79,25 @@ impl WorldHandle {
                 crate::error::Error::Parse(format!("world_id {} not found in WORLD.INI", world_id))
             })?;
 
-        let palette_path = world_ini::find_palette_on_disk(&assets_dir, &entry.palette)
-            .ok_or_else(|| {
-                crate::error::Error::Parse(format!(
-                    "palette not found for world {}: {}",
-                    world_id, entry.palette
-                ))
-            })?;
+        let palette_path =
+            world_ini::find_palette_for_edition(&assets_dir, &entry.palette, software).ok_or_else(
+                || {
+                    crate::error::Error::Parse(format!(
+                        "palette not found for world {}: {}",
+                        world_id, entry.palette
+                    ))
+                },
+            )?;
 
         let palette_bytes = std::fs::read(&palette_path)?;
         let palette = Palette::parse(&palette_bytes)?;
 
-        let texture_cache = TextureCache::new(
+        let texture_cache = TextureCache::new_for_edition(
             assets_dir.clone(),
             Some(Palette {
                 colors: palette.colors,
             }),
+            software,
         );
 
         Ok(Self {
@@ -129,11 +142,18 @@ impl WorldHandle {
         let palette_bytes = std::fs::read(&palette_disk_path)?;
         let palette = Palette::parse(&palette_bytes)?;
 
-        let texture_cache = TextureCache::new(
+        let software = palette_disk_path.components().any(|component| {
+            component
+                .as_os_str()
+                .to_string_lossy()
+                .eq_ignore_ascii_case("3dart")
+        }) || crate::import::registry::detect_software_assets(&assets_dir);
+        let texture_cache = TextureCache::new_for_edition(
             assets_dir.clone(),
             Some(Palette {
                 colors: palette.colors,
             }),
+            software,
         );
 
         Ok(Self {
