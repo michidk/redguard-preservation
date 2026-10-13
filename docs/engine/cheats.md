@@ -73,7 +73,15 @@ The CHT parser preserves each raw integer. Its `is_on()` helper reports whether 
 
 ## Persistence — REDGUARD.CHT
 
-The `savecheats` command (cheat #6) writes the 64-slot state array, including the 13 named cheat slots, to a file called `REDGUARD.CHT` in the game directory. It clears its own slot before writing, then sets that slot to one after closing the file. On startup, the engine checks for this file and restores any previously saved cheat states. Delete the file to reset all cheats. See [CHT format specification](../formats/CHT.md) for the binary layout.
+The `savecheats` command (cheat #6) writes the 64-slot state array, including the 13 named cheat slots, to a file called `REDGUARD.CHT` in the game directory. It clears its own slot before writing, then sets that slot to one after closing the file. On startup, the engine checks for this file and restores any previously saved cheat states. Delete the file to discard the saved cheat values. See [CHT format specification](../formats/CHT.md) for the binary layout.
+
+Startup first clears the cheat slots, then loads the optional CHT file. Later, `SYSTEM.INI` supplies `task_system`, `animation_system`, and `node_marker`, replacing the corresponding `task`, `animation`, and `nodemarker` values. ODDJOB has no such configuration replacement; saved values such as `0`, `1`, and `2` remain unchanged through system initialization.
+
+## Relationship to SOUP flags
+
+Cheat slots and SOUP global flags use separate storage. SOUP's `SetGlobalFlag`, `TestGlobalFlag`, and `ResetGlobalFlag` operate on the flags declared in `SOUP386.DEF`; a flag index is not a cheat index. The installed native function bindings do not provide a generic cheat getter/setter or console-command executor.
+
+Native functions can still consult specific cheats internally. For example, `PlayerDistance` and `AcuratePlayerDistance` check `neversaydie`. The console's `getflag` and `setflag` commands access SOUP flags, while cheat names access cheat state directly.
 
 ## Obfuscation
 
