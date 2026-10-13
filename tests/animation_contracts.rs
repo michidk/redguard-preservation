@@ -186,3 +186,51 @@ fn static_glb_retains_authored_lighting_inputs_without_animation_mapping() {
             .all(|vertex| *vertex == serde_json::json!([73, 1]))
     );
 }
+
+#[test]
+fn world_nodes_keep_distinct_render_attributes_when_sharing_a_mesh() {
+    use rgpre::import::rgm::PositionedModel;
+    let mut model = rgpre::model3d::parse_3d_file(include_bytes!("fixtures/model_v26.3d")).unwrap();
+    model.vertex_coords = [[0.0, 0.0, 0.0], [20.0, 0.0, 0.0], [0.0, 20.0, 0.0]]
+        .map(|[x, y, z]| rgpre::model3d::VertexCoord { x, y, z })
+        .to_vec();
+    model.face_data = vec![rgpre::model3d::FaceData {
+        vertex_count: 3,
+        tex_hi: 7,
+        texture_data: rgpre::model3d::TextureData::SolidColor(7),
+        face_vertices: (0..3)
+            .map(|vertex_index| rgpre::model3d::FaceVertex {
+                vertex_index,
+                u: 0,
+                v: 0,
+            })
+            .collect(),
+    }];
+    let models: Vec<_> = [Some(0), Some(3), None]
+        .into_iter()
+        .enumerate()
+        .map(|(i, render_attributes)| PositionedModel {
+            model: model.clone(),
+            transform: [
+                1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0,
+            ],
+            model_name: format!("instance{i}"),
+            source_id: Some("shared".into()),
+            render_attributes,
+        })
+        .collect();
+    let (document, _) =
+        rgpre::gltf::convert_positioned_models_to_gltf(&models, &[], None, None, false).unwrap();
+    assert_eq!(document.meshes.len(), 1);
+    for (node, expected) in document.nodes.iter().zip([
+        serde_json::json!(0),
+        serde_json::json!(3),
+        serde_json::Value::Null,
+    ]) {
+        assert_eq!(node.mesh.unwrap().value(), 0);
+        let extras: serde_json::Value =
+            serde_json::from_str(node.extras.as_ref().unwrap().get()).unwrap();
+        assert_eq!(extras["rgpre_render"]["version"], 1);
+        assert_eq!(extras["rgpre_render"]["rob_attributes"], expected);
+    }
+}

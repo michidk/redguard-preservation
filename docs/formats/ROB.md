@@ -93,6 +93,17 @@ A single byte of per-segment attribute flags.
 | 0x02 | PALMTR01–04 (CAVERNS, EXTPALAC, ISLAND) | Texture pre-load trigger (bit 1). Engine calls a texture pre-caching function for all face textures in this segment. |
 | 0x40 | SS_OBJ01–06, IGRING, IWATER1 (shop items, inventory) | Special object flag (bit 6). Stored as model metadata. |
 
+In the Glide renderer, bit 0 (`0x01`) selects point minification and
+magnification for queued model draws. When clear, both use bilinear filtering.
+Archive loading copies the segment attribute byte into model metadata, and
+ordinary model submission copies it into the instance draw flags. The queued
+draw pass restores bilinear filtering when it finishes.
+
+Bit 1 (`0x02`) also enables chroma-key rejection when binding a model face's
+texture. With this bit clear, that binding disables chroma keying. The key
+comes from the texture's stored key color. This is separate from the archive
+loader's texture pre-loading use of the same bit.
+
 ### Runtime archive selection
 
 Model lookup searches the active primary archive first, then the active world

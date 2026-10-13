@@ -109,6 +109,8 @@ pub struct PositionedModel {
     pub transform: [f32; 16],
     pub model_name: String,
     pub source_id: Option<String>,
+    /// Attribute byte of the selected ROB segment; absent for standalone or generated models.
+    pub render_attributes: Option<u8>,
 }
 
 #[derive(Debug, Clone)]
@@ -136,6 +138,23 @@ pub struct MpslRecord {
 }
 
 impl RgmFile {
+    /// Authored runtime object lights in file order when object loading is enabled.
+    /// Kind 6 selects the signed world ID and ignores the activation byte.
+    /// Initial values precede script mutations and active-region selection.
+    /// See `docs/engine/model-lighting.md`.
+    pub fn object_lights(&self, world_id: u32) -> impl Iterator<Item = &MpobRecord> {
+        self.sections
+            .iter()
+            .filter_map(|section| match section {
+                RgmSection::MpobParsed(_, records) => Some(records.as_slice()),
+                _ => None,
+            })
+            .flatten()
+            .filter(move |object| {
+                object.object_type == 6 && i64::from(object.world_id) == i64::from(world_id)
+            })
+    }
+
     /// Map lights in world-entry prelighting order with static loading enabled.
     /// Cells are allocated by static records first, then admitted lights; each
     /// cell contributes its lights in reverse insertion order.

@@ -22,6 +22,7 @@ the [configuration reference](../config/) describes the INI settings.
 |---|---|
 | [Model lighting](model-lighting.md) | Face brightness, directional and local lighting, and retained instance colors. |
 | [Terrain lighting](terrain-lighting.md) | Ambient and directional RGB lighting and terrain normals. |
+| [View projection](projection.md) | Horizontal field of view, viewport scaling, and camera coordinates. |
 | [Fog and clipping](fog.md) | Scene and sky ranges, fog tables, and color blending. |
 | [Sky](sky.md) | Sky planes, background color, scrolling, and sun settings. |
 | [Texture animation](texture-animation.md) | Shared texture frames, authored delays, automatic and explicit selection. |
