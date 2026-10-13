@@ -30,7 +30,10 @@ compass, power-up icons and logbook icon) over the 3D scene on a virtual
   the tick computation, not drawing.
 - *Lockout* retains the low 16 bits of the value passed to `LockoutPlayer`;
   the engine also resets it to 0, for example after player death. Each element
-  below tests it differently.
+  below tests it differently. `LockoutPlayer` sets the selected player's
+  `attr_no_node_combat` to one only when the retained lockout value is exactly
+  one. Other values clear that attribute on the selected player and every
+  registered actor that currently has it set.
 - `attr_player_type` uses the SOUP386.DEF values `ply_cyrus` 0,
   `ply_gremlin` 1, `ply_crossbow` 2.
 
