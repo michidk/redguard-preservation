@@ -574,6 +574,41 @@ signed right shift. If the rounded displacement exceeds the limit, it restores
 all three previous local coordinates. Equality retains the current position.
 The function returns the measured displacement before any restoration.
 
+### Authored location movement
+
+Ordinary actor setup creates location 0 from the saved original home position,
+then appends the actor header's RALC entries relative to that home. These stored
+locations remain unchanged when the actor moves or becomes family-local.
+Negative selectors or selectors greater than the stored location count use the
+home position. A selector equal to the stored count falls immediately beyond the
+allocated entries; ordinary valid selectors run from zero through count minus one.
+
+`MoveToLocation(location, duration)` compares the shared signed task elapsed value
+with the signed duration. When elapsed is strictly greater than duration, it
+assigns the stored target to all three local position coordinates, queues the
+actor's map update, and returns zero. Equality still performs a movement step.
+
+Otherwise its source is the attached effective position when `attr_slave` is
+nonzero, or the local position when that attribute is zero. It subtracts source
+from target with wrapping 32-bit arithmetic and normalizes the resulting vector
+to signed Q16 components. Normalization converts each component to single
+precision, sums the squared components with extended intermediates, stores the
+sum to double precision, and takes its square root. The divisor is that length
+multiplied by 1/65536 and stored to single precision. A zero divisor produces
+three zero components. Each other component is divided by the divisor, stored
+to single precision, and converted to an integer with nearest-even rounding.
+
+It separately measures the rounded three-dimensional distance from source to
+target using the [node-marker distance arithmetic](#node-marker-distance).
+Movement distance is signed integer division of that distance by
+`duration + 1 - elapsed`, truncating toward zero. It then multiplies by
+`frame_scale` with wrapping 32-bit arithmetic and shifts arithmetically right by
+eight bits. Each displacement component is
+`((normalized_component >> 8) * movement_distance) >> 8`, again with wrapping
+multiplication and signed shifts. Displacements are added to the actor's local
+position with wrapping arithmetic. The operation queues a map update and returns
+one, including when all three displacements are zero.
+
 ### Actor families and attached transforms
 
 `attr_master` and `attr_slave` are byte-sized group identities. A nonzero slave

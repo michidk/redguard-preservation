@@ -163,7 +163,7 @@ All fields little-endian.
 | 0x04 | 4 | `s32` | offset_y | Y coordinate offset |
 | 0x08 | 4 | `s32` | offset_z | Z coordinate offset |
 
-Offsets are applied to the object's base MPOB position (pos × 256) by script commands `MoveToLocation` and `WanderToLocation`. Per-object RALC entry counts and offsets are stored in the corresponding RAHD record.
+Actor setup first stores the original runtime home position as location 0, then appends `RAHD.ralc_count` entries starting at `RAHD.ralc_offset`. Each appended location is the home position plus its signed RALC offsets, with wrapping 32-bit addition. Home coordinates are the original MPOB position multiplied by 256, before family-local conversion. Authored offsets already use runtime coordinate units. Locations belong to each actor instance. See [location movement](../engine/SOUP.md#authored-location-movement).
 
 ## RAVC (VCollide)
 
@@ -287,7 +287,8 @@ All typed fields are little-endian.
 | 0x55 | 4 | `u32` | script_pc | Execution start address; rebased at load to `script_data_offset + script_pc` (absolute pointer) |
 | 0x59 | 4 | — | anim_buffer_swap | Read as byte at 0x59. Boolean: non-zero triggers animation frame buffer swap (copies between offsets +0xCB and +0x108 in actor struct). Zero uses primary buffer only. |
 | 0x5D | 4 | `u32` | rahk_offset | Byte offset into RAHK section data (rebased to pointer at load) |
-| 0x61 | 8 | — | dialogue_lock | Read as byte at 0x61. Set during dialogue initiation; prevents animation transitions while dialogue is active. Checked alongside actor-type and combat-state guards. |
+| 0x61 | 4 | `i32` | ralc_count | Number of authored location offsets appended after the actor's initial home location. |
+| 0x65 | 4 | — | field_65 | Auxiliary actor-header data. |
 | 0x69 | 4 | `u32` | ralc_offset | Byte offset into RALC section data (rebased: `ralc_data + (offset ÷ 12) × 12`) |
 | 0x6D | 4 | `u8[4]` | actor_flags | Read as individual bytes. Byte 0x6D: animation state ID loaded into a global during dialogue setup, compared against hook data at +0x247 for state matching. Byte 0x6E: item/equipment flag (toggled at runtime). Byte 0x6F: passed to animation/sound function. |
 | 0x71 | 4 | `u32` | raex_offset | Byte offset into RAEX section data (rebased to pointer at load) |
