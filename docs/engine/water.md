@@ -75,6 +75,50 @@ selects the inner 32-by-32 vertices, from `camera-16` through `camera+15` on
 each axis, and reads the four corners described above from that storage.
 This is an original rendering window, not a moving ripple origin.
 
+## Dirty normals and retained lighting
+
+Each wave update clears the storage grid's dirty flags. Every selected vertex
+marks six storage entries, even when its replacement height equals its current
+height. In engine-grid coordinates, the marks relative to the selected vertex
+are:
+
+| Relative X | Relative Z | Flags added |
+|---|---|---|
+| 0 | 0 | 3 |
+| -1 | 0 | 3 |
+| -1 | +1 | 3 |
+| 0 | +1 | 3 |
+| +1 | 0 | 2 |
+| 0 | -1 | 2 |
+
+Overlapping marks combine with bitwise OR. Positive engine Z corresponds to
+decreasing raw WLD row, so negate the relative Z column when using source rows.
+
+Face-normal, vertex-normal and vertex-RGB updates all admit an entry when its
+whole dirty value is nonzero. They do not select different work from individual
+flag bits. The face pass replaces both triangle normals of an admitted cell.
+The vertex pass sums the six stored incident face normals using the
+[terrain normalization rules](terrain-lighting.md#shading-normals); the RGB
+pass then uses the retained or replaced vertex normal.
+
+Within the 34-by-34 storage grid, face entries cover X indices 0 through 32
+and Z indices 1 through 33. A face entry at `(x,z)` stores the two triangles
+of the cell with corners `(x,z-1)`, `(x+1,z-1)`, `(x,z)` and `(x+1,z)`.
+Vertex-normal and RGB entries cover indices 1 through 32 on both axes.
+An entry outside its pass's range is not updated by that pass.
+
+The diagonal neighbor at relative `(+1,-1)` is not marked by the selected
+vertex, although one of its incident faces can change. Unless another selected
+vertex marks it, its vertex normal and RGB retain their previous values.
+Recomputing every vertex normal from the displaced grid therefore produces
+different water-edge lighting.
+
+When the camera's terrain-grid coordinates change, the storage grid reloads
+base heights and all three passes run over their full ranges without dirty
+admission. Subsequent wave updates resume selective replacement. Retention
+lasts across wave updates until an entry is admitted or a full rebuild replaces
+it.
+
 ## Rendering Pipeline
 
 The wave renderer runs each frame as part of the terrain update:
@@ -93,7 +137,7 @@ The wave renderer runs each frame as part of the terrain update:
    └─ Recompute normals on displaced geometry:
        ├─ Face normals   (cross products per triangle)
        ├─ Vertex normals  (average adjacent face normals)
-       └─ Smooth normals  (per-vertex lighting pass)
+       └─ Vertex RGB      (lighting from retained or replaced vertex normals)
 
 3. Lighting
    └─ Per-vertex RGB from ambient + directional dot-product, clamped to [0, 255]
@@ -103,7 +147,8 @@ The wave renderer runs each frame as part of the terrain update:
 
 The RGB inputs and directional calculation are specified in [terrain-lighting.md](terrain-lighting.md).
 
-The normal recomputation after displacement ensures water surfaces receive correct per-frame lighting as waves move — the normals tilt with the displaced geometry rather than remaining flat.
+Admitted normals tilt with the displaced geometry. Unmarked water-edge entries
+retain their earlier normals and lighting as specified above.
 
 ## Terrain Vertex Layout
 

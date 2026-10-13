@@ -49,8 +49,10 @@ For ambient `64,64,64`, directional strength `255,220,200`, and direction
 
 Rebuilding the camera's terrain grid recomputes face normals,
 then vertex normals, then vertex lighting. The wave update repeats these
-stages for dirty terrain entries after changing heights. Lighting therefore
-uses the displaced water normals, as described in [water.md](water.md).
+stages for dirty terrain entries after changing heights. Unmarked entries retain
+their earlier normals and RGB, including the omitted diagonal at water edges.
+The admission set and rebuild lifetime are specified in
+[water.md](water.md#dirty-normals-and-retained-lighting).
 
 ## Direction and exported coordinates
 
