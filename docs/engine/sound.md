@@ -234,8 +234,16 @@ sound sections in this order: `unknown` (0), `water` (1), `deepwater` (2),
 
 Only animation PlaySound uses it: when the animated object's surface value is
 non-zero, `effect = table[surface][effect]`. `Sound`, `AmbientSound`, combat
-hits and speech are not remapped. With the shipped file, effect 4 plays 108 on
-sand, 89 on wood, 112 on tile, 102 on rock and 69 on water.
+hits and speech are not remapped. The configured `unknown` row is bypassed.
+Missing sound sections retain identity; repeated entries overwrite earlier
+ones. Targets are unsigned 16-bit effect IDs and still pass through the sound
+bank's playback validation.
+
+The lookup helper accepts nonzero surface codes up to and including 12, though
+only rows 0 through 11 exist. Code 12 reads beyond the allocated table and has
+no defined remap. Codes greater than 12 and an absent remap table return the
+input effect unchanged. There is no source-ID bounds check in this helper;
+animation callers must supply an ID in `0..255` for a valid row lookup.
 
 An object's surface value comes from the face it stands on:
 
@@ -247,7 +255,19 @@ An object's surface value comes from the face it stands on:
   selects `scapewater` (3), or `scapedeepwater` (4) for full water coverage.
   A dry result keeps the surface computed by this query, not a previous
   object's terrain-water result.
-- Any other face: 0.
+- Other ground-query source kinds assign 0 on the ordinary assignment path.
+
+This uses the ground-support query, not an arbitrary side collision. Model
+support supplies the packed texture of the selected face; solid-color faces
+supply zero. Terrain support queries the actor's integer map X/Z. An
+out-of-grid terrain tile lookup returns `-1`, which supplies image 63 after
+the low-six-bit mask, before the usual assignment and coverage rules.
+
+The support wrapper updates actor surface state only when collision attribute
+mask `0x04` is set. Excluded and query-only paths retain the previous actor
+surface. A support miss reaches the updater with a cleared source kind, so it
+assigns zero only if the ordinary assignment path is reached. See
+[surface-query state retention](player.md#surface-query-state-retention).
 
 ## Shipped script calls
 

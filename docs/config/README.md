@@ -13,7 +13,7 @@ Text-based INI configuration files shipped with the game.
 | `MENU.INI` | 42 KB | [menu-ini.md](menu-ini.md) | Menu system layout: page structure, text placement, textures, and movie definitions. |
 | `KEYS.INI` | 3 KB | [keys-ini.md](keys-ini.md) | Input bindings: keyboard scancodes, mouse buttons, and joystick axes to game actions. |
 | `REGISTRY.INI` | 302 B | [registry-ini.md](registry-ini.md) | File-system abstraction: archive lookup and 32-bit file access (non-functional in shipped game). |
-| `SURFACE.INI` | 4.3 KB | [surface-ini.md](surface-ini.md) | Terrain surface-type assignments, blend behavior, and sound remapping. |
+| `SURFACE.INI` | 4.3 KB | [surface-ini.md](surface-ini.md) | Texture surface-class assignments and animation sound remapping. |
 
 ## Asset Directory Files
 
