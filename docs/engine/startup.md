@@ -1,12 +1,16 @@
 # Startup presentation
 
-Glide startup presents the active Glide implementation's 3dfx splash,
-`system/STARTUP2.GXA`, then the book-style main menu. The splash is supplied by
-Glide, rather than by a Redguard movie file.
+Glide startup presents the active Glide implementation's 3dfx splash and
+`system/STARTUP2.GXA`. The splash is supplied by Glide, rather than by a
+Redguard movie file.
 
-The New Game introduction is separate from this startup sequence. The title
-image is a single 640×480 frame. The original also draws small version and
-loading labels along its bottom edge.
+Startup also enters the introductory game world and plays the Introduction
+cinematic. The book is not necessarily the first game presentation after the
+title. A book opened from a running world uses the in-game entry context
+described in [Book menu](menu.md).
+
+The title image is a single 640×480 frame. The original also draws small
+version and loading labels along its bottom edge.
 
 ## Title labels
 
