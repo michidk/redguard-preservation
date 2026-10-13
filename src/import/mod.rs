@@ -7,6 +7,8 @@ pub mod cdrom;
 pub mod cht;
 /// Typed COMBAT.INI attacks, defenses, and taunts.
 pub mod combat_ini;
+/// Reader and writer for REDGUARD.CPF console preferences.
+pub mod cpf;
 /// Parser for FNT bitmap font files.
 pub mod fnt;
 /// Export helpers for FNT assets.
