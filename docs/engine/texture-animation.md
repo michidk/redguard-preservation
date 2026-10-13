@@ -26,3 +26,17 @@ An explicit frame request selects that frame and replaces the retained current
 frame without changing the deadline. A later automatic request continues from
 that selected frame. This state belongs to the loaded texture image, not to
 an individual mesh instance.
+
+## Export metadata
+
+Animated glTF materials carry `extras.rgpre_texture_animation` with version 1.
+It contains the original `image_name`, signed header `delay_ms`, and `textures`,
+an ordered array of glTF texture indices including frame zero. The base-color
+texture remains frame zero for consumers without animation support. Static
+images omit this metadata.
+
+Every frame uses the same palette, row orientation and sampler as frame zero.
+The generic material retains alpha masking when any exported frame contains
+transparent pixels. Runtime render attributes can impose a different chroma
+policy. Consumers sharing one loaded original image must share its playback
+state even when different materials reference separate exported copies.

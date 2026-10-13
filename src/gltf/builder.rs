@@ -421,9 +421,38 @@ impl<'a> GltfBuilder<'a> {
         let index = if let Some((texture_index, has_alpha)) =
             self.resolve_textured_texture_index(texture_id, image_id, sampler_index, terrain)
         {
+            let animation = self.texture_cache.as_deref_mut().and_then(|cache| {
+                cache.animation_pngs(texture_id, image_id, self.compress_textures)
+            });
+            let mut material = Self::create_textured_material(
+                texture_index,
+                has_alpha
+                    || animation
+                        .as_ref()
+                        .is_some_and(|animation| animation.has_alpha),
+            );
+            if let Some(animation) = animation {
+                let mut textures = vec![texture_index];
+                textures.extend(
+                    animation
+                        .frames
+                        .iter()
+                        .map(|png| self.push_png_texture(png, sampler_index)),
+                );
+                material.extras = Some(
+                    serde_json::value::to_raw_value(&serde_json::json!({
+                        "rgpre_texture_animation": {
+                            "version": 1,
+                            "image_name": animation.name,
+                            "delay_ms": animation.delay_ms,
+                            "textures": textures,
+                        }
+                    }))
+                    .expect("texture animation metadata is serializable"),
+                );
+            }
             let new_index = self.materials.len();
-            self.materials
-                .push(Self::create_textured_material(texture_index, has_alpha));
+            self.materials.push(material);
             new_index
         } else {
             self.resolve_white_material()
