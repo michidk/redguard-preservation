@@ -460,7 +460,7 @@ selected player. See [coordinate and heading units](player.md#coordinate-and-hea
 ### Node-marker distance
 
 `AtNodeMarker(marker, distance)` returns one when the receiver's ordinary local
-position is within the supplied distance of the named marker, otherwise zero.
+position is within the supplied distance of the indexed marker, otherwise zero.
 It uses all three axes and does not select attached or linked positions.
 Marker coordinates are converted from map units to runtime units by a left
 shift of eight bits; coordinate subtraction retains the low 32 bits.
