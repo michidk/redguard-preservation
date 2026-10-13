@@ -479,6 +479,23 @@ marker table has 128 slots and accepts any nonzero presence byte. The alternate
 map path uses its own stored count and requires a presence byte of one. The
 marker argument is an unscaled signed index, distinct from the distance units.
 
+### Navigation map validation
+
+An actor without a current walk map clears its current-node, next-node and
+final-destination indices to -1. An enabled map remains valid when each of those
+indices is below its node count; the -1 unset sentinel is allowed.
+
+An index at or above the node count invalidates the map. Validation releases
+held current/next reservations, clears all three indices, and removes the map.
+A disabled map also releases held current/next reservations and removes the map,
+but retains the final-destination index until the next validation observes the
+absent map.
+
+Reservation release clears a node's ownership byte only when it matches the low
+byte of the actor's runtime identifier. It clears the actor's current and next
+indices even when another actor owns the node. An index at or above the node
+count does not address a node during release.
+
 ### Wandering without walk-node maps
 
 `Wander(radius, tolerance)` validates the actor's current navigation-map state
