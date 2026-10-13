@@ -496,6 +496,22 @@ byte of the actor's runtime identifier. It clears the actor's current and next
 indices even when another actor owns the node. An index at or above the node
 count does not address a node during release.
 
+### Walk-node arrival distance
+
+Node arrival compares horizontal distance from the actor's local position to
+the destination, using the same rounded Euclidean distance as node markers.
+It accepts equality in:
+
+`distance - tolerance <= (((speed + 2) * 256 * frame_scale) >> 8)`
+
+Coordinates and tolerance use runtime Q8 units. Multiplication and subtraction
+wrap at 32 bits, and the final right shift is signed. Vertical distance does
+not participate. A missing navigation map reports arrival before reading a node.
+
+Speed comes from the actor's current animation group when it provides a nonzero
+movement speed. Otherwise it is the minimum nonzero attribute among indices
+8, 19, 17, 12, 9, 13 and 10. When all seven are zero, the fallback speed is 8.
+
 ### Wandering without walk-node maps
 
 `Wander(radius, tolerance)` validates the actor's current navigation-map state
