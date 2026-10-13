@@ -150,13 +150,15 @@ these branches in order. The first matching branch wins.
 The selected-player deep-water branch also invokes weapon-state cleanup;
 selecting group 141 alone does not perform that transition.
 
-The sword predicates require the item system to be loaded, an actor with
-animation state, and ordinary rather than shell execution. `IsSheathingSword`
-accepts actor state 21 or current group 129; `IsDrawingSword` accepts actor
-state 20 or current group 91. `IsHoldingWeapon` returns true immediately for a
-nonzero attribute byte 110. Otherwise it requires combat capability, a set
-weapon-drawn flag, and a false `IsSheathingSword` result, under the same item,
-animation and execution-context gates.
+`IsSheathingSword` and `IsDrawingSword` require the item system to be loaded,
+an actor with animation state, and ordinary rather than shell execution.
+`IsSheathingSword` accepts actor state 21 or current group 129;
+`IsDrawingSword` accepts actor state 20 or current group 91.
+
+`IsHoldingWeapon` returns false for an absent actor. For a present actor,
+nonzero attribute byte 110 returns true before the item-system, animation-state
+and shell checks. Otherwise it requires those three gates, combat capability,
+a set weapon-drawn flag, and a false `IsSheathingSword` result.
 
 After selection, when animation state exists and execution is outside the
 shell context, a changed default replaces the current group immediately if
