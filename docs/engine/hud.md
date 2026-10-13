@@ -33,7 +33,9 @@ compass, power-up icons and logbook icon) over the 3D scene on a virtual
   below tests it differently. `LockoutPlayer` sets the selected player's
   `attr_no_node_combat` to one only when the retained lockout value is exactly
   one. Other values clear that attribute on the selected player and every
-  registered actor that currently has it set.
+  registered actor that currently has it set. Every `LockoutPlayer` call clears
+  the saved highlighted-choice text used by the SOUP topic menu. Values other
+  than one also clear the HUD prompt-override timer.
 - `attr_player_type` uses the SOUP386.DEF values `ply_cyrus` 0,
   `ply_gremlin` 1, `ply_crossbow` 2.
 
