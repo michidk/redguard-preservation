@@ -129,6 +129,21 @@ the coordinate plus 4608 exceeds 65535, and otherwise the coordinate minus
 compares that starting cell with its cached entry and rebuilds the lists when
 they differ.
 
+Moved actors enter a deduplicated deferred list in first-registration order.
+The frame loop consumes this list before regional actor selection, clearing its
+entries and count after the pass. Map-excluded script context suppresses
+relocation; pooled persistent actors also retain their existing membership.
+For a cell actor, relocation uses its linked position when present, otherwise
+its local position. Each X/Z coordinate is shifted right eight bits and masked
+to 16 bits before selecting its 512-unit cell.
+
+An unchanged cell retains list order. A changed cell unlinks the actor from
+its previous cell and prepends it to the destination cell. After a cell change,
+the rounded horizontal distance from the camera to the actor's local position,
+shifted right eight bits, invalidates the cached regional list when it exceeds
+3584. Nearby relocation retains the cached traversal until another rebuild
+condition applies. Removing a queued actor clears its pending entry.
+
 Ordinary default selection can use attribute byte 44, but combat, injury,
 attachment, movement and player-specific states can select other groups.
 Changing the default can force an immediate replacement when the old default

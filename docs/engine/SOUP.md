@@ -713,6 +713,33 @@ Transform and attachment updates consume the changed local angles separately;
 the handler does not update their matrices itself. Frame scale and nominal ticks
 are distinct inputs; see [animation timing](animation.md#timing-boundary).
 
+### Actor-local axis movement
+
+`MoveObjectAxis(axis, delta, duration)` moves along the receiver's orientation,
+using its current stored matrix or the upright forward shortcut. Delta and
+position use eight fractional bits. Zero delta or duration completes immediately.
+At elapsed zero, the task stores delta as its target and resets its traveled
+accumulator. Each invocation computes `(delta / duration >> 8) * frame_scale`
+with signed division, arithmetic shift and wrapping 32-bit multiplication, then
+adds that step to the wrapping accumulator. A negative step completes when the
+accumulator is at or below the target; a positive step completes when it is at
+or above the target. These completion paths perform no movement and do not
+snap the receiver to the target.
+
+Otherwise, axis 0, 1 or 2 selects a local X, Y or Z displacement; other axes
+select a zero vector. For axis 2, a receiver with zero slave attribute, pitch
+and roll uses the [upright forward translation](player.md#heading-based-translation)
+rule, including single-precision coordinate addition and truncation. Other
+cases transform the displacement through the stored actor matrix, round the
+transformed components to nearest-even integers, and add them to the receiver's
+coordinates with wrapping arithmetic.
+
+After movement, the receiver is registered once in the deferred map-update
+list. The task remains active only while signed elapsed is less than the
+wrapping value `duration - 1`. Later invocations reevaluate arguments while
+retaining target and accumulator unless elapsed is zero again. The task does
+not perform collision or restore position when stopped.
+
 ### Relative axis movement
 
 `MoveByAxis(axis, delta, duration)` changes a receiver's local position in the

@@ -345,6 +345,10 @@ Water surfaces are values 1 through 4; lava is value 5. When both the previous
 and current actor surfaces are outside water and lava, this wrapper does not
 produce water/lava transition effects.
 
+SOUP `IsInDeepWater()` reads the receiving actor's stored surface state.
+It returns one for states 2 and 4, and zero for every other state. It does not
+perform a new terrain or support query.
+
 ### Converting support height to actor position
 
 The selected ground surface height is not the actor origin height. For ordinary
@@ -885,7 +889,10 @@ resetting the measurement or accumulation state.
 
 ## Initial player animation setup
 
-A newly allocated player actor starts with animation default group zero.
+A newly allocated player actor starts with animation default group zero and
+stored surface state zero. Player definition and animation-group setup retain
+that surface value; subsequent support updates or restored world state can
+replace it.
 Player entry assigns the supplied map position with eight fractional bits and
 sets pitch and roll to zero and heading modulo 2048 before binding the actor
 definition and building its animation groups.
