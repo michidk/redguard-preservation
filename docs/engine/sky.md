@@ -171,6 +171,26 @@ minification and magnification on texture unit 0. Constant encoded RGB comes fro
 one-minus-source-alpha blending and disables fog for the sun, restoring scene
 fog afterwards. Scene geometry drawn later can cover it.
 
+### Sun framebuffer blending
+
+The sun draw enables four-by-four framebuffer dithering and alpha dither
+subtraction. In the software Voodoo 1 renderer, blending reads the existing
+RGB565 destination by shifting the stored red and blue fields left by three
+bits and the green field left by two bits. It does not replicate the high bits
+into the vacated low bits.
+
+Before blending, the destination channels undergo dither subtraction using the
+pixel's four-by-four dither value `d`. Red and blue become
+`floor((2 * channel + 15 - d) / 2)`; green becomes
+`floor((4 * channel + 15 - d) / 4)`.
+
+For an encoded source channel `s`, corrected destination channel `t`, and
+filtered eight-bit sun alpha `a`, the blended channel is
+`floor(s * (a + 1) / 256) + floor(t * (256 - a) / 256)`.
+The source and destination terms truncate separately before addition.
+The result is clamped to an eight-bit channel and then passes through the
+normal [framebuffer quantization](fog.md#integer-precision-and-framebuffer-dithering).
+
 ## Console Commands
 
 The developer console (F12) exposes runtime sky adjustment:
