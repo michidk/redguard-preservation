@@ -185,6 +185,9 @@ The nonplayer death-animation paths pair a forced request for group 122 with
 stored death default 124, and a forced request for group 121 with stored death
 default 123. The requested death animation and the subsequent ordinary default
 are separate values; the default selector reads the stored combat-state value.
+Storing the combat death default first releases the actor's held walk-node
+reservations. Each node's ownership byte is cleared only when it matches the
+actor identifier's low byte; both actor-side reservation indices are reset.
 
 ## Forced requests
 
