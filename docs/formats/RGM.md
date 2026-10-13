@@ -188,7 +188,7 @@ All fields little-endian.
 
 | Relative Offset | Size | Type | Name | Description |
 |---|---|---|---|---|
-| +0x00 | 4 | `u32` | map_length | Total byte length of this walk-map |
+| +0x00 | 4 | `u32` | map_length | Payload byte length after this length word |
 | +0x04 | 4 | `u32` | node_count | Number of walk-nodes in this map |
 | +0x08 | 4 | `u32` | node_count_dup | Duplicate of node_count |
 | +0x0C | 3 | `s24` | map_pos_x | Map position X |
@@ -200,17 +200,26 @@ All fields little-endian.
 | +0x18 | 4 | `u32` | radius | Map bounding radius |
 | +0x1C | ... | variable | walk_nodes | `node_count` × WalkNode records |
 
+The map length excludes its own four-byte length word. Its payload contains
+the remaining 24-byte map header and all length-prefixed nodes. Embedded maps
+are loaded in file order and prepended to the runtime map list, so traversal
+visits them in reverse file order.
+
 ### WalkNode Record
 
 | Relative Offset | Size | Type | Name | Description |
 |---|---|---|---|---|
-| +0x00 | 4 | `u32` | node_length | Total byte length of this walk-node |
+| +0x00 | 4 | `u32` | node_length | Payload byte length after this length word |
 | +0x04 | 2 | `u16` | node_pos_x | Local position X |
 | +0x06 | 2 | `s16` | node_pos_y | Local position Y |
 | +0x08 | 2 | `u16` | node_pos_z | Local position Z |
 | +0x0A | 1 | `u8` | reserved | File value discarded; runtime storage holds node ownership. |
 | +0x0B | 1 | `u8` | route_count | Number of routes from this node |
 | +0x0C | ... | variable | routes | `route_count` × NodeRoute records |
+
+The node length excludes its own four-byte length word and equals
+`8 + 4 * route_count`. Loading copies the packed node coordinates directly;
+the map header's position is not added to them.
 
 The loader clears the reserved byte before using the node. Runtime reservation
 sets that byte to the low byte of the owning actor identifier. An unowned node
