@@ -188,7 +188,7 @@ All fields little-endian.
 
 | Relative Offset | Size | Type | Name | Description |
 |---|---|---|---|---|
-| +0x00 | 4 | `u32` | map_length | Total byte length of this walk-map |
+| +0x00 | 4 | `u32` | map_length | Payload byte length after this length word |
 | +0x04 | 4 | `u32` | node_count | Number of walk-nodes in this map |
 | +0x08 | 4 | `u32` | node_count_dup | Duplicate of node_count |
 | +0x0C | 3 | `s24` | map_pos_x | Map position X |
@@ -200,11 +200,16 @@ All fields little-endian.
 | +0x18 | 4 | `u32` | radius | Map bounding radius |
 | +0x1C | ... | variable | walk_nodes | `node_count` × WalkNode records |
 
+The map length excludes its own four-byte length word. Its payload contains
+the remaining 24-byte map header and all length-prefixed nodes. Embedded maps
+are loaded in file order and prepended to the runtime map list, so traversal
+visits them in reverse file order.
+
 ### WalkNode Record
 
 | Relative Offset | Size | Type | Name | Description |
 |---|---|---|---|---|
-| +0x00 | 4 | `u32` | node_length | Total byte length of this walk-node |
+| +0x00 | 4 | `u32` | node_length | Payload byte length after this length word |
 | +0x04 | 2 | `u16` | node_pos_x | Local position X |
 | +0x06 | 2 | `s16` | node_pos_y | Local position Y |
 | +0x08 | 2 | `u16` | node_pos_z | Local position Z |
@@ -212,11 +217,28 @@ All fields little-endian.
 | +0x0B | 1 | `u8` | route_count | Number of routes from this node |
 | +0x0C | ... | variable | routes | `route_count` × NodeRoute records |
 
+The node length excludes its own four-byte length word and equals
+`8 + 4 * route_count`. Loading copies the packed node coordinates directly;
+the map header's position is not added to them.
+
 The loader clears the reserved byte before using the node. Runtime reservation
 sets that byte to the low byte of the owning actor identifier. An unowned node
 or a node already owned by the requesting actor can be acquired; another
 actor's reservation prevents acquisition. Releasing a reservation clears the
 byte only when the releasing actor still owns it.
+
+### Runtime node selection
+
+The nearest-node query traverses the loaded map list and each map's nodes in
+index order. It compares the sum of absolute X, Y and Z differences, using
+unsigned X/Z and signed Y from the node record. The query uses unscaled node
+coordinate units.
+
+Only distances strictly below 4096 qualify. Equal distances retain the first
+candidate. When a new candidate has distance strictly below 12, the query
+returns immediately, even if a later node would be closer. Otherwise it returns
+the best candidate after traversing all maps. With no qualifying node, it returns
+no map and node index -1. Node reservations do not filter this selection query.
 
 ### NodeRoute Record (4 bytes)
 
@@ -349,13 +371,26 @@ For VM architecture, opcode encoding, operator tables, and execution semantics, 
 
 Total payload = first actor `script_data_offset` + sum of all actors' `script_length` values. For each actor, execution starts at `script_pc` relative to that actor's block.
 
-Other `RA*` sections (for example `RAHK`, `RALC`, `RAVC`) provide data referenced by `RASC`, often as `u32` offset arrays rebased to loaded script memory.
+Other `RA*` sections provide separate actor data; their layouts and offset bases
+are section-specific.
 
 ## RAHK (Hook Data)
 
-RAHK contains hook offset tables. Entries are u32 LE offsets that are rebased against the RASC bytecode base address at load time, enabling scripts to register named entry points (hooks) that external events can invoke.
+RAHK contains native call records. An actor's nonzero `RAHD.rahk_offset` is a
+byte offset into this section's payload; the loader adds the RAHK payload base.
+Zero means no hook. The ordinary actor script wrapper dispatches the referenced
+record through the native function table, separately from its RASC entry and
+main continuations.
 
-Per-actor hook counts and offsets are stored in the corresponding RAHD record. Entries are accessed at `base + index × 4 + 0x25` — the 0x25-byte region before the offset array is a section header. The upper 16 bits of each u32 entry are extracted separately (`>> 0x10`) as a secondary field. No additional per-entry structure beyond the u32 offset array exists.
+A stored record begins with a little-endian `u16` native function index and a
+`u8` argument count, followed by five-byte encoded arguments. Each argument has
+a one-byte parameter-mode tag and four operand bytes. Function indices use the
+installed SOUP definition table. Parameter evaluation uses the receiving actor
+for local-variable references and the executing actor's string context.
+
+The native hook is not a table of RASC offsets and has no group-indexed array.
+Its execution gates are described in
+[SOUP ordinary update gates](../engine/SOUP.md#ordinary-update-gates).
 
 ## RAEX (Extra Data)
 
@@ -438,7 +473,7 @@ respectively. See [animation playback](../engine/animation.md) and the
 
 ## RANM (Namespace)
 
-RANM contains object namespace strings used for cross-script object references. Each actor's portion is located by offset and length fields stored in RAHD (within the undecoded gap at 0x5D). The extracted string provides the actor's canonical name for `ObjDot*` opcodes using selector byte 4 (named object from string table).
+RANM contains object namespace strings used for cross-script object references. Each actor's portion is located by the RAHD `ranm_offset` field at 0x19. The extracted string provides the actor's canonical name for `ObjDot*` opcodes using selector byte 4 (named object from string table).
 
 ## MPSL (Lights)
 
@@ -488,8 +523,9 @@ All fields little-endian.
 
 Position fields use the same i24+pad encoding as MPOB/MPSO. No explicit record ID field.
 The auxiliary table begins at `4 + count * 12`; byte `i` belongs to position
-record `i`. The runtime marker lookup accepts a marker only when its auxiliary byte is `1`;
-other values identify an unavailable marker. The metadata exporter retains it
+record `i`. The ordinary-world marker lookup accepts any nonzero auxiliary byte;
+the alternate-map lookup requires `1`. A zero byte identifies an unavailable marker.
+See [node-marker lookup](../engine/SOUP.md#node-marker-distance). The metadata exporter retains it
 as `reserved` for compatibility. `map_position` retains the three signed map
 coordinates before export-axis conversion and scaling; `position` retains the
 existing converted coordinates. Runtime placement can use `map_position` without
