@@ -23,12 +23,13 @@ The SOUP386 VM is a register-free, program-counter-driven bytecode interpreter. 
 
 ### Threading Model
 
-Each script supports up to two concurrent threads sharing the same bytecode buffer:
+An actor retains a main continuation and an optional entry continuation in the
+same bytecode buffer:
 
-| Thread | Start Address | Purpose |
+| Continuation | Start Address | Purpose |
 |---|---|---|
-| Thread 0 | `RAHD.script_pc` | Main execution (dialogue, activation, behavior) |
-| Thread 1 | Offset `0x00` | Interrupt handler — only created when `script_pc != 0` |
+| Main | `RAHD.script_pc` | Main execution (dialogue, activation, behavior) |
+| Entry | Offset `0x00` | Separate entry work, present only when `script_pc != 0` |
 
 The main and entry invocations share bytecode and local variables. Entry processing temporarily replaces the active cursor, then restores the main continuation. The actor has one subroutine return continuation, shared by these invocations, rather than a stack of return addresses.
 
@@ -46,22 +47,41 @@ cursor to the script base and returns from the current invocation.
 ### Ordinary update gates
 
 `SYSTEM.INI`'s `[system] task_system` enables the ordinary entry, task, and main
-script stages. Disabling it does not disable every script invocation: an
-available interrupt cursor can still run unless its runtime suppression flag
-is set. Actor exclusions and script-name filters apply before these stages.
+script stages when its numeric value is one. The per-actor RAHK native hook is a separate call record, not the
+entry continuation. With the task system enabled, the hook is dispatched only
+when no unpaused task slot exists. With the task system disabled, task-slot
+occupancy does not suppress that hook. Its own suppression flag still applies
+in both paths. Actor exclusions and script-name filters apply before these stages.
 
 The actor's runtime script-control byte has independent effects:
 
 | Mask | Effect in the ordinary actor update |
 |---|---|
 | `0x01` | Suppress the ordinary main stage, including its entry and task work |
-| `0x02` | Suppress the separate interrupt invocation |
+| `0x02` | Suppress the RAHK native hook |
 | `0x04` | Use entry and main-body processing without the existing-task pass |
 | `0x08` | Exclude the actor from the ordinary actor-update body |
 
 The `0x04` path is distinct from the usual entry, existing-task, then main-body
-order. These runtime flags are not RAHD attribute indices. See
+order. It retains the entry continuation's blocking-operand gate, but bypasses
+both the existing-task pass and its blocking-task gate before the main body.
+An existing unpaused blocking slot therefore does not by itself suppress the
+main body on this path. These runtime flags are not RAHD attribute indices. See
 [actor update order](animation.md#ordinary-actor-update-order).
+
+`DisableScript` sets mask `0x01`; `EnableScript` clears only that mask. Both
+return zero and preserve the other bits. They do not terminate the native call's
+current interpreter invocation or clear existing tasks. The wrapper checks the
+main-stage suppression flag after the native hook and combat processing, so a
+hook can change eligibility for the same update. Once the wrapper enters either
+main-stage path, it does not recheck those flags between entry work and the main
+body.
+
+The native hook precedes the ordinary entry/task/main sequence. When the task
+system is enabled and no unpaused task exists, combat processing follows the
+hook for actors with combat state outside shell execution. The entry continuation
+is processed later inside the enabled main stage. Mask `0x01` does not suppress
+the separate native hook.
 
 Ordinary entry processing is suppressed by an unpaused blocking slot whose call operand address is at or before the saved entry cursor. This test is separate from the later main-body blocking test and from direct interrupt invocation.
 
@@ -366,7 +386,7 @@ current playback state in place.
 
 `GetAttribute` reads an unsigned byte from the receiving actor's attribute table and returns zero when the table is absent. `SetAttribute` returns zero. When the table exists, it writes the low byte of the supplied value. Writing attribute 6 also copies that byte to attribute 115; writing attribute 1 also copies it to attribute 119. These two handlers do not check the attribute index range.
 
-`GetMyAttr` reads an unsigned byte from the receiving actor's attribute table. It returns zero when the table is absent or the index is outside 0–255. `SetMyAttr` returns zero and ignores an absent table or an out-of-range index. A valid write truncates the supplied value to its low byte. Attribute 44 also stores that truncated byte as the model's default group when the actor has an active model record.
+`GetMyAttr` reads an unsigned byte from the receiving actor's attribute table. It returns zero when the table is absent or the index is outside 0–255. `SetMyAttr` returns zero and ignores an absent table or an out-of-range index. A valid write truncates the supplied value to its low byte. Attribute 44 also stores that truncated byte as the combat death-default group when the actor has a combat record and its object-update exclusion is nonzero.
 
 ### Initial attribute copy and defaults
 
@@ -397,16 +417,19 @@ take this assignment path.
 
 ### Attribute default-group side effects
 
-The `SetAttribute` attribute-44 animation-default path releases the actor's two
-held walk-node reservations before storing the full supplied value as the
-model's default group. A node's ownership byte is cleared only when it matches
+`SetAttribute` first writes the low byte to attribute 44. Only when `IsDead`
+returns true does it release the actor's two held walk-node reservations and
+store the full supplied value as the combat death-default group. A node's ownership byte is cleared only when it matches
 the low byte of the actor identifier; both actor-held node indices are then
 cleared. This operation does not reset the animation cursor, current group,
 or loop countdown.
 
-`SetMyAttr` does not release walk-node reservations.
+`SetMyAttr` writes the combat death-default group only when a combat record
+exists and the object-update exclusion is nonzero. It stores the truncated
+attribute byte and does not release walk-node reservations. This exclusion
+check is distinct from the `IsDead` predicate used by `SetAttribute`.
 
-The model default and the animation playback default are separate state.
+The combat death-default group and the animation playback default are separate state.
 Ordinary actor updates select the playback default using actor state; these
 attribute writes do not directly replace that selection step. See
 [ordinary default selection](animation.md#placed-actor-initialization-and-eligibility).
@@ -433,6 +456,92 @@ to the signed `tolerance`, otherwise zero. The offset and tolerance are full
 signed 32-bit arguments. The receiver's attached yaw is used when `attr_slave`
 is nonzero; otherwise its ordinary yaw is used. This function requires a
 selected player. See [coordinate and heading units](player.md#coordinate-and-heading-units).
+
+### Node-marker distance
+
+`AtNodeMarker(marker, distance)` returns one when the receiver's ordinary local
+position is within the supplied distance of the indexed marker, otherwise zero.
+It uses all three axes and does not select attached or linked positions.
+Marker coordinates are converted from map units to runtime units by a left
+shift of eight bits; coordinate subtraction retains the low 32 bits.
+
+The distance is Euclidean. Each signed difference is first stored as a
+single-precision float. The sum of squares passes through a double-precision
+store before an extended-precision square root; the root is stored at single
+precision and converted to a signed integer with nearest-even rounding. Rounding
+the root to double precision before the single-precision store can change the
+result at a single-precision midpoint. The result is compared with the
+signed `distance` argument using an inclusive bound. The distance argument
+therefore uses 256 units per map unit.
+
+Marker lookup rejects an out-of-range or absent marker. The ordinary world
+marker table has 128 slots and accepts any nonzero presence byte. The alternate
+map path uses its own stored count and requires a presence byte of one. The
+marker argument is an unscaled signed index, distinct from the distance units.
+
+### Navigation map validation
+
+An actor without a current walk map clears its current-node, next-node and
+final-destination indices to -1. An enabled map remains valid when each of those
+indices is below its node count; the -1 unset sentinel is allowed.
+
+An index at or above the node count invalidates the map. Validation releases
+held current/next reservations, clears all three indices, and removes the map.
+A disabled map also releases held current/next reservations and removes the map,
+but retains the final-destination index until the next validation observes the
+absent map.
+
+Reservation release clears a node's ownership byte only when it matches the low
+byte of the actor's runtime identifier. It clears the actor's current and next
+indices even when another actor owns the node. An index at or above the node
+count does not address a node during release.
+
+### Walk-node arrival distance
+
+Node arrival compares horizontal distance from the actor's local position to
+the destination, using the same rounded Euclidean distance as node markers.
+It accepts equality in:
+
+`distance - tolerance <= (((speed + 2) * 256 * frame_scale) >> 8)`
+
+Coordinates and tolerance use runtime Q8 units. Multiplication and subtraction
+wrap at 32 bits, and the final right shift is signed. Vertical distance does
+not participate. A missing navigation map reports arrival before reading a node.
+
+Speed comes from the actor's current animation group when it provides a nonzero
+movement speed. Otherwise it is the minimum nonzero attribute among indices
+8, 19, 17, 12, 9, 13 and 10. When all seven are zero, the fallback speed is 8.
+
+### Wandering without walk-node maps
+
+`Wander(radius, tolerance)` validates the actor's current navigation-map state
+and sets attribute 94, `attr_node_in_use`, to one. With no current map, validation
+resets the held current-node, next-node and final-destination indices to -1.
+
+Ordinary map loading copies the authored runtime position into the stored home
+position before actor setup and attachment transforms. Actor setup selects its
+initial navigation map and current node through the global nearest-node query.
+
+When the final destination is unset, Wander clears the actor's saved navigation
+scratch state and chooses a candidate around its stored home position. The
+positive radius is converted from runtime units to map units by shifting right
+eight bits. Home and effective current-position coordinates are converted by
+integer division by 256, truncating toward zero. Candidate X and Z each equal
+`home + radius - Rnd(2 * radius)`; candidate Y is the home Y. It repeats both
+random draws while the rounded horizontal Euclidean distance from the effective
+current position is at most half the integer radius. Distance rounding follows
+the [node-marker distance arithmetic](#node-marker-distance).
+
+The candidate then goes through the global [walk-node selection query](../formats/RGM.md#runtime-node-selection).
+An empty loaded map list leaves the final destination unset. It does not bypass
+candidate selection or its random draws, and the next invocation tries again.
+
+Wander finishes by measuring horizontal displacement from the actor's saved
+previous local position. Its limit in runtime coordinate units is
+`(frame_scale << 13) >> 8`, with a wrapping 32-bit left shift followed by a
+signed right shift. If the rounded displacement exceeds the limit, it restores
+all three previous local coordinates. Equality retains the current position.
+The function returns the measured displacement before any restoration.
 
 ### Actor families and attached transforms
 
@@ -487,6 +596,16 @@ the parent matrix and translation. Its existing orientation matrix instead
 receives negative local yaw, pitch and roll changes relative to the saved
 previous local angles. Its effective angle fields use the local angles modulo
 2048 without adding parent angles.
+
+#### Ordinary axis locks
+
+Near the end of an ordinary actor update, after script and movement handling,
+nonzero position-lock attributes 40, 41 and 42 restore X, Y and Z respectively
+from that update's saved position. Rotation-lock attributes 38, 37 and 39
+restore pitch, yaw and roll respectively from the saved angles. Each axis is
+independent, and the current attribute values are read when this step runs.
+Actors with nonzero `attr_slave` bypass all six restorations. The step restores
+coordinate and angle fields; it does not rebuild the orientation matrix.
 
 #### Integer matrix arithmetic
 
@@ -589,6 +708,70 @@ Transform and attachment updates consume the changed local angles separately;
 the handler does not update their matrices itself. Frame scale and nominal ticks
 are distinct inputs; see [animation timing](animation.md#timing-boundary).
 
+### Relative axis movement
+
+`MoveByAxis(axis, delta, duration)` changes a receiver's local position in the
+same eight-fractional-bit units as the position fields. Axis zero selects X,
+one selects Y, and every other value selects Z. A zero delta or zero duration
+completes without changing position.
+
+Each task slot retains a target, initially zero. Whenever that saved target is
+zero, the handler replaces it with `current_position + delta`; this test does
+not depend on elapsed time. Each invocation divides delta by duration using
+signed truncation toward zero, arithmetic-shifts that quotient right eight,
+then multiplies by the shared frame scale, keeping the low 32 bits. This order
+quantizes the step before multiplication.
+
+For a negative step, a proposed position at or below the target snaps to the
+target and completes. For a positive step, a proposed position at or above the
+target does the same. Otherwise the step is added to the current position.
+A zero step leaves position unchanged at this point. The handler then compares
+the signed task elapsed input against `duration - 1`: reaching that value snaps
+to the saved target and completes; otherwise the task remains active. Additions
+and subtraction wrap to 32 bits. The initial invocation can move the actor.
+
+`sMoveByAxis(axis, delta, duration)` is a separate elapsed-position task. Only
+axes zero, one and two read or write a coordinate. Its saved origin starts at
+zero; when both origin and elapsed input are zero, it captures the selected
+current coordinate. Each invocation writes origin plus
+`(((delta << 8) / duration) * elapsed) >> 8`, using signed division, an arithmetic
+right shift and low-32-bit intermediate results. When signed elapsed is at
+least `duration - 1`, it instead writes `origin + delta` and completes. Other
+axis values still perform arithmetic and completion testing but do not write
+position. This handler has no zero-duration shortcut.
+
+Both tasks reevaluate their arguments on subsequent invocations and retain
+slot state under their respective initialization conditions. Neither handler
+performs collision, matrix, or attachment refresh. Stopping a task does not
+restore position. Signed division overflow, including division by zero in
+`sMoveByAxis`, has no successful movement result.
+
+### Random functions
+
+`Rnd(bound)` and `QuickRnd(mask)` each consume one draw from the shared
+engine random stream, also used by [sky scroll initialization](sky.md).
+The generator updates an unsigned 32-bit state with wrapping arithmetic:
+
+```text
+state = state * 1103515245 + 12345
+draw = (state >> 16) & 32767
+```
+
+The executable's stored initial state is 1. The state belongs to the shared
+generator, not to an individual script or actor.
+
+`QuickRnd(mask)` returns `draw & mask`, using the complete 32-bit argument.
+The argument is a bit mask rather than an exclusive upper bound. A zero mask
+still consumes a draw; a negative mask is accepted.
+
+For a positive `bound`, `Rnd(bound)` first masks the draw with the smallest
+mask in `1, 3, 7, ..., 16383` whose range can contain `bound` values. Bounds
+greater than 16384 leave the draw unchanged. It then repeatedly subtracts the
+bound until the result is less than the bound. Equivalently, apply that mask
+and take the remainder modulo the bound. The result is not uniformly
+distributed for every bound. Zero and negative bounds do not define a valid
+bounded draw.
+
 ### Function Table
 
 `SOUP386.DEF` declares callable functions in installed order. Index 0 is the synthetic `NullFunction`; authored entries start at index 1. Functions span the following categories:
@@ -642,7 +825,7 @@ Flag categories span narrative progression (acts 1–8, for example `After_Catac
 - `RASC` stores compiled script bytecode as a contiguous blob.
 - `RAST`/`RASB` store script string literal data and offset tables.
 - `RAVA` stores initial local variable values (`i32` array).
-- `RAHK` stores hook entry offsets rebased against script base addresses.
+- `RAHK` stores per-actor native call records addressed by RAHD section offsets.
 - `RAAT` stores per-actor attribute tables (256 bytes each), addressed by names from `SOUP386.DEF`.
 
 See [RGM.md](../formats/RGM.md) for record-level layouts and offsets.
