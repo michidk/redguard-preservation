@@ -101,6 +101,7 @@ fog. Vertex RGB is interpolated across screen space; texture coordinates use
 perspective correction. Terrain does not pass through a scene exposure or
 filmic tone-mapping stage.
 
+The ordinary terrain pass uses bilinear minification and magnification.
 Terrain texture binding disables chroma-key rejection. Palette index zero
 therefore remains an opaque color on terrain.
 
