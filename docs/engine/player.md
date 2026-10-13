@@ -777,7 +777,22 @@ Selected blocking operations, including model resource loading, save the timing
 state. Restoring that state reads the current BIOS clock and uses it as the next
 measurement baseline, so suspended time is excluded. The restore keeps the
 saved frame count, measured FPS, next scale, and fractional accumulators. The
-FPS tick remainder is not part of the saved state.
+FPS tick remainder, smoothed FPS, and startup countdown are not part of the
+saved state.
+
+The book menu uses this save/restore pair. While it is open, each menu iteration
+waits for a changed BIOS tick, updates the book, advances the shared clock, and
+then reads input. Leaving the menu restores the saved measurement frame count,
+measured FPS, next scale, and nominal/fine accumulators. The measurement
+remainder, smoothed FPS, and remaining startup countdown retain their values
+from menu processing. The currently exposed movement scale and nominal/fine
+increments are not restored; the next clock update replaces them.
+
+The saved baseline is relative: the last sampled BIOS tick minus the measurement
+baseline. Restoration subtracts that saved difference from the current BIOS
+tick. On the normal BIOS measurement path, measurement finishes by making its
+baseline equal to its sample, so a save after that measurement has a zero
+difference.
 
 The FPS-derived timing path keeps a measured FPS and a smoothed FPS. On each
 update, the smoothed value moves toward the measured value by one. If their
@@ -843,6 +858,9 @@ the finer counter increment is 8. The underlying FPS calculation and
 accumulation continue. Measured FPS replaces smoothed FPS for scale selection,
 and divisor smoothing is bypassed. After the countdown, the exposed values use
 the calculated scale and accumulated increments.
+
+Entering the world loop starts the twelve-update countdown again without
+resetting the measurement or accumulation state.
 
 ## Related documentation
 
