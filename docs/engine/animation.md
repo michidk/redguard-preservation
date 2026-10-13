@@ -283,6 +283,12 @@ bit `0x04`. Body-contact collection and response follow that work. Bit `0x01`
 enables those contacts only for living actor state zero, state 15, or states 27
 through 32 inclusive.
 
+Bit `0x04` dispatches states 10 through 19 to a selected-player-only response
+handler. For a nonplayer actor that handler returns without changing actor
+state. Outside that range, states 20 and 21 select the combat response; other
+states select the ordinary motion and ground response. This dispatch does not
+suppress the preceding support query or subsequent eligible body contacts.
+
 After collision handling, support-following runs before attribute-controlled
 axis restoration. These stages can change the result of earlier script movement;
 updating the animation or local transform alone does not perform them.
