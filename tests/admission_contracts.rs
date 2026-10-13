@@ -122,3 +122,35 @@ fn missing_authored_data_is_explicit_instead_of_using_lighting_fallbacks() {
     assert!(polygon["normal"].is_null());
     assert!(polygon["vertices"].is_null());
 }
+
+#[test]
+fn unusable_vertex_normals_export_authored_face_normals() {
+    for value in [0.0, f32::from_bits(3214), f32::NAN, f32::INFINITY] {
+        let mut model = model();
+        model.vertex_normals[0] = VertexNormal {
+            x: value,
+            y: value,
+            z: value,
+        };
+        let (document, bytes) = export(model);
+        let glb = rgpre::to_glb(&document, &bytes).unwrap();
+        let decoded = gltf::Gltf::from_slice(&glb).unwrap();
+        let blob = decoded.blob.as_deref().unwrap();
+        let primitives: Vec<_> = decoded.meshes().next().unwrap().primitives().collect();
+        for (primitive, expected) in primitives
+            .iter()
+            .zip([[-4.0, -5.0, 6.0], [-1.0, -2.0, 3.0]])
+        {
+            let normals: Vec<_> = primitive
+                .reader(|_| Some(blob))
+                .read_normals()
+                .unwrap()
+                .collect();
+            assert!(!normals.is_empty());
+            assert!(
+                normals.iter().all(|normal| *normal == expected),
+                "{value}: {normals:?}"
+            );
+        }
+    }
+}

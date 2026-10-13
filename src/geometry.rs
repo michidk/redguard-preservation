@@ -63,9 +63,7 @@ pub(crate) fn resolve_vertex_normal(
 
     if let Some(idx) = vn_index
         && let Some(vn) = model.vertex_normals.get(idx)
-        && !vn.x.is_nan()
-        && !vn.y.is_nan()
-        && !vn.z.is_nan()
+        && (vn.x * vn.x + vn.y * vn.y + vn.z * vn.z).is_normal()
     {
         return transform_normal(vn.x, vn.y, vn.z, convention);
     }
