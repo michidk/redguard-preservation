@@ -168,6 +168,8 @@ adjustment.
 | `EndMySounds` | function | — | Stop every playing channel owned by this object. |
 | `StopAllSounds` | function | — | Stop all 16 channels. |
 
+`Sound` returns zero as its SOUP scalar result, including when no sample starts.
+
 `KillMe` sets the object's killed flag and stops every channel the object
 owns; `Resurrect` clears the flag.
 
