@@ -328,6 +328,16 @@ mod tests {
             footer: [0; WLD_FOOTER_BYTES],
         };
 
+        assert_eq!(
+            crate::gltf::wld_grid_position(&file, 128, 0).unwrap(),
+            [-1638.4, 14.0, -0.0]
+        );
+        assert!(crate::gltf::wld_grid_position(&file, 256, 0).is_err());
+        let metadata = export_wld_metadata(&file).expect("metadata");
+        assert_eq!(metadata["sections"][1]["maps"][0][0], 20);
+        assert_eq!(metadata["combined"]["height_engine_units"][0], -160);
+        assert_eq!(metadata["combined"]["texture_indices"][0], 0);
+        assert_eq!(metadata["combined"]["quarter_turns"][0], 0);
         let stitched = file.combined_map(0).expect("combined map");
         let side = WLD_MAP_SIDE * 2;
         assert_eq!(stitched.len(), side * side);
@@ -428,4 +438,31 @@ mod height_tests {
             );
         }
     }
+}
+
+/// Exports every stored WLD header, map plane and footer, plus decoded combined grids.
+/// Combined arrays are row-major, 256 by 256; heights use positive-down engine units.
+/// Texture rotations are counter-clockwise quarter turns. Normals are derived geometry,
+/// not stored WLD data, and are therefore not included in this file-data export.
+pub fn export_wld_metadata(wld: &WldFile) -> Result<serde_json::Value> {
+    let heights = wld.combined_map(0)?;
+    let materials = wld.combined_map(2)?;
+    Ok(serde_json::json!({
+        "header_fields": wld.header.fields.as_slice(),
+        "section_offsets": wld.header.section_offsets(),
+        "sections": wld.sections.iter().map(|section| serde_json::json!({
+            "header": section.header.as_slice(),
+            "maps": section.maps.iter().map(|map| map.as_slice()).collect::<Vec<_>>(),
+        })).collect::<Vec<_>>(),
+        "footer": wld.footer,
+        "combined": {
+            "width": WLD_MAP_SIDE * 2,
+            "height": WLD_MAP_SIDE * 2,
+            "height_engine_units": heights.iter().copied().map(decode_height).collect::<Vec<_>>(),
+            "raw_height": heights,
+            "height_build_flags": heights.iter().map(|value| value & 128 != 0).collect::<Vec<_>>(),
+            "texture_indices": materials.iter().map(|value| value & 63).collect::<Vec<_>>(),
+            "quarter_turns": materials.iter().map(|value| value >> 6).collect::<Vec<_>>(),
+        },
+    }))
 }

@@ -938,6 +938,30 @@ mod tests {
             }
         }
         let model = super::super::parse_3d_file(&bytes).unwrap();
+        let metadata = super::super::export_model_metadata(
+            &model,
+            &[super::super::subobjects::Subobject {
+                center: [5120, -10240, 15360],
+                radius: 5120,
+                extents: Some([1.0, 2.0, 3.0]),
+                faces: vec![0],
+            }],
+        );
+        assert_eq!(
+            metadata["scene_subobjects"][0]["center"],
+            serde_json::json!([-1.0, 2.0, 3.0])
+        );
+        assert_eq!(metadata["scene_subobjects"][0]["radius"], 1.0);
+
+        assert_eq!(
+            metadata["model"]["frame_vertex_data"][1]["coords"][0]["y"],
+            -2.5
+        );
+        assert_eq!(
+            metadata["model"]["frame_normal_data"][1]["face_normals"][0]["y"],
+            -1.0
+        );
+        assert_eq!(metadata["uv_units"], "sixteenths_of_a_texel");
         let vertex = model.frame_vertex_data[1].coords[0];
         assert_eq!([vertex.x, vertex.y, vertex.z], [4.0, -2.5, 0.5]);
         let posed = model.at_frame(1).unwrap();

@@ -119,6 +119,39 @@ pub struct PvoFile {
 }
 
 impl PvoFile {
+    /// Resolves an OCTR leaf reference (PLST byte offset) to placed-object visibility IDs.
+    /// Preserves file order and duplicates. The no-leaf sentinel returns an empty list.
+    /// IDs below the world's MPSO count select that record; remaining IDs require the
+    /// runtime secondary object table. These IDs never identify individual model faces.
+    pub fn visibility_ids(&self, leaf_ref: u32) -> Result<Vec<u16>> {
+        if leaf_ref == LEAF_REF_NONE {
+            return Ok(Vec::new());
+        }
+        let leaf = self
+            .plst_leaves
+            .iter()
+            .find(|leaf| leaf.byte_offset == leaf_ref as usize)
+            .ok_or_else(|| {
+                Error::Parse(format!(
+                    "PVO leaf reference {leaf_ref} is not a PLST record"
+                ))
+            })?;
+        let mut ids = Vec::new();
+        for entry in &leaf.entries {
+            let start = entry.mlst_start as usize;
+            let end = start
+                .checked_add(usize::from(entry.count))
+                .ok_or_else(|| Error::Parse(format!("PVO leaf {leaf_ref} MLST range overflow")))?;
+            let slice = self.mlst_indices.get(start..end).ok_or_else(|| {
+                Error::Parse(format!(
+                    "PVO leaf {leaf_ref} MLST range {start}..{end} is out of bounds"
+                ))
+            })?;
+            ids.extend_from_slice(slice);
+        }
+        Ok(ids)
+    }
+
     /// Counts OCTR nodes marked as interior-only nodes.
     #[must_use]
     pub fn count_interior_nodes(&self) -> usize {
@@ -637,6 +670,16 @@ mod tests {
         assert_eq!(file.plst_leaves[0].entries[0].mlst_start, 0);
 
         assert_eq!(file.mlst_indices, vec![10, 20, 30]);
+    }
+
+    #[test]
+    fn visibility_ids_resolve_records_and_reject_invalid_ranges() {
+        let mut file = parse_pvo_file(&build_minimal_pvo()).unwrap();
+        assert_eq!(file.visibility_ids(0).unwrap(), [10, 20, 30]);
+        assert!(file.visibility_ids(LEAF_REF_NONE).unwrap().is_empty());
+        assert!(file.visibility_ids(1).is_err());
+        file.plst_leaves[0].entries[0].mlst_start = 2;
+        assert!(file.visibility_ids(0).is_err());
     }
 
     #[test]

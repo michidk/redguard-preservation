@@ -30,6 +30,20 @@ Preserving *The Elder Scrolls Adventures: Redguard* (1998) — reverse-engineere
 
 The `scan` command recursively detects known Redguard files in a directory tree. The CLI and Rust parsers focus on game assets. Hardware drivers, audio utilities, controller profiles, and development reports remain documented in [Bundled support resources](docs/formats/BUNDLED-RESOURCES.md).
 
+## Rust inspection exports
+
+`import::wld::export_wld_metadata`, `import::model3d::export_model_metadata`, and
+`import::bsi::export_bsi_metadata` expose decoded file data as JSON. Model metadata
+includes geometry, accumulated UVs in sixteenths of a texel, animation poses, and
+separately parsed subobjects. WLD metadata retains every map plane and includes
+decoded combined height, texture-index, and rotation grids. BSI metadata includes
+palettes and frame byte lengths; pixel buffers remain available through the image API.
+
+`gltf::model_position`, `gltf::model_normal`, and `gltf::wld_grid_position` use the
+same coordinates as GLB exports. `PvoFile::visibility_ids` resolves a PLST leaf
+reference to placed-object IDs: IDs below the world's MPSO count select that record,
+while higher IDs require the runtime secondary object table.
+
 ## Convert Subcommands
 
 Each format has its own subcommand with scoped flags. `convert <FILE>` auto-detects the format and uses defaults.

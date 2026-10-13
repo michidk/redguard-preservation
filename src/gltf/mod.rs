@@ -283,3 +283,57 @@ pub fn convert_wld_scene_to_gltf(
 
     Ok(builder.finish())
 }
+
+/// Converts decoded model positions (model units) to the scene coordinates used by GLB exports.
+#[must_use]
+pub fn model_position(position: [f32; 3]) -> [f32; 3] {
+    crate::geometry::transform_position(
+        position[0],
+        position[1],
+        position[2],
+        ENGINE_UNIT_SCALE,
+        crate::geometry::SCENE_CONVENTION,
+    )
+}
+
+/// Converts decoded model normals to the axis convention used by GLB exports, without normalization.
+#[must_use]
+pub fn model_normal(normal: [f32; 3]) -> [f32; 3] {
+    crate::geometry::transform_normal(
+        normal[0],
+        normal[1],
+        normal[2],
+        crate::geometry::SCENE_CONVENTION,
+    )
+}
+
+/// Returns a WLD grid vertex in GLB scene coordinates, with the stored height decoded.
+/// Coordinates use the combined 256-by-256 map's row-major column and row indices.
+pub fn wld_grid_position(
+    wld: &crate::import::wld::WldFile,
+    column: usize,
+    row: usize,
+) -> crate::Result<[f32; 3]> {
+    let side = crate::import::wld::WLD_MAP_SIDE;
+    if column >= side * 2 || row >= side * 2 {
+        return Err(crate::error::Error::Conversion(format!(
+            "WLD grid vertex ({column}, {row}) outside 256-by-256 grid"
+        )));
+    }
+    let section = column / side + (row / side) * 2;
+    let height = wld.sections[section].maps[0][column % side + (row % side) * side];
+    Ok([
+        -(column as f32) * terrain::WLD_SIZE_SCALE,
+        terrain::wld_height(height),
+        -(row as f32) * terrain::WLD_SIZE_SCALE,
+    ])
+}
+
+#[cfg(test)]
+mod inspection_tests {
+    #[test]
+    fn model_inspection_uses_export_axes_and_units() {
+        assert_eq!(super::model_position([20.0, -40.0, 60.0]), [-1.0, 2.0, 3.0]);
+        assert_eq!(super::model_normal([1.0, -2.0, 3.0]), [-1.0, 2.0, 3.0]);
+    }
+}
