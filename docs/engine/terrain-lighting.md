@@ -93,6 +93,46 @@ A flat face normal is `0,-1,0`; the sum of six such faces normalizes to
 calculation. With ISLAND day inputs, the resulting flat-terrain RGB is
 approximately `190.99797,190.99797,190.99797`.
 
+## Screen-space color interpolation
+
+Glide triangle setup orders vertices by screen Y. For ordered vertices
+`A`, `B`, and `C`, define screen-coordinate differences `AB = A - B` and
+`BC = B - C`, and determinant `D = AB.x * BC.y - BC.x * AB.y`.
+A zero determinant produces no triangle. The four coordinate differences
+divided by `D` are stored as 32-bit floats. For each color channel, setup
+writes the channel at `A` and these gradients, also stored as 32-bit floats:
+
+```text
+dLdx = (LA - LB) * (BC.y / D) - (LB - LC) * (AB.y / D)
+dLdy = (LB - LC) * (AB.x / D) - (LA - LB) * (BC.x / D)
+```
+
+In the software Voodoo 1 renderer, screen coordinates are converted to signed
+16-bit fixed point with four fractional bits. Starting color and each gradient
+are converted separately to signed 24-bit fixed point with twelve fractional
+bits. These conversions truncate toward zero before narrowing.
+
+The terrain color path enables subpixel adjustment. Let `ax` and `ay` be the
+fixed-point coordinates of `A`, and let `S`, `Gx`, and `Gy` be a channel's
+fixed-point start and gradients. Before rasterization, the start becomes:
+
+```text
+S = S + floor(((8 - (ax & 15)) * Gx + (8 - (ay & 15)) * Gy) / 16)
+```
+
+For integer screen pixel coordinates `(x, y)`, the channel accumulator is:
+
+```text
+I = S + (x - floor(ax / 16)) * Gx + (y - floor(ay / 16)) * Gy
+```
+
+The channel integer is obtained by arithmetic right shift of `I` by twelve
+bits. The Voodoo 1 color conversion keeps the low twelve bits, maps `4095`
+to zero and `256` to `255`, and otherwise keeps the low eight bits.
+A constant channel has zero gradients and remains constant across the triangle.
+Quantizing an interpolated floating-point channel only at the fragment does
+not reproduce the separately quantized start, gradients and subpixel origin.
+
 ## Texture combination
 
 The terrain draw selects Glide's texture-times-iterated-RGB
