@@ -345,6 +345,10 @@ Water surfaces are values 1 through 4; lava is value 5. When both the previous
 and current actor surfaces are outside water and lava, this wrapper does not
 produce water/lava transition effects.
 
+SOUP `IsInDeepWater()` reads the receiving actor's stored surface state.
+It returns one for states 2 and 4, and zero for every other state. It does not
+perform a new terrain or support query.
+
 ### Converting support height to actor position
 
 The selected ground surface height is not the actor origin height. For ordinary
