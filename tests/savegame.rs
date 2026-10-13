@@ -280,7 +280,7 @@ fn encoding_keeps_edited_payloads_and_recomputes_chunk_lengths() {
 }
 
 #[test]
-fn flag_payload_has_signed_values_then_latches_without_interleaving() {
+fn flag_payload_has_signed_values_then_states_without_interleaving() {
     use rgpre::import::savegame::{SaveFlags, encode_save_flags, parse_save_flags};
     let bytes = [
         2, 0, 0, 0, 0xff, 0xff, 0xff, 0xff, 0x78, 0x56, 0x34, 0x12, 1, 0x80,
@@ -290,7 +290,7 @@ fn flag_payload_has_signed_values_then_latches_without_interleaving() {
         flags,
         SaveFlags {
             values: vec![-1, 0x1234_5678],
-            latches: vec![1, 0x80]
+            states: vec![1, 0x80]
         }
     );
     assert_eq!(encode_save_flags(&flags).unwrap(), bytes);
@@ -298,7 +298,7 @@ fn flag_payload_has_signed_values_then_latches_without_interleaving() {
         parse_save_flags(&[0; 4]).unwrap(),
         SaveFlags {
             values: vec![],
-            latches: vec![]
+            states: vec![]
         }
     );
     for end in 0..bytes.len() {
@@ -311,7 +311,7 @@ fn flag_payload_has_signed_values_then_latches_without_interleaving() {
     assert!(
         encode_save_flags(&SaveFlags {
             values: vec![1],
-            latches: vec![]
+            states: vec![]
         })
         .is_err()
     );

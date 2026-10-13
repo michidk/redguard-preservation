@@ -58,7 +58,7 @@ a world reload after initializing the player.
 
 ## Global flags
 
-The `SVGF` payload stores the flag values and latch bytes in installed global
+The `SVGF` payload stores the flag values and state bytes in installed global
 flag order. Its payload length is `4 + 5 × count`. Numeric fields are
 little-endian.
 
@@ -66,7 +66,7 @@ little-endian.
 |---|---|---|---|---|
 | `0` | 4 | `u32` | count | Number of global flags. |
 | `4` | `4 × count` | `[i32; count]` | values | Current global flag values. |
-| `4 + 4 × count` | count | `[u8; count]` | latches | Native flag latch state. |
+| `4 + 4 × count` | count | `[u8; count]` | states | Native flag kind and latch state. |
 
 ## Save-slot directories
 

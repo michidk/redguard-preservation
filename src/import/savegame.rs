@@ -204,12 +204,12 @@ fn parse_metadata(data: &[u8]) -> Result<SaveMetadata> {
     })
 }
 
-/// SVGF values followed by the native latch bytes in installed flag order.
+/// SVGF values followed by the native flag-state bytes in installed flag order.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SaveFlags {
     pub values: Vec<i32>,
     /// Retained as bytes to preserve the original representation exactly.
-    pub latches: Vec<u8>,
+    pub states: Vec<u8>,
 }
 
 /// Decode one SVGF payload. The count must account for every remaining byte.
@@ -232,15 +232,15 @@ pub fn parse_save_flags(data: &[u8]) -> Result<SaveFlags> {
             .iter()
             .map(|value| i32::from_le_bytes(*value))
             .collect(),
-        latches: data[end..].to_vec(),
+        states: data[end..].to_vec(),
     })
 }
 
-/// Encode one SVGF payload, requiring one latch byte for each flag value.
+/// Encode one SVGF payload, requiring one state byte for each flag value.
 pub fn encode_save_flags(flags: &SaveFlags) -> Result<Vec<u8>> {
-    if flags.values.len() != flags.latches.len() {
+    if flags.values.len() != flags.states.len() {
         return Err(Error::Parse(
-            "save game SVGF: flag and latch counts differ".into(),
+            "save game SVGF: flag and state counts differ".into(),
         ));
     }
     let count = u32::try_from(flags.values.len())
@@ -258,6 +258,6 @@ pub fn encode_save_flags(flags: &SaveFlags) -> Result<Vec<u8>> {
     for value in &flags.values {
         data.extend_from_slice(&value.to_le_bytes());
     }
-    data.extend_from_slice(&flags.latches);
+    data.extend_from_slice(&flags.states);
     Ok(data)
 }
