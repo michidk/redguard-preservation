@@ -123,6 +123,19 @@ every emitted vertex. Terrain primitives omit this metadata.
 
 ## Local-light records
 
+`MPOB` object kind 6 defines a runtime local light. During object loading, its
+signed world ID must match the current world; its activation byte does not
+gate this branch. The loader initializes the light as locked and enabled,
+with zero positional offset and no intensity or radius modulation. Current
+and starting intensity, radius and signed RGB come from the authored record.
+
+These objects enter spatial-cell lists separately from `MPSL` map lights.
+Outside editor mode, world drawing submits their enabled, positive-radius
+lights from the active object list before drawing static models. Their current
+signed RGB and radius contribute through the local-light calculation, including
+when a static model already has retained colors. They are not part of the
+world-entry map-light bake.
+
 `RgmFile::prelight_lights(world_id)` returns the world-entry accumulation order
 when static loading is enabled. `RgmFile::local_lights(world_id)` returns
 admitted authored records in file order with signed
