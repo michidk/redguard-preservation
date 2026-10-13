@@ -10,6 +10,16 @@ CD as a cue sheet `game.ins` and a raw image `game.gog` (2352-byte sectors)
 in the directory above `Redguard\`, and its DOSBox configuration mounts it as
 drive `D:`.
 
+The audio designation in the cue sheet does not guarantee that every byte in
+the range is audio. The image packaged by the GOG `2.0.0.5` installer includes
+scrambled Mode 1 data-sector bytes at the beginning of track 2 before its audio
+silence. The scrambled region preceding track 2 overlaps the end of the plain
+data region and is displaced relative to the sector addresses in its headers.
+That displacement carries data beyond the cue sheet's audio start. The
+data-to-audio transition is not aligned to a 2352-byte sector boundary.
+Interpreting the overlapping data as 44.1 kHz signed 16-bit stereo PCM produces
+a brief loud noise; the bytes are CD-ROM sector content, not recorded music.
+
 All 29 shipped `WORLD.INI` entries set `world_redbook`, and every value lies
 in 2–7.
 
