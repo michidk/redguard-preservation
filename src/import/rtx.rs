@@ -356,6 +356,8 @@ impl RtxFile {
         self.entries.iter().filter(|e| !e.is_audio()).count()
     }
 
+    /// Builds a text map containing only non-empty labels.
+    /// For presence-aware lookup, use `entries`: an empty label still has an RTX entry.
     #[must_use]
     pub fn build_label_map(&self) -> std::collections::HashMap<String, String> {
         let mut map = std::collections::HashMap::new();

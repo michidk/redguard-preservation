@@ -28,7 +28,7 @@ compass, power-up icons and logbook icon) over the 3D scene on a virtual
   vertical retrace: these animations advance at most 60 times per second and
   otherwise at the frame rate the machine reaches. `max_frame_rate` limits only
   the tick computation, not drawing.
-- *Lockout* is the value last passed to the script function `LockoutPlayer`;
+- *Lockout* retains the low 16 bits of the value passed to `LockoutPlayer`;
   the engine also resets it to 0, for example after player death. Each element
   below tests it differently.
 - `attr_player_type` uses the SOUP386.DEF values `ply_cyrus` 0,
@@ -171,7 +171,8 @@ game the gold count is 53 (`player_total[2] = 52` plus one from
   ID order, wrapping, and skipping items with `hide[x] = 1` or a count of 0.
 - Cycling is disabled while the sword is drawn or `attr_holding_weapon` is
   set; the icon stays visible. Drawing or sheathing does not change the
-  selection.
+  selection. Disabling rendering suppresses item artwork and text, but does not
+  disable otherwise-eligible item cycling.
 - When the selected item's count drops below 1, the selection moves to the
   next valid item; with none, nothing is selected and nothing is drawn.
 
@@ -198,13 +199,34 @@ A single text line is drawn left-aligned from `x = pickup_xco` with its top at
 The script function `Activate(label)` (also used by `TorchActivate`) offers
 RTX entry `label` as the prompt when lockout is not 1, no dialogue topic menu
 is open, the sword is not drawn, no other object holds the activation, the
-hold-off `A` is 0, and no prompt is already pending for the frame. Additional
-player-state checks can reject the prompt. The prompt text is the RTX entry's
-text.
+hold-off `A` is 0, and no prompt is already pending. An existing
+activation owner may offer its own prompt again when the other gates permit it.
+When the player's `attr_player_type` is 1, the receiving object's
+`attr_special_activate` must be nonzero. A receiver attached to a rope or in an
+`IsOnEdge` state cannot offer a prompt. `IsOnEdge` is true for actor states
+10 through 19 inclusive. These two tests apply to the receiving object.
+
+The selected player must not be holding a weapon, drawing a sword, or sheathing
+a sword. The shared player-lineup result must be zero. `Activate` requires the
+player's torch-burning counter to be zero; `TorchActivate` requires it to be
+nonzero. The prompt text is the RTX entry's text; a missing RTX entry does not
+activate the object. RTX lookup folds ASCII uppercase letters in the four-byte
+key to lowercase. An existing entry with empty text still supplies a prompt and
+can activate the object.
+
+The weapon predicates use the item system and the actor's current animation.
+Outside shell-script execution, with the item system initialized and a current
+animation present, drawing is actor state 20 or animation group 91; sheathing
+is actor state 21 or animation group 129. Combat capability additionally
+requires an assigned weapon. A nonzero `attr_holding_weapon` makes the actor
+combat-capable and holding a weapon directly. Otherwise holding a weapon
+requires combat capability, the weapon-drawn flag, and no sheathing state.
 
 - If the use key is held when `Activate` is called, the activation fires:
-  the function returns true and `A` is set to 22 ticks, blanking the icon and
-  prompt area. The script function `Deactivate` clears `A`.
+  the function returns true, the receiving object becomes the activation owner,
+  and `A` is set to 22 ticks, blanking the icon and prompt area. The resolved
+  prompt remains pending even when activation fires. `Deactivate` always clears
+  `A`; it clears the activation owner only when called on that owning object.
 - Otherwise the prompt is drawn in place of the icon.
 - While a prompt is pending, holding the previous/next item key sets an
   override timer to `rtx_pickup_override_time` (shipped 24 ticks). While it
@@ -212,6 +234,22 @@ text.
   It decays by ticks and is cleared when no prompt is pending.
 - While the dialogue topic menu is open, and in some player states, a pending
   prompt draws nothing and still hides the icon.
+
+A pending prompt is consumed when its text is drawn, not at the start or end of
+every frame. Lockout 1, activation hold-off, prompt override, and early exits
+that suppress prompt drawing retain it. The drawing checks use the selected
+player's rope attachment, `IsOnEdge`, and `IsInDeepWater` state, as well as the
+dialogue topic menu. `IsInDeepWater` is true for water states 2 and 4.
+Disabling rendering with the `render off` console command also suppresses prompt
+drawing without consuming the pending text. `render on` removes that suppression.
+
+Lockout 1 freezes the activation hold-off. Otherwise a nonzero hold-off is
+reduced by supplied ticks, saturating at zero, and that update still draws
+neither prompt nor item. With no hold-off, a nonzero prompt override similarly
+decays and selects the item path for that update, even when it reaches zero.
+An absent pending prompt clears the override before these decisions. Drawing a
+prompt while a previous/next item key is held sets the configured override after
+consuming the prompt; item cycling is deferred to a later item-path update.
 
 ### Item name
 
