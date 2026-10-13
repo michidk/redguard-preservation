@@ -218,6 +218,15 @@ impl TextureCache {
         index
     }
 
+    pub(super) fn get_image_chroma_key(
+        &mut self,
+        texture_id: u16,
+        image_id: u8,
+    ) -> Option<[u8; 3]> {
+        let index = self.image_index(texture_id, image_id)?;
+        Some(self.bsi_files.get(&texture_id)?.images[index].palette_rgb(0, self.palette.as_ref()))
+    }
+
     pub fn get_image_rgba(&mut self, texture_id: u16, image_id: u8) -> Option<(Vec<u8>, u16, u16)> {
         let index = self.image_index(texture_id, image_id)?;
         let image = &self.bsi_files.get(&texture_id)?.images[index];

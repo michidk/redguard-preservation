@@ -129,6 +129,11 @@ can still contribute through the retained-color shading path.
 
 ## Export metadata
 
+Textured GLTF materials retain their effective palette-zero RGB in
+`rgpre_texture` extras with `version: 1` and `chroma_key_rgb: [r, g, b]`.
+Embedded PNGs preserve those RGB bytes at alpha-zero texels. The alpha marker
+supports generic viewers; engine renderers use the RGB key after filtering.
+
 Positioned-model GLTF nodes retain the selected ROB segment attribute byte in
 `rgpre_render`, with `version: 1` and `rob_attributes`. The attribute is null
 for standalone model files and generated geometry. The loader retains it from

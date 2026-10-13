@@ -422,8 +422,20 @@ impl<'a> GltfBuilder<'a> {
             self.resolve_textured_texture_index(texture_id, image_id, sampler_index, terrain)
         {
             let new_index = self.materials.len();
-            self.materials
-                .push(Self::create_textured_material(texture_index, has_alpha));
+            let mut material = Self::create_textured_material(texture_index, has_alpha);
+            if let Some(key) = self
+                .texture_cache
+                .as_deref_mut()
+                .and_then(|cache| cache.get_image_chroma_key(texture_id, image_id))
+            {
+                material.extras = Some(
+                    serde_json::value::to_raw_value(&serde_json::json!({
+                        "rgpre_texture": { "version": 1, "chroma_key_rgb": key }
+                    }))
+                    .expect("texture metadata is serializable"),
+                );
+            }
+            self.materials.push(material);
             new_index
         } else {
             self.resolve_white_material()

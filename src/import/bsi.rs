@@ -41,6 +41,7 @@ pub struct BsiFile {
 
 impl BsiImage {
     /// Decodes frame 0 indexed pixels to RGBA using an external or embedded palette.
+    /// Index zero retains its palette RGB with alpha zero, including for filtering.
     #[must_use]
     pub fn decode_rgba(&self, palette: Option<&Palette>) -> Vec<u8> {
         self.decode_pixels_rgba(&self.pixel_data, palette)
@@ -59,8 +60,17 @@ impl BsiImage {
         Some(self.decode_pixels_rgba(pixels, palette))
     }
 
+    pub(crate) fn palette_rgb(&self, index: u8, palette: Option<&Palette>) -> [u8; 3] {
+        if let Some(palette) = palette {
+            palette.colors[usize::from(index)]
+        } else if let Some(embedded) = &self.palette {
+            embedded[usize::from(index)]
+        } else {
+            [index; 3]
+        }
+    }
+
     fn decode_pixels_rgba(&self, pixels: &[u8], palette: Option<&Palette>) -> Vec<u8> {
-        let embedded_palette = self.palette.as_ref();
         let width = usize::from(self.width);
         let height = usize::from(self.height);
         let mut rgba = vec![0_u8; width * height * 4];
@@ -68,17 +78,8 @@ impl BsiImage {
         for i in 0..width * height {
             let idx = pixels.get(i).copied().unwrap_or(0);
             let offset = i * 4;
-            if idx == 0 {
-                rgba[offset..offset + 4].copy_from_slice(&[0, 0, 0, 0]);
-            } else if let Some(palette) = palette {
-                let color = palette.colors[usize::from(idx)];
-                rgba[offset..offset + 4].copy_from_slice(&[color[0], color[1], color[2], 255]);
-            } else if let Some(embedded) = embedded_palette {
-                let color = embedded[usize::from(idx)];
-                rgba[offset..offset + 4].copy_from_slice(&[color[0], color[1], color[2], 255]);
-            } else {
-                rgba[offset..offset + 4].copy_from_slice(&[idx, idx, idx, 255]);
-            }
+            let [r, g, b] = self.palette_rgb(idx, palette);
+            rgba[offset..offset + 4].copy_from_slice(&[r, g, b, if idx == 0 { 0 } else { 255 }]);
         }
 
         rgba
