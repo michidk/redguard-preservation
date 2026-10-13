@@ -166,6 +166,11 @@ for the new default. These checks use the old default captured before selection.
 
 ## Dead actor default selection
 
+`IsDead` reads a runtime state selector rather than the health attribute. It
+succeeds when that selector is 8, or when the selected player's death override
+is active. This selector is distinct from the actor state used by the living
+default-selection branches.
+
 When ordinary default selection reaches the dead-actor branch, an actor with
 combat state takes its default group from that state's death-animation selection.
 Without combat state, it selects group 123 when that group exists, otherwise
