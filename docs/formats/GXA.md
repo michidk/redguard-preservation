@@ -5,6 +5,9 @@ GXA files store indexed bitmap frames for UI and sky textures.
 `system/pointers.bmp` also uses the GXA container and contains 30 cursor
 frames. Its first chunk is `BMHD`, despite the filename's `.bmp` extension.
 
+The cursor sprite sheet `system/pointers.bmp` also uses this chunked format.
+Its `.bmp` extension does not describe a Windows bitmap.
+
 ## Overall Structure
 
 ```
