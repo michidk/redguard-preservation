@@ -13,6 +13,7 @@ the [configuration reference](../config/) describes the INI settings.
 | [Actor animation](animation.md) | Model frames, animation requests, loop counts, and placed actor eligibility. |
 | [Player movement](player.md) | Coordinate units, turning, collision, and frame timing. |
 | [Item attachment](attachment.md) | Vertex tracking for held weapons and shields. |
+| [Developer console](console.md) | All 82 registered commands, aliases, subcommands, numeric parsing, and command quirks. |
 | [Hidden cheats](cheats.md) | Cheat entry, effects, persistence, and developer controls. |
 
 ## World rendering

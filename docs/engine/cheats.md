@@ -2,6 +2,8 @@
 
 Hidden cheat system built into the Redguard game engine. The 13 cheat codes are XOR-obfuscated in the binary (each byte XOR'd with `0xAA`).
 
+The [developer console reference](console.md) lists all other console commands and their aliases.
+
 ## Activation
 
 Cheats can be triggered in three ways:

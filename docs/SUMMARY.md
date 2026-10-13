@@ -6,6 +6,7 @@
   - [Actor animation](engine/animation.md)
   - [Player movement](engine/player.md)
   - [Item attachment](engine/attachment.md)
+  - [Developer console](engine/console.md)
   - [Hidden cheats](engine/cheats.md)
   - [Terrain lighting](engine/terrain-lighting.md)
   - [Fog and clipping](engine/fog.md)
