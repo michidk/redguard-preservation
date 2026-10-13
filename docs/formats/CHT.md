@@ -33,7 +33,7 @@ State values: `0` = off, `1` = on. The console `cheat = N` syntax can set arbitr
 
 ## Behavior
 
-- **Write**: The `savecheats` cheat (index 6) writes the current 256-byte state array to `REDGUARD.CHT`.
+- **Write**: The `savecheats` cheat (index 6) clears its own slot, writes the 256-byte state array to `REDGUARD.CHT`, then sets its slot to one after closing the file. The stored `savecheats` value is therefore zero.
 - **Read**: On startup, the engine checks for `REDGUARD.CHT` and restores all cheat states from it.
 - **Reset**: Delete the file to clear all persisted cheats.
 

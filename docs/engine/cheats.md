@@ -18,6 +18,12 @@ Press **F12** to open the console, type the cheat name, and press **Enter**. The
 
 In the console, use `<cheatname> = <value>` to set a specific integer value instead of toggling. For example, `magiccarpet = 1` forces the cheat on, `magiccarpet = 0` forces it off.
 
+### Toggle rules
+
+For ordinary state cheats, gameplay typing changes zero to one and any nonzero value to zero. A console toggle sets the value to `(value + 1) & 1`. These rules agree for zero and one, but differ for other even values: after `oddjob = 2`, a console toggle produces one, while a gameplay toggle produces zero. Explicit assignment stores the supplied integer without applying either toggle rule.
+
+`oracle` and `savecheats` have dedicated actions. `oddjob` uses the ordinary state-handling path.
+
 ## Cheat List
 
 | # | Name | Effect |
@@ -33,14 +39,14 @@ In the console, use `<cheatname> = <value>` to set a specific integer value inst
 | 8 | `drno` | Disables part of the non-player actor update path, reducing/skipping some NPC behavior processing |
 | 9 | `goldfinger` | God mode — continuously refreshes the player's post-hit invulnerability timer while active, preventing it from expiring. Once the player takes a hit (which starts the timer), subsequent damage is blocked indefinitely. Differs from `drevil`, which prevents death when health reaches zero rather than blocking incoming damage. |
 | 10 | `neversaydie` | Makes SOUP `PlayerDistance()` return `9999999` instead of calculating distance. |
-| 11 | `oddjob` | Dead code. The flag can be toggled and persisted in `REDGUARD.CHT`, but it does not change gameplay behavior. |
+| 11 | `oddjob` | Recognized state slot: accepts toggles and explicit console values, appears in `oracle`, and persists in `REDGUARD.CHT`. |
 | 12 | `yeahbaby` | Vertical surface bypass — while active, **Page Up** moves the player upward through surfaces and **Page Down** clips below the current surface. The collision bypass only engages while one of these keys is held; normal surface collision applies otherwise. Not a permanent noclip — horizontal collision is unaffected. |
 
 The cheat names are themed after James Bond films (Moonraker, Dr. No, Goldfinger, Oddjob, Never Say Never Again) and Austin Powers ("Yeah Baby").
 
 ## Persistence — REDGUARD.CHT
 
-The `savecheats` command (cheat #6) writes the current state of all 13 cheats to a file called `REDGUARD.CHT` in the game directory. On startup, the engine checks for this file and restores any previously saved cheat states. Delete the file to reset all cheats. See [CHT format specification](../formats/CHT.md) for the binary layout.
+The `savecheats` command (cheat #6) writes the 64-slot state array, including the 13 named cheat slots, to a file called `REDGUARD.CHT` in the game directory. It clears its own slot before writing, then sets that slot to one after closing the file. On startup, the engine checks for this file and restores any previously saved cheat states. Delete the file to reset all cheats. See [CHT format specification](../formats/CHT.md) for the binary layout.
 
 ## Obfuscation
 
