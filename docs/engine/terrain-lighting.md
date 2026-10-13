@@ -121,8 +121,24 @@ camera-space RGB interpolation and subsequent per-triangle setup.
 
 ## Screen-space color interpolation
 
-Glide triangle setup orders vertices by screen Y. For ordered vertices
-`A`, `B`, and `C`, define screen-coordinate differences `AB = A - B` and
+Glide triangle setup orders vertices by screen Y. For input vertices `0`, `1`,
+and `2`, the following table specifies the order, including equal-Y cases:
+
+| Condition | Ordered vertices |
+| --- | --- |
+| `y0 < y1` and `y1 <= y2` | `0, 1, 2` |
+| `y0 < y2 < y1` | `0, 2, 1` |
+| `y2 <= y0 < y1` | `2, 0, 1` |
+| `y2 <= y1 <= y0` | `2, 1, 0` |
+| `y1 <= y0 < y2` | `1, 0, 2` |
+| `y1 < y2 <= y0` | `1, 2, 0` |
+
+This is not a stable sort. In particular, a top horizontal edge selects the
+later of its two input vertices as the color anchor. The anchor matters after
+fixed-point conversion, even when an unquantized affine plane is unchanged.
+
+For ordered vertices `A`, `B`, and `C`, define screen-coordinate differences
+`AB = A - B` and
 `BC = B - C`, and determinant `D = AB.x * BC.y - BC.x * AB.y`.
 A zero determinant produces no triangle. The four coordinate differences
 divided by `D` are stored as 32-bit floats. For each color channel, setup
