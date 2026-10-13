@@ -1,4 +1,6 @@
-use rgpre::import::savegame::{load_save_slot, parse_savegame_file};
+use rgpre::import::savegame::{
+    SaveSection, encode_savegame_file, load_save_slot, parse_savegame_file,
+};
 use std::path::PathBuf;
 
 fn chunk(bytes: &mut Vec<u8>, name: &[u8; 4], data: &[u8]) {
@@ -198,7 +200,20 @@ fn installed_save_slot() {
         eprintln!("SKIP installed save slot: REDGUARD_SAVE_SLOT is absent");
         return;
     };
-    let slot = load_save_slot(path).unwrap();
+    let slot = load_save_slot(&path).unwrap();
+    for entry in std::fs::read_dir(&path).unwrap() {
+        let entry = entry.unwrap();
+        let name = entry.file_name().to_string_lossy().to_ascii_uppercase();
+        if name == "SAVEGAME.SAV" || name.ends_with(".TSG") {
+            let bytes = std::fs::read(entry.path()).unwrap();
+            let parsed = parse_savegame_file(&bytes).unwrap();
+            assert_eq!(
+                encode_savegame_file(&parsed.sections).unwrap(),
+                bytes,
+                "{name}"
+            );
+        }
+    }
     assert_eq!(slot.game.metadata.version, *b"1.31");
     assert!(
         slot.game
@@ -214,4 +229,90 @@ fn installed_save_slot() {
                 .any(|s| s.name == *b"SMOB" && !s.data.is_empty())
         );
     }
+}
+
+#[test]
+fn lossless_encoding_preserves_metadata_padding_and_non_utf8_text() {
+    let mut bytes = save_bytes();
+    bytes[20] = 0x82;
+    bytes[52] = 0xa5;
+    let game = parse_savegame_file(&bytes).unwrap();
+    assert_eq!(encode_savegame_file(&game.sections).unwrap(), bytes);
+    assert_eq!(
+        parse_savegame_file(&encode_savegame_file(&game.sections).unwrap()).unwrap(),
+        game
+    );
+}
+
+#[test]
+fn encoding_rejects_invalid_structure_and_metadata() {
+    let game = parse_savegame_file(&save_bytes()).unwrap();
+    assert!(encode_savegame_file(&[]).is_err());
+    assert!(encode_savegame_file(&game.sections[1..]).is_err());
+    for extra in [
+        game.sections[0].clone(),
+        SaveSection {
+            name: *b"END ",
+            data: vec![],
+        },
+    ] {
+        let mut sections = game.sections.clone();
+        sections.push(extra);
+        assert!(encode_savegame_file(&sections).is_err());
+    }
+    let mut sections = game.sections.clone();
+    sections[0].data[0] = b'9';
+    assert!(encode_savegame_file(&sections).is_err());
+    sections[0].data.pop();
+    assert!(encode_savegame_file(&sections).is_err());
+}
+
+#[test]
+fn encoding_keeps_edited_payloads_and_recomputes_chunk_lengths() {
+    let mut game = parse_savegame_file(&save_bytes()).unwrap();
+    game.sections[2].data = vec![7, 8, 9, 10];
+    let encoded = encode_savegame_file(&game.sections).unwrap();
+    let original = save_bytes();
+    let mut expected = original[..288].to_vec();
+    expected.extend_from_slice(b"NEW!\0\0\0\x04\x07\x08\x09\x0a");
+    expected.extend_from_slice(&original[299..]);
+    assert_eq!(encoded, expected);
+}
+
+#[test]
+fn flag_payload_has_signed_values_then_states_without_interleaving() {
+    use rgpre::import::savegame::{SaveFlags, encode_save_flags, parse_save_flags};
+    let bytes = [
+        2, 0, 0, 0, 0xff, 0xff, 0xff, 0xff, 0x78, 0x56, 0x34, 0x12, 1, 0x80,
+    ];
+    let flags = parse_save_flags(&bytes).unwrap();
+    assert_eq!(
+        flags,
+        SaveFlags {
+            values: vec![-1, 0x1234_5678],
+            states: vec![1, 0x80]
+        }
+    );
+    assert_eq!(encode_save_flags(&flags).unwrap(), bytes);
+    assert_eq!(
+        parse_save_flags(&[0; 4]).unwrap(),
+        SaveFlags {
+            values: vec![],
+            states: vec![]
+        }
+    );
+    for end in 0..bytes.len() {
+        assert!(parse_save_flags(&bytes[..end]).is_err());
+    }
+    let mut trailing = bytes.to_vec();
+    trailing.push(0);
+    assert!(parse_save_flags(&trailing).is_err());
+    assert!(parse_save_flags(&[0xff; 4]).is_err());
+    assert!(
+        encode_save_flags(&SaveFlags {
+            values: vec![1],
+            states: vec![]
+        })
+        .is_err()
+    );
 }
