@@ -479,6 +479,33 @@ marker table has 128 slots and accepts any nonzero presence byte. The alternate
 map path uses its own stored count and requires a presence byte of one. The
 marker argument is an unscaled signed index, distinct from the distance units.
 
+### Wandering without walk-node maps
+
+`Wander(radius, tolerance)` validates the actor's current navigation-map state
+and sets attribute 94, `attr_node_in_use`, to one. With no current map, validation
+resets the held current-node, next-node and final-destination indices to -1.
+
+When the final destination is unset, Wander clears the actor's saved navigation
+scratch state and chooses a candidate around its stored home position. The
+positive radius is converted from runtime units to map units by shifting right
+eight bits. Home and effective current-position coordinates are converted by
+integer division by 256, truncating toward zero. Candidate X and Z each equal
+`home + radius - Rnd(2 * radius)`; candidate Y is the home Y. It repeats both
+random draws while the rounded horizontal Euclidean distance from the effective
+current position is at most half the integer radius. Distance rounding follows
+the [node-marker distance arithmetic](#node-marker-distance).
+
+The candidate then goes through the global [walk-node selection query](../formats/RGM.md#runtime-node-selection).
+An empty loaded map list leaves the final destination unset. It does not bypass
+candidate selection or its random draws, and the next invocation tries again.
+
+Wander finishes by measuring horizontal displacement from the actor's saved
+previous local position. Its limit in runtime coordinate units is
+`(frame_scale << 13) >> 8`, with a wrapping 32-bit left shift followed by a
+signed right shift. If the rounded displacement exceeds the limit, it restores
+all three previous local coordinates. Equality retains the current position.
+The function returns the measured displacement before any restoration.
+
 ### Actor families and attached transforms
 
 `attr_master` and `attr_slave` are byte-sized group identities. A nonzero slave
