@@ -46,9 +46,20 @@ interval. An endpoint exactly on a plane does not count as crossing it.
 No crossed planes selects the unclipped polygon preparation path; any crossed
 plane selects the clipped path. A rejected bound does not enter the draw list.
 
-The model draw path prepares a polygon before binding its texture. It binds only
-when preparation returns at least three vertices. Earlier object and face
-rejection still applies.
+Ordinary model drawing visits the authored polygons in order. A polygon passes
+its facing test only when the vector from the local-space camera position to
+its first authored vertex has a strictly negative dot product with the
+selected frame's face normal. A zero result rejects the polygon. Both shaded
+and unshaded drawing use this test. Solid-color polygons do not bind a texture.
+
+Queued-model draw flag `0x04` selects a separate explicit-frame path. This path
+prepares only the model's first polygon, bypasses the ordinary facing test and
+uses the instance's explicit texture-frame selection. Ordinary drawing requests
+automatic frame selection.
+
+Both paths prepare a polygon before binding its texture. They bind only when
+preparation returns at least three vertices. Earlier object rejection still
+applies.
 
 The clipped preparation path transforms vertices into camera space with the
 horizontal and vertical [projection scales](projection.md) already applied.
