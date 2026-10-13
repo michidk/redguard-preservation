@@ -37,7 +37,7 @@ For example, after `oddjob = 2`, entering `oddjob` in the console stores one; en
 
 | # | Name | Effect |
 |---|------|--------|
-| 0 | `oracle` | Lists all 13 cheats and their current on/off state in the console |
+| 0 | `oracle` | Lists all 13 cheats and their raw integer state values in the console |
 | 1 | `nodemarker` | Debug display of pathfinding node markers — renders the navigation waypoint network used for actor movement. Corresponds to the `node_marker` key in `SYSTEM.INI [debug]` (related settings: `display_node_map`, `display_nodes`, `display_markers`). The SOUP scripting layer uses this network via functions like `movenodemarker`, `atnodemarker`, `disablenodemaps`, and `enablenodemaps`. |
 | 2 | `moonraker` | For the player actor, skips several combat/movement processing calls and flips a player state bit used in combat flow |
 | 3 | `task` | Toggles the task scheduling system — a high-level bytecode-driven behavior scheduler that runs on top of SOUP scripts. SOUP is the low-level scripting VM ("do X right now"); the task system is the higher-level sequencer ("do X, then Y, then Z over time"). Each actor has 6 independent task slots with their own bytecode pointers and frame counters. When enabled, a state machine interpreter processes ~30 task opcodes (0x00–0x1e) per actor per frame, handling action queuing, behavior transitions, AI/combat processing (pathfinding, combat stances, NPC-vs-player logic), and actor destruction. When disabled, only SOUP script execution runs — actors lose multi-step behaviors, combat AI, and pathfinding. Corresponds to `task_system` in `SYSTEM.INI [system]` (default: `yes`). |
