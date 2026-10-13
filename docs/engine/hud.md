@@ -35,7 +35,8 @@ compass, power-up icons and logbook icon) over the 3D scene on a virtual
   one. Other values clear that attribute on the selected player and every
   registered actor that currently has it set. Every `LockoutPlayer` call clears
   the saved highlighted-choice text used by the SOUP topic menu. Values other
-  than one also clear the HUD prompt-override timer.
+  than one also clear the HUD prompt-override timer. The function returns zero
+  as its SOUP scalar result.
 - `attr_player_type` uses the SOUP386.DEF values `ply_cyrus` 0,
   `ply_gremlin` 1, `ply_crossbow` 2.
 
