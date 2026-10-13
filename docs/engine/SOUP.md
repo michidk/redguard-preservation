@@ -622,6 +622,44 @@ Transform and attachment updates consume the changed local angles separately;
 the handler does not update their matrices itself. Frame scale and nominal ticks
 are distinct inputs; see [animation timing](animation.md#timing-boundary).
 
+### Relative axis movement
+
+`MoveByAxis(axis, delta, duration)` changes a receiver's local position in the
+same eight-fractional-bit units as the position fields. Axis zero selects X,
+one selects Y, and every other value selects Z. A zero delta or zero duration
+completes without changing position.
+
+Each task slot retains a target, initially zero. Whenever that saved target is
+zero, the handler replaces it with `current_position + delta`; this test does
+not depend on elapsed time. Each invocation divides delta by duration using
+signed truncation toward zero, arithmetic-shifts that quotient right eight,
+then multiplies by the shared frame scale, keeping the low 32 bits. This order
+quantizes the step before multiplication.
+
+For a negative step, a proposed position at or below the target snaps to the
+target and completes. For a positive step, a proposed position at or above the
+target does the same. Otherwise the step is added to the current position.
+A zero step leaves position unchanged at this point. The handler then compares
+the signed task elapsed input against `duration - 1`: reaching that value snaps
+to the saved target and completes; otherwise the task remains active. Additions
+and subtraction wrap to 32 bits. The initial invocation can move the actor.
+
+`sMoveByAxis(axis, delta, duration)` is a separate elapsed-position task. Only
+axes zero, one and two read or write a coordinate. Its saved origin starts at
+zero; when both origin and elapsed input are zero, it captures the selected
+current coordinate. Each invocation writes origin plus
+`(((delta << 8) / duration) * elapsed) >> 8`, using signed division, an arithmetic
+right shift and low-32-bit intermediate results. When signed elapsed is at
+least `duration - 1`, it instead writes `origin + delta` and completes. Other
+axis values still perform arithmetic and completion testing but do not write
+position. This handler has no zero-duration shortcut.
+
+Both tasks reevaluate their arguments on subsequent invocations and retain
+slot state under their respective initialization conditions. Neither handler
+performs collision, matrix, or attachment refresh. Stopping a task does not
+restore position. Signed division overflow, including division by zero in
+`sMoveByAxis`, has no successful movement result.
+
 ### Function Table
 
 `SOUP386.DEF` declares callable functions in installed order. Index 0 is the synthetic `NullFunction`; authored entries start at index 1. Functions span the following categories:
