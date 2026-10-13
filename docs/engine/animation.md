@@ -84,7 +84,7 @@ Request arbitration does not activate placed actors automatically.
 ## Placed actor initialization and eligibility
 
 New actor animation state initializes its default group to zero. For a placed
-ordinary object with an animation model table, group setup builds the RAGR table
+object with MPOB type 1 and an animation model table, group setup builds the RAGR table
 and makes two ordinary requests for group zero with modifier zero. These requests
 reuse the shared nominal ticks.
 
@@ -103,6 +103,11 @@ persistent actor list. The active update list combines nearby cell actors with
 that persistent list. A zero activation byte therefore does not mean that an
 actor can never animate.
 
+Cell assignment uses the decoded MPOB X/Z coordinates directly, with 512
+coordinate units per cell. The runtime position has eight fractional bits;
+shifting that position by eight recovers the decoded file coordinate. The
+three-byte MPOB coordinate itself is not divided by 256 again.
+
 The cell window starts nine 512-unit cells before the supplied horizontal
 center, clamped at the map edge. The main loop supplies the current view
 coordinates, not the actor body position. It spans eighteen cells per axis, omitting its
@@ -111,6 +116,18 @@ On the outer border, actors with a nonzero attribute byte 113 are excluded.
 Debug and global object-processing switches can further restrict this list.
 Membership alone does not make an actor eligible for an update;
 its runtime exclusion, pause, state and script checks still apply.
+
+Cells are visited in increasing X within increasing Z rows. Eligible actors
+retain their current per-cell linked-list order; the persistent actor list is
+appended after the cell actors. New cell actors are inserted at the front of
+their cell list, and new persistent actors at the front of the persistent list.
+Consequently, actor creation order is not ordinary update order.
+
+For each view coordinate, the window origin is zero below 4608, 56319 when
+the coordinate plus 4608 exceeds 65535, and otherwise the coordinate minus
+4608. Dividing this origin by 512 gives the first cell. The regional update
+compares that starting cell with its cached entry and rebuilds the lists when
+they differ.
 
 Ordinary default selection can use attribute byte 44, but combat, injury,
 attachment, movement and player-specific states can select other groups.
@@ -121,6 +138,72 @@ byte 44 unconditionally for every actor.
 The installed ISLAND map has three FLAG2 placements, all ordinary objects with
 a zero activation byte and no static model override. Their FLAG2 attribute
 record is all zero, including byte 44. These values define their initial state.
+
+## Living actor default selection
+
+For an actor that does not satisfy `IsDead`, ordinary default selection uses
+these branches in order. The first matching branch wins.
+
+| Condition | Default group |
+|---|---|
+| Selected player satisfies `IsInDeepWater` | 141 |
+| Actor is attached to a rope | 79 |
+| Actor state is 15 | 7 |
+| `IsSheathingSword` is true | Attribute byte 44 |
+| `IsDrawingSword` or `IsHoldingWeapon` is true | 8 |
+| Actor's torch-burning counter is nonzero | 5 |
+| Otherwise | Attribute byte 44 |
+
+The selected-player deep-water branch also invokes weapon-state cleanup;
+selecting group 141 alone does not perform that transition.
+
+`IsSheathingSword` and `IsDrawingSword` require the item system to be loaded,
+an actor with animation state, and ordinary rather than shell execution.
+`IsSheathingSword` accepts actor state 21 or current group 129;
+`IsDrawingSword` accepts actor state 20 or current group 91.
+
+`IsHoldingWeapon` returns false for an absent actor. For a present actor,
+nonzero attribute byte 110 returns true before the item-system, animation-state
+and shell checks. Otherwise it requires those three gates, combat capability,
+a set weapon-drawn flag, and a false `IsSheathingSword` result.
+
+After selection, when animation state exists and execution is outside the
+shell context, a changed default replaces the current group immediately if
+the current group was the old default and its exit marker is clear. A pending
+group equal to the old default is separately replaced by an ordinary request
+for the new default. These checks use the old default captured before selection.
+
+## Dead actor default selection
+
+`IsDead` reads a runtime state selector rather than the health attribute. It
+succeeds when that selector is 8, or when the selected player's death override
+is active. This selector is distinct from the actor state used by the living
+default-selection branches.
+
+When ordinary default selection reaches the dead-actor branch, an actor with
+combat state takes its default group from that state's death-animation selection.
+Without combat state, it selects group 123 when that group exists, otherwise
+group 124. Group existence requires an animation state with a populated entry
+for the requested group.
+
+Animation-table setup clears the actor's combat-state association and creates
+combat state when attribute byte 14 is nonzero. This state is separate from the
+animation group's playback cursor and from the actor's attribute table. The combat
+record's death-animation selection starts at zero; constructing the record does
+not copy attribute byte 44 into that selection.
+
+Ordinary cell and persistent actor allocation clears the actor record before
+common initialization. The death selector and object-update exclusion therefore
+start at zero, and the combat-state association starts absent. These are
+allocation values, separate from later player-role setup and gameplay changes.
+
+The nonplayer death-animation paths pair a forced request for group 122 with
+stored death default 124, and a forced request for group 121 with stored death
+default 123. The requested death animation and the subsequent ordinary default
+are separate values; the default selector reads the stored combat-state value.
+Storing the combat death default first releases the actor's held walk-node
+reservations. Each node's ownership byte is cleared only when it matches the
+actor identifier's low byte; both actor-side reservation indices are reset.
 
 ## Forced requests
 
@@ -179,6 +262,12 @@ exclusion; turning off the option does not clear an already-set exclusion in
 this update branch.
 
 ## Timing boundary
+
+The normal world loop calculates the shared FPS-derived timing before sampling
+gameplay input and building the view-centered actor lists. Ordinary actor
+traversal follows map-list presentation and the rope and shell systems. It runs
+before the scene-rendering call. Timing is calculated for the loop, not separately
+for each actor in that traversal.
 
 Animation consumes the shared whole nominal-tick increment. The normal timing
 path accumulates eight-fractional-bit frame scales and takes the difference
