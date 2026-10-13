@@ -336,6 +336,10 @@ When a Numeric (`0x07`) or NumericAlt (`0x16`) opcode appears in PARAMETER mode,
 | `ActiveItem`, `AddItem`, `DropItem`, `HandItem`, `HaveItem`, `SelectItem`, `ShowItem`, `ShowItemNoRtx` | Item ID | `i32` item identifier |
 | All others | Integer | `i32` signed integer |
 
+`ACTIVATE` and `TorchActivate` receive the dialogue key as a packed 32-bit
+numeric value, not a string-table index. Its least significant byte is the
+first RTX key character. RTX lookup folds ASCII uppercase bytes to lowercase.
+
 ### Ordinary entry gate
 
 Ordinary entry processing uses the actor's saved entry continuation, distinct
