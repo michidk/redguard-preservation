@@ -105,3 +105,45 @@ pub fn parse_cht_file(data: &[u8]) -> Result<ChtFile> {
 
     Ok(ChtFile { entries })
 }
+
+/// Encode all 64 raw state slots as a compatible REDGUARD.CHT file.
+///
+/// Values, including unnamed slots and integers other than zero and one, are
+/// preserved without interpreting their gameplay meaning. See `docs/formats/CHT.md`.
+#[must_use]
+pub fn encode_cht_file(values: &[u32; CHT_SLOT_COUNT]) -> [u8; CHT_FILE_SIZE] {
+    let mut bytes = [0; CHT_FILE_SIZE];
+    for (chunk, value) in bytes.as_chunks_mut::<4>().0.iter_mut().zip(values) {
+        chunk.copy_from_slice(&value.to_le_bytes());
+    }
+    bytes
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn encodes_raw_values_in_named_and_unnamed_slots() {
+        let mut values = [0; CHT_SLOT_COUNT];
+        values[10] = 0x1234_5678;
+        values[63] = u32::MAX;
+        let bytes = encode_cht_file(&values);
+        let mut expected = [0; 256];
+        expected[40..44].copy_from_slice(&[0x78, 0x56, 0x34, 0x12]);
+        expected[252..256].copy_from_slice(&[255, 255, 255, 255]);
+        assert_eq!(bytes, expected);
+        let parsed = parse_cht_file(&bytes).unwrap();
+        assert_eq!(parsed.named_cheats()[10].name, Some("neversaydie"));
+        assert_eq!(parsed.named_cheats()[10].value, 0x1234_5678);
+        assert_eq!(parsed.nonzero_unnamed()[0].index, 63);
+        assert_eq!(parsed.nonzero_unnamed()[0].value, u32::MAX);
+    }
+
+    #[test]
+    fn rejects_truncated_and_extended_files() {
+        for length in [0, 255, 257] {
+            assert!(parse_cht_file(&vec![0; length]).is_err());
+        }
+    }
+}
