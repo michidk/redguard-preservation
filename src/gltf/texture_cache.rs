@@ -1,5 +1,5 @@
 use crate::import::{
-    bsi::{self, BsiFile},
+    bsi::{self, BsiFile, BsiImage},
     palette::Palette,
 };
 use log::warn;
