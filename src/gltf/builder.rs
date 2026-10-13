@@ -533,12 +533,38 @@ impl<'a> GltfBuilder<'a> {
                 mode: Checked::Valid(json::mesh::Mode::Triangles),
                 targets: None,
                 extensions: None,
-                extras: if primitive.source_vertices.is_empty() {
+                extras: if primitive.source_vertices.is_empty() && primitive.lighting.is_empty() {
                     None
                 } else {
-                    Some(serde_json::value::to_raw_value(&serde_json::json!({
-                        "rgpre_geometry": {"version": 1, "source_vertices": primitive.source_vertices}
-                    })).expect("finite integer source mapping is serializable"))
+                    let mut extras = serde_json::Map::new();
+                    if !primitive.source_vertices.is_empty() {
+                        extras.insert(
+                            "rgpre_geometry".into(),
+                            serde_json::json!({
+                                "version": 1, "source_vertices": primitive.source_vertices
+                            }),
+                        );
+                    }
+                    if !primitive.lighting.is_empty() {
+                        let solid_rgb = match primitive.material_key {
+                            MaterialKey::SolidColor(rgb) | MaterialKey::PaletteTexture(rgb) => {
+                                Some(rgb)
+                            }
+                            _ => None,
+                        };
+                        extras.insert(
+                            "rgpre_lighting".into(),
+                            serde_json::json!({
+                                "version": 3, "vertices": primitive.lighting,
+                                "radius_fixed": primitive.model_radius_fixed,
+                                "solid_rgb": solid_rgb
+                            }),
+                        );
+                    }
+                    Some(
+                        serde_json::value::to_raw_value(&extras)
+                            .expect("integer geometry metadata is serializable"),
+                    )
                 },
             });
         }

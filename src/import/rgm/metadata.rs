@@ -296,10 +296,6 @@ fn raex_to_json(rec: &RaexRecord) -> serde_json::Value {
     })
 }
 
-fn hex_encode(data: &[u8]) -> String {
-    data.iter().map(|b| format!("{b:02x}")).collect()
-}
-
 fn mps_to_json(record: &MpsRecord) -> serde_json::Value {
     serde_json::json!({
         "id": record.id,
@@ -340,15 +336,16 @@ fn mpob_to_json(index: usize, record: &MpobRecord) -> serde_json::Value {
 
 fn mpsl_to_json(record: &MpslRecord) -> serde_json::Value {
     serde_json::json!({
-        "color_r": record.color_r,
-        "color_g": record.color_g,
-        "color_b": record.color_b,
-        "color_flags": record.color_flags,
-        "unknown0": record.unknown0,
-        "position": positioning::decode_position(record.pos_x, record.pos_y, record.pos_z),
-        "param0": record.param0,
-        "param1": record.param1,
-        "unknown1_hex": hex_encode(&record.unknown1),
+        "link": record.link,
+        "world_id": record.world_id,
+        "engine_position": record.position,
+        "radius": record.radius,
+        "field_16": record.field_16,
+        "rgb": record.rgb,
+        "field_1e": record.field_1e,
+        "active": record.active,
+        "field_20": record.field_20,
+        "field_26": record.field_26,
     })
 }
 
@@ -696,6 +693,10 @@ pub(super) fn export_rgm_metadata_json_impl(
         _ => None,
     });
 
+    let ravc_records = rgm.sections.iter().find_map(|section| match section {
+        RgmSection::RavcParsed(_, records) => Some(records.as_slice()),
+        _ => None,
+    });
     let mut actors = Vec::new();
     if let Some(rahd) = rahd_data
         && rahd.len() >= 8
@@ -717,6 +718,41 @@ pub(super) fn export_rgm_metadata_json_impl(
             let mut actor = serde_json::Map::new();
             actor.insert("index".into(), i.into());
             actor.insert("script_name".into(), script_name.clone().into());
+            actor.insert(
+                "ravc_offset".into(),
+                read_i32_le(item, 0x9D).unwrap_or(-1).into(),
+            );
+            actor.insert(
+                "ravc_count".into(),
+                read_i32_le(item, 0xA1).unwrap_or(0).into(),
+            );
+
+            if let (Some(records), Some(offset), Some(count)) = (
+                ravc_records,
+                read_i32_le(item, 0x9D).and_then(|value| usize::try_from(value).ok()),
+                read_i32_le(item, 0xA1).and_then(|value| usize::try_from(value).ok()),
+            ) && offset.is_multiple_of(9)
+                && let Some(end) = (offset / 9).checked_add(count)
+                && let Some(volumes) = records.get(offset / 9..end)
+            {
+                actor.insert(
+                    "collision_volumes".into(),
+                    volumes.iter().map(ravc_to_json).collect::<Vec<_>>().into(),
+                );
+            }
+
+            // Actor-loader branch conditions, documented in engine/animation.md.
+            let model_path = match read_i32_le(item, 0x21) {
+                Some(0) => "none",
+                Some(1)
+                    if read_i32_le(item, 0x2D) == Some(-1)
+                        && read_i32_le(item, 0x85).is_some_and(|frames| frames < 2) =>
+                {
+                    "static"
+                }
+                _ => "animation_table",
+            };
+            actor.insert("model_load_path".into(), model_path.into());
 
             if let Some(ragr) = ragr_data
                 && let Ok(ragr_offset) = usize::try_from(ragr_offset)
@@ -906,7 +942,59 @@ pub(super) fn export_rgm_metadata_json_impl(
         }
     }
 
+    let sections = rgm.sections.iter().map(|section| {
+        let header = match section {
+            RgmSection::Rahd(header, _)
+            | RgmSection::Rafs(header, _)
+            | RgmSection::Rast(header, _)
+            | RgmSection::Rasb(header, _)
+            | RgmSection::Rava(header, _)
+            | RgmSection::Rasc(header, _)
+            | RgmSection::Rahk(header, _)
+            | RgmSection::Ralc(header, _)
+            | RgmSection::Raex(header, _)
+            | RgmSection::RaexParsed(header, _)
+            | RgmSection::Raat(header, _)
+            | RgmSection::Raan(header, _)
+            | RgmSection::Ragr(header, _)
+            | RgmSection::Ranm(header, _)
+            | RgmSection::Ravc(header, _)
+            | RgmSection::RavcParsed(header, _)
+            | RgmSection::Mpob(header, _)
+            | RgmSection::MpobParsed(header, _)
+            | RgmSection::Mprp(header, _)
+            | RgmSection::MprpParsed(header, _)
+            | RgmSection::Mps(header, _)
+            | RgmSection::Mpl(header, _)
+            | RgmSection::MplParsed(header, _)
+            | RgmSection::Mpf(header, _)
+            | RgmSection::Mpm(header, _)
+            | RgmSection::Mpsz(header, _)
+            | RgmSection::Wdnm(header, _)
+            | RgmSection::Flat(header, _)
+            | RgmSection::End(header) => header,
+        };
+        serde_json::json!({"tag": String::from_utf8_lossy(&header.name), "data_length": header.data_length, "record_count": header.record_count})
+    }).collect::<Vec<_>>();
+    let scripts = super::disassemble_rgm_scripts(rgm, soup_def)
+        .into_iter()
+        .map(|(name, script)| {
+            let mut value = super::script::script_metadata_json(&script);
+            value["name"] = name.into();
+            value["header_index"] = script.header_index.into();
+            value["instances"] = script.instances.into();
+            value["instance_variables"] = serde_json::json!(script.instance_variables);
+            value["instructions"] =
+                serde_json::json!(script.instructions.iter().map(|instruction| serde_json::json!({
+            "offset": instruction.addr, "indent": instruction.indent, "text": instruction.text,
+        })).collect::<Vec<_>>());
+            value
+        })
+        .collect::<Vec<_>>();
     serde_json::json!({
+        "sections": sections,
+        "scripts": scripts,
+        "raex_records": raex_records.unwrap_or_default().iter().map(raex_to_json).collect::<Vec<_>>(),
         "actors": actors,
         "mps_placements": mps_placements,
         "mpob_objects": mpob_objects,

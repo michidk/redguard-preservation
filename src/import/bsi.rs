@@ -373,6 +373,33 @@ pub fn parse_bsi_file(data: &[u8]) -> Result<BsiFile> {
     Ok(BsiFile { images })
 }
 
+/// Exports decoded image metadata, palettes and frame sizes without bulk pixel arrays.
+/// Pixel data remains available through `BsiImage` frame decoding methods.
+#[must_use]
+pub fn export_bsi_metadata(file: &BsiFile) -> serde_json::Value {
+    serde_json::json!({"images": file.images.iter().map(export_bsi_image_metadata).collect::<Vec<_>>()})
+}
+
+/// Exports one decoded image's metadata and frame sizes, omitting pixel buffers.
+#[must_use]
+pub fn export_bsi_image_metadata(image: &BsiImage) -> serde_json::Value {
+    serde_json::json!({
+        "name": image.name,
+        "image_index": image.image_index,
+        "width": image.width,
+        "height": image.height,
+        "x_offset": image.x_offset,
+        "y_offset": image.y_offset,
+        "frame_count": image.frame_count,
+        "anim_delay": image.anim_delay,
+        "tex_scale": image.tex_scale,
+        "data_encoding": image.data_encoding,
+        "is_animated": image.is_animated,
+        "palette": image.palette,
+        "frame_byte_lengths": std::iter::once(image.pixel_data.len()).chain(image.extra_frames.iter().map(Vec::len)).collect::<Vec<_>>(),
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -400,6 +427,12 @@ mod tests {
         archive.extend(&chunks);
         let archived = parse_bsi_file(&archive).unwrap();
         for file in [standalone, archived] {
+            let metadata = export_bsi_metadata(&file);
+            assert_eq!(
+                metadata["images"][0]["frame_byte_lengths"],
+                serde_json::json!([2])
+            );
+            assert_eq!(metadata["images"][0]["width"], 2);
             assert_eq!(file.images.len(), 1);
             let image = &file.images[0];
             assert_eq!((image.width, image.height), (2, 1));

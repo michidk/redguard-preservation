@@ -7,7 +7,7 @@ use nom::{
 };
 
 /// One authored subobject. Integer center and radius retain their file units.
-#[derive(Debug, PartialEq)]
+#[derive(serde::Serialize, Debug, PartialEq)]
 pub struct Subobject {
     pub center: [i32; 3],
     pub radius: u32,

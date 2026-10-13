@@ -12,6 +12,7 @@ Engine behavior that goes beyond file format documentation.
 | Subtitles | REDSEL dialogue, taunt and movie text: slots, wrapping, placement, timing and colours. | [subtitles.md](subtitles.md) |
 | In-game HUD | Candle health levels and animation, active item and count, activation prompt, compass frames, power-up slots, logbook icon, and draw order. | [hud.md](hud.md) |
 | Sky Renderer | Glide BSI plane, fog-colored background, scrolling inputs, sun configuration, and software-renderer limits. | [sky.md](sky.md) |
+| Glide model lighting | Face brightness, model-space directional shading and solid-color tint. | [model-lighting.md](model-lighting.md) |
 | Glide terrain lighting | World RGB inputs, directional vertex lighting, and water-normal updates. | [terrain-lighting.md](terrain-lighting.md) |
 | Glide fog and clipping | Scene and sky ranges, fog-table lookup, and encoded RGB blending. | [fog.md](fog.md) |
 | Water Waves | Per-frame sine-table vertex displacement on water terrain cells. Radial concentric ripples driven by `world_wave` INI parameters (amplitude, speed, spatial frequency) with runtime console tuning. | [water.md](water.md) |

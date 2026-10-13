@@ -104,14 +104,11 @@ All fields little-endian.
 | 0x1C | 36 | `i32[9]` | rotation_matrix | 3x3 Q4.28 rotation matrix |
 | 0x40 | 2 | `u8[2]` | unused | Always 0. |
 
-The exporter converts `rotation_matrix` from Q4.28 to float and emits a node matrix with translation.
-
-Rotation parity note:
-
-- MPSO `rotation_matrix` must be interpreted with transposed index mapping when building the scene rotation matrix:
-  - row 0 = `[m0, m3, m6]`
-  - row 1 = `[m1, m4, m7]`
-  - row 2 = `[m2, m5, m8]`
+Matrix entries are row-major: row 0 is `[m0, m1, m2]`, row 1 is
+`[m3, m4, m5]`, and row 2 is `[m6, m7, m8]`. Loading converts each signed
+Q4.28 entry to a float in place without transposition or normalization.
+The matrix maps local column vectors into world coordinates, before adding
+the placement position. Camera transformation multiplies this matrix on the left.
 
 ## MPRP (Rope Chains)
 
@@ -251,7 +248,7 @@ All typed fields are little-endian.
 | 0x21 | 4 | `i32` | raan_count | Number of RAAN entries for this actor |
 | 0x25 | 4 | `u32` | raan_data_size | Total byte size of this actor's RAAN entries. Zero when `raan_count` = 0. |
 | 0x29 | 4 | `i32` | raan_offset | Byte offset into RAAN section data (rebased to pointer at load) |
-| 0x2D | 4 | — | anim_control_prefix | Low byte stored at animation control struct offset `+0x12` during RAGR loading. Remaining bytes are not decoded. |
+| 0x2D | 4 | — | anim_control_prefix | Low byte stored at animation control struct offset `+0x12` during RAGR loading. The complete signed field is compared with −1 when selecting the static-model shortcut; see [model loading](../engine/animation.md#placed-actor-initialization-and-eligibility). |
 | 0x31 | 4 | `u32` | ragr_offset | Byte offset into RAGR section data (rebased to pointer at load) |
 | 0x35 | 8 | — | padding | Always 0. |
 | 0x3D | 4 | `u32` | rafs_index | Index into RAFS data (vestigial — RAFS is 1 byte in all shipped files) |
@@ -459,27 +456,31 @@ RANM contains object namespace strings used for cross-script object references. 
 ## MPSL (Lights)
 
 `MPSL` starts with a little-endian record count, followed by 42-byte records.
-
-All fields little-endian.
+All fields are little-endian.
 
 | Offset | Size | Type | Name | Description |
 |---|---|---|---|---|
-| 0x00 | 3 | `u8[3]` | color_rgb | Color bytes (R, G, B). |
-| 0x03 | 1 | `u8` | light_type | Light type. Values: 0, 130 (0x82), 131 (0x83), 132 (0x84). |
-| 0x04 | 4 | `u32` | light_param | Zero for ambient lights; 28 for directional lights. |
-| 0x08 | 3 | `i24` | pos_x | Position X |
-| 0x0B | 1 | `u8` | pad_x | Alignment byte |
-| 0x0C | 3 | `i24` | pos_y | Position Y |
-| 0x0F | 1 | `u8` | pad_y | Alignment byte |
-| 0x10 | 3 | `i24` | pos_z | Position Z |
-| 0x13 | 1 | `u8` | pad_z | Alignment byte |
-| 0x14 | 2 | `i16` | param0 | Intensity or range parameter |
-| 0x16 | 2 | `i16` | param1 | Intensity or range parameter |
-| 0x18 | 6 | `i16[3]` | direction | Direction/attenuation vector (3 × i16). Non-zero in active lights. |
-| 0x1E | 8 | `u8[8]` | channel_map | Light channel enable. Always either `00 01 02 03 04 05 06 07` (active, identity mapping to 8 channels) or all zeros (inactive). |
-| 0x26 | 4 | `u8[4]` | reserved_26 | Always 0. |
+| 0x00 | 4 | `u32` | link | Serialized linkage field, replaced when the light enters a spatial list. |
+| 0x04 | 4 | `u32` | world_id | World ID used to select the light at load time. Reused as linkage after selection. |
+| 0x08 | 4 | `i32` | pos_x | X position in engine coordinates. |
+| 0x0C | 4 | `i32` | pos_y | Y position in engine coordinates. |
+| 0x10 | 4 | `i32` | pos_z | Z position in engine coordinates. |
+| 0x14 | 2 | `i16` | radius | Local-light radius in engine coordinates. |
+| 0x16 | 2 | `i16` | field_16 | Auxiliary field. |
+| 0x18 | 6 | `[i16; 3]` | rgb | Signed red, green and blue strengths. Negative channels subtract light. |
+| 0x1E | 1 | `u8` | field_1e | Auxiliary byte. |
+| 0x1F | 1 | `u8` | active | Must equal 1 for load-time selection. |
+| 0x20 | 6 | `[u8; 6]` | field_20 | Auxiliary bytes. |
+| 0x26 | 4 | `[u8; 4]` | field_26 | Auxiliary bytes. |
 
-Position fields use the same i24+pad encoding as MPOB/MPSO.
+With map lights enabled, the loader selects records whose `active` byte equals
+1 and whose `world_id` matches the selected WORLD.INI entry. It inserts those
+records into spatial lists and replaces the first two words with list links.
+The position, radius and RGB fields retain their file values. The first three
+bytes are not a color, and the RGB words are not a direction vector.
+
+Local-light selection for each model is described in
+[model lighting](../engine/model-lighting.md#local-light-model-selection).
 
 ## MPMK (Markers)
 

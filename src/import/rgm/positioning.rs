@@ -107,7 +107,6 @@ pub(super) fn extract_positioned_models(
     preferred_rob_stem: Option<&str>,
 ) -> (Vec<PositionedModel>, Vec<PositionedLight>) {
     let mut positioned_models = Vec::new();
-    let mut positioned_lights = Vec::new();
     let mut model_cache: HashMap<String, Option<Model3DFile>> = HashMap::new();
     let rob_index = build_rob_segment_index(registry, preferred_rob_stem);
     let rahd_data = first_section_payload(input, *b"RAHD");
@@ -169,17 +168,20 @@ pub(super) fn extract_positioned_models(
                 );
             }
             RgmSection::Mpf(_, mpf_data) => append_mpf_models(mpf_data, &mut positioned_models),
-            RgmSection::MplParsed(_, records) => append_mpl_lights(records, &mut positioned_lights),
+            RgmSection::MplParsed(_, records) if !records.is_empty() => {
+                warn!(
+                    "Authored local lights require engine shading; retained in RGM metadata, not converted to punctual lights"
+                );
+            }
             _ => {}
         }
     }
 
     info!(
-        "Successfully parsed RGM file, found {} positioned models and {} positioned lights",
-        positioned_models.len(),
-        positioned_lights.len()
+        "Successfully parsed RGM file, found {} positioned models",
+        positioned_models.len()
     );
-    (positioned_models, positioned_lights)
+    (positioned_models, Vec::new())
 }
 
 fn process_mps_section(
@@ -335,25 +337,6 @@ fn append_mpf_models(mpf_data: &[u8], positioned_models: &mut Vec<PositionedMode
     }
 }
 
-fn append_mpl_lights(records: &[super::MpslRecord], positioned_lights: &mut Vec<PositionedLight>) {
-    if !records.is_empty() {
-        info!("Found MPSL section with {} lights", records.len());
-    }
-
-    for (idx, record) in records.iter().enumerate() {
-        positioned_lights.push(PositionedLight {
-            color: [
-                decode_mpsl_color(record.color_r),
-                decode_mpsl_color(record.color_g),
-                decode_mpsl_color(record.color_b),
-            ],
-            position: decode_position(record.pos_x, record.pos_y, record.pos_z),
-            range: decode_mpsl_range(record.param0, record.param1),
-            name: format!("L{idx:03}"),
-        });
-    }
-}
-
 fn append_rope_records(
     records: &[MprpRecord],
     registry: &Registry,
@@ -402,15 +385,6 @@ pub(super) fn decode_position(pos_x: i32, pos_y: i32, pos_z: u32) -> [f32; 3] {
     let z_full_scale = f64::from(0x00FF_FFFF_u32);
     let z = -((z_full_scale - (z24 * 256.0)) as f32) * RGM_POSITION_SCALE;
     [x, y, z]
-}
-
-fn decode_mpsl_color(color_byte: u8) -> f32 {
-    (f32::from(color_byte) - 31.0) / 193.0
-}
-
-fn decode_mpsl_range(param0: i16, param1: i16) -> f32 {
-    let raw = if param0 != 0 { param0 } else { param1 };
-    f32::from(raw).abs() * 0.05
 }
 
 fn read_i24_le_signed(bytes: &[u8], offset: usize) -> Option<i32> {
@@ -1180,7 +1154,6 @@ pub(super) fn extract_placements(
     rgm_file: &RgmFile,
 ) -> (Vec<Placement>, Vec<PositionedLight>) {
     let mut placements = Vec::new();
-    let mut lights = Vec::new();
 
     for section in &rgm_file.sections {
         match section {
@@ -1225,25 +1198,11 @@ pub(super) fn extract_placements(
                     });
                 }
             }
-            RgmSection::MplParsed(_, records) => {
-                for (idx, record) in records.iter().enumerate() {
-                    lights.push(PositionedLight {
-                        color: [
-                            decode_mpsl_color(record.color_r),
-                            decode_mpsl_color(record.color_g),
-                            decode_mpsl_color(record.color_b),
-                        ],
-                        position: decode_position(record.pos_x, record.pos_y, record.pos_z),
-                        range: decode_mpsl_range(record.param0, record.param1),
-                        name: format!("L{idx:03}"),
-                    });
-                }
-            }
             _ => {}
         }
     }
 
-    (placements, lights)
+    (placements, Vec::new())
 }
 
 fn append_rope_placements(records: &[MprpRecord], placements: &mut Vec<Placement>) {

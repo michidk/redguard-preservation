@@ -46,6 +46,9 @@ listings, and `fxart/LOGFILE.TXT` records collision-sphere generation.
 [The support-file reference](formats/BUNDLED-RESOURCES.md) describes these
 files and the Miles setup catalog `sound/MSSDRVR.LST`.
 
+[Save-game containers](formats/SAVEGAME.md) describe `SAVEGAME.SAV` and the
+per-world `.TSG` snapshots. A slot's `LOGBOOK.TXT` is journal content.
+
 ## GOG vs Original CD Differences
 
 Redguard shipped with two parallel sets of 3D model assets for different renderers:

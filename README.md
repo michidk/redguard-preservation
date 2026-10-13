@@ -28,6 +28,20 @@ Preserving *The Elder Scrolls Adventures: Redguard* (1998) — reverse-engineere
 
 The `scan` command recursively detects known Redguard files in a directory tree. The CLI and Rust parsers focus on game assets. Hardware drivers, audio utilities, controller profiles, and development reports remain documented in [Bundled support resources](docs/formats/BUNDLED-RESOURCES.md).
 
+## Rust inspection exports
+
+`import::wld::export_wld_metadata`, `import::model3d::export_model_metadata`, and
+`import::bsi::export_bsi_metadata` expose decoded file data as JSON. Model metadata
+includes geometry, accumulated UVs in sixteenths of a texel, animation poses, and
+separately parsed subobjects. WLD metadata retains every map plane and includes
+decoded combined height, texture-index, and rotation grids. BSI metadata includes
+palettes and frame byte lengths; pixel buffers remain available through the image API.
+
+`gltf::model_position`, `gltf::model_normal`, and `gltf::wld_grid_position` use the
+same coordinates as GLB exports. `PvoFile::visibility_ids` resolves a PLST leaf
+reference to placed-object IDs: IDs below the world's MPSO count select that record,
+while higher IDs require the runtime secondary object table.
+
 ## Convert Subcommands
 
 Each format has its own subcommand with scoped flags. `convert <FILE>` auto-detects the format and uses defaults.
@@ -52,6 +66,30 @@ Each format has its own subcommand with scoped flags. `convert <FILE>` auto-dete
 `rgpre convert system/SKY_61.PCX` and `rgpre convert system/gui.lbm` export PNG images. `rgpre convert system/gui.anm` writes `system/gui_anm/animation.gif` and timing metadata. The Rust entry points are `rgpre::import::pcx::parse_pcx_file`, `rgpre::import::lbm::parse_lbm_file`, and `rgpre::import::anm::parse_anm_file`.
 
 ¹ Exported TTF fonts are bitmap-traced vector outlines without hinting. They can be installed on Windows, used in game engines (Unity, Godot, etc.), and previewed at [fontdrop.info](https://fontdrop.info).
+
+## Save-game loading
+
+The read-only Rust API parses version `1.31` save containers and loads a slot directory:
+
+```rust
+use rgpre::import::savegame::{load_save_slot, parse_savegame_file};
+
+let game = parse_savegame_file(&std::fs::read("SAVEGAME.SAV")?)?;
+let slot = load_save_slot("SAVEGAME/SAVEGAME.002")?;
+println!("{}: world {}", game.metadata.description, game.metadata.world_id);
+```
+
+`SaveGame` exposes decoded metadata and every chunk's original bytes in file
+order. `SaveSlot` contains the main save, a map of uppercase `.TSG` filenames to
+snapshots, and optional `LOGBOOK.TXT` bytes. Resource filename matching ignores
+case. Missing main saves, malformed containers, duplicate resource names, and
+non-regular resource files return errors with file context.
+
+The loader only reads files. It does not follow the stored bitmap path, write
+saves, convert files, or restore actors and scripts into a running engine.
+State payloads remain opaque. Display strings use UTF-8 replacement characters
+for invalid bytes; the original bytes remain in `SVGM`. See
+[Save-game containers](docs/formats/SAVEGAME.md).
 
 ## Typed configuration parsers
 
