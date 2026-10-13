@@ -432,29 +432,14 @@ is shared across actor definitions and instances, rather than restarting for
 each definition. The static-model shortcut and actors without models do not
 take this assignment path.
 
-### Initial attribute copy and defaults
-
-Loading an actor creates an independent 256-byte copy of its definition's RAAT
-attributes, then applies these adjustments before registering its groups:
-
-| Attribute | Initial adjustment |
-|---|---|
-| 31, `attr_jump_time` | A signed byte value at or below zero is replaced by the low byte of the effective system jump time. Thus zero and byte values 128–255 use the fallback. |
-| 32, `attr_jump_height` | Zero is replaced by the low byte of the effective system jump height. |
-| 35, `attr_draw_frame` | Zero becomes 2. |
-| 34, `attr_sheath_frame` | Zero becomes 10. |
-| 25 and 26, `attr_master` and `attr_slave` | Both become zero when `[debug] disable_family` is exactly 1. |
-| 115, `attr_reserved_weight` | Copies attribute 6, `attr_weight`. |
-| 119, `attr_reserved_collide` | Copies attribute 1, `attr_collide`. |
-
-The effective jump settings come from `[system] jump_time` and `jump_height` in
-[SYSTEM.INI](../config/system-ini.md). Values below 1 use 6 and 80 respectively.
-These load-time defaults do not run again on ordinary attribute writes.
-
-Actors loaded through the animation model-table path also replace attribute 125,
-`attr_mess_group`, with the next value from a shared counter. The counter returns
-its current value, then increments modulo 256. The static-model shortcut and
-actors without models do not take this assignment path.
+A type-1 MPOB placement has a subsequent model fallback. It runs only when
+actor-definition loading left both the animation model table and the static
+model absent, and the placement's model name is nonempty. If the placement's
+`is_static` byte is exactly one, it loads a static model without assigning a
+message group. Any other byte value builds an animation model table, using
+that byte as its frame count. When the actor has an attribute table, this
+fallback replaces attribute 125 with the next shared counter value. A zero
+frame count still takes the animation-table branch.
 
 ### Attribute default-group side effects
 

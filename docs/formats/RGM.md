@@ -76,7 +76,10 @@ degrees = (value % 2048) * (180.0 / 1024.0)
 | 1536 | 270° |
 | 2048 | 360° (wraps to 0) |
 
-MPOB model lookup behavior:
+The original type-1 placement fallback and its message-group assignment are
+described in [actor initialization](../engine/SOUP.md#initial-attribute-copy-and-defaults).
+
+MPOB exporter model lookup behavior:
 
 - Primary source is `model_name` (9 bytes, null-trimmed).
 - If `model_name` is empty, exporter falls back to `RAAN` using `RAHD` script metadata (see [RAAN](#raan-animation-file-references)).
