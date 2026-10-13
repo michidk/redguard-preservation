@@ -62,6 +62,11 @@ it. Closing the book menu requests release; preparing its contents first runs
 cleanup without release. Releasing menu ownership preserves an image's animation
 state when another resource group still owns it.
 
+The banks referenced by `MENU.ROB`, `INVENTRY.ROB` and the configured book-page
+surfaces contain only single-frame texture images. Their image keys do not
+match any animated image in the shipped TEXBSI banks. Shipped TEXBSI image
+names consist of six ASCII letters or digits.
+
 World-resource cleanup releases group 31 when world resources are loaded, then
 clears the loaded state. Repeating cleanup with that state already clear does
 not release the group again. World transitions perform this cleanup before
