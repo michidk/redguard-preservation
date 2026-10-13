@@ -47,6 +47,20 @@ differences below nine are compared by the absolute difference of their weighted
 RGB sums, using weights 19661, 38666 and 7209. Equal scores select the later entry.
 If this pass finds no candidate or its score exceeds 24, a second pass minimizes
 the sum of the three component differences, again preferring later ties.
+The sixteen console GUI color targets, in index order, are palette entry zero,
+then six-bit RGB `(62,62,62)`, `(42,42,42)`, `(32,32,32)`, `(22,22,22)`,
+`(12,12,12)`, `(32,51,63)`, `(19,33,44)`, `(10,17,26)`, `(53,3,23)`,
+`(49,0,0)`, `(60,0,0)`, `(0,30,0)`, `(0,42,0)`, `(0,0,0)` and `(24,0,28)`.
+The first index uses palette entry zero directly; the others use the matching
+procedure above, including black at index fourteen.
+
+The standard GUI font's linked font points to itself after startup. The alternate
+console font is a copy of that same font, with its link pointing to the copy.
+At widths of at least 640, font zero selects the standard font and font one selects
+its linked font. Below 640, font zero selects the linked font and font one selects
+the alternate copy. Changing the console font selector therefore does not load a
+different FNT file.
+
 The console has 512 retained lines, with at most 100 characters in each editable
 command line. A `>` prompt distinguishes command lines from report lines.
 
