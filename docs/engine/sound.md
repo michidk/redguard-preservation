@@ -165,8 +165,14 @@ adjustment.
 | `EndMySounds` | function | — | Stop every playing channel owned by this object. |
 | `StopAllSounds` | function | — | Stop all 16 channels. |
 
-`KillMe` sets the object's killed flag and stops every channel the object
-owns; `Resurrect` clears the flag.
+`KillMe` releases held walk-node reservations, clears the current model
+reference, sets the object's killed flag and runtime death-state selector to
+8, and stops every channel the object owns.
+
+`Resurrect` always releases held walk-node reservations. When the killed flag
+is 1 or the runtime death-state selector is 8, it clears the killed flag. If
+the actor has combat state, it reinitializes that state and consumes one waiting
+SOUP message when present. It does not restart previously stopped sound channels.
 
 **Owner:** the owner recorded by `Sound`, `FlatSound`, `AmbientSound` and
 `AmbientRTX`, and matched by `EndMySound` and `EndMySounds`, is the calling
