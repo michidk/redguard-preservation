@@ -47,7 +47,7 @@ cursor to the script base and returns from the current invocation.
 ### Ordinary update gates
 
 `SYSTEM.INI`'s `[system] task_system` enables the ordinary entry, task, and main
-script stages. The per-actor RAHK native hook is a separate call record, not the
+script stages when its numeric value is one. The per-actor RAHK native hook is a separate call record, not the
 entry continuation. With the task system enabled, the hook is dispatched only
 when no unpaused task slot exists. With the task system disabled, task-slot
 occupancy does not suppress that hook. Its own suppression flag still applies
@@ -63,12 +63,19 @@ The actor's runtime script-control byte has independent effects:
 | `0x08` | Exclude the actor from the ordinary actor-update body |
 
 The `0x04` path is distinct from the usual entry, existing-task, then main-body
-order. These runtime flags are not RAHD attribute indices. See
+order. It retains the entry continuation's blocking-operand gate, but bypasses
+both the existing-task pass and its blocking-task gate before the main body.
+An existing unpaused blocking slot therefore does not by itself suppress the
+main body on this path. These runtime flags are not RAHD attribute indices. See
 [actor update order](animation.md#ordinary-actor-update-order).
 
 `DisableScript` sets mask `0x01`; `EnableScript` clears only that mask. Both
 return zero and preserve the other bits. They do not terminate the native call's
-current interpreter invocation or clear existing tasks.
+current interpreter invocation or clear existing tasks. The wrapper checks the
+main-stage suppression flag after the native hook and combat processing, so a
+hook can change eligibility for the same update. Once the wrapper enters either
+main-stage path, it does not recheck those flags between entry work and the main
+body.
 
 The native hook precedes the ordinary entry/task/main sequence. When the task
 system is enabled and no unpaused task exists, combat processing follows the
