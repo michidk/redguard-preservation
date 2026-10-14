@@ -205,6 +205,13 @@ and text width is `max(dialog_max_text_width, 150)`. A configured
 `menu_traverse_delay` of zero becomes one BIOS tick. `WaitOnDialog` scans every record and remains active while
 any record has its active word equal to one. It does not filter by the caller.
 
+Dialogue creation selects the first inactive record starting at index one. If
+no record is available, it returns no record. An admitted record stores the
+speaker, formatted text, active state and the RTX entry's remembered sample
+handle. Clearing a record removes its active state and text and replaces the
+remembered sample handle with the absent-handle value. It leaves the remaining
+record fields intact. Querying an absent record reports inactive.
+
 The reset releases cached RTX text and audio payloads and clears their occupied
 state. It also clears active dialogue records and their text buffers, resets
 their sample handles. These operations precede stopping all sample channels
