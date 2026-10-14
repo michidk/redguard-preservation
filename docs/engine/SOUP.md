@@ -978,6 +978,12 @@ In normal main-loop order, model presentation runs before the ordinary actor
 update. `ShowMe()` provides the separate immediate static-model refresh described
 above.
 
+The ordinary model-position path uses the actor's logical Y shifted right by
+eight when the collision attribute mask `0x04` is clear. With that mask set,
+water processing can adjust model Y for stored surface classes 1 through 5
+and 11. Other stored surface classes retain the shifted logical Y. A nonzero
+collision attribute by itself therefore does not establish water displacement.
+
 ### Model admission and support ownership
 
 The current map's PVO file supplies a camera-centered selected-object list.
