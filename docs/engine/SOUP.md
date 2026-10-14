@@ -992,6 +992,13 @@ actor with `attr_non_moving` set must occur in the selected secondary object
 IDs. Other support cases pass this admission check. Rejected animation-model
 admission clears the selected resource and current model record.
 
+When loading a world with a PVO file, the secondary object table is built
+from the complete map actor traversal. Map cells are scanned in increasing Z,
+then increasing X, preserving each cell's actor list. The persistent actor
+list follows the cells. Only actors with `attr_non_moving` set are appended
+to the secondary table, in that traversal order. This cell-coordinate scan
+is distinct from the registry-identity traversal used for family initialization.
+
 Ordinary actor updates clear the retained actor and static-placement support
 owners before ground processing. A selected model face assigns its candidate's
 actor and static-placement owners. Model presentation precedes that ordinary
