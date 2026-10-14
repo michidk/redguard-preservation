@@ -662,6 +662,21 @@ multiply, shift and addition expression. Static-placement separation below
 three still takes this response; the small-contact early return applies only
 to actor pairs.
 
+For a positive actor-pair overlap, collision-attribute bit 3 on the other
+actor marks that actor's transition-result bit 2 before displacement handling.
+A separation below three marks transition-result bit 2 on both actors and
+stores each actor's low-word runtime identifier on the other. Weighted actor
+separation marks the updating actor's transition-result bit 2 and stores the
+other actor's identifier. Both-immovable rollback does not add that mark to the
+updating actor. Existing result bits are preserved.
+
+Weighted static-placement separation marks transition-result bit 2 on the
+updating actor and stores contact identifier zero. Its immovable rollback does
+not add a result mark. Separation translates only X and Z, preserving Y. The
+updating actor moves away from the other origin; a movable other actor moves
+in the opposite direction. Coordinate addition is stored at single precision
+and then truncated toward zero, using the shared heading-translation rule.
+
 ### Sphere model admission
 
 A sphere query first tests each body sphere against the model radius. Express
