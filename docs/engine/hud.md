@@ -274,6 +274,18 @@ games. Receiving item 0 does not set it. This differs from the ITEM.INI
 comment that giving the player item 0 "will automatically turn on the compass
 display".
 
+Item use retains a consumed-use latch. The item overlay clears it when the
+Activate/Attack input is released. An item-use call leaves the latch untouched
+when lockout is 1 or the selected player is on an edge, or when the latch is
+already set. Otherwise it sets the latch before testing item-system readiness
+and the remaining actor gates. Item use requires the selected player, ordinary
+rather than shell execution, water state other than 2 or 4, no held weapon,
+no climbing or rope state, and no burning torch. Climbing and rope predicates
+require an initialized item system and an animation state; they recognize actor
+states 33/34 or animation groups 149/150. An owned item 0 then toggles the
+compass flag. An unowned item cannot toggle it. Holding the use input does not
+repeat the accepted toggle.
+
 The frame is
 
 ```text
