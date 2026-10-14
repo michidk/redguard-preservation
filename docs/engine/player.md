@@ -691,6 +691,18 @@ to integer map units and receive the same caller-supplied vertical offset.
 It visits retained face-model candidates in order with sidedness disabled.
 Queued motion 24 excludes candidate type `0x80`.
 
+World contact points are converted to integers with nearest-even rounding.
+World normals are multiplied by 256, stored at single precision, and converted
+to integers with nearest-even rounding. Neither conversion uses the radius
+truncation rule. The stored contact rank is unchanged.
+
+The motion heading comes from the horizontal current-minus-previous effective
+position, using wrapping integer differences and the shared quantized heading
+lookup. A normal's facing heading is its horizontal displacement heading plus
+1024, wrapped to 2048. Subtract the motion heading; differences below -1024 add
+2047, and differences above 1024 subtract 2047. Only differences in the inclusive
+range -511 through 511 accept the contact.
+
 Accepted facing contacts contribute their integer world normals in query
 order. An empty normal accumulator takes the next normal unchanged. Otherwise,
 the two normals are added, normalized to Q16, and shifted right by eight to
