@@ -320,7 +320,7 @@ Queued motion writes `origin_Y - attribute_32 * factor[timer]`, then advances
 the timer by the sum of the fine-tick increment and its additional increment,
 wrapping as a byte. After that advance, a factor greater than 255 transfers the
 queued byte to falling and clears queued motion. A transferred high-bit motion
-forces animation group 58 when the living-state byte is zero.
+forces animation group 58 when the torch-burning counter is zero.
 
 Falling limits its vertical value by `post_collide_height * 512 - 256`, with
 signed comparison. With a positive signed timer, it writes origin Y plus the
@@ -344,22 +344,26 @@ model height. It does not use the ordinary support-segment rank or lower end.
 
 ### Queued motion arbitration
 
-A zero queued byte returns unhandled. Low queued state 3 requires group 49 in
-living state zero or group 50 otherwise. An unavailable required group clears
-queued motion and returns unhandled. A different current group returns
-unhandled in living state zero, but handled in other living states.
+A zero queued byte returns unhandled. Low queued state 3 requires group 49
+when the torch-burning counter is zero, or group 50 when it is nonzero. An
+unavailable required group clears queued motion and returns unhandled. A
+different current group returns unhandled without a burning torch, but handled
+with a burning torch. These branches do not read the living-state byte.
 
 Pending groups 32 through 37 and 111 defer queued motion and return unhandled.
 A successful selected-player edge service clears queued motion and returns
-handled. Other admitted queued states request the following groups before
-vertical advancement. Low state 1 uses 39 for unarmed living-zero actors, 112
-when holding a weapon, 40 when the queued high bit is set, and 38 for nonzero
-living state. Low state 2 uses 42, 43 with the high bit, or 41 for nonzero living
-state. Low state 3 uses 49 or 50 by living state. Low states 8 and 24 use 44,
-48 with the high bit, or 45 for nonzero living state. Low state 9 uses 46,
-48 with the high bit, or 47 for nonzero living state. Other nonzero queued
-states advance vertically without this animation request.
+handled. Other admitted queued states make an ordinary animation request before
+vertical advancement:
 
+| Low queued state | No torch, high bit clear | No torch, high bit set | Burning torch |
+|---|---|---|---|
+| 1 | 39, or 112 when holding a weapon | 40 | 38 |
+| 2 | 42 | 43 | 41 |
+| 3 | 49 | 49 | 50 |
+| 8 or 24 | 44 | 48 | 45 |
+| 9 | 46 | 48 | 47 |
+
+Other nonzero queued states advance vertically without this animation request.
 After vertical advancement, a cleared queued byte returns handled. Otherwise,
 clearance strictly below `(positive_Y_extent - 4) * 256` clears queued motion
 and restores all previous local position coordinates; the result remains handled.
