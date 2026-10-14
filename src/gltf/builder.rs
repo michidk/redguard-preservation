@@ -619,6 +619,19 @@ impl<'a> GltfBuilder<'a> {
                             }),
                         );
                     }
+                    if primitive.scale_uv_by_texture_dimensions
+                        && matches!(primitive.material_key, MaterialKey::Textured(_, _))
+                    {
+                        let pixels: Vec<[f32; 2]> = primitive
+                            .uvs
+                            .iter()
+                            .map(|[u, v]| [u / UV_FIXED_POINT_SCALE, v / UV_FIXED_POINT_SCALE])
+                            .collect();
+                        extras.insert(
+                            "rgpre_texcoords".into(),
+                            serde_json::json!({"version": 1, "pixels": pixels}),
+                        );
+                    }
                     if !primitive.lighting.is_empty() {
                         let solid_rgb = match primitive.material_key {
                             MaterialKey::SolidColor(rgb) | MaterialKey::PaletteTexture(rgb) => {

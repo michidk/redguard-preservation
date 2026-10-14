@@ -340,6 +340,16 @@ position count. Earlier exports can substitute face normals for those omitted
 records and require re-export. Material grouping and polygon triangulation retain these inputs for
 every emitted vertex. Terrain primitives omit this metadata.
 
+Textured model primitives also retain `rgpre_texcoords` version 1 with a `pixels`
+array in exported vertex order. Each pair is the decoded model coordinate divided
+by 16, in original source-image pixel units, before dimension normalization or
+vertical reversal. Negative and out-of-image coordinates are retained. Material
+splitting and triangle fans duplicate the corresponding pairs. `TEXCOORD_0`
+remains normalized and vertically reversed for generic GLTF viewers. Terrain and
+solid-color primitives omit `rgpre_texcoords`. Generated flat fallback meshes may
+carry these pairs, but their `rgpre_flat` node metadata defines their separate
+runtime geometry and coordinate path.
+
 ## Local-light records
 
 `MPOB` object kind 6 defines a runtime local light. With `objects_load` enabled, its
