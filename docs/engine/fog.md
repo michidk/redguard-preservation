@@ -57,13 +57,21 @@ same fog RGB that fills uncovered pixels.
 
 ## Integer precision and framebuffer dithering
 
-Table fog uses an unsigned 16-bit reciprocal-depth encoding. For depth greater
-than one, let
-`t = floor(2^32 / depth)`. Values of `t` below 65536 select 65535. Otherwise,
+Table fog uses an unsigned 16-bit encoding of the pixel reciprocal-depth
+accumulator. Terrain supplies the same reciprocal depth to fog and texture
+perspective correction. Both use the [terrain fixed-point plane setup](terrain-lighting.md#texture-coordinates-and-setup),
+including its subpixel adjustment and integer pixel stepping. Reconstructing
+reciprocal depth from an interpolated floating-point camera depth can select
+a different fog fraction.
+
+For constant depth, a supplied positive 32-bit float reciprocal depth `w`
+produces accumulator `t = trunc(w * 2^32)`. For varying depth, `t` is the
+stepped fixed-point accumulator instead. Accumulators at or above `2^32`
+select zero. Values below 65536 select 65535. Otherwise,
 with `e` the count of leading zero bits in the 32-bit `t`, the encoding is
 `min(65535, ((e << 12) | ((~t >> (19-e)) & 4095)) + 1)`.
-Depth at or below one selects zero. The table index is the encoding divided
-by 1024; its interpolation fraction is bits 2 through 9.
+The table index is the encoding divided by 1024; its interpolation fraction
+is bits 2 through 9.
 
 The density is the table byte plus
 `floor(delta_byte * fraction_byte / 1024)`. Voodoo 1 does not apply fog-density
