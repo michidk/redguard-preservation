@@ -390,6 +390,31 @@ For interior terrain cells, runtime grid row `j` corresponds to WLD source row
 Near-camera queries use the current terrain vertex cache; queries more than
 15 grid cells away on either axis use decoded heightmap values directly.
 
+### Ordinary actor collision-shape initialization
+
+The ordinary actor loader copies the primary MPSZ record when an animation
+model table and a nonnegative primary bounds index are present. A static-model
+actor with an MPOB `model_id` other than -1 also takes the primary-record path.
+The copied bounds supply the sphere builder with the actor's signed RAEX radius
+scale. The builder replaces the record's orientation byte according to its
+dominant-axis comparisons.
+
+A static-model actor with `model_id` -1 derives its bounds from the loaded
+model's vertices. Positive and negative extents start at zero. Vertices are
+visited in stored order; each component that extends the current signed extent
+replaces it after nearest-even integer conversion. Negative extents then become
+nonnegative magnitudes. The positive and negative X/Z extents are multiplied by
+`SYSTEM.INI` `sphere_object_scale` and shifted right by eight; Y extents are not
+scaled. A nonpositive system scale uses 256. Each total is the sum of its two
+extents, and the center offsets are zero. The usual sphere builder then applies
+the separate RAEX radius scale.
+
+An actor without that static model or an applicable primary record receives
+positive and negative extents of 12, totals of 24, zero center offsets, and one
+sphere centered at zero with radius 12. This bypasses the usual sphere builder.
+This initialization precedes the type-one placed-model fallback; loading a
+placement model afterward does not rerun collision-shape initialization.
+
 ### Upright actor collision spheres
 
 For bounds whose X and Z totals are not strictly greater than both other totals,
