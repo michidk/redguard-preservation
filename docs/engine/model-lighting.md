@@ -152,6 +152,25 @@ Projection and screen-space RGB interpolation occur after this preparation.
 Consequently, clipping depth-weighted RGB and dividing it by the new depth
 is not equivalent to the model preparation rule.
 
+## Polygon projection
+
+The ordinary model submission path projects the surviving clipped polygon as
+an ordered triangle fan. The first corner remains the anchor; each subsequent
+pair of corners forms the next triangle.
+
+For each corner, reciprocal camera depth is stored as a 32-bit float before
+projection. Screen X and Y use that stored reciprocal, the viewport center
+and the corresponding viewport scale. Screen X has a 32-bit float store before
+adding the bias `786432`; Y retains the wider intermediate until the biased
+store. Both biased screen coordinates are stored as 32-bit floats. This is the
+same `1/16`-pixel quantization used by
+[terrain projection](terrain-lighting.md#polygon-preparation).
+
+The submitted corner retains its clipped RGB. Its vertex alpha is `255`.
+Each texture coordinate is multiplied by the stored reciprocal depth, and
+that product is stored as a 32-bit float for Glide. Reciprocal depth is also
+submitted separately for perspective correction.
+
 ## Local-light model selection
 
 A local light carries a world position, signed RGB strengths and a radius in
