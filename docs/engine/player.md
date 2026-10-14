@@ -473,6 +473,26 @@ coordinate is arithmetic-shifted right eight bits, then stored as a
 single-precision map coordinate. Each orientation component stores the integer
 `(-angle) & 2047`; these angle fields are not floating-point values.
 
+Collision queries rebuild their orientation from these angle fields, rather
+than using the actor's retained presentation matrix. Let `sp`, `sy`, and `sr`
+be shared-table sine samples at the wrapped negative pitch, yaw, and roll;
+`cp`, `cy`, and `cr` are the samples 512 entries later. The collision matrix
+has these rows:
+
+| Row | X | Y | Z |
+| --- | --- | --- | --- |
+| 0 | `sp * sr * sy + cr * cy` | `-sr * cp` | `sr * sp * cy - sy * cr` |
+| 1 | `sr * cy - sp * sy * cr` | `cr * cp` | `-sr * sy - cr * sp * cy` |
+| 2 | `cp * sy` | `sp` | `cp * cy` |
+
+Each resulting component is stored at single precision. Multiplications and
+additions retain extended intermediates until that store. For an upright
+actor this matrix maps local forward to `(-sy, 0, cy)`, unlike the retained
+actor matrix's `(sy, 0, cy)` mapping. The primary body query uses the selected
+shape's current local coordinates and angles. Residual response uses the first
+working record's copied angles, with its origin refreshed from the actor's
+current effective map position.
+
 The ordinary update copies the selected shape into two working records. For
 upright bounds, the second record's sphere count is increased by one, including
 the additional stored support sphere. The first record retains the ordinary
