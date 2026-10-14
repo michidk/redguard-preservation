@@ -342,6 +342,20 @@ height to nearest even. That height replaces the model result only when it is
 strictly greater than current integer map Y and strictly less than the retained
 model height. It does not use the ordinary support-segment rank or lower end.
 
+### Initial falling bookkeeping
+
+When the ordinary support response misses and starts a fall, it records local
+Q8 Y plus `256 * attribute 32` as the fall origin and sets the byte timer to
+30. The ordinary falling byte becomes one. Static-model actors then run the
+vertical writer without an animation request. An animated actor's initial
+unarmed request is forced group 56 without a burning torch or 57 with one;
+a weapon-holding actor forces 113 unless current group is 115.
+
+Animated entry also has separate selector, previous-position recovery and
+horizontal-displacement branches before this initialization. Current groups
+18 and 30 have an exit-marker rollback branch and otherwise force 59 or 60.
+These entry branches are distinct from continuation of an existing fall.
+
 ### Falling animation continuation
 
 For an animated actor already falling without support, the edge service runs
