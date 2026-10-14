@@ -677,6 +677,12 @@ updating actor moves away from the other origin; a movable other actor moves
 in the opposite direction. Coordinate addition is stored at single precision
 and then truncated toward zero, using the shared heading-translation rule.
 
+The overlap pass visits its retained actor-style candidate list in order. Later
+queries read the positions left by earlier responses. If any weighted
+separation occurred and the loop completes, the forward obstacle response
+runs again. A small actor-pair contact returns immediately and skips this
+repeat, even when an earlier candidate caused weighted separation.
+
 ### Sphere model admission
 
 A sphere query first tests each body sphere against the model radius. Express
