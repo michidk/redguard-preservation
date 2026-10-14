@@ -410,6 +410,26 @@ otherwise force 134. Death notification sets the retained response byte to 8.
 Armed death has separate combat animation and state services. Selected-player
 health uses a separate service rather than mutating this attribute byte.
 
+### Stable recovery probe
+
+The late stable-position recovery probe translates the actor's query position
+forward by 6144 Q8 units at its local heading, then converts all coordinates
+to integer map units. Its vertical segment starts at that Y plus the actor's
+positive Y extent minus `post_collide_height` and ends at that Y plus the extent
+plus `post_collide_height`.
+
+It visits its prepared face-model candidates in order with sidedness disabled.
+The first contact with normal classification 4 accepts recovery and writes local
+position to the probe's integer X/Z multiplied by 256 and contact integer Y
+minus the positive extent, also multiplied by 256. It does not add standing
+height or rank competing faces.
+
+When no model contact accepts, terrain height rounded to nearest even accepts
+recovery if it lies inclusively between both segment endpoints. Terrain
+acceptance does not write the actor position. With no animation receiver the
+probe accepts before those segment tests. Candidate preparation precedes that
+receiver check and is distinct from the ordinary retained collision list.
+
 ### Stable ordinary position
 
 After collision attribute bit `0x04` ground response, an actor with queued
