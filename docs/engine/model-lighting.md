@@ -40,6 +40,26 @@ is 255 when the alpha input is below 254; otherwise it comes from the current
 flat-brightness input. This is a face-brightness contribution, not a
 replacement for the subsequent lighting calculation.
 
+### Flat submission order
+
+Ordinary placed flats prepend to the spatial list selected by the low sixteen
+bits of their integer X/Z placement coordinates, shifted right by nine bits.
+Their active list appends those cell lists in the normal
+[runtime spatial selection order](#runtime-object-light-region). Within each
+cell, this reverses file insertion order. Static models are submitted before
+these flats. Bound rejection happens before queue insertion; polygon clipping
+happens later, while drawing the queue.
+
+The normal queue's alpha partition does not compare depth. For ordinary flats,
+alpha below 254 selects the partitioned category. When that category is present,
+a tail cursor starts at the final queue entry and skips selected entries while
+it is greater than zero. A forward cursor visits indices strictly below
+`queue_length - 1 - selected_count`. Whenever the forward entry is selected,
+it swaps with the tail entry, then decrements the tail and again skips selected
+entries while greater than zero. The resulting order is not stable and need not
+place every selected entry after every other entry. With an opaque model prefix,
+partitioning the flat suffix independently gives the same flat order.
+
 ### Flat framebuffer blending
 
 Ordinary flat drawing enables four-by-four framebuffer dithering and alpha
