@@ -342,6 +342,22 @@ height to nearest even. That height replaces the model result only when it is
 strictly greater than current integer map Y and strictly less than the retained
 model height. It does not use the ordinary support-segment rank or lower end.
 
+### Ordinary jump entry
+
+Jump entry requires no active native motion task, queued motion, falling or
+sliding, and actor state zero or 15. Selected-player edge and water gates run
+separately. State 15 dispatches its separate exit service instead of this
+ordinary initialization.
+
+For ordinary initialization, clear the stable-position-valid flag, record
+current local Q8 Y as fall origin, set the byte fall timer to zero and clear
+accumulated sliding distance. With the runtime jump selector zero, current
+group 18 selects queued 9 and request 36 when the requested motion is 9,
+otherwise queued 8 and request 34. Current group 30 similarly requests 37 or
+35. Other current groups select queued 1 and request 32 without a burning torch,
+or 33 with a burning torch. A nonzero runtime jump selector instead selects
+queued 24 and forces group 85. Set motion direction to 2 after the request.
+
 ### Queued motion arbitration
 
 A zero queued byte returns unhandled. Low queued state 3 requires group 49
