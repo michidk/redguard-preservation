@@ -10,7 +10,9 @@ For a complete reference parser with pseudocode, see [PVO Parser](parser.md).
 
 PVO files store pre-computed visibility data used for geometry culling at runtime. Instead of calculating which polygons are visible from the camera every frame, the game looks up the camera position in the octree and retrieves a pre-built list of visible group IDs.
 
-The runtime lookup works as follows: take the camera's world-space position, walk the octree from root to leaf by comparing coordinates against each node's center, then collect the polygon indices stored in that leaf's PLST entries (which reference ranges in the MLST table). Only those polygons are submitted for rendering — everything else is skipped.
+The runtime lookup truncates each camera world-space coordinate toward zero, then subtracts the root center. A coordinate outside the root half-extent produces an empty selected-object list. Otherwise, it walks child links using strict positive coordinate comparisons to choose the octant. After descending, it halves the cell extent and subtracts the child center displacement on each axis. A missing octant link ends the walk at the current node.
+
+The selected node's PLST entries are decoded in reverse entry order. Each entry's MLST run retains its forward order, including duplicate object IDs. A node without a PLST reference produces an empty list. These IDs identify placed objects, rather than individual model faces.
 
 The data is generated offline by placing a virtual camera at every point on a uniform 256-unit grid across the level, running a visibility query at each point, and baking the results into the octree. See [Generation Process](#generation-process) for details.
 
