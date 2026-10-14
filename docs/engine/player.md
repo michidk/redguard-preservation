@@ -891,6 +891,9 @@ the lower end of this segment is not a candidate. Terrain above the upper end
 receives rank 65,535. Terrain within the segment receives
 `(truncate(16777216 / (2 × R)) × (truncate(terrain_Y) − segment_start_Y)) >> 8`.
 
+Queued motion 24 excludes candidate type 128 before the primary support model
+query. The selected-player fallback applies the same exclusion.
+
 Model contacts with normal classification 2 or 4 compete in candidate and
 contact order. A contact replaces the current support when its stored segment
 rank is less than or equal to the current rank, so a later equal rank replaces
