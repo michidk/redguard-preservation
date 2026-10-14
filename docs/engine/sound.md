@@ -191,6 +191,8 @@ it discards that remembered handle before querying playback status. Discarding
 the handle does not itself stop a channel. The engine's periodic sound-reset
 path stops all sample channels and sets this flag, allowing active ambient
 tasks to acquire replacement channels when they next run.
+The `RTX` dialogue task instead completes immediately when this reset flag is set,
+before checking its distance or loading an entry.
 
 Sound maintenance runs after clock sampling and before ordinary object updates.
 It clears the shared reset flag each invocation. Its accumulator starts at zero
