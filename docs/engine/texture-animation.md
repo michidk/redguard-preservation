@@ -136,6 +136,20 @@ The unclipped preparation path retains the input vertex count. Thus texture
 binding admission is distinct from both an object's visibility bound and the
 eventual rasterized coverage.
 
+## Placed flat admission
+
+Ordinary MPSF flats enter the same bounded draw queue as models, using their
+generated sprite bound and camera-facing transform. Their drawing flags select
+the first-polygon path described above, so they bypass the ordinary face-normal
+test. Their instance frame selection is automatic. After polygon preparation
+returns at least three vertices, they request a frame from the shared image
+timeline before drawing.
+
+A flat rejected by its bound or polygon clipping does not request a frame.
+A flat that survives preparation can request a frame even if it covers no
+pixels. Using the first-polygon path does not make the request an explicit
+frame override when the instance selects automatic playback.
+
 ## Terrain triangle admission
 
 Terrain submits the cells in its [camera window](water.md#terrain-window).

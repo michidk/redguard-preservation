@@ -20,6 +20,22 @@ quantization. Palette selection uploads the complete 256-entry RGB table to
 texture unit zero. Palette-zero texels retain their RGB through filtering even
 when the material enables chroma rejection.
 
+## Placed flat drawing
+
+Ordinary MPSF flats use point-sampled textures and palette chroma-key rejection.
+They use constant alpha, independent of texture alpha. An alpha input below
+254 selects source-alpha and one-minus-source-alpha RGB blending; an input
+of 254 or greater selects source replacement. The constant alpha channel is
+the low byte of the rounded alpha input. Alpha-channel blend factors select
+source replacement in both cases. The alpha input and its default come from
+the [FLAT attributes](../formats/RGM.md#flat).
+
+These flats retain depth writes and the less-than depth test. Textured RGB
+uses the ordinary vertex-light modulation path. Their submitted face brightness
+is 255 when the alpha input is below 254; otherwise it comes from the current
+flat-brightness input. This is a face-brightness contribution, not a
+replacement for the subsequent lighting calculation.
+
 ## Ambient and directional contribution
 
 Models share the ambient RGB, directional RGB and normalized world direction
