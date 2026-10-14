@@ -98,6 +98,14 @@ randomly from 2048 angle steps. Scroll offsets start at zero, advance with the
 shared engine sine/cosine table, and wrap at plus/minus 256 texels. A frame
 processes at most 36 elapsed ticks. The plane tilts around a camera-relative axis as described below.
 
+The `fxskyspeed` console command interprets its value as a signed integer. It
+sets the current sky speed to that full value divided by 16 and stores the low
+eight bits in the current world's speed setting. The current speed can therefore
+differ from the byte-derived speed used when the world is loaded again.
+Each successful command consumes one random value and selects a new direction
+from its low 11 bits, including when the requested speed is zero. It retains
+the accumulated texture offsets and the last processed timer tick.
+
 ### Plane tilt
 
 The sky is a plane that can be crossed vertically and is visible from either
