@@ -1,5 +1,7 @@
 mod index;
 pub use index::{BsiIndex, BsiIndexEntry};
+mod glide;
+pub use glide::GlideTextureLayout;
 
 use super::palette::Palette;
 use crate::{Result, error::Error};
