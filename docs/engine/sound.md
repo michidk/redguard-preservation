@@ -272,6 +272,14 @@ records have zero-valued sample fields; clearing replaces these with the absent
 handle, so fresh inactive records and cleared records have different stored
 sample values.
 
+Combat taunts retain an RTX cache reference per actor. Replacing that reference
+releases the old entry when it remembers a sample; an absent remembered sample
+leaves the cached payload intact. In both cases the actor drops its reference.
+The new label uses the shared RTX cache. After lookup, its remembered sample is
+stopped and cleared before the new taunt is presented, even when the label was
+already cached. This lookup differs from ordinary dialogue reuse, which retains
+a remembered sample.
+
 The reset releases cached RTX text and audio payloads and clears their occupied
 state. It also clears active dialogue records and their text buffers, resets
 their sample handles. These operations precede stopping all sample channels
