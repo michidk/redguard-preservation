@@ -312,6 +312,19 @@ gauntlet, frame 1 shield) at `(game_xco1, game_yco1)` and
   id matches.
 - Slot contents are stored in save games.
 
+## Script logbook entries
+
+`AddLog(tag)` accepts a four-byte RTX label packed into an integer in
+little-endian byte order and returns 0. It checks a 400-slot tag table before
+looking up the RTX entry. A matching tag suppresses the call. Otherwise the
+first zero slot receives the tag, even when lookup or file opening later
+fails. Zero is the empty-slot sentinel. When all slots are occupied, an
+unmatched tag is not retained and the call continues.
+
+A found RTX entry appends its text to `LOGBOOK.TXT`. A missing entry writes
+nothing. Only a successful file open and append starts the logbook icon;
+a suppressed tag or failed file open leaves the icon unchanged.
+
 ## Logbook icon
 
 When a new logbook entry is written and the icon is not already playing,
