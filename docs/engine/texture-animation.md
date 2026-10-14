@@ -74,6 +74,20 @@ loading the destination world's resources.
 
 ## Model polygon admission
 
+The ordinary actor dispatcher requires both the runtime animation-update
+exclusion and object-update exclusion to be clear before preparing an actor's
+model. Its hidden flag must also be clear before model submission. A static-model
+actor needs a loaded model. These actor gates precede polygon admission; hiding
+an actor or excluding it from drawing prevents its model from requesting texture
+frames.
+
+With PVO disabled, the actor dispatcher's static and animated PVO eligibility
+helpers both admit the actor. The pose-preparation helper returns success;
+it does not add a visibility rejection.
+The [animation exclusions](animation.md#ordinary-actor-eligibility) and
+[hidden flag](SOUP.md#object-visibility) have separate update and presentation
+effects.
+
 Before model polygons are prepared, draw submission classifies a bound around
 the model origin transformed into scaled camera space. Let `(x, y, z)` be that
 origin, `r` the model header radius in engine units, and `(sx, sy)` the
