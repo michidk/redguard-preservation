@@ -220,6 +220,11 @@ searching for an inactive record. Clearing dialogue by an RTX cache entry's
 remembered sample scans active records starting at one and leaves record zero
 alone. Matching uses the remembered sample slot, not speaker identity.
 
+The `RTXp` task completes when the shared sample-reset flag is set. Otherwise,
+its first zero-elapsed invocation loads the label once and replaces record zero
+when lookup succeeds. Later invocations query that record's activity without
+reloading the label. The handler has no speaker-distance gate.
+
 Dialogue lifetime is initialized from the loaded audio duration when a sample
 handle is remembered. Duration uses integer units of 1/256 second:
 `(PCM_byte_count << 8) / (channels * sample_rate * bytes_per_sample)`.
