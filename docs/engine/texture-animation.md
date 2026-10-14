@@ -145,6 +145,15 @@ test. Their instance frame selection is automatic. After polygon preparation
 returns at least three vertices, they request a frame from the shared image
 timeline before drawing.
 
+The generated bound radius uses the source image width and height before texture
+scale. Form the single-precision squared diagonal `width² + height²`, apply the
+[quantized square-root table](model-lighting.md), and halve that
+result with a single-precision store. Multiply by the texture scale and the
+submitted geometry scale, then store the radius as single precision. The
+ordinary MPSF geometry scale is 1. The bound uses the same projection-scaled
+sphere classification as queued models; it is not the exact Euclidean diagonal
+of the final quad.
+
 A flat rejected by its bound or polygon clipping does not request a frame.
 A flat that survives preparation can request a frame even if it covers no
 pixels. Using the first-polygon path does not make the request an explicit
