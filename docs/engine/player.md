@@ -438,8 +438,11 @@ receiver check and is distinct from the ordinary retained collision list.
 ### Ordinary water rollback
 
 A nonplayer actor with no falling or queued motion rolls back when its stored
-surface is water, codes 1 through 4. This restores the local position saved at
-update entry and clears attribute 6. It also restores the directional movement
+surface is water, codes 1 through 4. This restores a separately retained local
+position and clears attribute 6. At the end of an ordinary update, a nonwater
+surface or active falling state replaces this record with the current local
+position. A water surface without falling leaves it unchanged. The record is
+distinct from the position captured at update entry. It also restores the directional movement
 flags and the animation collision snapshot, marks collision transition bit 1,
 and sets the shared changed flag. Selected-player actors do not take this branch.
 
