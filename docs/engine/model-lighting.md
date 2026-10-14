@@ -56,6 +56,25 @@ one disables reduction.
 Source dimensions and the image's texture scale remain separate from these
 allocation and sampling parameters.
 
+### Texture allocation and indexed upload
+
+The Glide allocation descriptor supports power-of-two dimensions from 1 through
+256. Its aspect ratio is limited to 8:1: when the requested pair is more
+elongated, the smaller allocation dimension increases to one eighth of the
+larger. For maximum allocation dimension `M`, both fixed sampling levels are
+`8 - log2(M)`.
+
+With unit horizontal and vertical sampling strides, the descriptor's two
+coordinate scales are both `256 / M`. Setting source dimensions smaller than
+the allocation preserves those scales, including non-power-of-two source
+sizes. Source-image dimensions and allocation dimensions remain distinct.
+
+The indexed upload path with unit strides copies source texels row by row.
+Unused columns to the right and unused rows below are filled with palette
+index zero. It does not stretch or repeat the source image into that padding.
+A supplied source row pitch controls the input row stride; the default pitch
+is the source width.
+
 ### Flat submission order
 
 Ordinary placed flats prepend to the spatial list selected by the low sixteen
