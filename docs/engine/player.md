@@ -456,6 +456,41 @@ with any of those motion states nonzero retains the existing stable record and
 validity. This record is distinct from the position saved at update entry.
 Jump admission clears its validity before initializing queued motion.
 
+### Ordinary slope response
+
+Slope response reads `[game] slide_speed` from SYSTEM.INI, clamped to at
+least 8 during settings loading. It uses the current primary support result.
+With no support or a classification other than 2, it requests ordinary group
+75, or 77 with a burning torch, unless the current group is already 75 through
+78. This fallback does not change sliding state, distance or position.
+
+For class 2, the horizontal support normal supplies the quantized movement
+heading. The comparison heading is local for an unattached actor and effective
+for a family actor. A signed wrapped heading difference with magnitude below
+512 selects a forward slide, groups 75 or 77, and movement bits `0x30`.
+Other differences select a backward-facing slide, groups 76 or 78, and bits
+`0xc0`. Backward-facing actors turn toward movement heading plus 1024; both
+branches translate along the movement heading.
+
+Turning precedes the slide animation request. It uses attribute 15 when neither
+holding a weapon nor in combat mode, and attribute 21 otherwise. The turn rate
+is the signed wrapping product of that byte and frame scale, shifted right by
+8, then clamped to at least 8. Differences within that rate snap to the target
+without requesting a turn animation. Larger differences turn by the rate and
+request an ordinary turn group when an animation receiver exists. Without a
+held weapon these are positive 14 or torch 16, and negative 15 or torch 17.
+With a held weapon they are positive 96 and negative 97. Combat mode affects
+rate selection independently of the held-weapon animation branch. Heading
+writes wrap to 2048. Selected-player turning also updates the follow camera.
+
+The first slide forces its slide group; subsequent slides request it ordinarily.
+Distance is the signed wrapping product `slide_speed * 128 * frame_scale`,
+shifted right by 8. Only a positive distance translates X/Z. Primary support
+is queried again with the original response probe distance; an available result
+replaces local actor-origin Y. The first slide clears accumulated sliding
+distance, then every class-2 response adds the computed distance, including
+nonpositive values, and sets sliding state to one.
+
 ### Initial falling bookkeeping
 
 When the ordinary support response misses and starts a fall, it records local
