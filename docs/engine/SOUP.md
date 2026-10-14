@@ -237,6 +237,23 @@ World object loading resets its identifier counter to the pool capacity plus thr
 
 CYRUS and GREMLIN player instances load independently of MPOB placements. Each uses identifier one; the initial player selector chooses CYRUS. The camera instance loads CAMERA independently of MPOB and uses identifier two. Fresh world loading creates and registers ordinary MPOB actors first, followed by CYRUS, GREMLIN and CAMERA.
 
+### Separate map object script state
+
+MPOB types two and six use separate object records rather than ordinary actor
+records. Script binding uses the same authored instance allocator as ordinary
+objects: each matching load advances the instance counter and, after the first
+instance, advances the local-variable pointer by the variable count times four.
+These objects therefore consume their authored local-variable allocation even
+though they do not consume the ordinary actor identifier counter.
+
+The separate-object update converts each record into a cleared temporary actor
+and clears its attribute table. It restores the object's position, script
+continuations, local-variable and string pointers, and native task-slot state.
+After processing, it copies position, continuations and task state back to the
+separate record. Attribute writes in that temporary actor are not copied back.
+The separate-object traversal runs after ordinary actor traversal and retains
+its own list membership.
+
 ### Initial ordinary motion state
 
 Fresh ordinary allocation clears the complete actor record before applying
