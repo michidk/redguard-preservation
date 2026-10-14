@@ -91,10 +91,13 @@ use the resulting RGB to modulate the texture. RGB interpolates in screen
 space, while texture coordinates use perspective correction. There is no
 physical material response, scene exposure or filmic tone mapping.
 
-The runtime face's brightness is the byte following its vertex count. In
-v4.0/v5.0 model files this is the field named `tex_hi` in the
-[model format](../formats/models/3d.md). The packed runtime material marks
-solid colors separately from texture references.
+The runtime face's brightness is the byte following its vertex count. Model
+preparation shifts the stored face byte left by two bits and retains the low
+eight bits. In v4.0/v5.0 model files the stored byte is the field named `tex_hi`
+in the [model format](../formats/models/3d.md), so the runtime contribution is
+`(tex_hi * 4) & 255`. Generated runtime faces supply their brightness directly
+and do not pass through this file-model conversion. The packed runtime material
+marks solid colors separately from texture references.
 
 A model instance may retain precomputed per-face-vertex RGB. That RGB replaces
 the ambient, face-brightness and directional contribution, including its solid
