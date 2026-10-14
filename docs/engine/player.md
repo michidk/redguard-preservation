@@ -342,6 +342,28 @@ height to nearest even. That height replaces the model result only when it is
 strictly greater than current integer map Y and strictly less than the retained
 model height. It does not use the ordinary support-segment rank or lower end.
 
+### Queued motion arbitration
+
+A zero queued byte returns unhandled. Low queued state 3 requires group 49 in
+living state zero or group 50 otherwise. An unavailable required group clears
+queued motion and returns unhandled. A different current group returns
+unhandled in living state zero, but handled in other living states.
+
+Pending groups 32 through 37 and 111 defer queued motion and return unhandled.
+A successful selected-player edge service clears queued motion and returns
+handled. Other admitted queued states request the following groups before
+vertical advancement. Low state 1 uses 39 for unarmed living-zero actors, 112
+when holding a weapon, 40 when the queued high bit is set, and 38 for nonzero
+living state. Low state 2 uses 42, 43 with the high bit, or 41 for nonzero living
+state. Low state 3 uses 49 or 50 by living state. Low states 8 and 24 use 44,
+48 with the high bit, or 45 for nonzero living state. Low state 9 uses 46,
+48 with the high bit, or 47 for nonzero living state. Other nonzero queued
+states advance vertically without this animation request.
+
+After vertical advancement, a cleared queued byte returns handled. Otherwise,
+clearance strictly below `(positive_Y_extent - 4) * 256` clears queued motion
+and restores all previous local position coordinates; the result remains handled.
+
 ### Ordinary ground prevalidation
 
 Ground prevalidation runs once for each prepared collision candidate list. It
