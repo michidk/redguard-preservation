@@ -75,6 +75,18 @@ index zero. It does not stretch or repeat the source image into that padding.
 A supplied source row pitch controls the input row stride; the default pitch
 is the source width.
 
+For BSI loading, each source axis is rounded up to a power of two before
+applying its configured 128- or 256-size reduction factor. Each axis retains
+that factor as its sampling stride. Aspect-ratio padding follows reduction.
+For source dimension `D`, sampling stride `S`, and maximum reduced allocation
+dimension `M`, the coordinate scale is `256 * floor(D / S) / (M * D)`, stored
+as a 32-bit float. Source dimensions themselves are retained without reduction.
+The fixed sampling level is `8 - log2(M)`.
+
+Indexed reduction samples source columns and rows starting at zero and stepping
+by their respective strides. It does not average neighboring texels. Remaining
+allocation columns and rows are still filled with palette index zero.
+
 ### Flat submission order
 
 Ordinary placed flats prepend to the spatial list selected by the low sixteen
