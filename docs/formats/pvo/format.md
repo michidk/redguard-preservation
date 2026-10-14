@@ -131,6 +131,9 @@ Serialized octree nodes written sequentially. Each node is a variable-length rec
 
 Record size = `5 + popcount(child_mask) * 4`
 
+Multiple child links may reference the same OCTR node record. Node references
+therefore do not require unique parent ownership.
+
 Possible sizes: 5, 9, 13, 17, 21, 25, 29, 33, 37 bytes.
 
 ### Octant assignment
