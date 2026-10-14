@@ -342,6 +342,22 @@ height to nearest even. That height replaces the model result only when it is
 strictly greater than current integer map Y and strictly less than the retained
 model height. It does not use the ordinary support-segment rank or lower end.
 
+### Falling animation continuation
+
+For an animated actor already falling without support, the edge service runs
+before the continuation request. When it does not handle the actor, low falling
+state 3 forces group 63 without a burning torch or 64 with one. A set high bit
+with no burning torch otherwise forces group 58. These cases precede the
+short-distance motion variants.
+
+Falling byte 8 with absolute local Q8 Y distance from the fall origin strictly
+below 32768 forces group 59 without a burning torch or 60 with one. Byte 9
+under the same condition forces 61 or 62. Other ordinary unarmed continuation
+forces group 56 or 57 according to the torch-burning counter. An actor holding
+a weapon instead makes an ordinary request for group 113 unless its current
+group is 115. The vertical writer runs after this request, reading the resulting
+animation's model-controlled vertical-motion marker.
+
 ### Ordinary jump entry
 
 Jump entry requires no active native motion task, queued motion, falling or
