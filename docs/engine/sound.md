@@ -146,6 +146,11 @@ Animation opcode 4 ([attachment](attachment.md)) starts a positional sound:
 - The handle is stored on the animation; EndAnimation (opcode 1) stops it.
   No later volume or pan update was found for these sounds.
 
+Volume and pan use the actor and camera positions when the PlaySound command
+executes. They do not use the actor's later position at the end of the update.
+During ordinary player walking, animation advancement can start a sound before
+forward movement and ground response change the player's position.
+
 Each encountered PlaySound advances to the next command without consuming a
 frame skip. A second PlaySound replaces the animation's remembered handle
 without stopping the previous channel. Selecting a replacement group clears
