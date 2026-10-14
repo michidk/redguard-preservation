@@ -409,7 +409,7 @@ scaled. A nonpositive system scale uses 256. Each total is the sum of its two
 extents, and the center offsets are zero. The usual sphere builder then applies
 the separate RAEX radius scale.
 
-An actor without that static model or an applicable primary record receives
+An actor with neither that static model nor an applicable primary-record path receives
 positive and negative extents of 12, totals of 24, zero center offsets, and one
 sphere centered at zero with radius 12. This bypasses the usual sphere builder.
 This initialization precedes the type-one placed-model fallback; loading a
