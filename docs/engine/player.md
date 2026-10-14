@@ -591,7 +591,7 @@ of groups 20 through 27. Otherwise it requests rollback. Other current classes
 clear both results.
 
 The wrapper applies rollback by restoring all three previous local position
-coordinates, clearing the motion-direction byte, and running the ordinary
+coordinates, clearing the retained movement flags, and running the ordinary
 obstacle transition before the main support query.
 
 ### Forward ground-support admission
