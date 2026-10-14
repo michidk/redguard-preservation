@@ -230,6 +230,7 @@ continues. With speech disabled, a positive remaining lifetime presents the line
 and ends the update; an expired line is cleared and traversal continues.
 
 Before record traversal, dialogue updates edge-detect their skip-input signal.
+The signal is the combined `KEYS.INI` `key_a` binding pair, the walk/run modifier.
 A released signal clears the latch. A new pressed signal sets the latch and,
 only when player lockout equals one, visits every record, stops any remembered
 sample that is playing, clears the record, and ends the update. Holding the
