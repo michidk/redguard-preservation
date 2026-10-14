@@ -104,6 +104,20 @@ the ambient, face-brightness and directional contribution, including its solid
 color tint. Local lights still add to it, followed by channel clamping; the
 solid tint is not applied a second time.
 
+## Polygon clipping
+
+The clipped model preparation path computes each source corner's RGB before
+clipping. It transforms positions into projection-scaled camera coordinates
+and uses the same six-plane volume and plane order as
+[terrain polygon preparation](terrain-lighting.md#polygon-preparation).
+
+At a crossing edge, RGB and texture coordinates use the same linear edge
+parameter as camera position. Generated components are stored as 32-bit
+floats. RGB is not multiplied by depth or reciprocal depth during clipping.
+Projection and screen-space RGB interpolation occur after this preparation.
+Consequently, clipping depth-weighted RGB and dividing it by the new depth
+is not equivalent to the model preparation rule.
+
 ## Local-light model selection
 
 A local light carries a world position, signed RGB strengths and a radius in
