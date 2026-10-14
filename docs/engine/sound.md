@@ -200,7 +200,9 @@ the runtime inhibition flag is clear. A signed accumulator value greater than
 RTX initialization creates twenty cache slots with no text or audio payload,
 cleared occupancy, and no remembered sample. Dialogue initialization allocates
 `max(dialog_max_dialog_lines, 16)` records from `SYSTEM.INI [dialog]` and clears
-their stored state. `WaitOnDialog` scans every record and remains active while
+their stored state. The topic-menu capacity is `max(dialog_max_menu_items, 300)`,
+and text width is `max(dialog_max_text_width, 150)`. A configured
+`menu_traverse_delay` of zero becomes one BIOS tick. `WaitOnDialog` scans every record and remains active while
 any record has its active word equal to one. It does not filter by the caller.
 
 The reset releases cached RTX text and audio payloads and clears their occupied
