@@ -337,8 +337,8 @@ classification 2 or 4 compete by their integer world Y; strictly smaller Y
 replaces the current height, initialized to 999999. With no selected height,
 clearance is 256000 Q8 units. A selected height returns
 `height * 256 - current_effective_Q8_Y`.
-The terrain query uses current integer map X/Z and rounds its interpolated
-height to nearest even. That height replaces the model result only when it is
+The terrain query uses current integer map X/Z and truncates its interpolated
+height toward zero. That height replaces the model result only when it is
 strictly greater than current integer map Y and strictly less than the retained
 model height. It does not use the ordinary support-segment rank or lower end.
 
