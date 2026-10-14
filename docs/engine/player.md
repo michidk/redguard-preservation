@@ -866,6 +866,12 @@ masking both to 2047 and wrapping their difference to the interval −1024 throu
 1024 using a full 2048-unit turn. When the absolute difference is greater than
 512, add 1024 to the adjusted heading and mask the result to 2047.
 
+The response stores body-result bits independently of collision attributes. A
+projected wall contact sets bit 1 when the ordinary heading-adjustment branch
+runs; otherwise it sets bit 2. Horizontal rollback also sets bit 2. Each mark
+preserves the other result bits. Ordinary state 15 still projects or rolls back
+horizontal movement, but does not enter the state-zero heading adjustment.
+
 ### Residual static-contact separation
 
 After the primary body response, the actor queries static face contacts again.
