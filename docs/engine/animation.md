@@ -424,6 +424,9 @@ separate state from `DelayCounter`.
 continues interpreting commands. It does not pause the game or the animation.
 Ordinary forward walking checks this marker after advancing its startup phase;
 a set marker suppresses that update's translation.
+Queued and falling vertical writers read the same marker after their preceding
+animation request. A set marker suppresses their vertical arithmetic and timer
+updates. Static models and absent animation state do not apply this suppression.
 
 For forward playback, advancing the command cursor when its frame countdown
 expires clears the marker. Skipping a `ShowFrame`, taking a `GoToPrevious`
