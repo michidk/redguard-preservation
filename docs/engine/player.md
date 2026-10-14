@@ -776,6 +776,12 @@ For the inside test, each consecutive vertex pair A/B must satisfy
 `((A − contact) × (B − contact)) · N >= 0`. A face that passed for one sphere
 is not added again for another sphere in the same model query.
 
+The model body-query adapter rejects working shapes with more than 24 spheres.
+During a model query, a subobject face scan stops when the successful-contact
+count reaches 32. Reaching that count is not a query failure: the returned
+contacts still pass through the world-coordinate integer adapter and the primary
+collector's separate sixteen-contact limit.
+
 The reported contact remains the plane projection even when a vertex or edge
 intersection accepted the face. The model placement transform returns the
 contact point and normal to world coordinates. The obstacle probe needs only
