@@ -301,6 +301,28 @@ position has a selected surface, classification 2 rejects the attempt and other
 classifications allow this slope check. This selection is separate from the
 ordinary ground-support rank comparison.
 
+### Queued and falling vertical motion
+
+Queued and falling vertical motion skip their arithmetic when an animated
+model has active model-controlled vertical motion. Static models, absent
+animation state and animations without that control use the following rules.
+All positions and the retained fall origin have eight fractional bits.
+The retained timer is a byte; falling tests it as signed.
+
+Queued motion writes `origin_Y - attribute_32 * factor[timer]`, then advances
+the timer by the sum of the fine-tick increment and its additional increment,
+wrapping as a byte. After that advance, a factor greater than 255 transfers the
+queued byte to falling and clears queued motion. A transferred high-bit motion
+forces animation group 58 when the living-state byte is zero.
+
+Falling limits its vertical value by `post_collide_height * 512 - 256`, with
+signed comparison. With a positive signed timer, it writes origin Y plus the
+smaller of that limit and `-attribute_32 * factor[timer]`, then subtracts the
+same fine-tick increment sum from the byte timer. With a nonpositive timer,
+it adds the smaller of that limit and
+`attribute_32 * factor[0] * (fine_tick_increment + additional_increment + 2)`
+to current Y. Products and position arithmetic retain 32-bit wrapping.
+
 ### Ordinary ground prevalidation
 
 Ground prevalidation runs once for each prepared collision candidate list. It
