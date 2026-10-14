@@ -215,6 +215,13 @@ The `type` field identifies when the taunt fires:
 | `rtx_label` | string | Label key into `ENGLISH.RTX` for the voice line; may be a 4-character code or a `&NNN` numeric reference |
 | `animation` | integer | Animation group ID to play alongside the voice line; `0` in all shipped entries |
 
+Begin-combat, hurt, death, and opponent-unarmed selection scans the actor's
+list in order. Only entries with the requested type and a nonzero RTX label
+participate. Each matching entry becomes the current selection and consumes one
+random draw. The scan stops when `floor(4 * draw / 32767) == 1`; otherwise the
+last matching entry wins. Death selection retries with the hurt type only when
+no death entry matched. The other four types have no such fallback.
+
 ### Taunt Allocation by Combatant
 
 The file comments define the index ranges reserved for each combatant:
