@@ -956,19 +956,22 @@ three still takes this response; the small-contact early return applies only
 to actor pairs.
 
 For a positive actor-pair overlap, collision-attribute bit 3 on the other
-actor marks that actor's transition-result bit 2 before displacement handling.
-A separation below three marks transition-result bit 2 on both actors and
+actor marks that actor's body-response bit `0x04` before displacement handling.
+A separation below three marks body-response bit `0x04` on both actors and
 stores each actor's low-word runtime identifier on the other. Weighted actor
-separation marks the updating actor's transition-result bit 2 and stores the
+separation marks the updating actor's body-response bit `0x04` and stores the
 other actor's identifier. Both-immovable rollback does not add that mark to the
 updating actor. Existing result bits are preserved.
 
-Weighted static-placement separation marks transition-result bit 2 on the
+Weighted static-placement separation marks body-response bit `0x04` on the
 updating actor and stores contact identifier zero. Its immovable rollback does
 not add a result mark. Separation translates only X and Z, preserving Y. The
 updating actor moves away from the other origin; a movable other actor moves
 in the opposite direction. Coordinate addition is stored at single precision
 and then truncated toward zero, using the shared heading-translation rule.
+
+Overlap marks share the body-response byte used by primary, residual, bounds
+and forward response. They do not write the separate rollback-result byte.
 
 The overlap pass visits its retained actor-style candidate list in order. Later
 queries read the positions left by earlier responses. If any weighted
