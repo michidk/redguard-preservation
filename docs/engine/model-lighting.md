@@ -87,6 +87,24 @@ The separately truncated source and destination terms are added before final
 RGB565 framebuffer quantization. Depth testing and depth writes remain enabled
 for these blended fragments.
 
+## Draw-flag ownership
+
+A newly initialized render instance has zero draw flags and constant alpha 255.
+Animated actor group loading checks the first group's name against the loaded
+ROB model lists. When that lookup succeeds, it copies the segment attribute
+byte into the actor's render instance. It also replaces constant alpha when the
+segment alpha is between 1 and 253 inclusive. A missing archive entry leaves
+those initialized values intact. Later groups do not repeat this assignment.
+These are group-loading assignments, not per-frame filtering defaults.
+
+Ordinary static-model submission refreshes the instance's draw flags and constant
+alpha from the selected archive model's prepared metadata before queueing it.
+The archive loader copies the segment attribute byte into that metadata and
+maps segment alpha 0, 254 and 255 to constant alpha 255. Other segment alpha
+values are retained. Static-model name lookup searches the loaded ROB model
+lists and reports an error when no entry exists; it does not use the standalone
+animated-model file loader as a fallback.
+
 ## Ambient and directional contribution
 
 Models share the ambient RGB, directional RGB and normalized world direction
