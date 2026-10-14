@@ -179,6 +179,30 @@ A constant channel has zero gradients and remains constant across the triangle.
 Quantizing an interpolated floating-point channel only at the fragment does
 not reproduce the separately quantized start, gradients and subpixel origin.
 
+## Software Voodoo perspective division
+
+The DOSBox-X software Voodoo 1 path uses a table-interpolated reciprocal for
+perspective texture coordinates. This describes the software renderer, not
+physical Voodoo hardware.
+
+Let `S`, `T` and `W` be the integer texture-plane accumulators at a pixel.
+For `0 < W < 2^32`, let `n` be the number of leading zero bits in the
+32-bit representation of `W`, and define:
+
+```text
+N = W << n
+i = (N >> 22) & 511
+f = (N >> 14) & 255
+R[j] = floor(2^31 / (512 + j)), for j = 0 through 512
+q = floor((R[i] * (256 - f) + R[i + 1] * f) / 256)
+```
+
+Scale `q` by `2^(n-6)`. A negative exponent uses a right shift that discards
+the low bits. Multiply this reciprocal separately by `S` and `T`, retaining
+each signed 64-bit product, then arithmetic-shift right by 29. The low signed
+32 bits of each result are texture coordinates with 18 fractional bits.
+This approximation can select different bilinear fractions from exact division.
+
 ## Texture combination
 
 The terrain draw selects Glide's texture-times-iterated-RGB
