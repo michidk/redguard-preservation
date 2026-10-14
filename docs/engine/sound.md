@@ -220,6 +220,15 @@ searching for an inactive record. Clearing dialogue by an RTX cache entry's
 remembered sample scans active records starting at one and leaves record zero
 alone. Matching uses the remembered sample slot, not speaker identity.
 
+Dialogue record updates visit records in index order. Each active record first
+sets its speaker's dialogue-inhibition attribute to one, then subtracts 21 times
+the whole nominal tick count from its signed lifetime counter. With speech
+enabled, a remembered sample that is still playing has its volume refreshed
+and its line presented; a finished sample clears the line. Either sample case
+ends the update. A line without a remembered sample remains active and traversal
+continues. With speech disabled, a positive remaining lifetime presents the line
+and ends the update; an expired line is cleared and traversal continues.
+
 The reset releases cached RTX text and audio payloads and clears their occupied
 state. It also clears active dialogue records and their text buffers, resets
 their sample handles. These operations precede stopping all sample channels
