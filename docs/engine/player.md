@@ -718,6 +718,33 @@ response-disabled query reports contact without changing position. A
 response-enabled query truncates the first selected sphere radius toward zero
 and writes X and Z as `point * 256 + accumulated_normal * radius`, preserving Y.
 
+### Forward obstacle wrapper and motion transition
+
+The wrapper first runs a responding forward query at vertical offset zero.
+A hit marks transition bit `0x08`, then runs the motion transition unless the
+enabled selected-player auto-grab path handles it. If queued motion or falling
+is nonzero, it next runs a nonresponding query at
+`positive_y - (post_collide_height >> 2)` and transitions on a hit. Finally it
+runs a responding query at `positive_y - post_collide_height`; a hit marks
+`0x08` and uses the same auto-grab exception before transitioning.
+
+Living state 15 bypasses the motion transition. Living states 27 through 32,
+or queued motion 24, first replace queued motion with 1, living state with 0,
+and clear the retained integer motion vector. With queued motion zero, a
+nonzero falling byte marks `0x20` and becomes `(falling & 0x80) | 1`.
+
+Nonzero queued motion marks `0x10`, sets falling to `(queued & 0x80) | 1`, and
+clears queued motion. It records fall-origin Y as the current logical Q8 Y plus
+`256 * attribute 32`, and sets the byte fall timer to 30. The high falling bit
+selects forced animation group 58. Otherwise, holding a weapon selects group
+113 unless that group is already current; not holding selects group 56.
+These are forced requests with modifier zero, not changes to the default group.
+The animation-system and static-model gates still apply to the request.
+
+The wrapper's auto-grab switch is enabled only when `[cyrus] auto_grab` equals
+1. It delegates to the selected-player grabbing path before the normal motion
+transition; it is not a general obstacle rollback switch.
+
 ### State-fifteen bounds response
 
 Living state 15 replaces each forward motion probe with two bounds segments
