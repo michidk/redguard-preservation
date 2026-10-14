@@ -253,6 +253,11 @@ After processing, it copies position, continuations and task state back to the
 separate record. Attribute writes in that temporary actor are not copied back.
 The separate-object traversal runs after ordinary actor traversal and retains
 its own list membership.
+Separate records always belong to their position's 512-unit map cell, regardless
+of the MPOB activation byte. Loading prepends each record to its cell's separate
+list. The cached view-window rebuild appends those lists in the same cell order
+as ordinary traversal, skipping the four corners. It does not apply the ordinary
+outer-border attribute filter to separate records.
 
 ### Initial ordinary motion state
 
