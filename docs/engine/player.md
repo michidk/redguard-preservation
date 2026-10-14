@@ -396,6 +396,20 @@ current group is 115 or 116. All these landing requests use ordinary animation
 arbitration and clear falling after dispatch. The retained death-response byte
 is set to 8 by the actor death notification service.
 
+### Nonplayer health mutation
+
+The shared health service returns without mutation when attribute 120 is
+nonzero. With attribute 97 nonzero, it also returns when the actor is neither
+holding a weapon nor in combat mode with packed bit 2 set.
+
+Nonplayer health is attribute 3. Add the signed health change using wrapping
+32-bit arithmetic, then clamp the signed result to 0 through 255. A result of
+zero dispatches death animation and notification. For an unarmed actor, force
+group 74 when falling is nonzero or current group is 114, 116, 130 or 131;
+otherwise force 134. Death notification sets the retained response byte to 8.
+Armed death has separate combat animation and state services. Selected-player
+health uses a separate service rather than mutating this attribute byte.
+
 ### Initial falling bookkeeping
 
 When the ordinary support response misses and starts a fall, it records local
