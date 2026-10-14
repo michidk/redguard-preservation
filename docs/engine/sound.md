@@ -274,7 +274,8 @@ their sample handles. These operations precede stopping all sample channels
 and setting the shared reset flag. It then clears the ownership byte of every
 node in every loaded walk-node map, regardless of the owning actor.
 
-`MenuBegin` sets the runtime menu-state word to one; `MenuEnd` clears it.
+The runtime menu-state word has an initial value of zero.
+`MenuBegin` sets it to one; `MenuEnd` clears it.
 The SOUP `menuProc` task activates this state when it is inactive and clears
 it when a selection is accepted. These calls occur inside the native task
 handler.
