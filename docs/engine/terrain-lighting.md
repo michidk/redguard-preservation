@@ -225,6 +225,24 @@ each signed 64-bit product, then arithmetic-shift right by 29. The low signed
 32 bits of each result are texture coordinates with 18 fractional bits.
 This approximation can select different bilinear fractions from exact division.
 
+## Software texture sample selection
+
+The 64-pixel terrain texture uses the software texture unit's level 2, with
+both minimum and maximum levels fixed to that value. The base width and height
+masks are 255; shifting them by two selects the 64-pixel level. Bilinear
+fraction masking retains the upper four bits of an eight-bit fraction.
+
+For a signed perspective coordinate `Q` with 18 fractional bits, the bilinear
+path first arithmetic-shifts by `level + 10`, then subtracts 128 for the
+half-texel center. The resulting value has eight fractional bits. Its integer
+part selects the first texel, and bits 4 through 7 select the bilinear weight.
+The neighboring texel is selected before address wrapping or clamping.
+
+At terrain level 2, this is equivalent to computing `K = (Q >> 16) - 8`.
+The first texel is `K >> 4` and its four-bit fraction is `K & 15`, using
+arithmetic right shifts. Converting `Q` to a single-precision float before
+this integer selection can round across a sample boundary.
+
 ## Texture combination
 
 The terrain draw selects Glide's texture-times-iterated-RGB
