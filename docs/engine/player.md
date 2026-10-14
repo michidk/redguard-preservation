@@ -373,7 +373,8 @@ hurt threshold is `fall_hurt_height * 256`, retaining 32-bit arithmetic.
 Distance strictly above the death threshold requests fatal landing and applies
 health change -256. Otherwise distance strictly above the hurt threshold
 requests group 73 and applies `-fall_hurt_zap`, except when the actor's separate
-hurt-exclusion predicate suppresses both. These threshold branches precede the
+hurt-exclusion predicate suppresses both. That predicate is true for stored
+surface states 1 through 5 and 11. These threshold branches precede the
 ordinary landing animation selection. They clear the falling byte.
 
 For the ordinary nonplayer fatal path, group 74 is an ordinary request.
