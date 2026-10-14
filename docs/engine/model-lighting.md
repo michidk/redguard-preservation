@@ -171,6 +171,25 @@ Each texture coordinate is multiplied by the stored reciprocal depth, and
 that product is stored as a 32-bit float for Glide. Reciprocal depth is also
 submitted separately for perspective correction.
 
+## Screen-space color setup
+
+Ordinary model fans use the same Glide triangle color-gradient setup as
+[terrain](terrain-lighting.md#screen-space-color-interpolation). The submitted
+RGB values become separate starting-color and screen-gradient registers after
+screen-Y ordering. Each fan triangle receives its own setup.
+
+The installed Glide driver's iterated-color and texture-times-iterated-color
+modes enable subpixel adjustment whenever the color-combine state is set.
+This does not depend on the prior subpixel-enable bit. Window initialization
+clears the RGB/depth clamp state; color-combine changes preserve that state.
+The software Voodoo renderer's signed color conversion and subpixel adjustment
+therefore apply to the default model path as well as terrain.
+
+Ordinary textured model drawing selects texture-times-iterated-color. Its
+encoded texture-byte modulation uses the same
+[integer texture combination](terrain-lighting.md#texture-combination) as
+terrain. Solid-color submission uses iterated RGB without a texture product.
+
 ## Local-light model selection
 
 A local light carries a world position, signed RGB strengths and a radius in
