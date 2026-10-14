@@ -226,9 +226,12 @@ handle is remembered. Duration uses integer units of 1/256 second:
 When no sample is remembered, lifetime is fifteen times the original text byte
 count before display formatting.
 
-RTX lookup first reuses a cached entry with the same label, or selects the first
-unoccupied cache entry. Loading a new entry replaces its retained text and audio
-payloads. File lookup lowercases ASCII uppercase letters in the four-byte label.
+RTX lookup first reuses a cached entry with the same label, marking it used and
+resetting its age to eight nominal ticks. Otherwise it selects the first entry
+whose used flag is clear, even if that entry still retains a different label and
+payload. Loading a new entry replaces its retained text and audio payloads and
+marks it used with age eight. If every entry is marked used, lookup reports a
+cache-exhaustion error rather than evicting a used entry. File lookup lowercases ASCII uppercase letters in the four-byte label.
 A voiced entry with no remembered sample starts playback at sample start index
 zero, then restores the shared start index to six.
 
