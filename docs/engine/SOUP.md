@@ -96,6 +96,33 @@ hook for actors with combat state outside shell execution. The entry continuatio
 is processed later inside the enabled main stage. Mask `0x01` does not suppress
 the separate native hook.
 
+### Combat maintenance
+
+A newly constructed combat record has no target, an action selector of -1 and a
+zero cooldown. Combat construction clears the record before assigning its
+attribute-derived counters and attack metadata.
+
+For a nonplayer actor, the target/perception prepass returns false when combat
+flag mask 0x04 is clear or the target is absent. When maintenance reaches a
+combat record, it restores attribute 1 from attribute 119 before processing
+messages. The nonplayer decision stage runs only for death/state selector 6 and
+an actor that passes the weapon predicate. This stage can select targets and
+consume random values.
+
+The selected player's drawing or sheathing state suspends action and cooldown
+maintenance. Otherwise a nonzero cooldown decreases by the shared nominal tick
+count, saturating at zero. With zero cooldown, action -1 does no attack work;
+actions 0 through 6 enter attack processing. Other action values reset to -1.
+
+Combat messages use 256 queues selected by attribute 125. Queue initialization
+clears each queue; actors retain separate byte read cursors. A message contains
+sender, receiver and code. Reading skips messages addressed to another actor,
+advancing and wrapping the read cursor. A receiver-zero message is accepted by
+any actor in that class. Sending a nonzero code writes at the class write cursor,
+advances and wraps it, then clears the next message code. A zero code does not
+send a message. The combat message stage consumes at most one addressed message
+per invocation.
+
 Ordinary entry processing is suppressed by an unpaused blocking slot whose call operand address is at or before the saved entry cursor. This test is separate from the later main-body blocking test and from direct interrupt invocation.
 
 ### Value Modes
