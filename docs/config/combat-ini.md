@@ -23,7 +23,7 @@ Section suffixes are numeric IDs. A missing section leaves a gap in the ID
 space; later sections keep their suffixes. Numeric fields contain decimal
 integers, including signed `arc_center` offsets. An omitted field is distinct
 from an explicit zero in the file. Taunt labels retain their RTX spelling,
-including leading `&` characters in numeric references.
+including leading `&` characters.
 
 ## Animation Groups
 
@@ -186,7 +186,13 @@ Each `[tauntNN]` section defines one combat voice line or audio cue. There are 3
 An actor's taunt list begins at its [RAEX](../formats/RGM.md) `taunt_id` and
 contains `attr_num_taunts` consecutive entries. A zero count creates no list.
 The range is selected per actor; it is independent of which taunt sections are
-present elsewhere in the file.
+present elsewhere in the file. Without RAEX, the first index is zero.
+
+The loader creates an empty record for each absent section and an additional
+empty sentinel at `max_taunts`. Empty records have a zero label, type, and
+animation. Present records copy the first four `rtx_label` bytes directly,
+including a leading `&`. A nonzero animation value is increased by 152 before
+storage; zero remains zero and requests no accompanying animation.
 
 ### Taunt Types
 
@@ -212,8 +218,8 @@ The `type` field identifies when the taunt fires:
 | Field | Type | Description |
 |---|---|---|
 | `type` | integer | Trigger condition (see enum above) |
-| `rtx_label` | string | Label key into `ENGLISH.RTX` for the voice line; may be a 4-character code or a `&NNN` numeric reference |
-| `animation` | integer | Animation group ID to play alongside the voice line; `0` in all shipped entries |
+| `rtx_label` | string | Four-byte label key into `ENGLISH.RTX`, preserved literally including `&NNN` spellings |
+| `animation` | integer | Combat animation offset; nonzero values become group `152 + animation`, while `0` disables accompanying animation |
 
 Begin-combat, hurt, death, and opponent-unarmed selection scans the actor's
 list in order. Only entries with the requested type and a nonzero RTX label
