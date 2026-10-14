@@ -229,6 +229,15 @@ ends the update. A line without a remembered sample remains active and traversal
 continues. With speech disabled, a positive remaining lifetime presents the line
 and ends the update; an expired line is cleared and traversal continues.
 
+Before record traversal, dialogue updates edge-detect their skip-input signal.
+A released signal clears the latch. A new pressed signal sets the latch and,
+only when player lockout equals one, visits every record, stops any remembered
+sample that is playing, clears the record, and ends the update. Holding the
+signal does not repeat that cleanup. The latch starts clear. Fresh dialogue
+records have zero-valued sample fields; clearing replaces these with the absent
+handle, so fresh inactive records and cleared records have different stored
+sample values.
+
 The reset releases cached RTX text and audio payloads and clears their occupied
 state. It also clears active dialogue records and their text buffers, resets
 their sample handles. These operations precede stopping all sample channels
