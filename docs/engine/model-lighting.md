@@ -36,6 +36,17 @@ is 255 when the alpha input is below 254; otherwise it comes from the current
 flat-brightness input. This is a face-brightness contribution, not a
 replacement for the subsequent lighting calculation.
 
+### Flat framebuffer blending
+
+Ordinary flat drawing enables four-by-four framebuffer dithering and alpha
+dither subtraction. In the software Voodoo 1 renderer, constant-alpha blending
+uses the same [integer destination reconstruction and blend arithmetic as the
+sun](sky.md#sun-framebuffer-blending), with the flat's constant eight-bit alpha
+in place of filtered texture alpha. Source RGB is the encoded, lit scene color.
+The separately truncated source and destination terms are added before final
+RGB565 framebuffer quantization. Depth testing and depth writes remain enabled
+for these blended fragments.
+
 ## Ambient and directional contribution
 
 Models share the ambient RGB, directional RGB and normalized world direction
