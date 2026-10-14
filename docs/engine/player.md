@@ -979,7 +979,7 @@ and writes X and Z as `point * 256 + accumulated_normal * radius`, preserving Y.
 ### Forward obstacle wrapper and motion transition
 
 The wrapper first runs a responding forward query at vertical offset zero.
-A hit marks transition bit `0x08`, then runs the motion transition unless the
+A hit marks body-response bit `0x08`, then runs the motion transition unless the
 enabled selected-player auto-grab path handles it. If queued motion or falling
 is nonzero, it next runs a nonresponding query at
 `positive_y - (post_collide_height >> 2)` and transitions on a hit. Finally it
@@ -998,6 +998,9 @@ selects forced animation group 58. Otherwise, holding a weapon selects group
 113 unless that group is already current; not holding selects group 56.
 These are forced requests with modifier zero, not changes to the default group.
 The animation-system and static-model gates still apply to the request.
+
+The `0x08`, `0x10`, and `0x20` marks belong to the body-response flags,
+independently of the collision-transition flags used by overlap and rollback.
 
 The wrapper's auto-grab switch is enabled only when `[cyrus] auto_grab` equals
 1. It delegates to the selected-player grabbing path before the normal motion
@@ -1024,7 +1027,7 @@ initialized to -999999 and 999999. Rank zero does not contribute. A qualifying
 contact contributes its full integer normal only when it strictly improves one
 of those bounds. Earlier contributions remain in the sum when later contacts
 improve a bound. The sum is not normalized. A nonzero sum adds directly to all
-three logical Q8 position components and marks collision transition bit `0x40`.
+three logical Q8 position components and marks body-response bit `0x40`.
 The polygon-sidedness flag is restored to enabled after the query.
 
 ### Sphere model admission
