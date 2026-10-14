@@ -214,6 +214,12 @@ handle. Clearing a record removes its active state and text and replaces the
 remembered sample handle with the absent-handle value. It leaves the remaining
 record fields intact. Querying an absent record reports inactive.
 
+`RTXp` uses record zero and assigns the selected player as its speaker,
+regardless of the calling actor. It replaces that record directly rather than
+searching for an inactive record. Clearing dialogue by an RTX cache entry's
+remembered sample scans active records starting at one and leaves record zero
+alone. Matching uses the remembered sample slot, not speaker identity.
+
 The reset releases cached RTX text and audio payloads and clears their occupied
 state. It also clears active dialogue records and their text buffers, resets
 their sample handles. These operations precede stopping all sample channels
