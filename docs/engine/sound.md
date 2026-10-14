@@ -220,6 +220,18 @@ searching for an inactive record. Clearing dialogue by an RTX cache entry's
 remembered sample scans active records starting at one and leaves record zero
 alone. Matching uses the remembered sample slot, not speaker identity.
 
+Dialogue lifetime is initialized from the loaded audio duration when a sample
+handle is remembered. Duration uses integer units of 1/256 second:
+`(PCM_byte_count << 8) / (channels * sample_rate * bytes_per_sample)`.
+When no sample is remembered, lifetime is fifteen times the original text byte
+count before display formatting.
+
+RTX lookup first reuses a cached entry with the same label, or selects the first
+unoccupied cache entry. Loading a new entry replaces its retained text and audio
+payloads. File lookup lowercases ASCII uppercase letters in the four-byte label.
+A voiced entry with no remembered sample starts playback at sample start index
+zero, then restores the shared start index to six.
+
 Dialogue record updates visit records in index order. Each active record first
 sets its speaker's dialogue-inhibition attribute to one, then subtracts 21 times
 the whole nominal tick count from its signed lifetime counter. With speech
