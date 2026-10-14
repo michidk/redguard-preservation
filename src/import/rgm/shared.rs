@@ -65,6 +65,7 @@ impl RgmSection {
             | Self::Mpsz(header, _)
             | Self::Wdnm(header, _)
             | Self::Flat(header, _)
+            | Self::FlatParsed(header, _)
             | Self::End(header) => header,
         }
     }

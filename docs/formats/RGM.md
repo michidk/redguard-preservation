@@ -588,7 +588,14 @@ All fields little-endian.
 | 0x14 | 2 | `u16` | texture_data | Packed: `texture_id = data >> 7`, `image_id = data & 0x7F` |
 | 0x16 | 2 | `i16` | reserved | Not read at runtime. |
 
-Position decode uses the same MPOB scale/sign rules. MPSF items are flat quads with zero rotation.
+Position decode uses the same MPOB scale/sign rules. MPSF records are submitted
+as camera-facing textured quads centered on their placed position. Their full
+width and height in engine units are the source BSI image dimensions multiplied
+by the BSI texture scale divided by 256. A zero texture scale selects 256.
+The ordinary flat path uses geometry scale 1 and copies the camera orientation;
+it does not use a fixed-size model quad or an authored object rotation.
+Texture-coordinate extents are computed separately from geometry size. The
+`FLAT` attributes below modify the submission flags and alpha.
 
 ## FLAT
 

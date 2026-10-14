@@ -175,3 +175,65 @@ fn pvo_world_centers_include_the_map_origin_translation() {
         assert!((actual - expected).abs() < 0.001);
     }
 }
+
+fn flat_section_file(payload: &[u8]) -> Vec<u8> {
+    let mut bytes = b"FLAT".to_vec();
+    bytes.extend_from_slice(&u32::try_from(payload.len()).unwrap().to_be_bytes());
+    bytes.extend_from_slice(payload);
+    bytes.extend_from_slice(b"END ");
+    bytes.extend_from_slice(&0u32.to_be_bytes());
+    bytes
+}
+
+#[test]
+fn flat_attributes_preserve_archive_keys_first_match_and_alpha_range() {
+    let mut payload = vec![0u8; 1024];
+    payload[0..2].copy_from_slice(&2u16.to_le_bytes());
+    payload[1022..1024].copy_from_slice(&1u16.to_le_bytes());
+    payload.extend_from_slice(&[7, 32, 0, 7, 64, 99, 127, 128, 255]);
+    let bytes = flat_section_file(&payload);
+    let (remaining, rgm) = parser::parse_rgm_file(&bytes).unwrap();
+    assert!(remaining.is_empty());
+    let first = rgm.flat_texture_attributes(7).unwrap();
+    assert_eq!(first.flags, 32);
+    assert_eq!(first.alpha(), 1);
+    let last = rgm.flat_texture_attributes(u16::MAX).unwrap();
+    assert_eq!(last.archive_id, 511);
+    assert_eq!(last.image_id, 127);
+    assert_eq!(last.flags, 128);
+    assert_eq!(last.alpha(), 256);
+    assert!(rgm.flat_texture_attributes(128 | 7).is_none());
+    assert!(rgm.flat_texture_attributes(6).is_none());
+    let metadata = export_rgm_metadata_json(&rgm, None);
+    assert_eq!(
+        metadata["flat_texture_attributes"]
+            .as_array()
+            .unwrap()
+            .len(),
+        3
+    );
+    assert_eq!(metadata["flat_texture_attributes"][2]["alpha_byte"], 255);
+}
+
+#[test]
+fn flat_attributes_keep_malformed_payloads_raw_and_preserve_next_section() {
+    let mut truncated = vec![0u8; 1024];
+    truncated[0..2].copy_from_slice(&u16::MAX.to_le_bytes());
+    let mut trailing = vec![0u8; 1024];
+    trailing.push(0);
+    for payload in [vec![], vec![0; 1023], truncated, trailing] {
+        let bytes = flat_section_file(&payload);
+        let (remaining, rgm) = parser::parse_rgm_file(&bytes).unwrap();
+        assert!(remaining.is_empty());
+        assert!(matches!(&rgm.sections[0], RgmSection::Flat(_, raw) if *raw == payload));
+        assert!(matches!(&rgm.sections[1], RgmSection::End(_)));
+    }
+}
+
+#[test]
+fn flat_attributes_accept_empty_archive_table() {
+    let bytes = flat_section_file(&[0; 1024]);
+    let (remaining, rgm) = parser::parse_rgm_file(&bytes).unwrap();
+    assert!(remaining.is_empty());
+    assert!(matches!(&rgm.sections[0], RgmSection::FlatParsed(_, records) if records.is_empty()));
+}

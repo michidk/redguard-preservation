@@ -202,6 +202,46 @@ impl RgmFile {
     }
 }
 
+/// Per-texture flat drawing override from the RGM FLAT section.
+/// See `docs/formats/RGM.md#flat`; duplicate keys retain file order.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
+pub struct FlatTextureAttributes {
+    /// TEXBSI archive ID, in the range 0..512.
+    pub archive_id: u16,
+    /// Image selector within the archive.
+    pub image_id: u8,
+    /// Authored flags ORed with the caller's base drawing flags.
+    pub flags: u8,
+    /// Encoded alpha; the submission input is this byte plus one.
+    pub alpha_byte: u8,
+}
+
+impl FlatTextureAttributes {
+    /// Alpha input in 1..=256, without byte wrapping.
+    #[must_use]
+    pub fn alpha(self) -> u16 {
+        u16::from(self.alpha_byte) + 1
+    }
+}
+
+impl RgmFile {
+    /// First authored override matching a packed archive/image reference.
+    /// Raw malformed FLAT sections remain in `sections` and supply no records.
+    #[must_use]
+    pub fn flat_texture_attributes(&self, texture: u16) -> Option<&FlatTextureAttributes> {
+        self.sections
+            .iter()
+            .filter_map(|section| match section {
+                RgmSection::FlatParsed(_, records) => Some(records.as_slice()),
+                _ => None,
+            })
+            .flatten()
+            .find(|record| {
+                record.archive_id == texture >> 7 && u16::from(record.image_id) == texture & 127
+            })
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct MprpRecord {
     pub id: u32,
@@ -256,6 +296,7 @@ pub enum RgmSection {
     Mpsz(RgmSectionHeader, Vec<u8>),
     Wdnm(RgmSectionHeader, Vec<u8>),
     Flat(RgmSectionHeader, Vec<u8>),
+    FlatParsed(RgmSectionHeader, Vec<FlatTextureAttributes>),
     End(RgmSectionHeader),
 }
 

@@ -1,8 +1,8 @@
 //! RGM file parser using nom
 
 use crate::import::rgm::{
-    MpobRecord, MprpRecord, MpsRecord, MpslRecord, RaexRecord, RavcRecord, RgmFile, RgmSection,
-    RgmSectionHeader,
+    FlatTextureAttributes, MpobRecord, MprpRecord, MpsRecord, MpslRecord, RaexRecord, RavcRecord,
+    RgmFile, RgmSection, RgmSectionHeader,
 };
 use log::{debug, trace, warn};
 use nom::{
@@ -540,6 +540,40 @@ fn parse_mps_section<'a>(
     }
 }
 
+fn parse_flat_section<'a>(
+    input: &'a [u8],
+    header: &RgmSectionHeader,
+) -> IResult<&'a [u8], RgmSection> {
+    let (input, data) = take_payload(input, header)?;
+    let Some(counts) = data.get(..512 * 2) else {
+        return Ok((input, RgmSection::Flat(*header, data.to_vec())));
+    };
+    let counts = counts.as_chunks::<2>().0;
+    let record_count: usize = counts
+        .iter()
+        .map(|count| usize::from(u16::from_le_bytes([count[0], count[1]])))
+        .sum();
+    if data.len() != 512 * 2 + record_count * 3 {
+        return Ok((input, RgmSection::Flat(*header, data.to_vec())));
+    }
+    let mut records = Vec::with_capacity(record_count);
+    let mut payload = data[512 * 2..].as_chunks::<3>().0.iter();
+    for (archive_id, count) in (0u16..512).zip(counts) {
+        for record in payload
+            .by_ref()
+            .take(usize::from(u16::from_le_bytes([count[0], count[1]])))
+        {
+            records.push(FlatTextureAttributes {
+                archive_id,
+                image_id: record[0],
+                flags: record[1],
+                alpha_byte: record[2],
+            });
+        }
+    }
+    Ok((input, RgmSection::FlatParsed(*header, records)))
+}
+
 /// Parse section data based on section type
 fn section_data<'a>(input: &'a [u8], header: &RgmSectionHeader) -> IResult<&'a [u8], RgmSection> {
     let section_name = String::from_utf8_lossy(&header.name);
@@ -566,7 +600,7 @@ fn section_data<'a>(input: &'a [u8], header: &RgmSectionHeader) -> IResult<&'a [
         "MPM " | "MPMK" => raw_section(input, header, RgmSection::Mpm),
         "MPSZ" => raw_section(input, header, RgmSection::Mpsz),
         "WDNM" => raw_section(input, header, RgmSection::Wdnm),
-        "FLAT" => raw_section(input, header, RgmSection::Flat),
+        "FLAT" => parse_flat_section(input, header),
         "END " => Ok((input, RgmSection::End(*header))),
         _ => raw_section(input, header, RgmSection::Rahd),
     }

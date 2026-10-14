@@ -858,6 +858,7 @@ pub(super) fn export_rgm_metadata_json_impl(
     let mut ropes = Vec::new();
     let mut collision_volumes = Vec::new();
     let mut flat_sprites = Vec::new();
+    let mut flat_texture_attributes: Vec<&super::FlatTextureAttributes> = Vec::new();
     let mut markers = Vec::new();
     let mut walk_node_maps = Vec::new();
     let mut ralc_locations = Vec::new();
@@ -920,6 +921,9 @@ pub(super) fn export_rgm_metadata_json_impl(
             RgmSection::Mpsz(_, data) => {
                 mpsz_entries.extend(parse_mpsz_entries(data));
             }
+            RgmSection::FlatParsed(_, records) => {
+                flat_texture_attributes.extend(records.iter());
+            }
             RgmSection::Flat(_, _)
             | RgmSection::Raex(_, _)
             | RgmSection::Ravc(_, _)
@@ -963,6 +967,7 @@ pub(super) fn export_rgm_metadata_json_impl(
             | RgmSection::Mpsz(header, _)
             | RgmSection::Wdnm(header, _)
             | RgmSection::Flat(header, _)
+            | RgmSection::FlatParsed(header, _)
             | RgmSection::End(header) => header,
         };
         serde_json::json!({"tag": String::from_utf8_lossy(&header.name), "data_length": header.data_length, "record_count": header.record_count})
@@ -993,6 +998,7 @@ pub(super) fn export_rgm_metadata_json_impl(
         "ropes": ropes,
         "collision_volumes": collision_volumes,
         "flat_sprites": flat_sprites,
+        "flat_texture_attributes": flat_texture_attributes,
         "markers": markers,
         "walk_node_maps": walk_node_maps,
         "ralc_locations": ralc_locations,
