@@ -234,6 +234,14 @@ perspective correction. Terrain does not pass through a scene exposure or
 filmic tone-mapping stage.
 
 The ordinary terrain pass uses bilinear minification and magnification.
+Filtering follows the encoded-byte, four-bit, staged interpolation described in
+[sky filtering](sky.md). The fractional weights
+are quantized in the original texture orientation. For a vertically flipped
+image with transformed coordinate `v_export = 1 - v_original`, the equivalent
+vertical fractional weight rounds upward to a multiple of `1/16`; horizontal
+weights still round downward. Exact multiples are unchanged. The two row
+interpolations and final vertical interpolation still round their results down.
+
 Terrain texture binding disables chroma-key rejection. Palette index zero
 therefore remains an opaque color on terrain.
 
