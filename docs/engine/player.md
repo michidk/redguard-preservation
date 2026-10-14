@@ -1038,7 +1038,7 @@ These are forced requests with modifier zero, not changes to the default group.
 The animation-system and static-model gates still apply to the request.
 
 The `0x08`, `0x10`, and `0x20` marks belong to the body-response flags,
-independently of the collision-transition flags used by overlap and rollback.
+together with overlap mark `0x04`, independently of rollback transition flags.
 
 The wrapper's auto-grab switch is enabled only when `[cyrus] auto_grab` equals
 1. It delegates to the selected-player grabbing path before the normal motion
