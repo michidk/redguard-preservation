@@ -115,7 +115,8 @@ count, saturating at zero. With zero cooldown, action -1 does no attack work;
 actions 0 through 6 enter attack processing. Other action values reset to -1.
 
 Combat messages use 256 queues selected by attribute 125. Queue initialization
-clears each queue; actors retain separate byte read cursors. A message contains
+clears each queue; startup and combat reset both allocate eight entries per
+queue. Actors retain separate byte read cursors. A message contains
 sender, receiver and code. Reading skips messages addressed to another actor,
 advancing and wrapping the read cursor. A receiver-zero message is accepted by
 any actor in that class. Sending a nonzero code writes at the class write cursor,
