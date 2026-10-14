@@ -174,4 +174,5 @@ update does not draw the bar or label.
 The percentage label uses `FONTS/REDSEL.FNT` at `(32,451)`, with foreground
 alpha 255 and shadow alpha 180. The ordinary label is `%d%%`; debug output
 can include world indices before it. These are world-entry loading visuals,
-separate from the startup title's small bottom-edge labels.
+separate from the startup title's small bottom-edge labels. World loading
+does not display a right-aligned status message or an asset filename.
