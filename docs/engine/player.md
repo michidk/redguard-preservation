@@ -872,9 +872,13 @@ runs; otherwise it sets bit 2. Horizontal rollback also sets bit 2. Each mark
 preserves the other result bits. Ordinary state 15 still projects or rolls back
 horizontal movement, but does not enter the state-zero heading adjustment.
 
-### Residual static-contact separation
+### Residual face-contact separation
 
-After the primary body response, the actor queries static face contacts again.
+After the primary body response and the later overlap stage, the actor queries
+the prepared face-model list again, including admitted live models.
+This residual query has no primary sixteen-contact cap and does not append a
+terrain contact. It retains each model query's thirty-two-contact buffer limit.
+Queued-motion state 24 excludes candidate type 128 from this scan.
 The separation distance is the current horizontal displacement length shifted
 right by eight, with a minimum from `SYSTEM.INI` `poly_push_units`. To obtain
 that length, first store each integer X/Z displacement component at single
@@ -889,6 +893,16 @@ normalized component arithmetically right by eight. Add its X and Z components
 multiplied by the separation distance to the actor position. Y is unchanged.
 A nonempty contact set marks the residual-separation result even when its
 averaged normal has no horizontal component.
+
+The residual query uses the first collision working record, retaining its
+ordinary sphere count. It rounds the first sphere's radius to an integer and
+assigns a common radius to every working sphere. State 15 uses half that radius
+through an arithmetic right shift. Other states retain the original radius when
+neither falling nor queued motion is active. Queued motion or falling normally
+uses `radius * 200 >> 8`; falling with movement direction 3 uses that reduction
+even when its low seven state bits are zero. These working radii do not replace
+the actor's retained initial shape. A nonempty residual result sets body-result
+bit 4 while preserving the other bits.
 
 ## FPS-derived frame scale
 
