@@ -620,21 +620,24 @@ actor owner. They do not run the static-placement distance filter.
 An actor does not overlap itself. Actor overlap uses each actor's selected
 runtime shape, or one model-radius sphere for an actor using the static model
 path. At most the first 32 spheres of each shape participate. Local sphere
-centers receive the actor matrix transform and its shape origin rounded to
+centers receive the actor matrix transform and its shape origin truncated to
 integer map coordinates.
 
-Sphere pairs are visited in shape order. Their summed radius and each center
-difference are rounded to integers. A pair overlaps only when the rounded
-three-dimensional distance is strictly smaller than the summed radius. The
-first overlapping pair returns the summed radius minus the rounded horizontal
+Sphere pairs are visited in shape order. The actor-to-actor query truncates
+the radius sum and each center difference toward zero. The distance calculation
+stores integer differences as single-precision values, sums their squares,
+computes the square root, stores that result at single precision, and converts
+it to an integer with nearest-even rounding. A pair overlaps only when this
+three-dimensional distance is strictly smaller than the truncated radius sum.
+The first overlapping pair returns that sum minus the rounded horizontal
 distance, with the vertical difference set to zero for that second distance.
 When no pair overlaps, the query returns zero.
 
 An actor-style static placement contributes one sphere at its stored placement
-position, with the loaded model radius. The actor-to-placement query rounds
-each sphere radius separately before adding them. Actor-to-actor overlap instead
-rounds the radius sum. Both queries round center differences before the distance
-calculation and return horizontal separation from the first overlapping pair.
+position, with the loaded model radius. The actor-to-placement query truncates
+each sphere radius separately toward zero before adding them. Both queries
+truncate center differences before the distance calculation and return
+horizontal separation from the first overlapping pair.
 
 ### Sphere model admission
 
