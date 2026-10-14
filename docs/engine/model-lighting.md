@@ -40,6 +40,22 @@ is 255 when the alpha input is below 254; otherwise it comes from the current
 flat-brightness input. This is a face-brightness contribution, not a
 replacement for the subsequent lighting calculation.
 
+### Flat image dimensions
+
+A centered ordinary flat spans the source image width and height multiplied by
+its texture scale and submission geometry scale. Its half extents use half of
+those dimensions. Its bounding radius is the quantized source-image diagonal
+multiplied by half the same scale. Neither geometry nor bound uses the reduced
+texture allocation dimensions, and flat submission has no 64-texel size cutoff.
+
+The texture descriptor rounds allocation dimensions up to powers of two, capped
+at 256. Allocation sizes of 128 and 256 use the corresponding reduction factors
+from `SYSTEM.INI` `[3dfx] text_scale`. The pair lists the 256-size factor first
+and the 128-size factor second. Missing settings default to `4,2`. A factor of
+one disables reduction.
+Source dimensions and the image's texture scale remain separate from these
+allocation and sampling parameters.
+
 ### Flat submission order
 
 Ordinary placed flats prepend to the spatial list selected by the low sixteen
