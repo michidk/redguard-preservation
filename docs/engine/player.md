@@ -410,6 +410,15 @@ otherwise force 134. Death notification sets the retained response byte to 8.
 Armed death has separate combat animation and state services. Selected-player
 health uses a separate service rather than mutating this attribute byte.
 
+### Stable ordinary position
+
+After collision attribute bit `0x04` ground response, an actor with queued
+motion, falling and sliding all zero marks its stable-position record valid
+and copies all three current local Q8 coordinates into that record. An update
+with any of those motion states nonzero retains the existing stable record and
+validity. This record is distinct from the position saved at update entry.
+Jump admission clears its validity before initializing queued motion.
+
 ### Initial falling bookkeeping
 
 When the ordinary support response misses and starts a fall, it records local
