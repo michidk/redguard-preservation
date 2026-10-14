@@ -166,7 +166,7 @@ fn static_glb_retains_authored_lighting_inputs_without_animation_mapping() {
     let extras: serde_json::Value =
         serde_json::from_str(primitive.extras.as_ref().unwrap().get()).unwrap();
     assert!(extras.get("rgpre_geometry").is_none());
-    assert_eq!(extras["rgpre_lighting"]["version"], 4);
+    assert_eq!(extras["rgpre_lighting"]["version"], 5);
     assert!(extras["rgpre_lighting"]["solid_rgb"].is_null());
     assert_eq!(extras["rgpre_lighting"]["radius_fixed"], 12_345);
     let vertices = extras["rgpre_lighting"]["vertices"].as_array().unwrap();

@@ -480,11 +480,7 @@ fn parse_normal_indices_section(input: &[u8], header: &Model3DHeader) -> Vec<u32
     indices
 }
 
-fn parse_vertex_normals_section(
-    input: &[u8],
-    header: &Model3DHeader,
-    offset: u32,
-) -> Vec<VertexNormal> {
+fn parse_vertex_normals_section(input: &[u8], count: usize, offset: u32) -> Vec<VertexNormal> {
     let mut normals = Vec::new();
     let input_len_u32 = u32::try_from(input.len()).unwrap_or(u32::MAX);
 
@@ -497,7 +493,7 @@ fn parse_vertex_normals_section(
     };
     let mut norm_input = &input[normals_offset..];
 
-    for i in 0..header.num_vertices {
+    for i in 0..count.min(norm_input.len() / 12) {
         match parse_vertex_normal(norm_input) {
             Ok((remaining, normal)) => {
                 if i < 5 {
@@ -868,9 +864,18 @@ pub fn parse_3d_file(input: &[u8]) -> IResult<&[u8], Model3DFile> {
     let vertex_coords = parse_vertex_coords_section(input, &header, adjusted_offset_vertex_coords);
     let face_normals = parse_face_normals_section(input, &header);
     let raw_normal_indices = parse_normal_indices_section(input, &header);
-    let vertex_normals = parse_vertex_normals_section(input, &header, adjusted_offset_normals);
-
     let normal_indices = convert_normal_indices(raw_normal_indices, adjusted_offset_normals);
+    let normal_count = if normal_indices.is_empty() {
+        usize::try_from(header.num_vertices).unwrap_or(usize::MAX)
+    } else {
+        normal_indices
+            .iter()
+            .filter(|&&index| index != u32::MAX)
+            .filter_map(|&index| usize::try_from(index).ok()?.checked_add(1))
+            .max()
+            .unwrap_or(0)
+    };
+    let vertex_normals = parse_vertex_normals_section(input, normal_count, adjusted_offset_normals);
 
     // v4.0/v5.0 type-0 models keep complete i32 positions and normals.
     let uncompressed_frames = matches!(
@@ -912,6 +917,29 @@ pub fn parse_3d_file(input: &[u8]) -> IResult<&[u8], Model3DFile> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn indexed_normals_can_outnumber_positions() {
+        let mut bytes = vec![0u8; 112];
+        bytes[..4].copy_from_slice(b"v5.0");
+        let words = [1u32, 0, 0, 0, 0, 3, 0, 0, 0, 64, 76, 100, 0, 3, 0];
+        for (index, word) in words.into_iter().enumerate() {
+            bytes[4 + index * 4..8 + index * 4].copy_from_slice(&word.to_le_bytes());
+        }
+        for (index, pointer) in [88u32, 76, 88].into_iter().enumerate() {
+            bytes[64 + index * 4..68 + index * 4].copy_from_slice(&pointer.to_le_bytes());
+        }
+        for (index, value) in [0.0f32, 1.0, 0.0, 1.0, 0.0, 0.0].into_iter().enumerate() {
+            bytes[76 + index * 4..80 + index * 4].copy_from_slice(&value.to_le_bytes());
+        }
+        let model = super::super::parse_3d_file(&bytes).unwrap();
+        assert_eq!(model.vertex_coords.len(), 1);
+        assert_eq!(model.normal_indices, [1, 0, 1]);
+        assert_eq!(model.vertex_normals.len(), 2);
+        assert_eq!(model.vertex_normals[1].x, 1.0);
+        assert_eq!(model.vertex_normals[1].y, 0.0);
+        assert_eq!(model.vertex_normals[1].z, 0.0);
+    }
 
     #[test]
     fn v40_later_frames_keep_full_fixed_point_positions_and_normals() {

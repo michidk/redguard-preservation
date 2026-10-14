@@ -210,14 +210,17 @@ metadata do not describe flat drawing. Malformed FLAT sections produce placement
 diagnostics instead of flat nodes with assumed defaults.
 
 GLTF model primitives retain per-vertex face inputs in the `rgpre_lighting`
-extras object. Version 4 has `version: 4`, the model header radius as
+extras object. Version 5 has `version: 5`, the model header radius as
 `radius_fixed` in 1/256 engine units, and a `vertices` array in exported
 vertex order. `solid_rgb` holds the resolved palette RGB for solid-color
 primitives and is null for textured primitives. Retained-color baking applies
 this RGB before integer rounding. Each entry is `[brightness, solid]`, where
 brightness is the converted runtime byte, `(tex_hi * 4) & 255`, and solid is 1
 for palette-color faces or 0 for textured faces. Version 3 retained the stored
-byte and requires re-export for the runtime-brightness contract. Material grouping and polygon triangulation retain these inputs for
+byte and requires re-export for the runtime-brightness contract. Version 5 also
+preserves all referenced authored corner normals when their count exceeds the
+position count. Earlier exports can substitute face normals for those omitted
+records and require re-export. Material grouping and polygon triangulation retain these inputs for
 every emitted vertex. Terrain primitives omit this metadata.
 
 ## Local-light records
