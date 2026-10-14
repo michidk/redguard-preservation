@@ -978,6 +978,26 @@ In normal main-loop order, model presentation runs before the ordinary actor
 update. `ShowMe()` provides the separate immediate static-model refresh described
 above.
 
+### Model admission and support ownership
+
+The current map's PVO file supplies a camera-centered selected-object list.
+An empty selected list leaves ordinary model admission unrestricted. With a
+nonempty list, the ordinary presentation traversal excludes actors with
+`attr_non_moving` set.
+
+With a nonempty selected list, animation-model admission also reads the actor's
+retained support owner. A
+static-placement support must occur in the selected MPSO IDs. Support from an
+actor with `attr_non_moving` set must occur in the selected secondary object
+IDs. Other support cases pass this admission check. Rejected animation-model
+admission clears the selected resource and current model record.
+
+Ordinary actor updates clear the retained actor and static-placement support
+owners before ground processing. A selected model face assigns its candidate's
+actor and static-placement owners. Model presentation precedes that ordinary
+update, so its admission reads support retained from earlier ground processing.
+Actor-following also consumes the retained actor support owner.
+
 ### Function Table
 
 `SOUP386.DEF` declares callable functions in installed order. Index 0 is the synthetic `NullFunction`; authored entries start at index 1. Functions span the following categories:
