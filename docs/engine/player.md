@@ -820,6 +820,14 @@ list and classifies their integer Y components using the ground-normal threshold
 above. Classification therefore follows world transformation and integer
 conversion; it is not the source polygon's local classification.
 
+### Ordinary candidate lifetime
+
+An admitted ordinary actor prepares its collision candidate lists before the
+main script wrapper. Later support, primary body and residual face queries reuse
+those lists. Movement and script changes do not rerun spatial admission between
+these stages. Query origins still follow the owning stage's current actor
+position; retained candidate membership is separate from that position.
+
 ### Primary body-contact collection
 
 The primary body query retains contacts in candidate order and each model's
