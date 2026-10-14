@@ -30,6 +30,10 @@ the low byte of the rounded alpha input. Alpha-channel blend factors select
 source replacement in both cases. The alpha input and its default come from
 the [FLAT attributes](../formats/RGM.md#flat).
 
+Their generated local face normal is `(0, 0, -1)`. The camera-facing instance
+matrix also transforms local-light positions into the generated quad's local
+coordinates before applying the ordinary vertex-light calculation.
+
 These flats retain depth writes and the less-than depth test. Textured RGB
 uses the ordinary vertex-light modulation path. Their submitted face brightness
 is 255 when the alpha input is below 254; otherwise it comes from the current
