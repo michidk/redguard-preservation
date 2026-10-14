@@ -630,6 +630,12 @@ first overlapping pair returns the summed radius minus the rounded horizontal
 distance, with the vertical difference set to zero for that second distance.
 When no pair overlaps, the query returns zero.
 
+An actor-style static placement contributes one sphere at its stored placement
+position, with the loaded model radius. The actor-to-placement query rounds
+each sphere radius separately before adding them. Actor-to-actor overlap instead
+rounds the radius sum. Both queries round center differences before the distance
+calculation and return horizontal separation from the first overlapping pair.
+
 ### Sphere model admission
 
 A sphere query first tests each body sphere against the model radius. Express
