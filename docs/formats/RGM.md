@@ -594,7 +594,10 @@ width and height in engine units are the source BSI image dimensions multiplied
 by the BSI texture scale divided by 256. A zero texture scale selects 256.
 The ordinary flat path uses geometry scale 1 and copies the camera orientation;
 it does not use a fixed-size model quad or an authored object rotation.
-Texture-coordinate extents are computed separately from geometry size. The
+Texture-coordinate extents are computed separately from geometry size. For
+unreduced textures, they cover the complete source image, excluding upload
+padding. The first two corners use the image top edge, and the next two use
+the bottom edge. The
 `FLAT` attributes below modify the submission flags and alpha.
 
 ## FLAT
