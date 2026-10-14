@@ -436,6 +436,34 @@ acceptance does not write the actor position. With no animation receiver the
 probe accepts before those segment tests. Candidate preparation precedes that
 receiver check and is distinct from the ordinary retained collision list.
 
+### Stable recovery response
+
+The ordinary script wrapper retains a byte collision-response age. After its
+admitted script work, an all-zero packed response record clears the age to zero.
+Otherwise, an age below 200 adds the shared nominal tick increment with byte
+wrapping; an age at least 200 is unchanged. The wrapper then clears the packed
+response record and overlap contact identifier. Body-response and collision
+transition marks occupy separate bytes of that packed record.
+
+A nonplayer stable recovery request returns without work when the stable-position
+record is invalid. It prepares the separate recovery query and returns when that
+probe accepts. On rejection, it restores the stable local position, clears
+attribute 6, falling and sliding, restores the saved directional movement flags
+and animation collision snapshot, and marks collision transition bit 1. The
+restored animation snapshot does not replace the ordinary default group.
+
+The nonplayer then adds `Rnd(attribute_15 * 4) - attribute_15 * 2` to local heading,
+wrapped to 2048. A collision-response age strictly greater than 16 also runs the
+bounds-segment obstacle response. The recovery marks the shared position-changed
+flag. Selected-player recovery has a separate follow-up support query and can
+restore its attempted position and falling byte when that query misses.
+
+After reserved weight is restored, ordinary collision invokes stable recovery
+when attribute 89 is nonzero and either sliding or falling is nonzero. Otherwise,
+a captured landing group of 67 through 70, 130 or 131 invokes recovery only when
+sliding, falling or the shared surface veto is nonzero. These checks precede the
+separate water rollback.
+
 ### Ordinary water rollback
 
 A nonplayer actor with no falling or queued motion rolls back when its stored
