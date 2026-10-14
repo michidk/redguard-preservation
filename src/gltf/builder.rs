@@ -629,7 +629,7 @@ impl<'a> GltfBuilder<'a> {
                         extras.insert(
                             "rgpre_lighting".into(),
                             serde_json::json!({
-                                "version": 3, "vertices": primitive.lighting,
+                                "version": 4, "vertices": primitive.lighting,
                                 "radius_fixed": primitive.model_radius_fixed,
                                 "solid_rgb": solid_rgb
                             }),

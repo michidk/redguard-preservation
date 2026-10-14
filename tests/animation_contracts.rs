@@ -85,11 +85,11 @@ fn animated_glb_preserves_vertex_identity_through_material_split_and_quad_fan() 
     assert_eq!(decoded.meshes().next().unwrap().primitives().count(), 2);
     assert_eq!(
         mapping[0]["rgpre_lighting"]["vertices"],
-        serde_json::json!([[7, 1], [7, 1], [7, 1]])
+        serde_json::json!([[28, 1], [28, 1], [28, 1]])
     );
     assert_eq!(
         mapping[1]["rgpre_lighting"]["vertices"],
-        serde_json::json!([[42, 1], [42, 1], [42, 1], [42, 1], [42, 1], [42, 1]])
+        serde_json::json!([[168, 1], [168, 1], [168, 1], [168, 1], [168, 1], [168, 1]])
     );
     assert_eq!(
         mapping[0]["rgpre_geometry"]["source_vertices"],
@@ -142,6 +142,23 @@ fn static_glb_retains_authored_lighting_inputs_without_animation_mapping() {
             image_id: 0,
         };
     }
+    for (stored, runtime) in [(0, 0), (6, 24), (63, 252), (64, 0), (255, 252), (73, 36)] {
+        model.face_data[0].tex_hi = stored;
+        let (document, _) =
+            rgpre::convert_models_to_gltf(std::slice::from_ref(&model), None, None, false).unwrap();
+        let extras: serde_json::Value = serde_json::from_str(
+            document.meshes[0].primitives[0]
+                .extras
+                .as_ref()
+                .unwrap()
+                .get(),
+        )
+        .unwrap();
+        assert_eq!(
+            extras["rgpre_lighting"]["vertices"],
+            serde_json::json!([[runtime, 0], [runtime, 0], [runtime, 0]])
+        );
+    }
     model.header.radius = 12_345;
     let (document, _) =
         rgpre::convert_models_to_gltf(std::slice::from_ref(&model), None, None, false).unwrap();
@@ -149,7 +166,7 @@ fn static_glb_retains_authored_lighting_inputs_without_animation_mapping() {
     let extras: serde_json::Value =
         serde_json::from_str(primitive.extras.as_ref().unwrap().get()).unwrap();
     assert!(extras.get("rgpre_geometry").is_none());
-    assert_eq!(extras["rgpre_lighting"]["version"], 3);
+    assert_eq!(extras["rgpre_lighting"]["version"], 4);
     assert!(extras["rgpre_lighting"]["solid_rgb"].is_null());
     assert_eq!(extras["rgpre_lighting"]["radius_fixed"], 12_345);
     let vertices = extras["rgpre_lighting"]["vertices"].as_array().unwrap();
@@ -157,7 +174,7 @@ fn static_glb_retains_authored_lighting_inputs_without_animation_mapping() {
     assert!(
         vertices
             .iter()
-            .all(|vertex| *vertex == serde_json::json!([73, 0]))
+            .all(|vertex| *vertex == serde_json::json!([36, 0]))
     );
     model.face_data[0].texture_data = rgpre::model3d::TextureData::SolidColor(7);
     let mut palette = rgpre::import::palette::Palette {
@@ -183,7 +200,7 @@ fn static_glb_retains_authored_lighting_inputs_without_animation_mapping() {
             .as_array()
             .unwrap()
             .iter()
-            .all(|vertex| *vertex == serde_json::json!([73, 1]))
+            .all(|vertex| *vertex == serde_json::json!([36, 1]))
     );
 }
 

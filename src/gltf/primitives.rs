@@ -183,7 +183,7 @@ pub(crate) fn build_unrolled_primitives(
                 );
                 group.normals.push(normal);
                 group.lighting.push([
-                    face.tex_hi,
+                    face.tex_hi.wrapping_mul(4),
                     u8::from(matches!(face.texture_data, TextureData::SolidColor(_))),
                 ]);
 
