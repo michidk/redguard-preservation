@@ -381,6 +381,21 @@ For the ordinary nonplayer fatal path, group 74 is an ordinary request.
 The ordinary hurt group 73 also uses ordinary request arbitration. Selected
 player death presentation and steep-surface fatal handling are separate paths.
 
+### Ordinary landing animation selection
+
+After threshold handling admits an ordinary landing, low falling state 8
+requests group 67 without a burning torch or 68 with one when the selected
+player is not holding a weapon; otherwise it requests 130. Low state 9
+similarly requests 69 or 70 without that selected-player weapon predicate,
+or 131 with it. These branches read the selected player's weapon state,
+which is distinct from the landing actor's weapon state.
+
+Other falling states request 65 without a burning torch or 66 with one when
+the landing actor is unarmed. A weapon-holding actor requests 114 unless its
+current group is 115 or 116. All these landing requests use ordinary animation
+arbitration and clear falling after dispatch. The retained death-response byte
+is set to 8 by the actor death notification service.
+
 ### Initial falling bookkeeping
 
 When the ordinary support response misses and starts a fall, it records local
