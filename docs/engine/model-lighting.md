@@ -141,6 +141,20 @@ the same successful archive segment as the geometry, including fallback
 selection and cached loads. Node metadata keeps instance attributes separate
 when exported instances share one mesh.
 
+MPSF nodes additionally carry `rgpre_flat` with `version: 1`, `texture_id`,
+`image_id`, source-image `dimensions: [width, height]`, `texture_scale`,
+submission `flags`, and integer `alpha`. Dimensions and scale are null when
+texture data is unavailable. Scale includes the zero-to-one default and the
+BSI fixed-point conversion. Flags include the centered-anchor base flag; alpha
+includes the non-wrapping attribute increment or the default 255. See
+[flat placement and attributes](../formats/RGM.md#mpsf-flat-objects).
+
+The flat metadata identifies a separate engine drawing path. Its dimensions
+and scale define camera-facing geometry; the generated mesh is a generic-viewer
+fallback, not authored model geometry. ROB model lighting and polygon-admission
+metadata do not describe flat drawing. Malformed FLAT sections produce placement
+diagnostics instead of flat nodes with assumed defaults.
+
 GLTF model primitives retain per-vertex face inputs in the `rgpre_lighting`
 extras object. Version 3 has `version: 3`, the model header radius as
 `radius_fixed` in 1/256 engine units, and a `vertices` array in exported

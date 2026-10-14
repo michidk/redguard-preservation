@@ -138,11 +138,14 @@ fn add_positioned_models(
 
     let mut mesh_instance_cache: HashMap<&str, u32> = HashMap::new();
     for pm in positioned_models {
+        let mut metadata = serde_json::json!({
+            "rgpre_render": { "version": 1, "rob_attributes": pm.render_attributes }
+        });
+        if let Some(flat) = pm.flat {
+            metadata["rgpre_flat"] = builder.flat_metadata(flat);
+        }
         let extras = Some(
-            serde_json::value::to_raw_value(&serde_json::json!({
-                "rgpre_render": { "version": 1, "rob_attributes": pm.render_attributes }
-            }))
-            .expect("integer render metadata is serializable"),
+            serde_json::value::to_raw_value(&metadata).expect("render metadata is serializable"),
         );
         if let Some(source_id) = &pm.source_id
             && let Some(&cached_mesh) = mesh_instance_cache.get(source_id.as_str())

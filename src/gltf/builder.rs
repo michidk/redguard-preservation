@@ -94,6 +94,26 @@ impl<'a> GltfBuilder<'a> {
         self.nodes.push(node);
     }
 
+    pub(super) fn flat_metadata(&mut self, flat: crate::import::rgm::FlatSprite) -> Value {
+        let dimensions = self
+            .texture_cache
+            .as_deref_mut()
+            .and_then(|cache| cache.get_image_dimensions(flat.texture_id, flat.image_id));
+        let scale = self
+            .texture_cache
+            .as_deref_mut()
+            .and_then(|cache| cache.get_image_tex_scale(flat.texture_id, flat.image_id));
+        serde_json::json!({
+            "version": 1,
+            "texture_id": flat.texture_id,
+            "image_id": flat.image_id,
+            "dimensions": dimensions.map(|(width, height)| [width, height]),
+            "texture_scale": scale,
+            "flags": 1 | flat.attributes.map_or(0, |attributes| attributes.flags),
+            "alpha": flat.attributes.map_or(255, crate::import::rgm::FlatTextureAttributes::alpha),
+        })
+    }
+
     fn align_buffer(&mut self, alignment: usize) {
         let padding = (alignment - (self.buffer_data.len() % alignment)) % alignment;
         self.buffer_data.extend(std::iter::repeat_n(0u8, padding));

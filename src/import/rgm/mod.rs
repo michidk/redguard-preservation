@@ -111,6 +111,17 @@ pub struct PositionedModel {
     pub source_id: Option<String>,
     /// Attribute byte of the selected ROB segment; absent for standalone or generated models.
     pub render_attributes: Option<u8>,
+    /// Original MPSF sprite source; absent for ordinary models.
+    pub flat: Option<FlatSprite>,
+}
+
+/// Original MPSF texture reference and drawing overrides.
+/// Geometry size comes from the referenced BSI, not the generated model mesh.
+#[derive(Debug, Clone, Copy)]
+pub struct FlatSprite {
+    pub texture_id: u16,
+    pub image_id: u8,
+    pub attributes: Option<FlatTextureAttributes>,
 }
 
 #[derive(Debug, Clone)]

@@ -210,6 +210,7 @@ fn world_nodes_keep_distinct_render_attributes_when_sharing_a_mesh() {
         .into_iter()
         .enumerate()
         .map(|(i, render_attributes)| PositionedModel {
+            flat: None,
             model: model.clone(),
             transform: [
                 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0,

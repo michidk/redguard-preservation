@@ -1,5 +1,6 @@
 use super::{
-    MpobRecord, MprpRecord, MpsRecord, PositionedLight, PositionedModel, RgmFile, RgmSection,
+    FlatSprite, MpobRecord, MprpRecord, MpsRecord, PositionedLight, PositionedModel, RgmFile,
+    RgmSection,
     shared::{read_i16_le, read_i32_le, read_script_name_9},
 };
 use crate::import::rob::RobSegment;
@@ -224,7 +225,9 @@ pub(super) fn extract_positioned_models(
                     diagnostics,
                 );
             }
-            RgmSection::Mpf(_, mpf_data) => append_mpf_models(mpf_data, &mut positioned_models),
+            RgmSection::Mpf(_, mpf_data) => {
+                append_mpf_models(mpf_data, rgm_file, &mut positioned_models, diagnostics);
+            }
             RgmSection::MplParsed(_, records) if !records.is_empty() => {
                 warn!(
                     "Authored local lights require engine shading; retained in RGM metadata, not converted to punctual lights"
@@ -277,6 +280,7 @@ fn process_mps_section(
             diagnostics,
         ) {
             positioned_models.push(PositionedModel {
+                flat: None,
                 model: model.model,
                 render_attributes: model.render_attributes,
                 transform: mps_transform(record),
@@ -341,6 +345,7 @@ fn process_mpob_section(
             ));
         } else {
             positioned_models.push(PositionedModel {
+                flat: None,
                 model: build_empty_model(),
                 transform: mpob_transform(record),
                 model_name: format!("B_{idx:03}_{script_name}"),
@@ -399,6 +404,7 @@ fn build_loaded_mpob_model(
     );
 
     PositionedModel {
+        flat: None,
         model: loaded.model,
         render_attributes: loaded.render_attributes,
         transform: mpob_transform(record),
@@ -407,14 +413,39 @@ fn build_loaded_mpob_model(
     }
 }
 
-fn append_mpf_models(mpf_data: &[u8], positioned_models: &mut Vec<PositionedModel>) {
+fn append_mpf_models(
+    mpf_data: &[u8],
+    rgm: &RgmFile,
+    positioned_models: &mut Vec<PositionedModel>,
+    diagnostics: &mut Vec<PlacementDiagnostic>,
+) {
     let records = parse_mpsf_records(mpf_data);
     if !records.is_empty() {
         info!("Found MPSF section with {} flat records", records.len());
     }
 
     for (idx, record) in records.iter().enumerate() {
+        if rgm
+            .sections
+            .iter()
+            .any(|section| matches!(section, RgmSection::Flat(_, _)))
+        {
+            diagnostics.push(PlacementDiagnostic {
+                field: format!("MPSF[{idx}].texture_data"),
+                model: format!("TEXBSI.{:03}/{}", record.texture_id, record.image_id),
+                count: 1,
+                reason: "malformed FLAT texture attributes".into(),
+            });
+            continue;
+        }
         positioned_models.push(PositionedModel {
+            flat: Some(FlatSprite {
+                texture_id: record.texture_id,
+                image_id: record.image_id,
+                attributes: rgm
+                    .flat_texture_attributes((record.texture_id << 7) | u16::from(record.image_id))
+                    .copied(),
+            }),
             model: build_flat_model(record.texture_id, record.image_id),
             transform: translation_matrix(decode_position(
                 record.pos_x,
@@ -453,6 +484,7 @@ fn append_rope_records(
             for j in 0..link_count {
                 pos[1] -= ROPE_LINK_Y_STEP;
                 positioned_models.push(PositionedModel {
+                    flat: None,
                     model: model.model.clone(),
                     render_attributes: model.render_attributes,
                     transform: translation_matrix(pos),
@@ -474,6 +506,7 @@ fn append_rope_records(
         {
             pos[1] -= ROPE_LINK_Y_STEP;
             positioned_models.push(PositionedModel {
+                flat: None,
                 model: model.model,
                 render_attributes: model.render_attributes,
                 transform: translation_matrix(pos),
