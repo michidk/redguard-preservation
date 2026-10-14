@@ -330,6 +330,14 @@ it adds the smaller of that limit and
 `attribute_32 * factor[0] * (fine_tick_increment + additional_increment + 2)`
 to current Y. Products and position arithmetic retain 32-bit wrapping.
 
+The queued-motion clearance probe runs from the current effective integer Y
+to that Y plus the positive Y extent, retaining X and Z. It visits the prepared
+face candidates without the queued-motion type exclusion. Contacts of normal
+classification 2 or 4 compete by their integer world Y; strictly smaller Y
+replaces the current height, initialized to 999999. With no selected height,
+clearance is 256000 Q8 units. A selected height returns
+`height * 256 - current_effective_Q8_Y`.
+
 ### Ordinary ground prevalidation
 
 Ground prevalidation runs once for each prepared collision candidate list. It
