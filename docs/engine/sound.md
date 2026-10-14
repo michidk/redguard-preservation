@@ -280,6 +280,18 @@ stopped and cleared before the new taunt is presented, even when the label was
 already cached. This lookup differs from ordinary dialogue reuse, which retains
 a remembered sample.
 
+For a nonzero taunt label, presentation releases the retained cache reference
+first, then clears its retained dialogue record if that record is active and
+`dialog_print_text` is enabled. It loads the requested label and stops its
+remembered sample. A successful lookup starts speech only when
+`dialog_use_speech` equals one and creates a dialogue record only when
+`dialog_print_text` is nonzero. A nonzero accompanying animation is requested
+with modifier zero after lookup. A zero label skips replacement and animation.
+The result is zero when text is disabled; otherwise it is the retained dialogue
+record's signed active word, or zero for the absent record. Combat construction
+initializes the retained record index and result to zero and the cache reference
+to absent.
+
 The reset releases cached RTX text and audio payloads and clears their occupied
 state. It also clears active dialogue records and their text buffers, resets
 their sample handles. These operations precede stopping all sample channels
