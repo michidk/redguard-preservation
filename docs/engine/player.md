@@ -688,7 +688,9 @@ repeat, even when an earlier candidate caused weighted separation.
 The ordinary motion response probes a segment from the previous effective
 origin to the current effective origin. Both endpoints are shifted from Q8
 to integer map units and receive the same caller-supplied vertical offset.
-It visits retained face-model candidates in order with sidedness disabled.
+It visits retained face-model candidates in order. The ordinary segment path
+uses the enabled polygon-sidedness flag. The model-query argument selects
+early return after subobject admission; it does not set polygon sidedness.
 Queued motion 24 excludes candidate type `0x80`.
 
 World contact points are converted to integers with nearest-even rounding.
@@ -715,6 +717,30 @@ contacts still contribute even when their point does not replace it. A
 response-disabled query reports contact without changing position. A
 response-enabled query truncates the first selected sphere radius toward zero
 and writes X and Z as `point * 256 + accumulated_normal * radius`, preserving Y.
+
+### State-fifteen bounds response
+
+Living state 15 replaces each forward motion probe with two bounds segments
+and returns no forward-motion hit. These segments use the retained actor matrix
+and current effective origin shifted to integer map units. The local endpoints
+are `(positive_x, positive_y + 2, positive_z)` to
+`(negative_x, positive_y - 2, negative_z)`, and
+`(negative_x, positive_y + 2, positive_z)` to
+`(positive_x, positive_y - 2, negative_z)`. Both bound records contain the stored
+nonnegative extent magnitudes; this query does not negate the negative extents.
+
+The query disables polygon sidedness, visits face-model candidates in retained
+order, and tests both segments for each candidate before visiting the next.
+Queued motion 24 excludes candidate type `0x80`. Integer world contacts qualify
+only when their normal Y component is between -41 and 160 inclusive.
+
+Each segment tracks its own greatest negative rank and smallest positive rank,
+initialized to -999999 and 999999. Rank zero does not contribute. A qualifying
+contact contributes its full integer normal only when it strictly improves one
+of those bounds. Earlier contributions remain in the sum when later contacts
+improve a bound. The sum is not normalized. A nonzero sum adds directly to all
+three logical Q8 position components and marks collision transition bit `0x40`.
+The polygon-sidedness flag is restored to enabled after the query.
 
 ### Sphere model admission
 
