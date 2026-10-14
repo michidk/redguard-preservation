@@ -187,7 +187,7 @@ pub(crate) fn build_unrolled_primitives(
                     u8::from(matches!(face.texture_data, TextureData::SolidColor(_))),
                 ]);
 
-                group.uvs.push([f32::from(fv.u), f32::from(fv.v)]);
+                group.uvs.push([fv.u as f32, fv.v as f32]);
                 group.indices.push((group.positions.len() - 1) as u32);
             }
         }

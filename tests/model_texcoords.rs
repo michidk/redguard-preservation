@@ -71,3 +71,39 @@ fn source_pixels_survive_material_split_and_quad_fan() {
     }
     assert_eq!((textured, solid), (1, 1));
 }
+
+#[test]
+fn model_uv_deltas_accumulate_beyond_the_signed_word_range() {
+    use rgpre::model3d::{ModelVersion, parser::parse_face_data};
+    for version in [
+        ModelVersion::V26,
+        ModelVersion::V27,
+        ModelVersion::V40,
+        ModelVersion::V50,
+    ] {
+        let mut bytes = vec![255, 0];
+        bytes.extend(vec![
+            0;
+            if matches!(version, ModelVersion::V26 | ModelVersion::V27) {
+                6
+            } else {
+                8
+            }
+        ]);
+        for _ in 0..255 {
+            bytes.extend(0_u32.to_le_bytes());
+            bytes.extend(32767_i16.to_le_bytes());
+            bytes.extend((-32768_i16).to_le_bytes());
+        }
+        let (remaining, face) = parse_face_data(&bytes, &version).unwrap();
+        assert!(remaining.is_empty());
+        assert_eq!(
+            (face.face_vertices[1].u, face.face_vertices[1].v),
+            (65534, -65536)
+        );
+        assert_eq!(
+            (face.face_vertices[254].u, face.face_vertices[254].v),
+            (8355585, -8355840)
+        );
+    }
+}

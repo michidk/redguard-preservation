@@ -47,11 +47,12 @@ pub struct Model3DHeader {
 }
 
 #[derive(serde::Serialize, Debug, Clone)]
-/// One vertex reference and UV delta entry inside a face.
+/// One vertex reference and accumulated UV coordinates in 1/16-pixel units.
+/// Parsed coordinates sum at most 255 signed 16-bit deltas without wrapping.
 pub struct FaceVertex {
     pub vertex_index: u32,
-    pub u: i16,
-    pub v: i16,
+    pub u: i32,
+    pub v: i32,
 }
 
 #[derive(serde::Serialize, Debug, Clone)]

@@ -113,8 +113,8 @@ fn parse_face_vertices<'a>(
     version: &ModelVersion,
 ) -> IResult<&'a [u8], Vec<FaceVertex>> {
     let mut face_vertices = Vec::with_capacity(usize::from(vertex_count));
-    let mut acc_u = 0i16;
-    let mut acc_v = 0i16;
+    let mut acc_u = 0i32;
+    let mut acc_v = 0i32;
     let mut input = input;
 
     for i in 0..vertex_count {
@@ -141,8 +141,8 @@ fn parse_face_vertices<'a>(
             "Raw vertex_index: {vertex_index_raw} (0x{vertex_index_raw:08x}), adjusted: {vertex_index}, u: {u}, v: {v}"
         );
 
-        acc_u = acc_u.wrapping_add(u);
-        acc_v = acc_v.wrapping_add(v);
+        acc_u += i32::from(u);
+        acc_v += i32::from(v);
 
         face_vertices.push(FaceVertex {
             vertex_index,

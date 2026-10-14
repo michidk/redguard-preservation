@@ -122,7 +122,7 @@ pub(crate) fn serialize_model_3d(
                 );
                 submesh.inner.normals.push(normal);
 
-                submesh.inner.uvs.push([f32::from(fv.u), f32::from(fv.v)]);
+                submesh.inner.uvs.push([fv.u as f32, fv.v as f32]);
                 submesh.inner.indices.push(usize_to_u32(
                     submesh.inner.positions.len() - 1,
                     "submesh_vertex_index",
