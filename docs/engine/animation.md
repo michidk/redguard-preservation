@@ -301,6 +301,34 @@ After collision handling, support-following runs before attribute-controlled
 axis restoration. These stages can change the result of earlier script movement;
 updating the animation or local transform alone does not perform them.
 
+### Supporting actor motion
+
+The ordinary nonplayer support-following stage uses the retained supporting actor.
+A missing actor owner or a supporting actor with attribute 24 zero leaves the rider
+unchanged. Static-placement ownership alone does not carry a rider.
+
+For an unattached support without an alternate linked-position record, the stage
+reads its current local position and update-entry local position. The latter is
+separate from its stable grounded position. It first adds the support's position
+delta to the rider's local position and adds the support's heading delta to the
+rider's local heading, wrapping heading to 2048 units.
+
+It then subtracts the support's current position from the translated rider. It
+builds an identity matrix rotated in yaw, pitch, roll order using the negative
+previous support angles, and applies the column transform to that offset. It
+builds another matrix with the negative current support angles and applies the
+row transform. Both transforms store input coordinates as single precision and
+convert each result to an integer with nearest-even rounding. The final rider
+position is the resulting offset plus the current support position. Pitch and
+roll affect position but do not change the rider's pitch or roll.
+
+An attached support uses current and previous effective positions and angles;
+this path does nothing during the first two family generations. Living states
+10 through 19 instead use their separate owner and additional position/heading
+records. The selected player can reject the transformed destination through
+additional collision queries. These cases are distinct from the ordinary
+unattached nonplayer path.
+
 ## Ordinary actor eligibility
 
 The ordinary actor update traverses the actor update list. It skips the actor
