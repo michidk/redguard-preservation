@@ -309,6 +309,13 @@ animation state and animations without that control use the following rules.
 All positions and the retained fall origin have eight fractional bits.
 The retained timer is a byte; falling tests it as signed.
 
+The vertical factor sequence at indices 0 through 29 is exactly represented by
+integer division of `256 * (900 - (29 - index)^2)` by 900. Indices 30 through 69
+have factor 256. The next entries belong to adjacent engine state. A queued
+update reads the entry at its current timer before advancing, then reads the
+entry at the advanced timer to decide whether it transfers to falling.
+A falling update uses entry zero when the signed timer is nonpositive.
+
 Queued motion writes `origin_Y - attribute_32 * factor[timer]`, then advances
 the timer by the sum of the fine-tick increment and its additional increment,
 wrapping as a byte. After that advance, a factor greater than 255 transfers the
