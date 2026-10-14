@@ -321,7 +321,9 @@ its range; the script must call it again to resume.
   0 and volume `clamp(header byte 0x0C, 0, 127)` (100 in the shipped
   `ENGLISH.RTX` audio headers), start index 0. While the dialogue runs, the
   volume is refreshed every frame from the speaker's distance (curve with
-  `off = 0`); the pan is not updated.
+  `off = 0`); the pan is not updated. The raw RTX sample start clears its
+  sample user-data slots and does not assign an object owner. Dialogue speaker
+  identity is retained separately by the dialogue record.
 - **Rope sounds:** each [MPRP](../formats/RGM.md#mprp-rope-chains) rope
   record names three effects. A rope plays one of them when its swing
   velocity changes sign (or stays at zero), chosen by its current swing speed
