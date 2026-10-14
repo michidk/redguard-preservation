@@ -183,6 +183,11 @@ The five shipped defenses correspond to: default (`defend00`), low (`defend01`),
 
 Each `[tauntNN]` section defines one combat voice line or audio cue. There are 379 sections with indices spanning 00–599, with large gaps between combatant blocks.
 
+An actor's taunt list begins at its [RAEX](../formats/RGM.md) `taunt_id` and
+contains `attr_num_taunts` consecutive entries. A zero count creates no list.
+The range is selected per actor; it is independent of which taunt sections are
+present elsewhere in the file.
+
 ### Taunt Types
 
 The `type` field identifies when the taunt fires:
