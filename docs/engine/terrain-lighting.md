@@ -179,6 +179,28 @@ A constant channel has zero gradients and remains constant across the triangle.
 Quantizing an interpolated floating-point channel only at the fragment does
 not reproduce the separately quantized start, gradients and subpixel origin.
 
+## Texture coordinates and setup
+
+Terrain tile corners use Glide texture coordinates `1` and `254`, rather than
+`0` and `256`. The four rotation states select pairs of these endpoints for
+the two triangles of each cell. Coordinates interpolate during camera-space
+clipping before perspective weighting. The installed terrain bank contains
+square 64-pixel textures; the Glide coordinate range is 256 units, so the
+normalized endpoints are `1/256` and `254/256`.
+
+For each projected vertex, reciprocal depth is stored as a 32-bit float.
+The two clipped texture coordinates multiplied by that reciprocal are also
+stored as 32-bit floats. Triangle setup uses these three attributes with the
+same vertex ordering, normalized screen differences and gradient formula as
+the color channels. The texture unit uses the vertex's common reciprocal
+depth for `W`.
+
+The software Voodoo 1 float-register path converts each texture start and
+gradient separately to signed fixed point with 32 fractional bits, truncating
+toward zero. Subpixel correction and integer pixel stepping use the same
+anchor and formulas as color interpolation, with 64-bit texture accumulators.
+Perspective division follows pixel stepping.
+
 ## Software Voodoo perspective division
 
 The DOSBox-X software Voodoo 1 path uses a table-interpolated reciprocal for
