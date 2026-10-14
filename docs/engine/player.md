@@ -550,6 +550,41 @@ When primary or fallback support selects that candidate, the selected support
 receives that byte unchanged. Terrain selection instead sets support metadata
 to zero.
 
+### Live and transient collision candidates
+
+Candidate construction visits prepared static placements first, ordinary live
+actors second, and transient models last. The face-model and actor-style lists
+each retain their separate limit of 64 entries across these phases.
+
+A live actor is admitted only when its ordinary actor exclusion test passes,
+its runtime animation-update exclusion is zero, its loaded model exists and
+differs from the querying actor's model, attribute 55 is zero, and the model
+distance test passes. A live actor using the static model load path enters the
+face-model list with its actor owner and collision flags. Other admitted live
+actors enter the actor-style list with their actor owner. A full destination
+list skips that entry. When both lists are full, traversal returns before
+processing later live actors or transient models.
+
+An active transient record with a loaded model and flag `0x10` enters the
+face-model list until that list is full. These entries have candidate type
+`0x80`, zero collision metadata, and neither a static-placement owner nor an
+actor owner. They do not run the static-placement distance filter.
+
+### Actor sphere overlap
+
+An actor does not overlap itself. Actor overlap uses each actor's selected
+runtime shape, or one model-radius sphere for an actor using the static model
+path. At most the first 32 spheres of each shape participate. Local sphere
+centers receive the actor matrix transform and its shape origin rounded to
+integer map coordinates.
+
+Sphere pairs are visited in shape order. Their summed radius and each center
+difference are rounded to integers. A pair overlaps only when the rounded
+three-dimensional distance is strictly smaller than the summed radius. The
+first overlapping pair returns the summed radius minus the rounded horizontal
+distance, with the vertical difference set to zero for that second distance.
+When no pair overlaps, the query returns zero.
+
 ### Sphere model admission
 
 A sphere query first tests each body sphere against the model radius. Express
