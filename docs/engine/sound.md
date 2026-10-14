@@ -202,13 +202,6 @@ when the world loop starts and advances by the shared whole nominal ticks when
 the runtime inhibition flag is clear. A signed accumulator value greater than
 1400 triggers the reset and clears the accumulator; exactly 1400 does not.
 
-Engine initialization clears the inhibition flag. The player controller updates
-it from the SOUP topic-menu state, `WaitOnDialog`, and `LockoutPlayer`. An active
-topic menu or waiting dialogue sets inhibition. With both inactive, a zero
-player lockout clears inhibition; a nonzero lockout retains its previous value.
-This sampling belongs to player-controller execution, rather than every
-ordinary object update. World-loop entry resets the accumulator without clearing
-inhibition.
 
 RTX initialization creates twenty cache slots with no text or audio payload,
 cleared occupancy, and no remembered sample. Dialogue initialization allocates
@@ -290,10 +283,13 @@ The runtime menu-state word has an initial value of zero.
 The SOUP `menuProc` task activates this state when it is inactive and clears
 it when a selection is accepted. These calls occur inside the native task
 handler.
-During ordinary actor processing, an active menu-state word or a nonzero
+Engine initialization clears maintenance inhibition. World-loop entry resets
+only the accumulator. During player-controller execution, an active menu-state
+word or a nonzero
 `WaitOnDialog` result sets the maintenance inhibition flag. When both are zero,
 the flag clears only if player lockout is also zero. A nonzero player lockout
-therefore retains the prior inhibition value. This menu-state word is separate
+therefore retains the prior inhibition value. This state is sampled by the
+player controller, rather than every ordinary object update. The menu-state word is separate
 from the dialogue-state word controlled by `DialogBegin` and `DialogEnd`.
 
 [`TaskStop`](SOUP.md#animation-task-ownership-and-stopping) removes the native
