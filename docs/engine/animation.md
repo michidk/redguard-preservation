@@ -434,3 +434,16 @@ backward jump, or taking a `GoToFuture` exit jump also clears it. A zero-tick
 update or a countdown decrement that keeps the same cursor does not clear it.
 A later `BreakPoint` can set it again before the selected frame is returned.
 Selecting a new group resets the marker before interpreting its commands.
+
+### Ordinary collision rollback snapshot
+
+After ordinary animation advancement, the update saves the current animation
+receiver and the two selected model-frame words, together with the directional
+movement flags. Late collision rollback restores those saved values. The receiver
+snapshot includes the current group, pending request, command cursor, countdowns,
+loop state, exit and motion markers, and remembered animation sample slot.
+The separately stored default animation selection is not restored.
+
+Restoring a remembered sample slot does not stop channels started after the
+snapshot or restart a channel that has already stopped. A later animation stop
+uses the restored reusable slot, including a replacement sound occupying it.

@@ -435,6 +435,14 @@ acceptance does not write the actor position. With no animation receiver the
 probe accepts before those segment tests. Candidate preparation precedes that
 receiver check and is distinct from the ordinary retained collision list.
 
+### Ordinary water rollback
+
+A nonplayer actor with no falling or queued motion rolls back when its stored
+surface is water, codes 1 through 4. This restores the local position saved at
+update entry and clears attribute 6. It also restores the directional movement
+flags and the animation collision snapshot, marks collision transition bit 1,
+and sets the shared changed flag. Selected-player actors do not take this branch.
+
 ### Stable ordinary position
 
 After collision attribute bit `0x04` ground response, an actor with queued
