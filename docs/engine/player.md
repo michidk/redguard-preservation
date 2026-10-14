@@ -683,6 +683,27 @@ separation occurred and the loop completes, the forward obstacle response
 runs again. A small actor-pair contact returns immediately and skips this
 repeat, even when an earlier candidate caused weighted separation.
 
+### Ordinary forward segment response
+
+The ordinary motion response probes a segment from the previous effective
+origin to the current effective origin. Both endpoints are shifted from Q8
+to integer map units and receive the same caller-supplied vertical offset.
+It visits retained face-model candidates in order with sidedness disabled.
+Queued motion 24 excludes candidate type `0x80`.
+
+Accepted facing contacts contribute their integer world normals in query
+order. An empty normal accumulator takes the next normal unchanged. Otherwise,
+the two normals are added, normalized to Q16, and shifted right by eight to
+produce the new accumulated normal. This ordered combination is not an
+arithmetic average of all contacts.
+
+The chosen contact point comes from the smallest `rank & 0x7fff` among accepted
+contacts. Equal ranks retain the earlier point. Normals from later accepted
+contacts still contribute even when their point does not replace it. A
+response-disabled query reports contact without changing position. A
+response-enabled query truncates the first selected sphere radius toward zero
+and writes X and Z as `point * 256 + accumulated_normal * radius`, preserving Y.
+
 ### Sphere model admission
 
 A sphere query first tests each body sphere against the model radius. Express
