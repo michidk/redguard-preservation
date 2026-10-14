@@ -592,7 +592,25 @@ Position decode uses the same MPOB scale/sign rules. MPSF items are flat quads w
 
 ## FLAT
 
-`FLAT` appears in all 27 shipped RGM files as the last section before `END `. Fixed size: 1111 bytes in 26 files, 1108 in `HIDEOUT.RGM`. Mostly zero-filled with sparse non-zero values concentrated in two regions: small integer indices (0–4) at offsets 92–156 and 580–988, and a dense 87-byte block at offset 1024+ containing packed byte triplets. Internal structure is not decoded. Distinct from `MPSF` (flat billboard objects), which has its own section tag and parsed record format.
+`FLAT` stores per-texture drawing attributes, separate from the placed objects
+in `MPSF`. Its payload begins with 512 little-endian `u16` record counts,
+one for each texture archive ID. The records follow in ascending archive order.
+Each record is three bytes: image ID, drawing flags, and alpha byte. Archives
+with a zero count contribute no records. There is no separate total-count word.
+
+Texture lookup splits the packed texture reference into an archive ID and
+seven-bit image ID, then searches that archive's records for the first matching
+image. A missing archive or image has no attribute override.
+
+For an MPSF draw, the base flags are 1 and the default alpha input is 255.
+A matching attribute record is ORed into the flags and replaces the alpha input
+with `alpha_byte + 1`, computed without byte wrapping. Thus a stored zero
+supplies 1, and a stored 255 supplies 256. The geometry scale and texture
+coordinate scale inputs remain 1. The base flag selects a centered quad;
+attribute flags do not replace that anchor selection.
+
+`FLAT` appears in all 27 shipped RGM files as the last section before `END `.
+Its payload is 1111 bytes in 26 files and 1108 bytes in `HIDEOUT.RGM`.
 
 ## External References
 
