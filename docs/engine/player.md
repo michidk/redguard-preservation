@@ -361,6 +361,25 @@ For an initial ordinary animated fall, current groups 41, 42 and 43 apply
 this displacement using the retained motion direction and Q8 distance 4096
 before selecting their initial fall animation.
 
+### Ordinary landing decision
+
+On support regained while falling, clear the runtime jump selector and compare
+the absolute wrapping difference between current local Q8 Y and retained fall
+origin. Resolve and store the landing surface before this comparison; surfaces
+1 through 4 replace the compared distance with zero.
+
+The death threshold is `SYSTEM.INI [game] fall_death_height * 256`, and the
+hurt threshold is `fall_hurt_height * 256`, retaining 32-bit arithmetic.
+Distance strictly above the death threshold requests fatal landing and applies
+health change -256. Otherwise distance strictly above the hurt threshold
+requests group 73 and applies `-fall_hurt_zap`, except when the actor's separate
+hurt-exclusion predicate suppresses both. These threshold branches precede the
+ordinary landing animation selection. They clear the falling byte.
+
+For the ordinary nonplayer fatal path, group 74 is an ordinary request.
+The ordinary hurt group 73 also uses ordinary request arbitration. Selected
+player death presentation and steep-surface fatal handling are separate paths.
+
 ### Initial falling bookkeeping
 
 When the ordinary support response misses and starts a fall, it records local
