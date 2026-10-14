@@ -106,7 +106,7 @@ For a nonplayer actor, the target/perception prepass returns false when combat
 flag mask 0x04 is clear or the target is absent. When maintenance reaches a
 combat record, it restores attribute 1 from attribute 119 before processing
 messages. The nonplayer decision stage runs only for death/state selector 6 and
-an actor that passes the weapon predicate. This stage can select targets and
+an actor that is not dead. This stage can select targets and
 consume random values.
 
 The selected player's drawing or sheathing state suspends action and cooldown
