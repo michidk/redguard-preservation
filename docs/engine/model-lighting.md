@@ -87,6 +87,20 @@ Indexed reduction samples source columns and rows starting at zero and stepping
 by their respective strides. It does not average neighboring texels. Remaining
 allocation columns and rows are still filled with palette index zero.
 
+### Texture address selection
+
+Glide initialization sets texture unit zero to wrap in both directions. Ordinary
+model binding retains that address mode. Wrapping uses the allocation dimensions,
+including zero-filled padding, rather than the original source-image dimensions.
+
+In the DOSBox-X Voodoo path, point filtering selects an integer texel from each
+signed perspective coordinate `Q` by arithmetic shift right by `level + 18`,
+then masks with the corresponding allocation dimension minus one. It does not
+round to the nearest integer. Bilinear filtering instead selects the neighboring
+pair and four-bit fractions using the
+[fixed texture address rule](terrain-lighting.md#texture-coordinates-and-setup).
+The texture's fixed level is the allocation level described above.
+
 ### Flat submission order
 
 Ordinary placed flats prepend to the spatial list selected by the low sixteen
