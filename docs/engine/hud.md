@@ -322,8 +322,9 @@ fails. Zero is the empty-slot sentinel. When all slots are occupied, an
 unmatched tag is not retained and the call continues.
 
 A found RTX entry appends its text to `LOGBOOK.TXT`. A missing entry writes
-nothing. Only a successful file open and append starts the logbook icon;
-a suppressed tag or failed file open leaves the icon unchanged.
+nothing. Once the log file is opened, the engine writes the text, closes the
+file and starts the logbook icon without checking the write result. A suppressed
+tag or failed file open leaves the icon unchanged.
 
 ## Logbook icon
 
