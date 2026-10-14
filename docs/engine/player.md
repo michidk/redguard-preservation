@@ -354,6 +354,10 @@ a weapon-holding actor forces 113 unless current group is 115.
 Animated entry also has separate selector, previous-position recovery and
 horizontal-displacement branches before this initialization. Current groups
 18 and 30 have an exit-marker rollback branch and otherwise force 59 or 60.
+For the exit-marker branch, restore all three previous local position
+coordinates and force the current default group, then return without starting
+a fall. Without that marker, record the ordinary fall origin and timer, set
+falling to one and force 59 without a burning torch or 60 with one.
 These entry branches are distinct from continuation of an existing fall.
 
 ### Falling animation continuation
