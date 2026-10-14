@@ -619,6 +619,11 @@ shared veto. An admitted query can also run without assigning actor state:
 it returns the resolved model or terrain surface, but retains both the actor's
 surface and the shared veto. For other support kinds, this path returns zero.
 
+Queued motion, either directional-state byte with either low bit set, or the
+selected-player surface exclusion cause the excluded-query result. With those
+gates clear, falling, sliding, or living states 27 through 29 select the
+return-without-assignment path. Other ordinary actors take the assignment path.
+
 The ordinary assignment path stores the resolved surface in the actor, then
 sets the shared veto according to that stored value. Model contacts use the
 packed face texture assignment; terrain contacts use the actor's integer map

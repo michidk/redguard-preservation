@@ -297,6 +297,14 @@ state. Outside that range, states 20 and 21 select the combat response; other
 states select the ordinary motion and ground response. This dispatch does not
 suppress the preceding support query or subsequent eligible body contacts.
 
+Before support, ordinary nonplayer collision runs the forward obstacle wrapper,
+except for living states 10 through 19, then the overlap stage when attribute 1
+has bit `0x08`. Slope prevalidation precedes the primary support query. Ground
+response selected by bit `0x04` precedes stable-position retention and eligible
+body response. Conditional recovery and water rollback follow body response.
+Before recovery the actor's weight attribute 6 is restored from reserved weight
+attribute 115.
+
 After collision handling, support-following runs before attribute-controlled
 axis restoration. These stages can change the result of earlier script movement;
 updating the animation or local transform alone does not perform them.
