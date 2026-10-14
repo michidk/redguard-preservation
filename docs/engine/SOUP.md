@@ -208,6 +208,15 @@ World object loading resets its identifier counter to the pool capacity plus thr
 
 CYRUS and GREMLIN player instances load independently of MPOB placements. Each uses identifier one; the initial player selector chooses CYRUS. The camera instance loads CAMERA independently of MPOB and uses identifier two. Fresh world loading creates and registers ordinary MPOB actors first, followed by CYRUS, GREMLIN and CAMERA.
 
+### Initial ordinary motion state
+
+Fresh ordinary allocation clears the complete actor record before applying
+loader defaults. Its sliding state, falling state, queued-motion state, body
+response flags and collision-transition flags therefore start at zero. These
+runtime bytes are separate from the installed attributes and current animation
+group. The ordinary update invokes queued motion when its state is nonzero,
+using that state before the falling state when both are present.
+
 ### Reference Name Encoding
 
 After object name in property/method opcodes: `u16` reference ID. Only the low byte is used as an index into the global references table (loaded from `[refs]` section of `SOUP386.DEF`). The high byte is discarded.
