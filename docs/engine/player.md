@@ -639,6 +639,29 @@ each sphere radius separately toward zero before adding them. Both queries
 truncate center differences before the distance calculation and return
 horizontal separation from the first overlapping pair.
 
+### Weighted actor overlap response
+
+For an ordinary actor, a nonzero `attr_weight` supplies mobility
+`256 - attr_weight`; weight zero supplies mobility zero. Actor overlap
+response excludes actors with nonzero attribute 26.
+
+An actor-to-actor separation below three map units marks contact on both
+actors and ends the overlap pass without displacement. For larger separation,
+when both mobilities are zero the updating actor returns to its previous
+position. Otherwise the divisor is the sum of mobilities when both are
+nonzero, or the nonzero mobility plus 256 when one is zero. The integer factor
+is `131072 / divisor`. Each movable actor's Q8 displacement distance is
+`(factor * mobility * separation >> 9) + 255`, with wrapping signed 32-bit
+multiplications and an arithmetic right shift. The actors move in opposite
+horizontal directions. A zero-mobility actor is not displaced.
+
+An actor-style static placement does not share this divisor. An updating
+actor with zero mobility returns to its previous position. Otherwise the
+factor is `131072 / mobility` and its Q8 displacement distance uses the same
+multiply, shift and addition expression. Static-placement separation below
+three still takes this response; the small-contact early return applies only
+to actor pairs.
+
 ### Sphere model admission
 
 A sphere query first tests each body sphere against the model radius. Express
