@@ -232,6 +232,14 @@ common initialization. The death selector and object-update exclusion therefore
 start at zero, and the combat-state association starts absent. These are
 allocation values, separate from later player-role setup and gameplay changes.
 
+A fresh ordinary actor's collision metadata byte starts at zero. When its initial
+model uses the static load path, the loader copies the collision byte from the
+matching named ROB segment when that segment exists. The MPOB static-model
+fallback performs the same copy. Loading geometry and retaining this per-actor
+collision metadata are separate operations; a standalone model resource does
+not itself supply the ROB byte. Live static face candidates retain the actor's
+stored byte as support metadata.
+
 The nonplayer death-animation paths pair a forced request for group 122 with
 stored death default 124, and a forced request for group 121 with stored death
 default 123. The requested death animation and the subsequent ordinary default
