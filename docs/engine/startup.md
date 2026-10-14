@@ -4,8 +4,8 @@ Glide startup presents the active Glide implementation's 3dfx splash and
 `system/STARTUP2.GXA`. The splash is supplied by Glide, rather than by a
 Redguard movie file.
 
-Startup also enters the introductory game world and plays the Introduction
-cinematic. The book is not necessarily the first game presentation after the
+Startup plays the Introduction cinematic before loading the introductory game
+world. New Game from the book repeats this movie-before-world sequence. The book is not necessarily the first game presentation after the
 title. A book opened from a running world uses the in-game entry context
 described in [Book menu](menu.md).
 

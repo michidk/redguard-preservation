@@ -36,7 +36,9 @@ Action `-2` begins a closing-book/camera sequence and exits the game. It does no
 
 Action 10 starts New Game. Before loading world zero at marker zero, the engine
 calls `LockoutPlayer(0)`, clearing the retained lockout and applying its
-[actor and HUD cleanup](hud.md#shared-rules).
+[actor and HUD cleanup](hud.md#shared-rules). The returned New Game transition resets game state, plays movie zero
+(the Introduction), then loads world zero at marker zero. Movie playback
+finishes or follows its configured skip points before map loading begins.
 
 The menu inherits the current engine lighting and environment state. The default
 book menu has no pointer hover or click selection. Pointer coordinates do not
