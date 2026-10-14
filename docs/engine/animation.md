@@ -208,6 +208,23 @@ the current group was the old default and its exit marker is clear. A pending
 group equal to the old default is separately replaced by an ordinary request
 for the new default. These checks use the old default captured before selection.
 
+## Combat entry
+
+`beginCombat` uses the lifecycle selector read by `IsDead`, independently of the
+motion state used by weapon and living-default selection. On a nonplayer actor,
+it first sets script-control bit `0x02`, including when the lifecycle selector
+already equals 6. A selector already equal to 6 skips the remaining entry work.
+Otherwise entry writes selector 6, handles weapon setup, sets combat flag `0x04`,
+and requests the begin-combat taunt type 0, in that order.
+
+Weapon setup checks attribute byte 23. When it is nonzero and animation group 91
+exists, an actor whose weapon-drawn flag is clear runs weapon-draw admission and
+then immediately requests group 91 with modifier zero. An already drawn weapon
+skips both operations. When group 91 is absent, entry runs weapon cleanup, then
+sets the weapon-drawn flag and clears motion state to zero. A zero attribute byte
+23 directly sets that flag and clears motion state, without weapon cleanup.
+These motion-state writes do not replace the lifecycle selector.
+
 ## Dead actor default selection
 
 `IsDead` reads a runtime state selector rather than the health attribute. It
