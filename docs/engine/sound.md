@@ -195,6 +195,8 @@ The `RTX` dialogue task instead completes immediately when this reset flag is se
 before checking its distance or loading an entry.
 
 Sound maintenance runs after clock sampling and before ordinary object updates.
+Dialogue-record updates run after ordinary and code-object updates. Periodic RTX
+cache updates run after the dialogue-record stage.
 It clears the shared reset flag each invocation. Its accumulator starts at zero
 when the world loop starts and advances by the shared whole nominal ticks when
 the runtime inhibition flag is clear. A signed accumulator value greater than
