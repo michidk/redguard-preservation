@@ -232,6 +232,15 @@ payloads. File lookup lowercases ASCII uppercase letters in the four-byte label.
 A voiced entry with no remembered sample starts playback at sample start index
 zero, then restores the shared start index to six.
 
+Periodic cache updates retain an entry unchanged while its remembered sample has
+playing status four. Otherwise they clear the remembered sample. An entry used
+since the preceding cache update clears its used flag and resets its age to eight
+nominal ticks. An unused entry is released when its age is strictly less than the
+current nominal tick count; equality subtracts to zero and retains the payload.
+Release clears text, audio, occupancy, label and remembered sample.
+The full cache reset releases text first, stops a remembered sample only when its
+status is four, then releases audio and clears occupancy, sample and label.
+
 Dialogue record updates visit records in index order. Each active record first
 sets its speaker's dialogue-inhibition attribute to one, then subtracts 21 times
 the whole nominal tick count from its signed lifetime counter. With speech
