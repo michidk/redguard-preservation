@@ -342,6 +342,25 @@ height to nearest even. That height replaces the model result only when it is
 strictly greater than current integer map Y and strictly less than the retained
 model height. It does not use the ordinary support-segment rank or lower end.
 
+### Directional ordinary displacement
+
+Directional displacement masks the input motion byte with 127. Values 2, 6,
+8, 9 and 24 select forward direction 2 at the actor heading and mark movement
+bits `0x30`. Values 3 and 7 select backward direction 3 at heading plus 1024
+and mark `0xc0`. Value 4 selects direction 4 at heading plus 512 and marks
+`0x03`; value 5 selects direction 5 at heading minus 512 and marks `0x0c`.
+Other values return without these writes. Selected headings wrap to 2048.
+
+The selected direction and movement bits are written even when the current
+animation suppresses displacement. Otherwise, stored surface state 2 or 4
+halves the signed distance by arithmetic right shift. A positive resulting
+distance translates local X/Z using the heading-based translation rule.
+The corresponding directional update indicator is also set.
+
+For an initial ordinary animated fall, current groups 41, 42 and 43 apply
+this displacement using the retained motion direction and Q8 distance 4096
+before selecting their initial fall animation.
+
 ### Initial falling bookkeeping
 
 When the ordinary support response misses and starts a fall, it records local
