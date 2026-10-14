@@ -197,6 +197,12 @@ It clears the shared reset flag each invocation. Its accumulator starts at zero
 when the world loop starts and advances by the shared whole nominal ticks when
 the runtime inhibition flag is clear. A signed accumulator value greater than
 1400 triggers the reset and clears the accumulator; exactly 1400 does not.
+RTX initialization creates twenty cache slots with no text or audio payload,
+cleared occupancy, and no remembered sample. Dialogue initialization allocates
+`max(dialog_max_dialog_lines, 16)` records from `SYSTEM.INI [dialog]` and clears
+their stored state. `WaitOnDialog` scans every record and remains active while
+any record has its active word equal to one. It does not filter by the caller.
+
 The reset releases cached RTX text and audio payloads and clears their occupied
 state. It also clears active dialogue records and their text buffers, resets
 their sample handles. These operations precede stopping all sample channels
