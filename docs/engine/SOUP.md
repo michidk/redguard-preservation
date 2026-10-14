@@ -960,6 +960,24 @@ The hidden flag does not exclude the receiver from ordinary script or animation
 updates. It suppresses the ordinary actor's optional sound and light updates.
 Player selection also uses this flag to hide the unselected player model.
 
+### Current model presentation
+
+A retained model resource and an actor's current model presentation record are
+distinct. For an actor admitted to the ordinary presentation traversal, the
+current record is cleared before hidden and update-excluded state are checked.
+Either exclusion therefore leaves that actor without a current model record.
+A static-model actor that passes those checks restores its retained resource
+and refreshes its model position and orientation. Drawing exclusion suppresses
+submission without clearing the restored record.
+
+For an animation-table actor, an unavailable selected model or an absent frame
+selection clears both the selected resource and the current presentation record.
+Collision candidate construction consumes the current record and its stored
+model transform. A logical position change does not itself refresh that transform.
+In normal main-loop order, model presentation runs before the ordinary actor
+update. `ShowMe()` provides the separate immediate static-model refresh described
+above.
+
 ### Function Table
 
 `SOUP386.DEF` declares callable functions in installed order. Index 0 is the synthetic `NullFunction`; authored entries start at index 1. Functions span the following categories:
