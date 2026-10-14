@@ -1311,6 +1311,12 @@ When fewer than sixteen model contacts were collected, an available terrain
 contact is appended after them. This limit belongs to the primary body query;
 the residual separation query is separate.
 
+The ordinary actor update clears the shared extra-contact append flag before
+animation-default and movement processing. The primary collector appends the
+retained normal only when that flag is set. Heightmap presence alone does not
+admit this extra contact. Ordinary terrain height/support queries are separate
+from this retained body-contact normal.
+
 ### Body-contact facing admission
 
 The primary body-response loop visits contacts in stored order. Contacts whose
