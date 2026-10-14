@@ -301,6 +301,33 @@ position has a selected surface, classification 2 rejects the attempt and other
 classifications allow this slope check. This selection is separate from the
 ordinary ground-support rank comparison.
 
+### Ordinary ground prevalidation
+
+Ground prevalidation runs once for each prepared collision candidate list. It
+is bypassed when collision attribute bit 2 is clear, or for the designated
+player while alternate collision mode is active. Bypass clears both the
+position rollback veto and the sliding-surface result.
+
+It queries current and previous effective positions with the post-collision
+height as vertical half-length. Face contacts use the forward steep-surface
+midpoint ranking above, followed by terrain height comparison. This scan does
+not apply the queued-motion candidate-type exclusion. When local X and Z have
+not changed, the current result also serves as the previous result.
+
+If both queries miss, both results clear. Classification 4 at both positions
+also clears both. Classification 2 at both positions permits motion and marks
+the sliding-surface result. For a current class 2 after another previous class,
+subtract the motion heading from the current normal heading minus 1024 and
+wrap to 2048. Values below 512 or above 1535 request rollback and clear sliding.
+For other directions, motion permits sliding only when attribute 89 is zero
+and the current animation group is neither the retained default group nor any
+of groups 20 through 27. Otherwise it requests rollback. Other current classes
+clear both results.
+
+The wrapper applies rollback by restoring all three previous local position
+coordinates, clearing the motion-direction byte, and running the ordinary
+obstacle transition before the main support query.
+
 ### Forward ground-support admission
 
 The forward ground check saves the actor position, queries support at the
