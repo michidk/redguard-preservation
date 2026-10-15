@@ -366,7 +366,7 @@ line separators; repeated separators are skipped. A leading character followed
 by a comma selects the entry style and is excluded from the entry text.
 
 Text wrapping searches for a space starting at byte offset 65. It replaces the
-first matching space with a line separator, then resumes searching 65 bytes
+first matching space with a line separator, then resumes searching 66 bytes
 after that replacement. The final byte is never replaced. Long words remain
 intact. Every entry occupies 12 pixels per wrapped line plus an 8-pixel gap.
 The first line starts at y = 70 minus the scroll offset.
