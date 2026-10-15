@@ -52,6 +52,7 @@ fn source_pixels_survive_material_split_and_quad_fan() {
             solid += 1;
             continue;
         }
+        assert!(extras.get("rgpre_solid_palette").is_none());
         assert_eq!(
             extras["rgpre_texcoords"],
             serde_json::json!({

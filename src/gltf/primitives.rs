@@ -12,8 +12,8 @@ use super::ENGINE_UNIT_SCALE;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) enum MaterialKey {
-    SolidColor([u8; 3]),
-    PaletteTexture([u8; 3]),
+    SolidColor([u8; 3], u8),
+    PaletteTexture([u8; 3], u8),
     Textured(u16, u8),
     TerrainTextured(u16, u8),
     White,
@@ -65,9 +65,9 @@ pub(crate) fn material_for_face(
                 1.0,
             ];
             let material = if texture_cache_available && palette.is_some() {
-                MaterialKey::PaletteTexture(rgb_u8)
+                MaterialKey::PaletteTexture(rgb_u8, *index)
             } else {
-                MaterialKey::SolidColor(rgb_u8)
+                MaterialKey::SolidColor(rgb_u8, *index)
             };
             (material, face_color)
         }

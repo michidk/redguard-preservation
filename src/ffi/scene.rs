@@ -792,7 +792,7 @@ pub(crate) fn serialize_terrain_primitives(
             MaterialKey::Textured(tid, iid) | MaterialKey::TerrainTextured(tid, iid) => {
                 (1u8, [0u8; 3], tid, iid)
             }
-            MaterialKey::SolidColor(rgb) | MaterialKey::PaletteTexture(rgb) => {
+            MaterialKey::SolidColor(rgb, _) | MaterialKey::PaletteTexture(rgb, _) => {
                 (0u8, rgb, 0u16, 0u8)
             }
             MaterialKey::White => (0u8, [255u8; 3], 0u16, 0u8),

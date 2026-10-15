@@ -510,8 +510,8 @@ impl<'a> GltfBuilder<'a> {
 
     fn resolve_material(&mut self, material_key: MaterialKey) -> usize {
         match material_key {
-            MaterialKey::SolidColor(rgb) => self.resolve_solid_color_material(rgb),
-            MaterialKey::PaletteTexture(rgb) => self.resolve_palette_texture_material(rgb),
+            MaterialKey::SolidColor(rgb, _) => self.resolve_solid_color_material(rgb),
+            MaterialKey::PaletteTexture(rgb, _) => self.resolve_palette_texture_material(rgb),
             MaterialKey::Textured(texture_id, image_id) => {
                 self.resolve_textured_material(texture_id, image_id, false)
             }
@@ -632,11 +632,18 @@ impl<'a> GltfBuilder<'a> {
                             serde_json::json!({"version": 1, "pixels": pixels}),
                         );
                     }
+                    if let MaterialKey::SolidColor(_, index)
+                    | MaterialKey::PaletteTexture(_, index) = primitive.material_key
+                    {
+                        extras.insert(
+                            "rgpre_solid_palette".into(),
+                            serde_json::json!({"version": 1, "index": index}),
+                        );
+                    }
                     if !primitive.lighting.is_empty() {
                         let solid_rgb = match primitive.material_key {
-                            MaterialKey::SolidColor(rgb) | MaterialKey::PaletteTexture(rgb) => {
-                                Some(rgb)
-                            }
+                            MaterialKey::SolidColor(rgb, _)
+                            | MaterialKey::PaletteTexture(rgb, _) => Some(rgb),
                             _ => None,
                         };
                         extras.insert(

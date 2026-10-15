@@ -375,6 +375,12 @@ position count. Earlier exports can substitute face normals for those omitted
 records and require re-export. Material grouping and polygon triangulation retain these inputs for
 every emitted vertex. Terrain primitives omit this metadata.
 
+Indexed solid-color primitives retain `rgpre_solid_palette` with `version: 1`
+and the original eight-bit `index`. Different indices remain separate primitives
+when their resolved RGB values match. Generic material colors remain unchanged;
+engine renderers can distinguish world index zero before applying palette
+conversion and lighting. Textured primitives omit this metadata.
+
 Textured model primitives also retain `rgpre_texcoords` version 1 with a `pixels`
 array in exported vertex order. Each pair is the decoded model coordinate divided
 by 16, in original source-image pixel units, before dimension normalization or
