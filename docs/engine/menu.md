@@ -54,6 +54,25 @@ The installed main-page entries are addressed by ordered index: Save is entry
 zero and Continue is entry five. Disabling an entry sets its grayed flag and
 moves selection away from it when necessary.
 
+## Gameplay book shortcuts
+
+With `SYSTEM.INI` `[debug] final_version` enabled, gameplay samples fixed book
+shortcuts in this order:
+
+| Key | Destination page |
+| --- | --- |
+| F2 | Save, page 1 |
+| F3 | Load, page 2 |
+| F4 | Display, page 5 |
+| F5 | Sound, page 6 |
+| F6 | Controls, page 7 |
+
+Escape takes priority and requests the main page. Otherwise, the shortcut
+sampler chooses the first held key in the table and clears that key's state.
+It returns no request when none is held. The retained request is consumed near
+the start of the following gameplay update. Escape enters the ordinary in-game
+book context; the five shortcuts enter their destination pages directly.
+
 ## Save and load pages
 
 Main action 1 opens Save on page 1. Its camera moves directly to `(336, 0, 0)` with fractional step `0.15`, without turning a page. Action 100 returns directly to the origin. Main action 2 opens Load on page 2 using the three-part camera sweep to the origin and a forward MB_PG01 turn delayed by four updates. Action 200 reverses that turn and repeats the sweep to the origin.
