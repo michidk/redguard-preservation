@@ -83,6 +83,30 @@ Paths, script names, and RTX labels retain their spelling and capitalization.
 
 Object file paths reference `3DART\` assets, which are the software-renderer models from the original CD release. The GOG release uses `fxart/` equivalents at runtime; the `3DART\` paths in this file reflect the original CD asset layout.
 
+## Initialization and acquisition
+
+The item database path comes from SYSTEM.INI's `item_ini` setting. Initialization
+first closes the previous item system. Each loaded item's initial owned count is
+`player_total[x]`. The ordered `start_item_list` then requests acquisition of one
+unit per entry, including repeated entries. Starting items therefore add to the
+configured counts rather than replacing them.
+
+Acquisition clamps the requested quantity to both `total[x] - player_total[x]`
+and `player_max[x] - player_total[x]`. A nonpositive result does nothing. For a
+positive result, every entry in `required_item_list[x]` must have a nonzero owned
+count and must recursively satisfy its own requirements.
+
+After requirements pass, acquisition processes `drop_add_item_list[x]` in order,
+requesting removal of one unit from each listed item. It then processes
+`add_item_list[x]` in order, recursively requesting acquisition of one unit from
+each entry. These lists run once per acquisition request, independent of the
+quantity admitted. Active-item fallback selection runs next; the acquired item's
+owned count increases last. The quantity is not recalculated after list effects.
+
+An absent `start_item_select` selects the first loaded item record. A supplied
+value selects its matching record. This initialization selection does not filter
+by owned count or visibility.
+
 ## Item Catalog
 
 87 items are defined (IDs 0 through 86). Item 0 is always the compass.
