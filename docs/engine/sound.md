@@ -310,6 +310,8 @@ the world records, it sets the shared sample-reset flag. Per-world snapshot
 restoration follows [player initialization](player.md#initial-player-animation-setup).
 The next sound-maintenance invocation clears this flag before testing the
 periodic-reset threshold. The flag is not retained until a sound task consumes it.
+In-game main-save loading completes before that loop iteration's clock sampling
+and sound maintenance, followed later by ordinary object updates.
 
 Saved object state retains native task invocation counters and private state
 words. Existing-task dispatch restores those words and derives elapsed input
