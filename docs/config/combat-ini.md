@@ -179,6 +179,19 @@ Each `[defendNN]` section defines one defense move. There are 5 sections (`defen
 
 The five shipped defenses correspond to: default (`defend00`), low (`defend01`), right (`defend02`), left (`defend03`), and high (`defend04`).
 
+## Runtime Attack Loading
+
+The engine scans `attack00`, `attack01`, and subsequent numbered sections in
+order. A section is admitted when either `damage` or `type` has a nonempty value.
+The first section with neither value ends the scan; later sections are not loaded.
+This runtime rule differs from parsing the INI as a collection of sparse sections.
+
+A non-combo attack loads one move. A combo reads its referenced moves in the
+order of `attack00`, `attack01`, and `attack02`, using `num_attacks` as the count.
+Each loaded move adds 97 to its configured `animation` value to obtain the actor
+animation group. The attack's range combines the minimum of its move minimum
+ranges and the maximum of its move maximum ranges.
+
 ## Actor Move Selection
 
 Combat initialization binds nine attack slots from actor attribute bytes 70
