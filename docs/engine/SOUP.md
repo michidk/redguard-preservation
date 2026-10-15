@@ -105,6 +105,11 @@ A newly constructed combat record has no target, an action selector of -1 and a
 zero cooldown. Combat construction clears the record before assigning its
 attribute-derived counters and attack metadata.
 
+Selected-player maintenance is skipped when its retained entry-inhibition value
+is nonzero. Player initialization clears this value. Player activation replaces
+it with the activation operation's result, so initialization does not make it
+permanently zero. This gate does not inhibit nonplayer maintenance.
+
 The target/perception prepass returns false for the selected player before
 nonplayer perception processing. For a nonplayer actor, it returns false when
 combat flag mask 0x04 is clear or the target is absent. When maintenance reaches a
@@ -113,10 +118,16 @@ messages. The nonplayer decision stage runs only for death/state selector 6 and
 an actor that is not dead. This stage can select targets and
 consume random values.
 
-Selected-player combat processing calls two maintenance helpers with action
-`-1`. With the combat record in its freshly initialized state, the second
-helper returns false without invoking other services or changing actor or
-combat state.
+Selected-player combat processing uses a phase value separate from the
+cooldown. After message processing, phase zero with a nonzero action selector
+resets the action selector and both retained action indices to `-1`. An action
+selector of zero leaves all three values unchanged at this step.
+
+It then calls the first maintenance helper followed by the second, both with
+action `-1`. With phase zero and argument `-1`, the first helper returns false
+without invoking other services or changing actor or combat state. With the
+combat record in its freshly initialized state, the second helper also returns
+false without invoking other services or changing actor or combat state.
 
 The selected player's drawing or sheathing state suspends action and cooldown
 maintenance. Otherwise a nonzero cooldown decreases by the shared nominal tick
