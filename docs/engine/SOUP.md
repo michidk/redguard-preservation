@@ -102,7 +102,7 @@ the separate native hook.
 ### PlayerStand query
 
 `PlayerStand(receiver)` compares the receiver identity with the selected player's
-retained actor reference for this query. It returns one for equality and zero
+retained supporting-actor reference. It returns one for equality and zero
 otherwise. The query performs no collision search and does not update either
 actor or the retained reference.
 
