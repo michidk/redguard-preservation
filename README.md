@@ -146,6 +146,8 @@ and audio. Use it [in the browser](https://michidk.github.io/cyrus/viewer/) or
 download a native build from the
 [latest Cyrus release](https://github.com/michidk/cyrus/releases/latest).
 
+[![Cyrus asset viewer showing a textured character model](https://raw.githubusercontent.com/michidk/cyrus/main/dev/pages/viewer-model.webp)](https://michidk.github.io/cyrus/viewer/)
+
 ## Acknowledgements
 
 [RGUnity](https://github.com/RGUnity/redguard-unity) inspired
