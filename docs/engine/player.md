@@ -176,7 +176,8 @@ request precede that stage. Queued and falling motion also precede the script
 stage. Animation-based movement continuation and ground response follow it.
 Returning from the controller does not skip those later ordinary stages.
 
-Any nonzero retained `LockoutPlayer` word returns from the controller before
+A freshly loaded executable initializes the retained `LockoutPlayer` word to
+zero. Any nonzero retained word returns from the controller before
 keyboard movement dispatch. After that check, either the dialogue-state word or
 the topic-menu-state word being exactly one also returns before movement
 dispatch. These controller tests are separate from the attribute assignment
@@ -204,7 +205,8 @@ and special living states have separate dispatch branches.
 
 ### Idle animation requests
 
-The controller resets its idle counter to zero while attached to a rope or while
+The ordinary idle counter starts at zero in a freshly loaded executable.
+The controller resets it to zero while attached to a rope or while
 the current animation group is nonzero. This reset precedes the lockout test.
 With the normal BIOS clock, the clock measurement advances the counter once per
 accumulated 18 BIOS timer ticks, independently of the nominal animation tick
