@@ -225,6 +225,18 @@ sets the weapon-drawn flag and clears motion state to zero. A zero attribute byt
 23 directly sets that flag and clears motion state, without weapon cleanup.
 These motion-state writes do not replace the lifecycle selector.
 
+### Weapon cleanup
+
+Weapon cleanup restores the selected player's stored playback-default group,
+with modifier zero, when its current group is 91 or 129. Other actors and other
+current groups do not receive that request. Motion state 20 or 21 is reset to
+zero together with its companion motion byte, independently of the drawn flag.
+
+When the weapon-drawn flag is set, cleanup clears it and clears combat flag
+`0x04`. For the selected player it also sets the
+[health-candle show timer](hud.md#visibility) to 25 ticks. If the drawn flag was
+already clear, cleanup leaves the candle timer and combat flag unchanged.
+
 ## Dead actor default selection
 
 `IsDead` reads a runtime state selector rather than the health attribute. It
