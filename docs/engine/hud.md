@@ -402,3 +402,44 @@ After the 3D scene, later entries over earlier ones:
 6. Activation prompt, or item icon then count (or item name)
 7. Two additional bitmaps
 8. [Subtitles](subtitles.md), the dialogue topic menu and later layers
+
+
+## Logbook reading screen
+
+The installed log key opens the reading screen and clears the opening press.
+The screen uses `SYSTEM/LOGPAPER.GXA`, tiled vertically with its first copy at
+`-(scroll_offset % 480)` and the next at that position plus 480. Text starts at
+x 30, y 70 minus the scroll offset. Negative line origins are skipped; remaining
+glyph pixels clip to the viewport. Text retains its case.
+
+The reader suspends world updates. It saves the normal simulation timing state
+before entry and restores it with a fresh BIOS-clock baseline on return. Its
+rendering loop does not advance the simulation clock. Existing audio playback
+is not stopped by the reader.
+
+Home selects the top, End the bottom. Installed up/down bindings scroll ten
+pixels per BIOS-timer update. Either Page key or the installed A binding selects
+the shared fifty-pixel step. Page Up also supplies up; Page Down supplies down.
+The installed log key, Escape or installed D binding closes the reader. Closing
+waits for those controls to be released before gameplay resumes.
+
+`MENU.ROB` supplies two instances of `SCROLL.3D`. Their positions are
+`(-324,-212,362)` and `(-324,200,362)` with initial rotations `(0,512,0)`.
+The rotations apply the second axis, then the first, then the third. Each admitted
+up operation subtracts 20 from the third angle, or 100 for the large step; down
+adds the corresponding amount. Angles wrap modulo 2048. Home and End do not
+rotate the models. The screen uses the menu viewport projection and a zero camera.
+
+The single byte before a comma is converted to an integer font-table index;
+missing prefixes use index 7. Index 7 uses `FONTNORM.FNT` at width 640 and
+`FONTNORS.FNT` at smaller widths. Index 9 uses `FONTSEL.FNT` and `FONTSELS.FNT`.
+The large normal font has main alpha 140; the small normal font is changed to
+200 in the reader. The selected fonts use the configured selected main alpha,
+with the small selected font changed to 255. Text shadows are disabled here.
+
+Each physical stored line is an entry. An optional one-byte prefix followed by
+comma is removed before wrapping. Wrapping replaces the first space at or after
+byte 65, excluding the final byte, then begins the next search 66 bytes after
+the replaced space. Lines advance 12 pixels and each entry adds another 8.
+Maximum scrolling is `max(total_height - 340, 0)` and entry starts there.
+Home, End, up and down apply in that order, with each direction clamped separately.
