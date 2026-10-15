@@ -113,6 +113,11 @@ messages. The nonplayer decision stage runs only for death/state selector 6 and
 an actor that is not dead. This stage can select targets and
 consume random values.
 
+Selected-player combat processing calls two maintenance helpers with action
+`-1`. With the combat record in its freshly initialized state, the second
+helper returns false without invoking other services or changing actor or
+combat state.
+
 The selected player's drawing or sheathing state suspends action and cooldown
 maintenance. Otherwise a nonzero cooldown decreases by the shared nominal tick
 count, saturating at zero. With zero cooldown, action -1 does no attack work;
