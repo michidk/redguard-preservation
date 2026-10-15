@@ -54,6 +54,11 @@ The installed main-page entries are addressed by ordered index: Save is entry
 zero and Continue is entry five. Disabling an entry sets its grayed flag and
 moves selection away from it when necessary.
 
+Escape is processed after the key is released. On the main page, the selected
+player's death override also prevents Escape from resuming gameplay. This
+restriction applies to leaving the main page; Escape can still return from a
+submenu to its parent while the death override is active.
+
 ## Save and load pages
 
 Main action 1 opens Save on page 1. Its camera moves directly to `(336, 0, 0)` with fractional step `0.15`, without turning a page. Action 100 returns directly to the origin. Main action 2 opens Load on page 2 using the three-part camera sweep to the origin and a forward MB_PG01 turn delayed by four updates. Action 200 reverses that turn and repeats the sweep to the origin.
