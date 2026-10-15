@@ -99,6 +99,30 @@ nonplayer branches. The entry continuation
 is processed later inside the enabled main stage. Mask `0x01` does not suppress
 the separate native hook.
 
+### Fighting query
+
+`isFighting` searches the retained ordinary actor traversal for another actor
+whose combat target is the receiver. A candidate must have a combat record,
+its retained attacker-selection state must equal exactly one, and `IsDead`
+must return false. Combat construction and reinitialization clear that selection
+state to zero. This state is distinct from the combat action, maintenance phase
+and weapon-drawn flag.
+
+The search chooses the first candidate with the smallest rounded three-dimensional
+distance. Its initial distance bound is 65535 in Q8 coordinates, and replacement
+requires a strictly smaller distance. Candidates at that bound are excluded;
+equal distances preserve the earlier actor in traversal order. Position lookup
+uses each actor's effective query position, including its normal attachment or
+linked-position handling.
+
+When a candidate is selected, `isFighting` returns one only when the rounded
+horizontal distance to that candidate is strictly less than `[misc]
+in_combat_threshold` from [COMBAT.INI](../config/combat-ini.md), shifted left eight
+bits with 32-bit wrapping. Otherwise it returns zero. The horizontal comparison
+uses the candidate chosen by three-dimensional distance; it does not perform a
+second nearest-candidate search. Both distance calculations use the shared
+mixed-precision integer-distance calculation.
+
 ### Combat maintenance
 
 A newly constructed combat record has no target, an action selector of -1 and a

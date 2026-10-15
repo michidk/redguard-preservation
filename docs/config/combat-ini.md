@@ -70,7 +70,7 @@ Global parameters for the combat system.
 | `non_engaged_dist` | `100` | Distance threshold for non-engaged state |
 | `in_face_dist` | `100` | Distance threshold for in-face proximity |
 | `non_engaged_spacing` | `500` | Spacing between non-engaged combatants, in engine angles |
-| `in_combat_threshold` | `200` | Distance threshold to enter combat state, in units × 256 |
+| `in_combat_threshold` | `200` | Strict horizontal distance threshold for `isFighting`, shifted left eight bits at load |
 | `player_can_die` | `1` | Whether the player can be killed (`1` = yes) |
 | `cyrus_defend_interval` | `2` | Minimum frames between Cyrus defends |
 | `node_timer` | `120` | Timer value for combat node transitions |
