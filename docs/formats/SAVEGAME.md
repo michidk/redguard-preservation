@@ -95,6 +95,11 @@ little-endian words. Offsets are relative to the payload.
 | `0x0DC` | 4 | `u32` | fine_total | Whole finer-clock accumulator. |
 | `0x0E0` | 4 | `u32` | fine_scaled_total | Fine-tick accumulator with five fractional bits. |
 | `0x0E4` | 4 | `u32` | fine_scaled_increment | Last change in the scaled fine accumulator. |
+| `0x0E8` | 4 | `u32` | min_frame_rate | Retained minimum FPS setting. |
+| `0x0EC` | 4 | `u32` | max_frame_rate | Retained maximum FPS setting. |
+| `0x0F0` | 4 | `u32` | use_smooth_fps | Retained smoothed-FPS selection switch. |
+| `0x0F4` | 4 | `u32` | use_smooth_divisor | Retained movement-scale smoothing switch. |
+| `0x0F8` | 4 | `u32` | normal_rate_scaled | Retained normal frame rate multiplied by 256. |
 
 The two scaled totals advance by `next_scale`; their low eight and five bits
 retain the fractional remainders. Exposed timing can differ from the last
@@ -102,6 +107,7 @@ computed timing. Save restoration copies these fields directly, then captures
 the partial clock checkpoint used during subsequent resource preparation.
 The saved clock therefore includes fields omitted by a menu checkpoint,
 including smoothed FPS, the measurement remainder and startup countdown.
+It also retains the FPS settings rather than storing only their derived scale.
 See [FPS-derived frame scale](../engine/player.md#fps-derived-frame-scale)
 for measurement and checkpoint behavior. Other `SVGV` fields are retained state
 and must be preserved when editing a save.
