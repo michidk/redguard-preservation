@@ -222,6 +222,9 @@ The preliminary countdowns are unsigned 32-bit values in whole nominal-tick
 units. One countdown advances only while both queued-motion and falling states
 are zero. The other two advance on every controller call. Each nonzero
 countdown subtracts the nominal-tick increment with saturation at zero.
+These three countdowns are separate from the
+[selected-player support-history counter](#selected-player-fallback-support),
+which advances earlier in the ordinary actor update.
 
 The conditional countdown is processed before the pending action flag. A
 pending action with sliding state zero selects action 74 and invokes its action
