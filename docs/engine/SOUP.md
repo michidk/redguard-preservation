@@ -105,8 +105,9 @@ A newly constructed combat record has no target, an action selector of -1 and a
 zero cooldown. Combat construction clears the record before assigning its
 attribute-derived counters and attack metadata.
 
-For a nonplayer actor, the target/perception prepass returns false when combat
-flag mask 0x04 is clear or the target is absent. When maintenance reaches a
+The target/perception prepass returns false for the selected player before
+nonplayer perception processing. For a nonplayer actor, it returns false when
+combat flag mask 0x04 is clear or the target is absent. When maintenance reaches a
 combat record, it restores attribute 1 from attribute 119 before processing
 messages. The nonplayer decision stage runs only for death/state selector 6 and
 an actor that is not dead. This stage can select targets and
