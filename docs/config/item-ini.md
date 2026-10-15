@@ -133,6 +133,20 @@ selected player's weapon attribute.
 when the item system is open, a record is selected, and the invocation has an
 actor receiver. Otherwise it returns zero, which is also the compass's item ID.
 
+## Selected-player weapon validation
+
+Before ordinary actor traversal, the engine validates the selected player's
+weapon attribute against the open item system. A closed item system or absent
+invocation receiver leaves weapon state unchanged. Once admitted, validation
+uses the selected player, even if the supplied receiver is another actor.
+
+A valid weapon requires an animation state, execution outside the shell context,
+a nonzero weapon attribute, and a matching type-1 item with a positive owned
+count. If any of these conditions fails, the engine clears the selected player's
+weapon attribute and performs the normal weapon cleanup. Item visibility and
+inventory selection do not affect this check. The check does not acquire or
+select the configured default weapon.
+
 ## Item Catalog
 
 87 items are defined (IDs 0 through 86). Item 0 is always the compass.
