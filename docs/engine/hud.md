@@ -361,8 +361,8 @@ Opening the logbook screen stops it.
 
 ## Logbook reading layout and navigation
 
-The logbook reads nonempty physical lines from its stored text. CR and LF are
-line separators; repeated separators are skipped. A leading character followed
+The logbook reads physical lines from its stored text. CR and LF are line
+separators; after each record, consecutive separators are skipped. A leading character followed
 by a comma selects the entry style and is excluded from the entry text.
 
 Text wrapping searches for a space starting at byte offset 65. It replaces the
