@@ -92,7 +92,10 @@ body.
 
 The native hook precedes the ordinary entry/task/main sequence. When the task
 system is enabled and no unpaused task exists, combat processing follows the
-hook for actors with combat state outside shell execution. The entry continuation
+hook for actors with combat state outside shell execution. This includes the
+selected player; the wrapper does not restrict combat processing to map actors
+or exclude the selected actor. Combat maintenance applies its own player and
+nonplayer branches. The entry continuation
 is processed later inside the enabled main stage. Mask `0x01` does not suppress
 the separate native hook.
 
