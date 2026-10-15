@@ -168,6 +168,40 @@ The diagonal case uses its explicit value rather than indexing an extra
 endpoint. Directly rounding a continuous `atan2` angle produces different
 results.
 
+## Ordinary controller dispatch
+
+The selected player's native controller runs within the ordinary script stage.
+Default selection, ordinary animation advancement, and the ordinary default
+request precede that stage. Queued and falling motion also precede the script
+stage. Animation-based movement continuation and ground response follow it.
+Returning from the controller does not skip those later ordinary stages.
+
+Any nonzero retained `LockoutPlayer` word returns from the controller before
+keyboard movement dispatch. After that check, either the dialogue-state word or
+the topic-menu-state word being exactly one also returns before movement
+dispatch. These controller tests are separate from the attribute assignment
+performed by [`LockoutPlayer`](hud.md#shared-rules).
+
+For an ordinary grounded player with the sword sheathed, no combat-assist state,
+no rope attachment, and no jump or view input, the held walk/run key inverts the
+retained walk-mode choice:
+
+| Walk mode | Walk/run key held | Forward helper |
+|---|---|---|
+| Zero | No | Run |
+| Zero | Yes | Walk |
+| Nonzero | No | Walk |
+| Nonzero | Yes | Run |
+
+Walk mode comes from `[CYRUS] WALK_MODE` in `SYSTEM.INI`; Tab toggles it.
+Forward input takes priority over backward input when both are held. With no
+forward input, backward input takes its separate dispatch branch.
+The view key returns before this ordinary non-combat movement dispatch.
+
+The helper selection does not bypass the helper's motion, support, animation,
+or movement-marker tests. Water states, drawn weapons, rope motion, jumping,
+and special living states have separate dispatch branches.
+
 ## Forward-walking startup
 
 Before startup acceleration, an ordinary forward walk requests its selected
