@@ -406,7 +406,7 @@ When a Numeric (`0x07`) or NumericAlt (`0x16`) opcode appears in PARAMETER mode,
 |---|---|---|
 | `ACTIVATE`, `AddLog`, `AmbientRtx`, `menuAddItem`, `RTX`, `rtxAnim`, `RTXp`, `RTXpAnim`, `TorchActivate` | Dialogue key | 4-byte ASCII string (RTX lookup key) |
 | `LoadWorld` | Map ID | `i32` map identifier |
-| `ActiveItem`, `AddItem`, `DropItem`, `HandItem`, `HaveItem`, `SelectItem`, `ShowItem`, `ShowItemNoRtx` | Item ID | `i32` item identifier |
+| `AddItem`, `DropItem`, `HandItem`, `HaveItem`, `SelectItem`, `ShowItem`, `ShowItemNoRtx` | Item ID | `i32` item identifier |
 | All others | Integer | `i32` signed integer |
 
 `ACTIVATE` and `TorchActivate` receive the dialogue key as a packed 32-bit

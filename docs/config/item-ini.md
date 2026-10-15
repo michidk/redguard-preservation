@@ -107,6 +107,20 @@ An absent `start_item_select` selects the first loaded item record. A supplied
 value selects its matching record. This initialization selection does not filter
 by owned count or visibility.
 
+## Script count and selection queries
+
+`HaveItem(id)` returns the item's owned count, not a Boolean. It returns zero
+when the item system is closed. With an open item system, an unknown ID reports
+an item lookup error.
+
+`SelectItem(id)` selects the matching record without checking its owned count,
+visibility, or type. It reports an error for an unknown ID. It does not assign the
+selected player's weapon attribute.
+
+`ActiveItem()` takes no script arguments. It returns the selected record's ID
+when the item system is open, a record is selected, and the invocation has an
+actor receiver. Otherwise it returns zero, which is also the compass's item ID.
+
 ## Item Catalog
 
 87 items are defined (IDs 0 through 86). Item 0 is always the compass.
