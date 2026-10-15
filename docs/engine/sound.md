@@ -369,21 +369,30 @@ its range; the script must call it again to resume.
 
 ## Mixer gain and pan law
 
-The statically linked Miles mixer turns a sample's volume and pan into two
-linear scale factors whenever either changes:
+The statically linked Miles mixer derives channel scaling from the sample's
+volume, pan and PCM sample width whenever volume or pan changes.
 
-- Volume and pan are clamped to 0–127. The effective volume is
-  `trunc(volume × driver_master / 127)`, clamped to 0–127; the driver master
-  starts at 127 and the game never changes it, so it equals the volume.
-- A non-zero effective volume `v` scales samples by `(v + 1) / 128`; zero is
-  silent. Loudness is therefore linear in volume.
-- Pan uses a 128-entry table `T`: `T[p] = 2p` for `p` 0–62 and `T[p] = 128`
-  for 63–127. One output side scales by `T[127 − pan] / 128`, the other by
-  `T[pan] / 128`. At the centre (64) both sides play at full level; towards
-  either extreme the far side fades linearly to silence while the near side
-  stays at full level. By Miles' convention the `T[127 − pan]` side is left.
+Volume and pan are clamped to 0–127. The effective volume is
+`v = clamp(trunc(volume × driver_master / 127), 0, 127)`. The driver master
+starts at 127 and the game never changes it, so `v` equals the sample volume.
 
-The pan table contains `0, 2, 4, …, 124`, followed by `128` from entry 63.
+Pan uses a 128-entry table `T`: `T[p] = 2p` for `p` 0–62 and `T[p] = 128`
+for 63–127. The left side uses `T[127 − pan]`; the right side uses `T[pan]`.
+At pan 64 both entries are 128. Towards either extreme the far side fades
+while the near side retains its centre level.
+
+For 8-bit PCM, the mixer builds lookup tables. Set `a = v + 1` when `v` is
+nonzero, otherwise `a = 0`. For a sample amplitude `s` expressed in signed
+16-bit units and the corresponding pan-table value `t`, the table contribution
+is `floor(floor(s × a / 128) × t / 128)`. At the centre, nonzero volume
+therefore scales by `(v + 1) / 128`.
+
+For 16-bit PCM, the mixer computes a scalar coefficient for each side:
+`c = floor(t × v / 127)`. A signed sample contributes `floor(s × c / 128)`
+to that channel. The same coefficient scaling applies when the mixer advances
+the source at a different playback rate. There is no nonzero-volume increment
+in this path. At the centre, volumes 0–126 scale by `v / 128`; volume 127
+has unity gain. A mono sample supplies both output channels.
 
 ## SURFACE.INI remap
 
