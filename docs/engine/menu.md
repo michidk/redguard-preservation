@@ -64,6 +64,11 @@ Action 101 asks for `Game Description` before creating a save. Action 102 opens 
 
 The reserved quick-save slot is zero, with description `Quick Save Game`.
 The reserved automatic-save slot is one, with description `Redguard AutoSave`.
+When Quit closes the menu outside the startup context, the menu prepares this
+automatic save. With the selected-player death override active, preparation
+removes the reserved slot's `SAVEGAME.SAV` instead of writing it. Otherwise it
+calls the save writer only when the retained gameplay-thumbnail buffer exists.
+This path runs before the menu returns to its caller. Startup Quit skips it.
 Quick Save reads scan code 67, F9, directly rather than an action binding. It
 clears that key state when latching a request near the end of the world loop.
 With `[debug] final_version` enabled, the following loop consumes the pending
