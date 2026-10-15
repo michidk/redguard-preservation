@@ -308,6 +308,8 @@ snapshot clears the RTX cache, clears dialogue records and their text buffers,
 then stops all sample channels before restoring actor records. After restoring
 the world records, it sets the shared sample-reset flag. Per-world snapshot
 restoration follows [player initialization](player.md#initial-player-animation-setup).
+The next sound-maintenance invocation clears this flag before testing the
+periodic-reset threshold. The flag is not retained until a sound task consumes it.
 
 The runtime menu-state word has an initial value of zero.
 `MenuBegin` sets it to one; `MenuEnd` clears it.
