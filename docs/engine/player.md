@@ -22,6 +22,10 @@ for runtime storage. The requested heading is wrapped modulo 2048; the marker's
 auxiliary byte does not supply a heading. The player actor uses the map's `CYRUS`
 actor definition, including its attributes and animation data.
 
+The two standalone player actors use the shared actor allocator. Their motion
+state, rope attachment, torch-burning counter and weapon-drawn flag start at
+zero. Model and animation setup are separate from this allocation state.
+
 Initial placement and ground settling are separate. Ground settling can change
 the player's Y coordinate, so the marker's Y coordinate is not a permanent
 ground height.

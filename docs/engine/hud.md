@@ -169,6 +169,20 @@ decimal integer, left-aligned with its top-left at
 game the gold count is 53 (`player_total[2] = 52` plus one from
 `start_item_list`), so the gold icon shows `53`.
 
+### Inventory ownership
+
+The item system initializes each count from `player_total[x]`, then adds one
+of each ID in `start_item_list` through the acquisition rules. Counts and the
+selected item belong to the game session and survive ordinary world changes.
+
+`HaveItem` returns the current player count. `AddItem` returns zero. A positive
+addition is capped by both `total[x] - count` and `player_max[x] - count`.
+It succeeds only when all recursively required items are owned. A successful
+addition performs the configured drop/add lists before incrementing the count.
+A nonpositive addition or an exhausted cap leaves the count unchanged.
+`SelectItem` selects the requested defined item without checking ownership or
+visibility; the next item-overlay update repairs an exhausted selection.
+
 ### Selection
 
 - The initial selection is ITEM.INI `start_item_select` (shipped 1, the
