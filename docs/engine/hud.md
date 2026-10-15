@@ -359,6 +359,29 @@ When a new logbook entry is written and the icon is not already playing,
 frame per rendered frame, then disappears. It is not hidden by lockout.
 Opening the logbook screen stops it.
 
+## Logbook reading layout and navigation
+
+The logbook reads nonempty physical lines from its stored text. CR and LF are
+line separators; repeated separators are skipped. A leading character followed
+by a comma selects the entry style and is excluded from the entry text.
+
+Text wrapping searches for a space starting at byte offset 65. It replaces the
+first matching space with a line separator, then resumes searching 65 bytes
+after that replacement. The final byte is never replaced. Long words remain
+intact. Every entry occupies 12 pixels per wrapped line plus an 8-pixel gap.
+The first line starts at y = 70 minus the scroll offset.
+
+The reading area is 340 pixels high. The maximum scroll offset is the sum of
+entry heights minus 340, clamped to zero. Opening the screen initializes the
+offset to this maximum, showing the newest text.
+
+Home selects offset zero; End selects the maximum. Ordinary up/down scrolling
+moves 10 pixels per screen update. Page Up and Page Down request the corresponding
+direction and select a shared 50-pixel step for that update. Home is processed
+before End, then upward scrolling before downward scrolling. Each direction
+clamps independently to the available range. Exit is tested after these changes.
+The screen uses `SYSTEM\LOGPAPER.GXA` and two `SCROLL.3D` objects.
+
 ## Toggle notices
 
 Tab (scan code 15) toggles walk mode and F7 (scan code 65) toggles
