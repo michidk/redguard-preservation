@@ -183,9 +183,16 @@ the topic-menu-state word being exactly one also returns before movement
 dispatch. These controller tests are separate from the attribute assignment
 performed by [`LockoutPlayer`](hud.md#shared-rules).
 
-For an ordinary grounded player with the sword sheathed, no combat-assist state,
-no rope attachment, and no jump or view input, the held walk/run key inverts the
-retained walk-mode choice:
+The controller combat predicate is false when the actor has no combat record.
+With a combat record, it is true exactly when combat flags mask `0x04` is set.
+This is the same flag set by
+[`beginCombat`](animation.md#combat-entry), rather than a separate controller
+assist field. Combat-record allocation and reinitialization explicitly clear
+the flags byte before the remaining combat setup.
+
+For an ordinary grounded player with the sword sheathed, combat flag `0x04`
+clear or no combat record, no rope attachment, and no jump or view input, the
+held walk/run key inverts the retained walk-mode choice:
 
 | Walk mode | Walk/run key held | Forward helper |
 |---|---|---|
