@@ -145,6 +145,21 @@ Scripts drive weapon state transitions through these SOUP functions:
 
 Additional runtime state tracked per actor: `hand_pos.vx/vy/vz`, `hand_angle.vx/vy/vz`, `hand_type`, `hand_length`, `weapon_drawn`, `hand_item`.
 
+## Held-item assignment
+
+`HandItem(id)` is separate from inventory selection and weapon drawing. It rejects
+assignment while the receiver is in deep water, on an edge, in the air, or holding
+a weapon. It also requires an open item system, a receiver, and execution outside
+the shell context. Deep water means stored surface 2 or 4; edge motion states are
+10 through 19. The in-air predicate includes nonzero falling, sliding, or queued
+motion, and motion states 27 through 29.
+
+After admission, the requested ID must resolve to an item record. No owned-count,
+visibility, or item-type check is made. Success stores the low eight bits of the
+ID in the actor's held-item field. It does not change the selected inventory item,
+assign the weapon attribute, or immediately position or draw an attachment. The
+function returns zero both after assignment and after a rejected admission.
+
 ## Data Flow Summary
 
 Animation playback resolves the model and frame first. Item attachment then
