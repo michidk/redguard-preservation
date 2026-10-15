@@ -431,11 +431,8 @@ adds the corresponding amount. Angles wrap modulo 2048. Home and End do not
 rotate the models. The screen uses the menu viewport projection and a zero camera.
 
 The single byte before a comma is converted to an integer font-table index;
-missing prefixes use index 7. Index 7 uses `FONTNORM.FNT` at width 640 and
-`FONTNORS.FNT` at smaller widths. Index 9 uses `FONTSEL.FNT` and `FONTSELS.FNT`.
-The large normal font has main alpha 140; the small normal font is changed to
-200 in the reader. The selected fonts use the configured selected main alpha,
-with the small selected font changed to 255. Text shadows are disabled here.
+missing prefixes use index 7. The reader follows the font-table entry's small-font link directly. Index 7 therefore uses `FONTNORS.FNT` with main alpha
+200; index 9 uses `FONTSELS.FNT` with main alpha 255. Text shadows are disabled here.
 
 Each physical stored line is an entry. An optional one-byte prefix followed by
 comma is removed before wrapping. Wrapping replaces the first space at or after
