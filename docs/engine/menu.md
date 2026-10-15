@@ -73,7 +73,9 @@ Quick Save reads scan code 67, F9, directly rather than an action binding. It
 clears that key state when latching a request near the end of the world loop.
 With `[debug] final_version` enabled, the following loop consumes the pending
 request before ordinary world processing, calls Quick Save, then clears the
-request.
+request. Menu requests and the Quick Save request are latched independently, so
+both can be pending together. The next loop handles the menu request first. If
+the menu returns without ending the world loop, Quick Save is consumed afterward.
 
 Before preparing a slot, the save writer requires at least 10 MiB of available
 disk space. Below that threshold it displays the failure message and returns
