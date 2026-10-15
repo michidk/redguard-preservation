@@ -303,6 +303,12 @@ their sample handles. These operations precede stopping all sample channels
 and setting the shared reset flag. It then clears the ownership byte of every
 node in every loaded walk-node map, regardless of the owning actor.
 
+Restoring saved world state from either `SAVEGAME.SAV` or a per-world `.TSG`
+snapshot clears the RTX cache, clears dialogue records and their text buffers,
+then stops all sample channels before restoring actor records. After restoring
+the world records, it sets the shared sample-reset flag. Per-world snapshot
+restoration follows [player initialization](player.md#initial-player-animation-setup).
+
 The runtime menu-state word has an initial value of zero.
 `MenuBegin` sets it to one; `MenuEnd` clears it.
 The SOUP `menuProc` task activates this state when it is inactive and clears
