@@ -380,29 +380,6 @@ moves 10 pixels per screen update. Page Up and Page Down request the correspondi
 direction and select a shared 50-pixel step for that update. Home is processed
 before End, then upward scrolling before downward scrolling. Each direction
 clamps independently to the available range. Exit is tested after these changes.
-The screen uses `SYSTEM\LOGPAPER.GXA` and two `SCROLL.3D` objects.
-
-## Toggle notices
-
-Tab (scan code 15) toggles walk mode and F7 (scan code 65) toggles
-auto-defend; neither key is configurable in KEYS.INI. Each writes SYSTEM.INI
-`[CYRUS] WALK_MODE` or `[CYRUS] AUTO_DEFEND` and shows an RTX string for 24
-ticks, centred on x = 320: walk mode (`#WON` / `#WOF`) with its top at
-y = 10, auto-defend (`#DON` / `#DOF`) at y = 30.
-
-## Draw order
-
-After the 3D scene, later entries over earlier ones:
-
-1. Compass
-2. Candle, then its health number
-3. Logbook icon
-4. Walk-mode and auto-defend notices
-5. Power-up slot 1, slot 2
-6. Activation prompt, or item icon then count (or item name)
-7. Two additional bitmaps
-8. [Subtitles](subtitles.md), the dialogue topic menu and later layers
-
 
 ## Logbook reading screen
 
@@ -434,9 +411,23 @@ The single byte before a comma is converted to an integer font-table index;
 missing prefixes use index 7. The reader follows the font-table entry's small-font link directly. Index 7 therefore uses `FONTNORS.FNT` with main alpha
 200; index 9 uses `FONTSELS.FNT` with main alpha 255. Text shadows are disabled here.
 
-Each physical stored line is an entry. An optional one-byte prefix followed by
-comma is removed before wrapping. Wrapping replaces the first space at or after
-byte 65, excluding the final byte, then begins the next search 66 bytes after
-the replaced space. Lines advance 12 pixels and each entry adds another 8.
-Maximum scrolling is `max(total_height - 340, 0)` and entry starts there.
-Home, End, up and down apply in that order, with each direction clamped separately.
+## Toggle notices
+
+Tab (scan code 15) toggles walk mode and F7 (scan code 65) toggles
+auto-defend; neither key is configurable in KEYS.INI. Each writes SYSTEM.INI
+`[CYRUS] WALK_MODE` or `[CYRUS] AUTO_DEFEND` and shows an RTX string for 24
+ticks, centred on x = 320: walk mode (`#WON` / `#WOF`) with its top at
+y = 10, auto-defend (`#DON` / `#DOF`) at y = 30.
+
+## Draw order
+
+After the 3D scene, later entries over earlier ones:
+
+1. Compass
+2. Candle, then its health number
+3. Logbook icon
+4. Walk-mode and auto-defend notices
+5. Power-up slot 1, slot 2
+6. Activation prompt, or item icon then count (or item name)
+7. Two additional bitmaps
+8. [Subtitles](subtitles.md), the dialogue topic menu and later layers
