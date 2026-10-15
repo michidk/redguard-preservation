@@ -245,6 +245,7 @@ Weapon cleanup restores the selected player's stored playback-default group,
 with modifier zero, when its current group is 91 or 129. Other actors and other
 current groups do not receive that request. Motion state 20 or 21 is reset to
 zero together with its companion motion byte, independently of the drawn flag.
+The companion byte is separate from motion direction.
 
 When the weapon-drawn flag is set, cleanup clears it and clears combat flag
 `0x04`. For the selected player it also sets the
