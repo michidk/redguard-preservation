@@ -221,6 +221,10 @@ The `type` field identifies when the taunt fires:
 | `rtx_label` | string | Four-byte label key into `ENGLISH.RTX`, preserved literally including `&NNN` spellings |
 | `animation` | integer | Combat animation offset; nonzero values become group `152 + animation`, while `0` disables accompanying animation |
 
+Combat taunt selection is skipped when the actor satisfies `IsDead`, including
+the selected player's death override. Begin-combat writes lifecycle selector 6
+before this check; the selected-player override remains independent.
+
 Begin-combat, hurt, death, and opponent-unarmed selection scans the actor's
 list in order. Only entries with the requested type and a nonzero RTX label
 participate. Each matching entry becomes the current selection and consumes one
