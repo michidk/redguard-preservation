@@ -337,8 +337,10 @@ through 32 inclusive.
 
 Bit `0x04` dispatches states 10 through 19 to a selected-player-only response
 handler. For a nonplayer actor that handler returns without changing actor
-state. Outside that range, states 20 and 21 select the combat response; other
-states select the ordinary motion and ground response. This dispatch does not
+state. Outside that range, states 20 and 21 run
+[weapon-draw admission](#weapon-draw-admission), including its cleanup branch.
+They do not also run the ordinary motion and ground response. Other states
+select that ordinary response. This dispatch does not
 suppress the preceding support query or subsequent eligible body contacts.
 
 Before support, ordinary nonplayer collision runs the forward obstacle wrapper,
