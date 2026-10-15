@@ -169,6 +169,20 @@ decimal integer, left-aligned with its top-left at
 game the gold count is 53 (`player_total[2] = 52` plus one from
 `start_item_list`), so the gold icon shows `53`.
 
+### Inventory ownership
+
+The item system initializes each count from `player_total[x]`, then adds one
+of each ID in `start_item_list` through the acquisition rules. Counts and the
+selected item belong to the game session and survive ordinary world changes.
+
+`HaveItem` returns the current player count. `AddItem` returns zero. A positive
+addition is capped by both `total[x] - count` and `player_max[x] - count`.
+It succeeds only when all recursively required items are owned. A successful
+addition performs the configured drop/add lists before incrementing the count.
+A nonpositive addition or an exhausted cap leaves the count unchanged.
+`SelectItem` selects the requested defined item without checking ownership or
+visibility; the next item-overlay update repairs an exhausted selection.
+
 ### Selection
 
 - The initial selection is ITEM.INI `start_item_select` (shipped 1, the
@@ -274,6 +288,18 @@ games. Receiving item 0 does not set it. This differs from the ITEM.INI
 comment that giving the player item 0 "will automatically turn on the compass
 display".
 
+Item use retains a consumed-use latch. The item overlay clears it when the
+Activate/Attack input is released. An item-use call leaves the latch untouched
+when lockout is 1 or the selected player is on an edge, or when the latch is
+already set. Otherwise it sets the latch before testing item-system readiness
+and the remaining actor gates. Item use requires the selected player, ordinary
+rather than shell execution, water state other than 2 or 4, no held weapon,
+no climbing or rope state, and no burning torch. Climbing and rope predicates
+require an initialized item system and an animation state; they recognize actor
+states 33/34 or animation groups 149/150. An owned item 0 then toggles the
+compass flag. An unowned item cannot toggle it. Holding the use input does not
+repeat the accepted toggle.
+
 The frame is
 
 ```text
@@ -312,12 +338,78 @@ gauntlet, frame 1 shield) at `(game_xco1, game_yco1)` and
   id matches.
 - Slot contents are stored in save games.
 
+## Script logbook entries
+
+`AddLog(tag)` accepts a four-byte RTX label packed into an integer in
+little-endian byte order and returns 0. It checks a 400-slot tag table before
+looking up the RTX entry. A matching tag suppresses the call. Otherwise the
+first zero slot receives the tag, even when lookup or file opening later
+fails. Zero is the empty-slot sentinel. When all slots are occupied, an
+unmatched tag is not retained and the call continues.
+
+A found RTX entry appends its text to `LOGBOOK.TXT`. A missing entry writes
+nothing. Once the log file is opened, the engine writes the text, closes the
+file and starts the logbook icon without checking the write result. A suppressed
+tag or failed file open leaves the icon unchanged.
+
 ## Logbook icon
 
 When a new logbook entry is written and the icon is not already playing,
 `SCROLL.GXA` plays frames 0–31 once at `(logbook_xco, logbook_yco)`, one
 frame per rendered frame, then disappears. It is not hidden by lockout.
 Opening the logbook screen stops it.
+
+## Logbook reading layout and navigation
+
+The logbook reads physical lines from its stored text. CR and LF are line
+separators; after each record, consecutive separators are skipped. A leading character followed
+by a comma selects the entry style and is excluded from the entry text.
+
+Text wrapping searches for a space starting at byte offset 65. It replaces the
+first matching space with a line separator, then resumes searching 66 bytes
+after that replacement. The final byte is never replaced. Long words remain
+intact. Every entry occupies 12 pixels per wrapped line plus an 8-pixel gap.
+The first line starts at y = 70 minus the scroll offset.
+
+The reading area is 340 pixels high. The maximum scroll offset is the sum of
+entry heights minus 340, clamped to zero. Opening the screen initializes the
+offset to this maximum, showing the newest text.
+
+Home selects offset zero; End selects the maximum. Ordinary up/down scrolling
+moves 10 pixels per screen update. Page Up and Page Down request the corresponding
+direction and select a shared 50-pixel step for that update. Home is processed
+before End, then upward scrolling before downward scrolling. Each direction
+clamps independently to the available range. Exit is tested after these changes.
+
+## Logbook reading screen
+
+The installed log key opens the reading screen and clears the opening press.
+The screen uses `SYSTEM/LOGPAPER.GXA`, tiled vertically with its first copy at
+`-(scroll_offset % 480)` and the next at that position plus 480. Text starts at
+x 30, y 70 minus the scroll offset. Negative line origins are skipped; remaining
+glyph pixels clip to the viewport. Text retains its case.
+
+The reader suspends world updates. It saves the normal simulation timing state
+before entry and restores it with a fresh BIOS-clock baseline on return. Its
+rendering loop does not advance the simulation clock. Existing audio playback
+is not stopped by the reader.
+
+Home selects the top, End the bottom. Installed up/down bindings scroll ten
+pixels per BIOS-timer update. Either Page key or the installed A binding selects
+the shared fifty-pixel step. Page Up also supplies up; Page Down supplies down.
+The installed log key, Escape or installed D binding closes the reader. Closing
+waits for those controls to be released before gameplay resumes.
+
+`MENU.ROB` supplies two instances of `SCROLL.3D`. Their positions are
+`(-324,-212,362)` and `(-324,200,362)` with initial rotations `(0,512,0)`.
+The rotations apply the second axis, then the first, then the third. Each admitted
+up operation subtracts 20 from the third angle, or 100 for the large step; down
+adds the corresponding amount. Angles wrap modulo 2048. Home and End do not
+rotate the models. The screen uses the menu viewport projection and a zero camera.
+
+The single byte before a comma is converted to an integer font-table index;
+missing prefixes use index 7. The reader follows the font-table entry's small-font link directly. Index 7 therefore uses `FONTNORS.FNT` with main alpha
+200; index 9 uses `FONTSELS.FNT` with main alpha 255. Text shadows are disabled here.
 
 ## Toggle notices
 
