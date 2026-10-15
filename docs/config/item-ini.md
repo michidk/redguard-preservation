@@ -69,8 +69,8 @@ Paths, script names, and RTX labels retain their spelling and capitalization.
 | Field | Description |
 |---|---|
 | `add_item_list[x]` | List of item IDs to add to the player when this item is picked up. |
-| `drop_add_item_list[x]` | List of item IDs to drop into the world when this item is picked up. |
-| `remove_drop_item_list[x]` | List of item IDs to remove from the world when this item is dropped. |
+| `drop_add_item_list[x]` | List of item IDs passed to `DropItem` when this item is acquired; each entry requests one unit. |
+| `remove_drop_item_list[x]` | Owned counts recursively cleared by `DropItem` while the dropped item still has a nonzero count. |
 | `required_item_list[x]` | List of item IDs the player must already have before picking up this item. |
 | `drop_use_item_list[x]` | List of item IDs to drop into the world when this item is used. |
 
@@ -106,6 +106,18 @@ owned count increases last. The quantity is not recalculated after list effects.
 An absent `start_item_select` selects the first loaded item record. A supplied
 value selects its matching record. This initialization selection does not filter
 by owned count or visibility.
+
+### Removal during acquisition
+
+`DropItem(id, quantity)` does nothing when the item system is closed or the
+requested quantity is nonpositive. Otherwise it subtracts at most the item's
+current owned count. Flag bit `0x01` then clears that count completely.
+
+The removal-list helper runs after this subtraction and flag handling. It
+traverses `remove_drop_item_list[id]` only if the item's remaining count is
+nonzero. For each listed item, it recursively applies the same helper and then
+clears that listed item's owned count. If the dropped item's count has reached
+zero, its removal list is not traversed.
 
 ## Script count and selection queries
 
