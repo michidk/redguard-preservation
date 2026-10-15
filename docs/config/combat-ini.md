@@ -189,8 +189,9 @@ This runtime rule differs from parsing the INI as a collection of sparse section
 A non-combo attack loads one move. A combo reads its referenced moves in the
 order of `attack00`, `attack01`, and `attack02`, using `num_attacks` as the count.
 Each loaded move adds 97 to its configured `animation` value to obtain the actor
-animation group. The attack's range combines the minimum of its move minimum
-ranges and the maximum of its move maximum ranges.
+animation group. A single attack copies its move's minimum and maximum ranges.
+A nonempty combo starts its minimum at 65,535 and maximum at -1, then lowers the
+minimum and raises the maximum for each referenced move.
 
 ## Actor Move Selection
 
