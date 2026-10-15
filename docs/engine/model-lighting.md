@@ -20,6 +20,21 @@ quantization. Palette selection uploads the complete 256-entry RGB table to
 texture unit zero. Palette-zero texels retain their RGB through filtering even
 when the material enables chroma rejection.
 
+## Palette ownership
+
+Indexed textures use the palette table selected for the draw, including textures
+with an embedded BSI `CMAP`. Reading that record does not select or upload a new
+palette. World rendering uses the [converted world COL table](../formats/COL.md#glide-world-palette-conversion),
+so its six-bit channel precision applies before model texture filtering as well
+as terrain filtering. The book menu selects a separate interface palette and
+restores the world palette when closing. Sky drawing temporarily selects its
+own palette and restores the previously selected table afterward.
+
+Indexed solid-color model faces resolve their color index through the selected
+palette when the runtime model is prepared. The resolved RGB is stored in the
+runtime face, rather than looked up again for every draw. Direct packed-color
+faces follow their separate decoding path.
+
 ## Placed flat drawing
 
 Ordinary MPSF flats use point-sampled textures and palette chroma-key rejection.
