@@ -55,6 +55,18 @@ Save displays `<NEW SAVE GAME>` as its first selectable row on the first list pa
 
 Action 101 asks for `Game Description` before creating a save. Action 102 opens the same input dialog with the existing description before overwriting that save. The input accepts at most 64 characters, requires nonempty text to confirm, and permits Escape to cancel. New manual saves use the first free directory number from 2 through 299. The Save list excludes the slot numbered zero; Load may include it. Delete on an existing save opens a `DELETE GAME?` confirmation that includes its description.
 
+The reserved quick-save slot is zero, with description `Quick Save Game`.
+The reserved automatic-save slot is one, with description `Redguard AutoSave`.
+Quick Save reads scan code 67, F9, directly rather than an action binding. It
+clears that key state when latching a request near the end of the world loop.
+With `[debug] final_version` enabled, the following loop consumes the pending
+request before ordinary world processing, calls Quick Save, then clears the
+request.
+
+Before preparing a slot, the save writer requires at least 10 MiB of available
+disk space. Below that threshold it displays the failure message and returns
+without preparing the slot or writing `SAVEGAME.SAV`. Equality passes the check.
+
 The main page and the second surface of each save/load page receive runtime gameplay snapshots. The image begins at texel row 33, spans the 256-texel surface width and is 192 rows high. Save's new-save row shows the current gameplay snapshot; existing rows show their stored snapshot. Load previews the selected save, and selecting it also replaces the main-page snapshot before leaving the menu.
 
 ## Options and settings pages
