@@ -311,6 +311,16 @@ restoration follows [player initialization](player.md#initial-player-animation-s
 The next sound-maintenance invocation clears this flag before testing the
 periodic-reset threshold. The flag is not retained until a sound task consumes it.
 
+Saved object state retains native task invocation counters and private state
+words. Existing-task dispatch restores those words and derives elapsed input
+from the counter and current frame scale. It does not initialize a restored
+slot as a new call. With nonzero elapsed and a clear sample-reset flag,
+`AmbientSound` follows its usual remembered-sample status path.
+`RTX` performs its initial label lookup only with zero elapsed and no retained
+dialogue record. `RTXp` requires zero elapsed and a clear start marker for that
+lookup. A resumed started call queries its shared dialogue record without
+recreating the line.
+
 The runtime menu-state word has an initial value of zero.
 `MenuBegin` sets it to one; `MenuEnd` clears it.
 The SOUP `menuProc` task activates this state when it is inactive and clears
