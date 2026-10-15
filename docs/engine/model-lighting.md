@@ -35,6 +35,12 @@ palette when the runtime model is prepared. The resolved RGB is stored in the
 runtime face, rather than looked up again for every draw. Direct packed-color
 faces follow their separate decoding path.
 
+World entry installs and selects the converted destination palette before
+preparing its ROB archive. Indexed solid faces in that archive therefore retain
+the converted world RGB, including black palette index zero, before model
+lighting. Loading-progress drawing temporarily selects the interface palette
+and restores the renderer-selected palette before model preparation continues.
+
 ## Placed flat drawing
 
 Ordinary MPSF flats use point-sampled textures and palette chroma-key rejection.
