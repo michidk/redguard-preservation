@@ -56,6 +56,8 @@ moves selection away from it when necessary.
 
 ## Save and load pages
 
+Existing saves are ordered by the filesystem modification time of `SAVEGAME.SAV`, newest first. Equal timestamps retain ascending save-directory number order.
+
 Main action 1 opens Save on page 1. Its camera moves directly to `(336, 0, 0)` with fractional step `0.15`, without turning a page. Action 100 returns directly to the origin. Main action 2 opens Load on page 2 using the three-part camera sweep to the origin and a forward MB_PG01 turn delayed by four updates. Action 200 reverses that turn and repeats the sweep to the origin.
 
 Save displays `<NEW SAVE GAME>` as its first selectable row on the first list page, followed by eight existing saves. Subsequent list pages contain nine existing saves. Load displays nine existing saves per list page. Rows are addressed by their ordered entry index and list-page offset, not by action alone: existing Save rows share action 102, and Load rows share action 202. Missing saves produce empty, disabled rows. Slot descriptions are copied into menu labels with a limit of forty characters.
