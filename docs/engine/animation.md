@@ -270,6 +270,11 @@ combat state when attribute byte 14 is nonzero. This state is separate from the
 animation group's playback cursor and from the actor's attribute table. The combat
 record's death-animation selection starts at zero; constructing the record does
 not copy attribute byte 44 into that selection.
+A newly allocated combat record receives the next combat index. Reinitializing
+an existing record retains its index. The target starts absent, the action
+selector starts at -1, and the cooldown starts at zero. Move bindings follow
+[COMBAT.INI actor move selection](../config/combat-ini.md#actor-move-selection).
+
 
 Ordinary cell and persistent actor allocation clears the actor record before
 common initialization. The death selector and object-update exclusion therefore

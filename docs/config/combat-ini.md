@@ -179,6 +179,19 @@ Each `[defendNN]` section defines one defense move. There are 5 sections (`defen
 
 The five shipped defenses correspond to: default (`defend00`), low (`defend01`), right (`defend02`), left (`defend03`), and high (`defend04`).
 
+## Actor Move Selection
+
+Combat initialization binds nine attack slots from actor attribute bytes 70
+through 78. Each nonzero byte selects the attack record with that index; zero
+leaves the corresponding slot empty. An empty attack slot does not prevent later
+attack slots from being populated.
+
+Four defense slots use an attribute cursor starting at byte 79. A nonzero byte
+selects the defense record with that index and advances the cursor. A zero byte
+leaves the slot empty without advancing the cursor, so all remaining defense
+slots also stay empty. Defense selection therefore uses only the nonzero prefix
+of attribute bytes 79 through 82. A zero selector does not select `defend00`.
+
 ## `[tauntNN]` Sections
 
 Each `[tauntNN]` section defines one combat voice line or audio cue. There are 379 sections with indices spanning 00–599, with large gaps between combatant blocks.
