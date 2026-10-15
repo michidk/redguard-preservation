@@ -99,6 +99,13 @@ nonplayer branches. The entry continuation
 is processed later inside the enabled main stage. Mask `0x01` does not suppress
 the separate native hook.
 
+### PlayerStand query
+
+`PlayerStand(receiver)` compares the receiver identity with the selected player's
+retained actor reference for this query. It returns one for equality and zero
+otherwise. The query performs no collision search and does not update either
+actor or the retained reference.
+
 ### Fighting query
 
 `isFighting` searches the retained ordinary actor traversal for another actor
