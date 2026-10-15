@@ -140,7 +140,11 @@ The full documentation is published at **<https://michidk.github.io/redguard-pre
 
 [Cyrus](https://github.com/michidk/cyrus) is a modern, faithful Rust
 reimplementation of Redguard built on this project's research and the
-`redguard-preservation` crate.
+`redguard-preservation` crate. It ships an asset viewer that opens every file
+format documented here: models, worlds, textures, fonts, animations, scripts,
+and audio. Use it [in the browser](https://michidk.github.io/cyrus/viewer/) or
+download a native build from the
+[latest Cyrus release](https://github.com/michidk/cyrus/releases/latest).
 
 ## Acknowledgements
 
