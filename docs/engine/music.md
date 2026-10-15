@@ -25,15 +25,41 @@ in 2–7.
 
 ## Track selection
 
-When a world loads, if its `world_redbook[N]` is greater than zero and differs
-from the track the CD is currently playing, the engine stops the CD, plays
-track `world_redbook[N]`, and applies `redbook_volume`. Consequently:
+Loading a world has two CD steps, at different points:
 
-- A world without `world_redbook` (or with a value of zero or less) keeps the
-  current track playing.
+1. At the start of the load, before any world data is read, if `world_redbook[N]`
+   is not `-1` and differs from the track the CD is currently playing, the
+   engine stops the CD. The loading screen is therefore silent.
+2. After the world is loaded, if `world_redbook[N]` is greater than zero and
+   differs from the track the CD is currently playing, the engine plays track
+   `world_redbook[N]` and applies `redbook_volume`.
+
+Consequently:
+
+- A world without `world_redbook` (or with `-1`) keeps the current track
+  playing.
+- A value of zero, or any negative value other than `-1`, stops the CD and
+  starts nothing.
 - Moving between worlds that share a track does not restart it.
 
 A track number below 1 or above the CD's track count is ignored.
+
+## Book menu and movies
+
+Opening the book menu plays track 2 from its start and applies `redbook_volume`.
+The startup splash and title play no CD audio.
+
+Every movie, whether the introduction, a browsed Movies page entry, or a movie
+queued before the next world, runs the same sequence: sound effects stop, the
+CD pauses if it is playing, the movie plays, sound effects stop again, and the
+CD resumes if it is paused. The CD continues from where it paused. Movie audio
+comes from the Smacker stream, never from the CD.
+
+New Game plays the introduction movie and then loads world 0. The book menu's
+track 2 pauses for the movie and resumes when it ends; world 0's
+`world_redbook` is 7, which differs from 2, so the world load then stops the CD
+and track 7 starts only after the world is loaded. No CD audio plays during the
+load.
 
 ## Repetition
 
