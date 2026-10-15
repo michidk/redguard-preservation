@@ -209,6 +209,7 @@ Creating the standalone `CYRUS` and `GREMLIN` actors runs the same player
 initializer for each actor, then restores `CYRUS` as the selected player. Each
 initializer clears the retained controller override, pending action flag,
 three preliminary countdowns and sound-maintenance inhibition.
+These resets precede actor model/script setup and the initial animation request.
 
 The preliminary countdowns are unsigned 32-bit values in whole nominal-tick
 units. One countdown advances only while both queued-motion and falling states
