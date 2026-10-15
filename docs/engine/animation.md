@@ -225,6 +225,20 @@ sets the weapon-drawn flag and clears motion state to zero. A zero attribute byt
 23 directly sets that flag and clears motion state, without weapon cleanup.
 These motion-state writes do not replace the lifecycle selector.
 
+### Weapon draw admission
+
+Weapon-draw admission requires the item system, an animation state, no shell
+execution, no rope attachment, no motion state from 27 through 32, neither a
+draw nor sheath transition, no held-weapon predicate, no sliding or queued
+motion, and motion state other than 15. For the selected player, attribute byte
+105 equal to 1 also prevents admission.
+
+After those gates, an already drawn weapon runs weapon cleanup. With a clear
+drawn flag, absence of assigned weapon state also runs cleanup. Otherwise edge
+motion states 10 through 19 and stored surfaces 2 or 4 prevent the draw. A
+successful draw sets motion state 20. For the selected player it also sets
+combat flag `0x04`. This admission does not itself set the weapon-drawn flag.
+
 ### Weapon cleanup
 
 Weapon cleanup restores the selected player's stored playback-default group,
