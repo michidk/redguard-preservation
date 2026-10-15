@@ -21,7 +21,21 @@ Palette entry N is at offset `8 + N × 3`, yielding bytes `(R, G, B)`.
 
 COL files are per-scene, not per-model. Different levels use different palettes (e.g. `ISLAND.COL`, `CATACOMB.COL`). The same `color_index` in a model's face data produces different colors depending on which palette is active.
 
-Entry 0 is always (0, 0, 0) — black.
+Entry zero can be nonblack. The world palette upload forces its displayed RGB to black.
+
+## Glide world palette conversion
+
+The world loader converts each channel of a populated COL file to six bits by
+shifting it right two bits. The world palette upload shifts these values left
+two bits to form the RGB texture table and forces entry zero to black. Thus an
+unmodified world palette channel is `4 * floor(channel / 4)`, with a maximum
+of 252. Texture filtering operates on these uploaded colors, before lighting
+and framebuffer conversion.
+
+This conversion belongs to the world palette loading and upload path. The
+renderer also has direct RGB palette uploads, which preserve their input bytes;
+it is not a conversion inherent to the COL file format or to every texture.
+Decoders and generic exports retain the original eight-bit file values.
 
 ## Related Formats
 
