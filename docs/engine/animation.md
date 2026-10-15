@@ -229,7 +229,7 @@ These motion-state writes do not replace the lifecycle selector.
 
 Weapon-draw admission requires the item system, an animation state, no shell
 execution, no rope attachment, no motion state from 27 through 32, neither a
-draw nor sheath transition, no held-weapon predicate, no sliding or queued
+draw nor sheath transition, no held-weapon predicate, no falling or queued
 motion, and motion state other than 15. For the selected player, attribute byte
 105 equal to 1 also prevents admission.
 
