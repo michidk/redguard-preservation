@@ -47,6 +47,13 @@ KEYS.INI, but the shipped menu bindings use keyboard and joystick logical
 actions. Controls key capture accepts the left and right mouse button codes on
 release.
 
+The main page disables both Save and Continue while the selected player's
+[death override](animation.md#dead-actor-default-selection) is active. This
+restriction uses the retained death override, not a direct health comparison.
+The installed main-page entries are addressed by ordered index: Save is entry
+zero and Continue is entry five. Disabling an entry sets its grayed flag and
+moves selection away from it when necessary.
+
 ## Save and load pages
 
 Main action 1 opens Save on page 1. Its camera moves directly to `(336, 0, 0)` with fractional step `0.15`, without turning a page. Action 100 returns directly to the origin. Main action 2 opens Load on page 2 using the three-part camera sweep to the origin and a forward MB_PG01 turn delayed by four updates. Action 200 reverses that turn and repeats the sweep to the origin.
