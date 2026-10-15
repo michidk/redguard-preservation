@@ -107,6 +107,21 @@ An absent `start_item_select` selects the first loaded item record. A supplied
 value selects its matching record. This initialization selection does not filter
 by owned count or visibility.
 
+### Empty-selection fallback
+
+Acquisition's fallback does nothing while an item record is selected. With no
+selection, it first selects item ID 1 if that record exists, regardless of its
+owned count, type, or visibility. This is a literal item ID, independent of
+`default_weapon_item`.
+
+If item 1 is absent, the fallback scans records in ascending ID order. It selects
+the first owned type-1 item, or the first owned item of any type if no owned
+weapon exists. Hidden items remain eligible. If no candidate exists, selection
+stays empty. Whenever the fallback selects a record, it also writes the low byte
+of that ID to the selected player's weapon attribute. The check runs before the
+acquired item's count increases, so a newly acquired first unit is not yet owned
+for that scan.
+
 ### Removal during acquisition
 
 `DropItem(id, quantity)` does nothing when the item system is closed or the
