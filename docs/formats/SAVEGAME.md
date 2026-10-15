@@ -68,6 +68,33 @@ little-endian.
 | `4` | `4 × count` | `[i32; count]` | values | Current global flag values. |
 | `4 + 4 × count` | count | `[u8; count]` | states | Native flag kind and latch state. |
 
+## Inventory
+
+`SVIT` contains 22-byte records in initialized item-list order,
+followed by a signed 32-bit selected-item ID. All numeric fields are little-endian.
+The payload contains neither an item count nor per-record IDs. Its length is
+`22 × saved_record_count + 4`. The save reader and writer traverse one fewer
+record than item initialization creates. The final initialized item remains at
+its initialized values when loading; it has no record in `SVIT`.
+
+| Offset | Size | Type | Name | Description |
+|---|---|---|---|---|
+| `0x00` | 1 | `u8` | hide | Current item visibility field. |
+| `0x01` | 1 | `u8` | unknown_01 | Retained item-state byte. |
+| `0x02` | 4 | `i32` | total | Current item total limit. |
+| `0x06` | 4 | `i32` | player_max | Current player ownership limit. |
+| `0x0A` | 4 | `i32` | player_total | Current owned count. |
+| `0x0E` | 4 | `u32` | unknown_0e | Retained item-state word. |
+| `0x12` | 4 | `u32` | unknown_12 | Retained item-state word. |
+
+The selected-item value `-1` means no selection. Other values are looked up as
+full item IDs after the records have been restored. An absent ID leaves no
+selection. Restoration directly replaces the saved fields in initialized item
+records. It does not invoke acquisition, requirements, drop lists or pickup effects.
+
+See [ITEM.INI](../config/item-ini.md) for the initialized limits and acquisition
+rules. These save records can replace limits as well as owned counts.
+
 ## Save-slot directories
 
 ```text

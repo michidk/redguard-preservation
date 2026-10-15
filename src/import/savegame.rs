@@ -204,6 +204,91 @@ fn parse_metadata(data: &[u8]) -> Result<SaveMetadata> {
     })
 }
 
+/// One SVIT record in the initialized item list's order. IDs are not stored here.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SaveItem {
+    pub hide: u8,
+    pub unknown_01: u8,
+    pub total: i32,
+    pub player_max: i32,
+    pub player_total: i32,
+    pub unknown_0e: u32,
+    pub unknown_12: u32,
+}
+
+/// SVIT inventory records followed by the selected item's ID, or -1 for no item.
+/// Restoration overwrites initialized records; it does not acquire the items again.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SaveInventory {
+    pub items: Vec<SaveItem>,
+    pub selected_item: i32,
+}
+
+/// Decode SVIT against the saved record count. The payload carries no count
+/// or per-record IDs; every byte must belong to a record or the final selection.
+/// The original saves every initialized item except the final list record.
+pub fn parse_save_inventory(data: &[u8], record_count: usize) -> Result<SaveInventory> {
+    let expected = record_count.checked_mul(22).and_then(|n| n.checked_add(4));
+    if expected != Some(data.len()) {
+        return Err(Error::Parse(format!(
+            "save game SVIT: {} bytes do not match {record_count} item records and selection",
+            data.len()
+        )));
+    }
+    let end = data.len() - 4;
+    let items = data[..end]
+        .as_chunks::<22>()
+        .0
+        .iter()
+        .map(|record| {
+            let word = |offset| u32::from_le_bytes(record[offset..offset + 4].try_into().unwrap());
+            SaveItem {
+                hide: record[0],
+                unknown_01: record[1],
+                total: word(2) as i32,
+                player_max: word(6) as i32,
+                player_total: word(10) as i32,
+                unknown_0e: word(14),
+                unknown_12: word(18),
+            }
+        })
+        .collect();
+    Ok(SaveInventory {
+        items,
+        selected_item: i32::from_le_bytes(data[end..].try_into().unwrap()),
+    })
+}
+
+/// Encode SVIT without normalizing record values or resolving the selected ID.
+/// The caller must retain the initialized item order and compatibility identity.
+pub fn encode_save_inventory(inventory: &SaveInventory) -> Result<Vec<u8>> {
+    let length = inventory
+        .items
+        .len()
+        .checked_mul(22)
+        .and_then(|n| n.checked_add(4))
+        .filter(|&n| u32::try_from(n).is_ok())
+        .ok_or_else(|| Error::Conversion("save game SVIT: payload length exceeds u32".into()))?;
+    let mut bytes = Vec::new();
+    bytes
+        .try_reserve_exact(length)
+        .map_err(|e| Error::Conversion(format!("save game SVIT allocation: {e}")))?;
+    for item in &inventory.items {
+        bytes.extend_from_slice(&[item.hide, item.unknown_01]);
+        for word in [
+            item.total as u32,
+            item.player_max as u32,
+            item.player_total as u32,
+            item.unknown_0e,
+            item.unknown_12,
+        ] {
+            bytes.extend_from_slice(&word.to_le_bytes());
+        }
+    }
+    bytes.extend_from_slice(&inventory.selected_item.to_le_bytes());
+    Ok(bytes)
+}
+
 /// SVGF values followed by the native flag-state bytes in installed flag order.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SaveFlags {
