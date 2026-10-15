@@ -1497,8 +1497,10 @@ and script ticks while still having a nonzero movement scale. Rounding each
 update's scale independently, or forcing at least one animation tick per
 movement update, changes behavior.
 
-A separate counter uses the same accumulation in units of 1/32 nominal tick;
-its update increment is the corresponding difference of whole counter values.
+A separate finer counter adds the same scale to an accumulator and shifts the
+total right by five bits. It therefore advances eight units per nominal tick,
+with five fractional bits carried between updates. Its update increment is the
+difference of whole counter values.
 
 A clock reset clears the measurement frame count, tick remainder, BIOS
 baseline, and fractional nominal accumulator. Measured and smoothed FPS start
