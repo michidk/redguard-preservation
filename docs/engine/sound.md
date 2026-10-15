@@ -211,6 +211,11 @@ and text width is `max(dialog_max_text_width, 150)`. A configured
 `menu_traverse_delay` of zero becomes one BIOS tick. `WaitOnDialog` scans every record and remains active while
 any record has its active word equal to one. It does not filter by the caller.
 
+The separate dialogue-state word starts at zero in a freshly loaded executable.
+`DialogBegin` writes one to that word; `DialogEnd` writes zero. These writes do
+not replace the per-record active-state scan performed by `WaitOnDialog`, and
+the dialogue-state word is separate from the topic-menu-state word.
+
 Dialogue creation selects the first inactive record starting at index one. If
 no record is available, it returns no record. An admitted record stores the
 speaker, formatted text, active state and the RTX entry's remembered sample

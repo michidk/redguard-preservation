@@ -257,7 +257,15 @@ walking animation. With `[system] animation_system = 1` in `SYSTEM.INI`, if
 that request leaves a different group current, the walk returns before marking
 forward movement accepted, advancing the startup phase, or translating the actor.
 A pending walking group therefore does not by itself permit movement. The walk
-movement classification is set before this gate.
+movement classification is 6. It is assigned after successful forward-support
+admission and before the walking-group lookup and request gate. The shared
+forward-update indicator is set only after the animation request passes that
+gate. Ordinary forward running uses movement classification 2.
+
+These classifications are distinct from the direction and packed movement
+flags assigned by [directional ordinary displacement](#directional-ordinary-displacement).
+Both classifications select forward direction 2 and movement mask `0x30` in
+that later stage; the forward-walk helper does not itself assign that mask.
 
 This differs from the animation movement marker gate below, which suppresses
 translation after startup has advanced.
