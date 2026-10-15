@@ -202,6 +202,23 @@ The helper selection does not bypass the helper's motion, support, animation,
 or movement-marker tests. Water states, drawn weapons, rope motion, jumping,
 and special living states have separate dispatch branches.
 
+### Idle animation requests
+
+The controller resets its idle counter to zero while attached to a rope or while
+the current animation group is nonzero. This reset precedes the lockout test.
+With the normal BIOS clock, the clock measurement advances the counter once per
+accumulated 18 BIOS timer ticks, independently of the nominal animation tick
+increment.
+
+After the lockout check, an unattached player with `attr_health < 40` requests
+group 4 when the signed idle counter is greater than 4. At health 40 or above,
+a counter greater than 12 requests one of groups 1, 2, or 3. Selection draws the
+shared random generator's low two bits, retries value 3, and adds one to the
+accepted value. Either request first sets the idle counter to -1.
+
+These requests precede the dialogue and topic-menu checks. They use the normal
+animation request operation and do not replace the actor's default group.
+
 ## Forward-walking startup
 
 Before startup acceleration, an ordinary forward walk requests its selected
