@@ -126,7 +126,7 @@ Configuration lookup matches section/key names without case and returns the firs
 
 ## Frame and camera transitions
 
-Page turns use the authored frame arrays, not an independent hinge rotation. A turn request supplies an initial frame, a target frame, and an update delay. The delay counts down first; at zero it selects the initial frame. Later menu updates move one integer frame toward the target. There is no geometric interpolation between those authored frames in this path.
+Page turns use the authored frame arrays, not an independent hinge rotation. A turn request supplies an initial frame, a target frame, and an update delay. The delay counts down first; at zero it selects the initial frame. Later menu updates move one integer frame toward the target. There is no geometric interpolation between those authored frames in this path. Forward turns and the Quit cover turn target the model's frame count, one past its last authored frame. That final forward step adds an update but does not change the displayed pose. A later reverse turn starts from that index, so its frame stepping takes one update more than the number of authored frames minus one. Placing a page directly on a submenu, without a turn, sets the last authored frame instead.
 
 MB_PG01 changes Z by +4 when a forward turn reaches frame four, and by -4 when a reverse turn reaches frame four. MB_PG03 applies the opposite depth changes. These shifts happen at the middle-frame crossing, not at the final frame. Returning to Main reverses the appropriate page turns. Cover motion and delayed page-turn starts dispatch the effects listed below.
 
