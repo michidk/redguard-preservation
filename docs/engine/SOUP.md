@@ -1391,6 +1391,11 @@ axis is zero, yaw is the X/Z bearing minus half a turn. Pitch is the bearing
 of the rounded horizontal length against Y, minus a quarter turn. Both wrap
 to 2048 units per revolution; roll is zero.
 
+The two retained basis vectors use a direct angle matrix with positive pitch,
+negative yaw and positive roll. Each output component is a dot product with a
+matrix column. Vector inputs and dot products are stored at single precision;
+final integer components use the active x87 rounding mode.
+
 ### Camera contact-normal response
 
 The camera body-response stage converts the candidate fixed-point position to
