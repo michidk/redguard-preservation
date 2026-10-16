@@ -89,6 +89,8 @@ Action 101 asks for `Game Description` before creating a save. Action 102 opens 
 
 Newly typed ASCII lowercase letters become uppercase; prefilled text retains its case. Without Shift, Backspace deletes the preceding character and Enter confirms nonempty text.
 
+The description display wraps a copy of the edited text. It scans for spaces starting at zero-based character 13, excluding the final character. Each encountered space becomes a newline, and scanning resumes fourteen characters after that replacement. This preparation uses character positions without measuring font width; the edited value retains its spaces.
+
 The delete confirmation presents `Yes` first and `No` second, with `Yes` initially selected. Enter confirms the current selection before simultaneous directional selection is applied.
 
 The reserved quick-save slot is zero, with description `Quick Save Game`.
