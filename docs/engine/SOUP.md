@@ -1409,3 +1409,15 @@ Its diagonal joins `(i, j)` to `(i + 1, j - 1)`. When the horizontal offset
 otherwise it is `(i, j - 1)`. Equality uses the latter triangle. The query
 publishes a normalized plane normal; the integer wrapper scales that normal
 by 256 and converts it using the active x87 integer rounding mode.
+
+### Camera pose publication
+
+After position correction, the pose stage moves the previously published camera
+position and angles into their respective history vectors. It then publishes the
+new position to shared camera state and to both the camera actor and alternate
+camera actor. Orientation processing follows position publication, and its
+result replaces the shared published angles.
+
+Position history therefore contains the preceding published pose, not the new
+request or a temporary collision candidate. Retaining orientation still advances
+angle history to the preceding published angles.
