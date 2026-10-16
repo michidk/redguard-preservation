@@ -1305,3 +1305,17 @@ A result containing only ranks 32767 or 32768 therefore reports hits without
 replacing the shared minimum-position output. A result containing only rank
 zero leaves the shared maximum-position output unchanged. The query does not
 clear these output positions before scanning its candidates.
+
+### Camera collision response
+
+The pose collision stage runs when the selected camera record has flag `0x40`
+and the shared collision-inhibition word is zero. It rotates the record's target
+offset using its bound angles, adds the bound position, and queries the segment
+from that target to the candidate camera position. Candidate collection excludes
+the bound actor's model instance.
+
+A nonzero query hit count replaces the candidate camera position with the shared
+minimum-position output and reports success. A zero hit count leaves the
+candidate unchanged. The response does not separately check whether the query
+replaced its minimum output. An endpoint-only hit can therefore copy the retained
+minimum position from before the query.
