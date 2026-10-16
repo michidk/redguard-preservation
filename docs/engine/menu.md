@@ -89,6 +89,8 @@ Action 101 asks for `Game Description` before creating a save. Action 102 opens 
 
 Newly typed ASCII lowercase letters become uppercase; prefilled text retains its case. Without Shift, Backspace deletes the preceding character and Enter confirms nonempty text.
 
+The delete confirmation presents `Yes` first and `No` second, with `Yes` initially selected. Enter confirms the current selection before simultaneous directional selection is applied.
+
 The reserved quick-save slot is zero, with description `Quick Save Game`.
 The reserved automatic-save slot is one, with description `Redguard AutoSave`.
 When Quit closes the menu outside the startup context, the menu prepares this
