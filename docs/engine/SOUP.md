@@ -1393,6 +1393,12 @@ truncates each component toward zero, and adds it to the candidate position.
 No contacts leave the candidate unchanged. Opposing contacts can therefore
 produce a response in the first contact's direction rather than no response.
 
+Each accumulated normal component is stored at single precision after each
+addition. Normalization stores the reciprocal length at single precision, then
+stores each scaled direction component at single precision. Each product of the
+integer radius and selected direction is also stored at single precision before
+scaling by 256 and truncating toward zero.
+
 ### Camera distance-height correction
 
 Only slots zero and three run the distance-height correction. It subtracts the
