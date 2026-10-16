@@ -1268,6 +1268,19 @@ Otherwise, with `0x08`, it copies the stored request vector directly. These are
 candidate positions supplied to subsequent camera processing, not final rendered
 camera poses.
 
+Before testing either request flag, this stage compares the stored distance
+shifted left by eight against the stored minimum, using signed comparison. If
+it is lower, the minimum replaces the distance without a compensating shift.
+Equality leaves the distance unchanged.
+
+Without either explicit request flag, the stage rotates the record's position
+offset by the bound angles. It separately constructs a vector with zero X and Y
+and negative distance shifted left by eight as Z. The angles for this second
+rotation are the bound angles minus the record's angle offsets, masked to one
+revolution. Flag `0x80` replaces the first of these angles with the negated first
+angle offset, ignoring that bound-angle component. The candidate is the bound
+position plus both rotated vectors, with wrapping signed components.
+
 ### Camera collision candidate radius
 
 `SYSTEM.INI` `[camera] obstacle_size` supplies the candidate-size cutoff. Setup
