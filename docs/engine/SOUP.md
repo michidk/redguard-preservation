@@ -343,6 +343,13 @@ values, including the no-current-group value of `-1`. If the actor has no
 animation association, the read returns zero. Reading this property neither
 requests nor advances an animation and does not change actor or animation state.
 
+### Torch counter property
+
+`torch_timer` accesses the resolved actor's torch-burning counter. Reads return
+the unsigned byte as a script integer. Writes retain only the low eight bits of
+the assigned value and change no other actor field. The property access itself
+does not run torch effects or decrement the counter.
+
 ## Operators
 
 ### Arithmetic Operators
