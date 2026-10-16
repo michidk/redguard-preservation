@@ -277,7 +277,7 @@ Camera rig configuration for all gameplay modes: normal follow, combat, hanging,
 | Key | Default Value | Description |
 |---|---|---|
 | `static_rope_threshold` | `5` | Velocity threshold below which a rope is considered static. |
-| `obstacle_size` | `20` | Radius used for camera obstacle avoidance. |
+| `obstacle_size` | `20` | Minimum model-radius threshold for camera obstacle candidates; the model radius must be strictly larger. |
 | `camera_size` | `10` | Camera collision sphere radius. |
 | `camera_scape_size` | `5` | Camera collision sphere radius in scape/exterior areas. |
 | `target_offset_x` | `-6000` | Target point X offset from the player. |

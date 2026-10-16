@@ -1270,6 +1270,12 @@ camera poses.
 
 ### Camera collision candidate radius
 
+`SYSTEM.INI` `[camera] obstacle_size` supplies the candidate-size cutoff. Setup
+stores it with eight fractional bits, and collection shifts it back before
+comparing with each candidate model's radius. The model radius must be strictly
+greater than this cutoff. This is separate from the added bounds-test radius
+computed from the queried segment.
+
 Candidate collection subtracts the fixed-point endpoints before arithmetic-shifting
 the displacement components right by eight. It separately shifts the starting
 point by eight. When the squared displacement sum fits signed 32-bit arithmetic,
