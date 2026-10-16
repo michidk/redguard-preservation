@@ -603,6 +603,9 @@ selected player. See [coordinate and heading units](player.md#coordinate-and-hea
 relative to the receiver. Subtract the receiver's effective X/Z position from
 the selected player's ordinary X/Z position, retaining signed 32-bit differences.
 Convert that displacement to the [quantized actor heading](player.md#direction-recovered-from-displacement).
+This query retains signed 32-bit wrapping absolute values and signed comparisons
+during bearing reduction. The minimum signed coordinate difference therefore
+does not behave like a widened positive magnitude.
 Compare it with the selected player's current yaw plus 1024, wrapped modulo 2048.
 The result is one when the absolute wrapped angular difference is less than or
 equal to the signed 32-bit tolerance, otherwise zero. A negative tolerance always
