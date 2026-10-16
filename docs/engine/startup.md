@@ -12,6 +12,12 @@ described in [Book menu](menu.md).
 The title image is a single 640×480 frame. The original also draws small
 version and loading labels along its bottom edge.
 
+The title fades in from black. Each fade update with a nonzero
+[whole nominal-tick increment](player.md#whole-nominal-ticks) redraws the
+title and lowers a black overlay, which starts opaque, by 12 times that
+increment out of 256 until it reaches zero. Entering a world from the title
+fades out the same way, raising the overlay.
+
 ## Title labels
 
 The title redraw selects the `[system] gui_low_font` entry from `SYSTEM.INI`.
