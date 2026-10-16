@@ -54,6 +54,10 @@ The installed main-page entries are addressed by ordered index: Save is entry
 zero and Continue is entry five. Disabling an entry sets its grayed flag and
 moves selection away from it when necessary.
 
+The startup entry context (`1`) also disables Save. Entry context `2` disables
+Continue. These context checks run independently of the selected-player death
+restriction.
+
 ## Gameplay book shortcuts
 
 With `SYSTEM.INI` `[debug] final_version` enabled, gameplay samples fixed book
