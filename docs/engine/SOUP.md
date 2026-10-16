@@ -1466,6 +1466,13 @@ otherwise it is `(i, j - 1)`. Equality uses the latter triangle. The query
 publishes a normalized plane normal; the integer wrapper scales that normal
 by 256 and converts it using the active x87 integer rounding mode.
 
+For plane construction, the first vertex is `(i, j)`. In the greater-offset
+branch the next vertices are `(i + 1, j - 1)` and `(i + 1, j)`; otherwise they
+are `(i, j - 1)` and `(i + 1, j - 1)`. The two edges are second minus first
+and third minus second. Each edge component is stored at single precision
+before their cross product is formed. Replacing these adjacent edges with
+mathematically equivalent edges can change the sampled height through rounding.
+
 ### Camera pose stage order
 
 The pose stage composes a candidate and performs a segment collision check.
