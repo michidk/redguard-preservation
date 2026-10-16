@@ -106,6 +106,25 @@ retained supporting-actor reference. It returns one for equality and zero
 otherwise. The query performs no collision search and does not update either
 actor or the retained reference.
 
+### PlayerArc query
+
+`PlayerArc(offset, tolerance)` tests the selected player's horizontal direction
+relative to the receiver's heading. Angles use 2048 units per turn. The query uses
+the receiver's attached position when attached, otherwise its linked query position
+when present, otherwise its local position. It reads the selected player's local
+position. Vertical separation does not affect the result.
+
+The receiver heading comes from its attached pose when attached and its local pose
+otherwise. A linked query position alone does not replace that heading. The query
+forms the horizontal vector from the player to the receiver with wrapping signed
+32-bit subtraction, computes its quantized bearing, and negates that bearing modulo
+2048. It subtracts `offset` from the receiver heading modulo 2048, then compares the
+absolute shortest wrapped angular difference with the signed `tolerance`.
+Equality succeeds; negative tolerance fails.
+
+The query returns one for success and zero otherwise. It performs no visibility
+or distance test and does not update either actor.
+
 ### Fighting query
 
 `isFighting` searches the retained ordinary actor traversal for another actor
