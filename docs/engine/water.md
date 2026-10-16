@@ -63,10 +63,6 @@ starting at sample 512, so `wave_table[p]` is the float sample
 one, zero, minus one, and zero at phases 0, 512, 1024, and 1536 respectively.
 The decimal full-period constant is part of the table construction.
 
-For amplitude 24 and zero base height, engine heights at those
-four phases are approximately 12, -12, -36, and -12. At speed 28, phase advances
-by 28 per BIOS tick; its continuous period is approximately 4.02 seconds.
-
 ## Terrain window
 
 The engine fills a 34-by-34 storage grid around its terrain
@@ -192,4 +188,4 @@ These modify the same globals as the INI parameters and take effect on the next 
 - [WLD § Height Lookup Table](../formats/WLD.md#height-lookup-table) — the 128-entry height table shared by terrain and water base heights
 - [WORLD.INI § Water](../config/world-ini.md#water) — `world_wave[N]` INI parameter format
 - [SURFACE.INI](../config/surface-ini.md) — surface-type definitions including `[water]`, `[deepwater]`, `[scapewater]` sound sections
-- [Redguard:Glide Differences](https://en.uesp.net/wiki/Redguard:Glide_Differences) — software vs Glide renderer behavior (wave rendering may differ between renderers)
+- [Redguard:Glide Differences](https://en.uesp.net/wiki/Redguard:Glide_Differences) — software vs Glide renderer behavior

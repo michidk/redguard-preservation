@@ -201,7 +201,7 @@ All fields little-endian.
 | +0x14 | 3 | `s24` | map_pos_z | Map position Z |
 | +0x17 | 1 | `u8` | pad_z | Alignment byte |
 | +0x18 | 4 | `u32` | radius | Map bounding radius |
-| +0x1C | ... | variable | walk_nodes | `node_count` × WalkNode records |
+| +0x1C | ... | — | walk_nodes | `node_count` × WalkNode records |
 
 The map length excludes its own four-byte length word. Its payload contains
 the remaining 24-byte map header and all length-prefixed nodes. Embedded maps
@@ -218,7 +218,7 @@ visits them in reverse file order.
 | +0x08 | 2 | `u16` | node_pos_z | Local position Z |
 | +0x0A | 1 | `u8` | reserved | File value discarded; runtime storage holds node ownership. |
 | +0x0B | 1 | `u8` | route_count | Number of routes from this node |
-| +0x0C | ... | variable | routes | `route_count` × NodeRoute records |
+| +0x0C | ... | — | routes | `route_count` × NodeRoute records |
 
 The node length excludes its own four-byte length word and equals
 `8 + 4 * route_count`. Loading copies the packed node coordinates directly;
@@ -559,12 +559,11 @@ MPSZ is an array of 49-byte bounding volume records used to build per-actor **fs
 | 0x29 | 4 | `i32` | neg_y | Absolute negative half-extent Y |
 | 0x2D | 4 | `i32` | neg_z | Absolute negative half-extent Z |
 
-Invariant: `total = neg + pos` for each axis. Center is always zero in shipped files. About 30% of records are symmetric (`neg == pos`); the rest have asymmetric bounds.
+Invariant: `total = neg + pos` for each axis. Center is always zero in shipped files. Bounds can be asymmetric (`neg != pos`).
 
-At runtime, the engine copies these 49 bytes and calls the fsphere builder to create a 3D bounding volume for the actor. RAHD provides three index fields per actor, allowing reference to different bounding records. Only a subset of actors have direct RAHD indices — other records may be referenced by MPOB objects or other runtime systems.
+At runtime, the engine copies these 49 bytes and calls the fsphere builder to create a 3D bounding volume for the actor. RAHD provides three index fields per actor, allowing reference to different bounding records. Only a subset of actors have direct RAHD indices.
 
-Across all 806 records in the 27 shipped RGM files, flags and centers are zero,
-and each total equals its positive plus negative extent. The flag byte precedes
+Flags are zero in shipped files. The flag byte precedes
 the integers; placing it last shifts every decoded field.
 
 ISLAND `CYRUS` references primary record 120 and secondary record 121, with no tertiary record. Its primary totals are `(48, 128, 49)`, positive extents `(24, 62, 11)`, and negative extents `(24, 66, 38)`.

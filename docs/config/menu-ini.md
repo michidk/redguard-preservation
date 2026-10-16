@@ -95,10 +95,6 @@ Action ids follow a convention per page:
 | 600–603 | Sound controls and return. |
 | 700–724 | Key binding page actions. |
 
-## Parser
-
-`import::menu_ini::MenuPage::parse(content, page)` reads a page's optional texture slots, ordered text entries, widget positions/alignment, and inclusive slider bounds. Missing numeric element fields default to zero; malformed values and nonsequential text indices report the page and field. The first texture slot is required; a second may be omitted when no element references it. The parser rejects incomplete references and reversed slider bounds. `import::menu_movies::parse_menu_movies` separately reads cinematic names, forward skip points, and timed subtitles. Runtime save labels remain outside these parsers. Rendering and traversal rules are documented in [Book menu](../engine/menu.md).
-
 ## External References
 
 - [UESP: Mod:Redguard File Formats](https://en.uesp.net/wiki/Mod:Redguard_File_Formats)

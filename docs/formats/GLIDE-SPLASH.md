@@ -21,10 +21,8 @@ is supported by [`parse_windows_glide_splash`](GLIDE-SPLASH-DLL.md).
   [Texture descriptors, color tables, and mip chains]
 ```
 
-The extractor reconstructs writable LE objects from their page maps. Table
-pointers are relative to their data object. It identifies the supported layout
-by its mesh counts and validates all pointer ranges, finite values, triangle
-indices, material IDs, and edge flags. It rejects ambiguous matches.
+Writable LE objects are reconstructed from their page maps. Table pointers
+are relative to their data object.
 
 ## Mesh tables
 

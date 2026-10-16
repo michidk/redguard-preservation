@@ -40,11 +40,6 @@ It retains floating-point RGB values at this stage. It does not apply
 material roughness, specular lighting, inverse-square attenuation, or the
 model renderer's local-light list to this terrain calculation.
 
-For ambient `64,64,64`, directional strength `255,220,200`, and direction
-`0,1,0`, a normal of `0,-1,0` gives `255,255,255` after clamping. A normal of
-`0,1,0` gives `64,64,64`. A normal of `-0.6,-0.8,0` gives approximately
-`255,240,224`.
-
 ## Terrain updates
 
 Rebuilding the camera's terrain grid recomputes face normals,

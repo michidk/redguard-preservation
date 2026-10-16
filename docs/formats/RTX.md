@@ -26,11 +26,13 @@ The values below describe `ENGLISH.RTX`.
 
 ### Footer (12 bytes, file end)
 
+Footer integers are little-endian.
+
 | Offset (from EOF) | Size | Type | Name | Description |
 |---|---|---|---|---|
-| -12 | 4 | ASCII | footer_tag | Always `RNAV` |
-| -8  | 4 | u32 LE | index_offset | Absolute file offset of index table |
-| -4  | 4 | u32 LE | index_count | Number of index entries |
+| -12 | 4 | `[u8; 4]` | footer_tag | Always `RNAV` |
+| -8  | 4 | `u32` | index_offset | Absolute file offset of index table |
+| -4  | 4 | `u32` | index_count | Number of index entries |
 
 For `ENGLISH.RTX`:
 
@@ -44,8 +46,8 @@ Every payload in the data region has an 8-byte chunk header before it:
 
 | Offset | Size | Type | Endian | Name | Description |
 |---|---|---|---|---|---|
-| 0x00 | 4 | ASCII | — | tag | 4-character chunk label |
-| 0x04 | 4 | u32 | BE | payload_size | Size of payload bytes that follow |
+| 0x00 | 4 | `[u8; 4]` | — | tag | 4-character chunk label |
+| 0x04 | 4 | `u32` | BE | payload_size | Size of payload bytes that follow |
 | 0x08 | var | `[u8]` | — | payload | Entry payload |
 
 ## Index Table
@@ -54,11 +56,11 @@ The index is an array of 12-byte entries. Each entry points to one chunk payload
 
 | Offset | Size | Type | Endian | Name | Description |
 |---|---|---|---|---|---|
-| 0x00 | 4 | ASCII | — | tag | Same tag as the chunk header |
-| 0x04 | 4 | u32 | LE | payload_offset | Absolute file offset of payload (not header) |
-| 0x08 | 4 | u32 | LE | payload_size | Payload byte size |
+| 0x00 | 4 | `[u8; 4]` | — | tag | Same tag as the chunk header |
+| 0x04 | 4 | `u32` | LE | payload_offset | Absolute file offset of payload (not header) |
+| 0x08 | 4 | `u32` | LE | payload_size | Payload byte size |
 
-All 4866 entries satisfy these invariants:
+Each index entry has these relationships to its chunk:
 
 - `payload_offset - 8` points to a chunk header with matching `tag`
 - header `payload_size` (big-endian) matches indexed `payload_size`
@@ -76,10 +78,10 @@ Payload type is identified by byte `payload[1]`:
 
 | Offset | Size | Type | Endian | Name | Description |
 |---|---|---|---|---|---|
-| 0x00 | 1 | u8 | — | kind | Always `0` |
-| 0x01 | 1 | u8 | — | subtype | Always `0` for text entries |
-| 0x02 | 2 | u16 | LE | string_len | Byte length of ASCII text |
-| 0x04 | 2 | u16 | LE | reserved | Always `0` |
+| 0x00 | 1 | `u8` | — | kind | Always `0` |
+| 0x01 | 1 | `u8` | — | subtype | Always `0` for text entries |
+| 0x02 | 2 | `u16` | LE | string_len | Byte length of ASCII text |
+| 0x04 | 2 | `u16` | LE | reserved | Always `0` |
 | 0x06 | var | `[u8]` | — | text | ASCII text bytes, no terminator |
 
 Payload size rule:
@@ -90,12 +92,12 @@ Payload size rule:
 
 | Offset | Size | Type | Endian | Name | Description |
 |---|---|---|---|---|---|
-| 0x00 | 1 | u8 | — | kind | Always `0` |
-| 0x01 | 1 | u8 | — | subtype | Always `1` for voice entries |
-| 0x02 | 2 | u16 | LE | string_len | Byte length of ASCII label |
-| 0x04 | 2 | u16 | LE | reserved | Always `0` |
+| 0x00 | 1 | `u8` | — | kind | Always `0` |
+| 0x01 | 1 | `u8` | — | subtype | Always `1` for voice entries |
+| 0x02 | 2 | `u16` | LE | string_len | Byte length of ASCII label |
+| 0x04 | 2 | `u16` | LE | reserved | Always `0` |
 | 0x06 | var | `[u8]` | — | label | ASCII label bytes, no terminator |
-| 0x06+N | 27 | struct | — | audio_header | Audio metadata (below), `N = string_len` |
+| 0x06+N | 27 | `struct` | — | audio_header | Audio metadata (below), `N = string_len` |
 | 0x21+N | var | `[u8]` | — | audio_data | Raw PCM audio bytes |
 
 Audio payload size rule:
@@ -108,15 +110,15 @@ All fields little-endian unless noted.
 
 | Offset | Size | Type | Name | Description |
 |---|---|---|---|---|
-| 0x00 | 4 | u32 | type_id | `0` = 8-bit mono, `1` = 16-bit mono |
-| 0x04 | 4 | u32 | bit_depth | `0` = 8-bit, `1` = 16-bit |
-| 0x08 | 4 | u32 | sample_rate | `11025` or `22050` |
-| 0x0C | 1 | u8 | level_0c | Always `100` |
-| 0x0D | 1 | i8 | loop_flag | Always `0` |
-| 0x0E | 4 | u32 | loop_offset | Always `0` |
-| 0x12 | 4 | u32 | loop_end | Always `0xFFFFFFFF` |
-| 0x16 | 4 | u32 | audio_length | Byte length of `audio_data` |
-| 0x1A | 1 | u8 | reserved_1a | Always `0` |
+| 0x00 | 4 | `u32` | type_id | `0` = 8-bit mono, `1` = 16-bit mono |
+| 0x04 | 4 | `u32` | bit_depth | `0` = 8-bit, `1` = 16-bit |
+| 0x08 | 4 | `u32` | sample_rate | `11025` or `22050` |
+| 0x0C | 1 | `u8` | level_0c | Always `100` |
+| 0x0D | 1 | `i8` | loop_flag | Always `0` |
+| 0x0E | 4 | `u32` | loop_offset | Always `0` |
+| 0x12 | 4 | `u32` | loop_end | Always `0xFFFFFFFF` |
+| 0x16 | 4 | `u32` | audio_length | Byte length of `audio_data` |
+| 0x1A | 1 | `u8` | reserved_1a | Always `0` |
 
 ## Notes
 
