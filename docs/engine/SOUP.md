@@ -1244,7 +1244,8 @@ shared camera selection.
 A request for a different camera slot changes the selection only when the
 shared transition word is zero or the current record has flag `0x01`. Otherwise
 the current slot remains selected. Requesting the current slot leaves selection
-unchanged. The pose-publication stage clears the transition word.
+unchanged. The pose stage clears this word according to its correction and
+movement-limiting results.
 
 ### Actor camera offsets
 
@@ -1461,6 +1462,11 @@ publishes a normalized plane normal; the integer wrapper scales that normal
 by 256 and converts it using the active x87 integer rounding mode.
 
 ### Camera pose publication
+
+The transition word clears when the pose stage reports a collision or terrain
+correction. Without such a correction, it clears only when its value is one
+and movement limiting did not occur. A limited update can retain value one;
+other nonzero values also remain unchanged without correction.
 
 After position correction, the pose stage moves the previously published camera
 position and angles into their respective history vectors. It then publishes the
