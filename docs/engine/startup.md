@@ -161,7 +161,9 @@ for geometry. Two triangles cover the quad, submitted in both windings.
 
 S and T are stored multiplied by the projected point's reciprocal Z. The
 per-TMU reciprocal-W field additionally contains the light-to-projected-point
-distance divided by Z.
+distance divided by Z. The splash sets no STW hint, so texturing ignores
+that field: S and T interpolate perspective-correctly with the projected
+point's reciprocal Z, and the shadow texture spans the projected quad.
 
 ## External references
 
