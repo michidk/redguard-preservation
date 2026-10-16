@@ -97,7 +97,7 @@ pub enum Object {
 pub enum Place {
     Flag { index: u16 },
     Local { index: u8 },
-    Property { object: Object, reference: u8 },
+    Property { object: Object, reference: u16 },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -187,7 +187,7 @@ impl Decoder<'_> {
             },
             20 => Place::Property {
                 object: self.object()?,
-                reference: self.word()? as u8,
+                reference: self.word()?,
             },
             _ => return Err(format!("unsupported assignment opcode {opcode}")),
         })
@@ -372,7 +372,7 @@ impl Decoder<'_> {
             15 | 16 => Operation::Increment {
                 destination: Place::Property {
                     object: self.object()?,
-                    reference: self.word()? as u8,
+                    reference: self.word()?,
                 },
                 delta: if opcode == 15 { 1 } else { -1 },
             },

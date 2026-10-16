@@ -12,7 +12,7 @@ mod shared;
 use crate::{Result, error::Error, import::registry::Registry, model3d::Model3DFile};
 pub use locations::actor_location_offsets;
 use log::warn;
-pub use positioning::{Placement, PlacementDiagnostic, PlacementType};
+pub use positioning::{Placement, PlacementDiagnostic, PlacementType, apply_texture_override};
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, Copy)]

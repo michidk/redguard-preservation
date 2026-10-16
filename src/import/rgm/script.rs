@@ -159,7 +159,7 @@ impl<'a> Decoder<'a> {
     }
 
     fn ref_name(&self, ref_id: u16) -> String {
-        let idx = usize::from(ref_id & 0x00FF);
+        let idx = usize::from(ref_id);
         self.soup_def
             .and_then(|def| def.references.get(idx))
             .cloned()

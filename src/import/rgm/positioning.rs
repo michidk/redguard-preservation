@@ -819,7 +819,10 @@ fn parse_rahd_texture_overrides(rahd_data: &[u8]) -> HashMap<String, u16> {
     out
 }
 
-fn apply_texture_override(model: &mut Model3DFile, texture_override: u16) {
+/// Applies an actor texture set to a model, as placement does for RAHD/RAEX
+/// `texture_id`. Use it for every multi-frame model drawn by that actor, including
+/// RAAN frame sources; geometry, frames and normals are unchanged.
+pub fn apply_texture_override(model: &mut Model3DFile, texture_override: u16) {
     let mut solid_before = 0usize;
     let mut textured_before = 0usize;
     for face in &model.face_data {
@@ -1106,9 +1109,9 @@ fn mpob_transform(record: &MpobRecord) -> [f32; 16] {
     let rx = ex.to_radians();
     let ry = ey.to_radians();
     let rz = ez.to_radians();
-    let (sx, cx) = rx.sin_cos();
-    let (sy, cy) = ry.sin_cos();
-    let (sz, cz) = rz.sin_cos();
+    let (sx, cx) = libm::sincosf(rx);
+    let (sy, cy) = libm::sincosf(ry);
+    let (sz, cz) = libm::sincosf(rz);
 
     let yaw_matrix = [[cy, 0.0, sy], [0.0, 1.0, 0.0], [-sy, 0.0, cy]];
     let pitch_matrix = [[1.0, 0.0, 0.0], [0.0, cx, -sx], [0.0, sx, cx]];
