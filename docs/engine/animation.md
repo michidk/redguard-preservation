@@ -74,6 +74,25 @@ The group header currently called `anim_id` supplies the animation's byte
 frame countdown. An animation request adds its speed modifier to that value.
 This is separate from the task's loop countdown.
 
+### Frame waits
+
+`WaitAnimFrame(group, frame)` inspects the receiver's animation state.
+`WaitPlayerAnimFrame(group, frame)` applies the same test to the currently
+selected player, independently of the task's receiver. Either task completes
+when its inspected actor or animation association is absent.
+
+If neither the current nor pending group matches `group`, the task completes.
+If only the pending group matches, it keeps waiting. When the current group
+matches, it completes once the unsigned byte `anim.real_frame` is greater than
+or equal to `frame`; otherwise it keeps waiting. This counter is distinct from
+the `anim.frame` command cursor and the selected model-file frame.
+
+Current and pending group values are signed sixteen-bit values compared with
+the full script integer argument. The frame threshold also remains a full
+script integer; neither argument is narrowed before comparison. These tasks
+read the current state on each invocation without requesting or advancing
+animation, changing actor state, or calling another native handler.
+
 ## Ordinary requests and default groups
 
 An actor keeps a current group, one pending group, and a default group. Ordinary
