@@ -1402,3 +1402,10 @@ When both cell offsets from the retained terrain-window center are strictly
 between -16 and 16, height comes from that retained grid. At either boundary or
 outside the window, it comes from map samples through the height lookup table.
 The camera query therefore does not always use the static map heights.
+
+Each selected cell uses a triangle plane rather than bilinear interpolation.
+Its diagonal joins `(i, j)` to `(i + 1, j - 1)`. When the horizontal offset
+`x - i * 256` is greater than `j * 256 - z`, the third corner is `(i + 1, j)`;
+otherwise it is `(i, j - 1)`. Equality uses the latter triangle. The query
+publishes a normalized plane normal; the integer wrapper scales that normal
+by 256 and converts it using the active x87 integer rounding mode.
