@@ -8,6 +8,12 @@ Reference documentation for *The Elder Scrolls Adventures: Redguard* (1998) file
 - [File formats](formats/): binary layouts for models, maps, textures, sound, saved state, and bundled support files.
 - [Configuration](config/): INI settings for worlds, combat, items, input, rendering, and menus.
 
+## Look and feel
+
+[Reproducing the look and feel](engine/look-and-feel.md) explains how terrain
+and model lighting, fog, sky, water, texture animation, camera projection, and
+on-screen presentation combine, with links to each subsystem.
+
 ## Starting points
 
 | Task | References |

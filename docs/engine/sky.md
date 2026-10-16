@@ -123,11 +123,6 @@ is `p + (cos(a) - 1) * q * h`, and its relative vertical position is
 the unrotated corners. The camera-relative tilt is applied before adding the
 height, not around the world origin.
 
-Transform samples before adding height, with the camera facing positive Z:
-`(-65000, 0, 65000)` becomes approximately
-`(-65000, 4781.6963, 64823.8789)`. Facing positive X, the same corner becomes
-approximately `(-64823.875, -4781.6963, 65000)`.
-
 ### Initial scroll direction
 
 The sky consumes one value from the engine's shared random stream and keeps its

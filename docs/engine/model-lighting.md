@@ -336,64 +336,6 @@ Outside that mode, the retained colors carry the baked map-light contributions;
 the map lights are not reapplied by that draw loop. Other registered local lights
 can still contribute through the retained-color shading path.
 
-## Export metadata
-
-Textured GLTF materials retain their effective palette-zero RGB in
-`rgpre_texture` extras with `version: 1` and `chroma_key_rgb: [r, g, b]`.
-Embedded PNGs preserve those RGB bytes at alpha-zero texels. The alpha marker
-supports generic viewers; engine renderers use the RGB key after filtering.
-
-Positioned-model GLTF nodes retain the selected ROB segment attribute byte in
-`rgpre_render`, with `version: 1` and `rob_attributes`. The attribute is null
-for standalone model files and generated geometry. The loader retains it from
-the same successful archive segment as the geometry, including fallback
-selection and cached loads. Node metadata keeps instance attributes separate
-when exported instances share one mesh.
-
-MPSF nodes additionally carry `rgpre_flat` with `version: 1`, `texture_id`,
-`image_id`, source-image `dimensions: [width, height]`, `texture_scale`,
-submission `flags`, and integer `alpha`. Dimensions and scale are null when
-texture data is unavailable. Scale includes the zero-to-one default and the
-BSI fixed-point conversion. Flags include the centered-anchor base flag; alpha
-includes the non-wrapping attribute increment or the default 255. See
-[flat placement and attributes](../formats/RGM.md#mpsf-flat-objects).
-
-The flat metadata identifies a separate engine drawing path. Its dimensions
-and scale define camera-facing geometry; the generated mesh is a generic-viewer
-fallback, not authored model geometry. ROB model lighting and polygon-admission
-metadata do not describe flat drawing. Malformed FLAT sections produce placement
-diagnostics instead of flat nodes with assumed defaults.
-
-GLTF model primitives retain per-vertex face inputs in the `rgpre_lighting`
-extras object. Version 5 has `version: 5`, the model header radius as
-`radius_fixed` in 1/256 engine units, and a `vertices` array in exported
-vertex order. `solid_rgb` holds the resolved palette RGB for solid-color
-primitives and is null for textured primitives. Retained-color baking applies
-this RGB before integer rounding. Each entry is `[brightness, solid]`, where
-brightness is the converted runtime byte, `(tex_hi * 4) & 255`, and solid is 1
-for palette-color faces or 0 for textured faces. Version 3 retained the stored
-byte and requires re-export for the runtime-brightness contract. Version 5 also
-preserves all referenced authored corner normals when their count exceeds the
-position count. Earlier exports can substitute face normals for those omitted
-records and require re-export. Material grouping and polygon triangulation retain these inputs for
-every emitted vertex. Terrain primitives omit this metadata.
-
-Indexed solid-color primitives retain `rgpre_solid_palette` with `version: 1`
-and the original eight-bit `index`. Different indices remain separate primitives
-when their resolved RGB values match. Generic material colors remain unchanged;
-engine renderers can distinguish world index zero before applying palette
-conversion and lighting. Textured primitives omit this metadata.
-
-Textured model primitives also retain `rgpre_texcoords` version 1 with a `pixels`
-array in exported vertex order. Each pair is the decoded model coordinate divided
-by 16, in original source-image pixel units, before dimension normalization or
-vertical reversal. Negative and out-of-image coordinates are retained. Material
-splitting and triangle fans duplicate the corresponding pairs. `TEXCOORD_0`
-remains normalized and vertically reversed for generic GLTF viewers. Terrain and
-solid-color primitives omit `rgpre_texcoords`. Generated flat fallback meshes may
-carry these pairs, but their `rgpre_flat` node metadata defines their separate
-runtime geometry and coordinate path.
-
 ## Local-light records
 
 `MPOB` object kind 6 defines a runtime local light. With `objects_load` enabled, its
