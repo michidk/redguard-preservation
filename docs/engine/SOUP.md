@@ -335,6 +335,14 @@ matrices or update other actor fields. Each write changes only its selected
 field; subsequent actor processing performs the usual transform work. Ordinary
 heading values use 2048 units per turn.
 
+### Current animation property
+
+`anim.current` reads the resolved actor's current animation group as a signed
+16-bit value, extended to the script integer width. It preserves negative
+values, including the no-current-group value of `-1`. If the actor has no
+animation association, the read returns zero. Reading this property neither
+requests nor advances an animation and does not change actor or animation state.
+
 ## Operators
 
 ### Arithmetic Operators
