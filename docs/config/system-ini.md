@@ -134,7 +134,7 @@ Developer diagnostics, logging, and display flags. Most are disabled in the ship
 
 | Key | Default Value | Description |
 |---|---|---|
-| `final_version` | `1` | Marks this as a final/release build. Suppresses some developer output. |
+| `final_version` | `1` | Selects release behavior. See [Developer mode](#developer-mode). |
 | `enable_logs` | `0` | Enable runtime log file writing. |
 | `map_log` | `no` | Log map loading events. |
 | `console_error` | `yes` | Print errors to the console. |
@@ -377,3 +377,14 @@ Glide renderer overrides, active in the GOG release which runs via the Glide/3df
 ## External References
 
 - [UESP: Mod:SYSTEM.INI Info](https://en.uesp.net/wiki/Mod:SYSTEM.INI_Info)
+
+## Developer mode
+
+`[debug] final_version=0` selects developer behavior. The `fv` command-line
+option forces release behavior and takes precedence over `nfv`, which forces
+developer behavior. Either option overrides the INI value.
+
+In developer mode, startup does not present the book menu and enters the
+starting world directly. In a world, Escape waits for its release and then
+exits the game instead of opening the book. Developer mode also enables the
+camera position/angle diagnostic keys and other developer display paths.
