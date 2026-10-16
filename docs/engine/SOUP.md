@@ -1385,6 +1385,12 @@ Each component is divided by that stored divisor, stored at single precision
 again, and converted to an integer with the active x87 rounding mode. A zero
 divisor produces a zero vector. Angle lookup consumes this quantized direction.
 
+The direction is camera position minus the rotated target position. Using the
+signed bearing lookup whose positive X axis is a quarter turn and positive Z
+axis is zero, yaw is the X/Z bearing minus half a turn. Pitch is the bearing
+of the rounded horizontal length against Y, minus a quarter turn. Both wrap
+to 2048 units per revolution; roll is zero.
+
 ### Camera contact-normal response
 
 The camera body-response stage converts the candidate fixed-point position to
