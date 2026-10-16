@@ -1306,6 +1306,11 @@ the added model-bound radius is twice the floor of the Euclidean displacement
 length. The center-distance test accepts equality with the squared sum of the
 model radius and this added radius.
 
+The bounds test stores each integer-origin minus model-center component at
+single precision, then stores their summed squared distance at single precision.
+It also stores the model radius plus added radius at single precision before
+squaring that combined radius for comparison. Equality admits the model.
+
 ### Camera collision result selection
 
 The query arithmetic-shifts each fixed-point endpoint component right by eight
