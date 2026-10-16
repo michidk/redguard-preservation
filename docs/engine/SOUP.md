@@ -1421,3 +1421,16 @@ result replaces the shared published angles.
 Position history therefore contains the preceding published pose, not the new
 request or a temporary collision candidate. Retaining orientation still advances
 angle history to the preceding published angles.
+
+### Camera record initialization
+
+Camera setup clears all nine records, initializes record zero, and copies that
+record into slots one through eight before applying slot-specific configuration.
+The copied fields include the selected-player binding, position and angle
+bindings, position offsets, angle offsets, distance limits and maximum movement
+rate. Record zero has collision flag `0x40` before these copies.
+
+The ordinary target-offset configuration is assigned to record zero after the
+copies. It therefore does not initialize the other records' target offsets.
+Combat target offsets are assigned separately to slot three. The remaining
+slots retain their cleared target-offset vectors at this initialization stage.
