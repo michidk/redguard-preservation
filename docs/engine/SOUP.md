@@ -1240,3 +1240,13 @@ record's flags and returns one. Otherwise it clears bits `0x01` and `0x20` in
 that record and returns zero. Other bits in the record's flag byte are retained.
 The private word belongs to the task continuation and is distinct from the
 shared camera selection.
+
+### Actor camera offsets
+
+Location-camera setup reads the actor's `attr_camera_target_offset_x`,
+`attr_camera_target_offset_y`, `attr_camera_target_offset_z`,
+`attr_camera_offset_x`, `attr_camera_offset_y`, and `attr_camera_offset_z`
+attributes as unsigned bytes. Each byte independently becomes zero when it is
+zero, or `(value - 127) * 500` otherwise. The signed results replace the selected
+camera record's target-offset and camera-offset vectors. This conversion does
+not change the actor attributes or the other fields in the camera record.
