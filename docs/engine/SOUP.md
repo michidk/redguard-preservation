@@ -1395,3 +1395,10 @@ Only a candidate Y plus clearance strictly greater than the converted terrain
 height triggers correction. The replacement Y is terrain height minus clearance;
 X and Z remain unchanged, and the shared correction flag is set. Equality does
 not set the flag or replace the pose.
+
+The terrain query converts horizontal coordinates to cells with the active x87
+integer rounding mode after applying `x / 256 - 0.5` and `z / 256 + 0.5`.
+When both cell offsets from the retained terrain-window center are strictly
+between -16 and 16, height comes from that retained grid. At either boundary or
+outside the window, it comes from map samples through the height lookup table.
+The camera query therefore does not always use the static map heights.
