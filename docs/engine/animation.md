@@ -87,6 +87,15 @@ matches, it completes once the unsigned byte `anim.real_frame` is greater than
 or equal to `frame`; otherwise it keeps waiting. This counter is distinct from
 the `anim.frame` command cursor and the selected model-file frame.
 
+Selecting a new group resets `anim.real_frame` to zero. Ordinary frame
+advancement increments it when the frame countdown expires, and each skipped
+`ShowFrame` increments it again. The byte wraps from 255 to zero. A zero-tick
+update or a countdown decrement that retains the same frame leaves it unchanged.
+
+Command processing has a separate cursor. `BreakPoint` and `DelayCounter`
+advance that cursor without incrementing `anim.real_frame`; a `GoToPrevious`
+backward jump does not reset the counter.
+
 Current and pending group values are signed sixteen-bit values compared with
 the full script integer argument. The frame threshold also remains a full
 script integer; neither argument is narrowed before comparison. These tasks
