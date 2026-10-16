@@ -1270,6 +1270,12 @@ camera poses.
 
 ### Camera collision result selection
 
+The query arithmetic-shifts each fixed-point endpoint component right by eight
+before the geometry test. The integer wrapper converts returned hit positions
+with the active x87 integer rounding mode and scales normal components by 256
+before converting them. Selected output positions are shifted left by eight;
+selected output normals retain the wrapper's scale.
+
 Polygon hits store their position along the tested segment as a rank: the
 segment parameter multiplied by 32768, converted with the active x87 integer
 rounding mode. The segment start has rank zero and the end has rank 32768.
