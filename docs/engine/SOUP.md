@@ -1267,3 +1267,16 @@ record's bound actor-position vector, with wrapping signed 32-bit components.
 Otherwise, with `0x08`, it copies the stored request vector directly. These are
 candidate positions supplied to subsequent camera processing, not final rendered
 camera poses.
+
+### Camera collision result selection
+
+The camera collision query counts all returned hit records independently of
+whether a record replaces either selected output. For segment ranks from zero
+through 32768, minimum selection starts at 32767 and requires a strictly lower
+rank. Maximum selection starts at zero and requires a strictly higher rank.
+Equal ranks retain the first selected record.
+
+A result containing only ranks 32767 or 32768 therefore reports hits without
+replacing the shared minimum-position output. A result containing only rank
+zero leaves the shared maximum-position output unchanged. The query does not
+clear these output positions before scanning its candidates.
