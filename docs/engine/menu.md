@@ -87,7 +87,7 @@ Save displays `<NEW SAVE GAME>` as its first selectable row on the first list pa
 
 Action 101 asks for `Game Description` before creating a save. Action 102 opens the same input dialog with the existing description before overwriting that save. The input accepts at most 64 characters, requires nonempty text to confirm, and permits Escape to cancel. New manual saves use the first free directory number from 2 through 299. The Save list excludes the slot numbered zero; Load may include it. Delete on an existing save opens a `DELETE GAME?` confirmation that includes its description.
 
-Newly typed ASCII lowercase letters become uppercase; prefilled text retains its case. Without Shift, Backspace deletes the preceding character and Enter confirms nonempty text.
+Newly typed ASCII lowercase letters become uppercase; prefilled text retains its case. Without Shift, Backspace deletes the preceding character and Enter confirms nonempty text. With Shift, Backspace and Enter append character codes 13 and 11 respectively, without deleting or confirming.
 
 The description display wraps a copy of the edited text. It scans for spaces starting at zero-based character 13, excluding the final character. Each encountered space becomes a newline, and scanning resumes fourteen characters after that replacement. This preparation uses character positions without measuring font width; the edited value retains its spaces.
 
