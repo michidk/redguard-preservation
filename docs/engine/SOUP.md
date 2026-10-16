@@ -1401,6 +1401,11 @@ Y with bound actor Y minus the absolute scaled vertical delta converted back to
 fixed point with truncation toward zero. Candidate X and Z remain unchanged.
 Equality with the threshold leaves the candidate unchanged.
 
+The divided deltas, summed squared distance, square root and threshold are
+stored as single-precision values. The vertical division and subsequent
+threshold multiplication each store a single-precision result before conversion
+back to fixed point.
+
 ### Camera terrain-height clamp
 
 When the terrain-height stage is enabled, both terrain queries receive candidate
