@@ -323,12 +323,16 @@ using that state before the falling state when both are present.
 
 Object-property operands carry a little-endian `u16` reference ID after the object encoding. Property reads use the full reference ID to index the global references table loaded from the `[refs]` section of `SOUP386.DEF`. The high byte is not discarded. With native validation enabled, a reference outside the table enters the invalid-reference error path.
 
-### Actor heading property
+### Local pose properties
 
-`angle.vy` reads the resolved actor's local heading as a complete 32-bit value.
-The property descriptor selects a direct field read; it does not substitute the
-attached pose's heading or perform angular normalization. `Player.angle.vy`
-resolves the currently selected player before reading that field. Ordinary
+`pos.vx`, `pos.vy` and `pos.vz` access the resolved actor's local position.
+`angle.vx`, `angle.vy` and `angle.vz` access its local angles. Each property
+reads or writes the complete 32-bit field selected by its installed descriptor.
+`Player` resolves the currently selected player before accessing the field.
+
+These accesses do not substitute an attached pose, normalize angles, recompute
+matrices or update other actor fields. Each write changes only its selected
+field; subsequent actor processing performs the usual transform work. Ordinary
 heading values use 2048 units per turn.
 
 ## Operators
