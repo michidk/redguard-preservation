@@ -1342,3 +1342,10 @@ negation of the unscaled parameter. The two sides therefore do not use the same
 timing conversion. The selected-player special-state branch also retains the
 candidate's horizontal components during distance limiting while still applying
 the vertical component and reporting limiting.
+
+### Camera orientation retention
+
+Camera record flag `0x02` makes the orientation stage copy the previously
+published camera angles into the new pose. This branch skips target-direction
+calculation, leaves the record's bound-position history unchanged, and does not
+refresh the two transformed camera vectors.
