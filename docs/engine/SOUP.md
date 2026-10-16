@@ -1281,6 +1281,10 @@ revolution. Flag `0x80` replaces the first of these angles with the negated firs
 angle offset, ignoring that bound-angle component. The candidate is the bound
 position plus both rotated vectors, with wrapping signed components.
 
+Camera vector rotation builds an identity matrix, applies negative yaw, then
+positive pitch and roll, and transforms the supplied integer vector. These
+angle signs differ from the ordinary actor-matrix update convention.
+
 ### Camera collision candidate radius
 
 `SYSTEM.INI` `[camera] obstacle_size` supplies the candidate-size cutoff. Setup
