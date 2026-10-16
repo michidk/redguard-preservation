@@ -44,6 +44,12 @@ Consequently:
 
 A track number below 1 or above the CD's track count is ignored.
 
+Per-world snapshot restoration follows these world-load CD steps. A revisit
+uses the live CD track for its track-selection decision. Loading a compatible
+main save for the currently loaded world skips world setup and its CD track
+selection. Loading a compatible main save for another world runs world setup
+before restoring the saved state.
+
 ## Book menu and movies
 
 Opening the book menu plays track 2 from its start and applies `redbook_volume`.

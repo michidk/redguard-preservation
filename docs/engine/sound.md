@@ -303,6 +303,26 @@ their sample handles. These operations precede stopping all sample channels
 and setting the shared reset flag. It then clears the ownership byte of every
 node in every loaded walk-node map, regardless of the owning actor.
 
+Restoring saved world state from either `SAVEGAME.SAV` or a per-world `.TSG`
+snapshot clears the RTX cache, clears dialogue records and their text buffers,
+then stops all sample channels before restoring actor records. After restoring
+the world records, it sets the shared sample-reset flag. Per-world snapshot
+restoration follows [player initialization](player.md#initial-player-animation-setup).
+The next sound-maintenance invocation clears this flag before testing the
+periodic-reset threshold. The flag is not retained until a sound task consumes it.
+In-game main-save loading completes before that loop iteration's clock sampling
+and sound maintenance, followed later by ordinary object updates.
+
+Saved object state retains native task invocation counters and private state
+words. Existing-task dispatch restores those words and derives elapsed input
+from the counter and current frame scale. It does not initialize a restored
+slot as a new call. With nonzero elapsed and a clear sample-reset flag,
+`AmbientSound` follows its usual remembered-sample status path.
+`RTX` performs its initial label lookup only with zero elapsed and no retained
+dialogue record. `RTXp` requires zero elapsed and a clear start marker for that
+lookup. A resumed started call queries its shared dialogue record without
+recreating the line.
+
 The runtime menu-state word has an initial value of zero.
 `MenuBegin` sets it to one; `MenuEnd` clears it.
 The SOUP `menuProc` task activates this state when it is inactive and clears
