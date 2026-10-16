@@ -93,6 +93,8 @@ The description display wraps a copy of the edited text. It scans for spaces sta
 
 The delete confirmation presents `Yes` first and `No` second, with `Yes` initially selected. Enter confirms the current selection before simultaneous directional selection is applied.
 
+Centered dialog text starts at `x + trunc((available_width - text_width) / 2)`, where `trunc` rounds toward zero. A zero available width centers the measured text around `x`.
+
 The reserved quick-save slot is zero, with description `Quick Save Game`.
 The reserved automatic-save slot is one, with description `Redguard AutoSave`.
 When Quit closes the menu outside the startup context, the menu prepares this
