@@ -3,6 +3,9 @@
 Terrain receives an RGB lighting value at each vertex, after its normals are
 computed and before rasterization.
 
+See the [shading overview](shading.md) for flat and smooth shading, the color
+pipeline, and links to the related model, palette and framebuffer rules.
+
 ## World inputs
 
 World loading sets the Glide ambient channels from

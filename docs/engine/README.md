@@ -18,6 +18,9 @@ the [configuration reference](../config/) describes the INI settings.
 
 ## World rendering
 
+Start with the [Glide shading overview](shading.md) for flat and smooth shading,
+the color pipeline, and links to the detailed rules.
+
 | Topic | Behavior |
 |---|---|
 | [Model lighting](model-lighting.md) | Face brightness, directional and local lighting, and retained instance colors. |

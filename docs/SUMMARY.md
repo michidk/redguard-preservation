@@ -8,6 +8,7 @@
   - [Item attachment](engine/attachment.md)
   - [Developer console](engine/console.md)
   - [Hidden cheats](engine/cheats.md)
+  - [Glide shading overview](engine/shading.md)
   - [Model lighting](engine/model-lighting.md)
   - [View projection](engine/projection.md)
   - [Terrain lighting](engine/terrain-lighting.md)

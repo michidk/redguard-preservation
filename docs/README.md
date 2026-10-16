@@ -14,7 +14,7 @@ Reference documentation for *The Elder Scrolls Adventures: Redguard* (1998) file
 |---|---|
 | Load a world | [RGM scenes](formats/RGM.md), [WLD terrain](formats/WLD.md), [WORLD.INI](config/world-ini.md), and [PVO visibility](formats/pvo/format.md) |
 | Reproduce actor behavior | [SOUP scripting](engine/SOUP.md), [animation playback](engine/animation.md), [player movement](engine/player.md), and [item attachment](engine/attachment.md) |
-| Reproduce the scene renderer | [Terrain lighting](engine/terrain-lighting.md), [actor prelighting](engine/actor-prelighting.md), [fog and clipping](engine/fog.md), [sky](engine/sky.md), and [water](engine/water.md) |
+| Reproduce the scene renderer | Start with the [Glide shading overview](engine/shading.md), then follow its references to lighting, normals, textures, palettes, fog, sky and water. |
 | Reproduce menus and presentation | [Book menu](engine/menu.md), [HUD](engine/hud.md), [subtitles](engine/subtitles.md), and [cinematics](engine/movies.md) |
 | Inspect or convert assets | [CLI usage and library API](https://github.com/michidk/redguard-preservation/blob/main/README.md) |
 
