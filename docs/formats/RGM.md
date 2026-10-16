@@ -303,7 +303,7 @@ All typed fields are little-endian.
 | 0x95 | 2 | `i16` | combat_flag | Combat/state flag. |
 | 0x97 | 2 | `i16` | raex_stat | Stored at actor state +0x97 after SOUP function lookup. -1 = disabled. |
 | 0x99 | 2 | `i16` | reserved_99 | Always -1. Not read at runtime. |
-| 0x9B | 2 | `i16` | reserved_9b | Always 0. Not read at runtime. |
+| 0x9B | 2 | `i16` | texture_id | Actor texture set. Equal to the RAEX `texture_id` of the same actor in every shipped file; zero when the actor has none. |
 | 0x9D | 4 | `i32` | ravc_offset | Byte offset into RAVC section data (rebased to pointer at load; -1 = none) |
 | 0xA1 | 4 | `i32` | ravc_count | Number of RAVC collision entries for this actor |
 
@@ -413,7 +413,7 @@ All fields little-endian.
 | 0x04 | 2 | `i16` | scabbard0 | Named from console. Same subsystem as grip0. |
 | 0x06 | 2 | `i16` | scabbard1 | Same subsystem as scabbard0. |
 | 0x08 | 2 | `i16` | anim_frame_ref | Matches RAHD `anim_frame_data` at 0x85. Set on mobile actors only. |
-| 0x0A | 2 | `u16` | texture_id | Texture override id for actor skin variants. |
+| 0x0A | 2 | `u16` | texture_id | Actor texture set (TEXBSI number) for skin variants; zero selects the models' own textures. See [actor texture sets](#actor-texture-sets). |
 | 0x0C | 2 | `i16` | v_vertex | Vertex-related field. |
 | 0x0E | 2 | `i16` | v_size | Size-related field. |
 | 0x10 | 2 | `i16` | taunt_id | First taunt animation id; additional taunts count up from this value. |
@@ -425,6 +425,16 @@ All fields little-endian.
 | 0x1C | 2 | `i16` | range_max | Combat maximum range. Same scaling. |
 
 Total record size: 30 bytes (0x1E). Record count is `section_data_length / 30`.
+
+### Actor texture sets
+
+A nonzero RAEX `texture_id` applies to every multi-frame model the actor draws,
+including each RAAN frame-source model. The engine keeps one copy of a frame-source
+model per texture set and shares it between actors with the same set. Each face
+texture word of the copy is `bank << 7 | image`; words whose bank is greater than 1
+take the actor's texture set as their bank and keep their image index. Words with
+bank 0 or 1 are unchanged. Geometry, frame data and normals are those of the source
+model.
 
 ## RAAT (Attribute Data)
 
