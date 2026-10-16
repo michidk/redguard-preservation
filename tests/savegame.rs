@@ -88,11 +88,14 @@ struct SlotDir(PathBuf);
 
 impl SlotDir {
     fn new() -> Self {
+        static NEXT_ID: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+        let id = NEXT_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         let unique = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
             .as_nanos();
-        let path = std::env::temp_dir().join(format!("rgpre-save-{}-{unique}", std::process::id()));
+        let path =
+            std::env::temp_dir().join(format!("rgpre-save-{}-{unique}-{id}", std::process::id()));
         std::fs::create_dir(&path).unwrap();
         Self(path)
     }
