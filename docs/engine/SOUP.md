@@ -323,6 +323,14 @@ using that state before the falling state when both are present.
 
 After object name in property/method opcodes: `u16` reference ID. Only the low byte is used as an index into the global references table (loaded from `[refs]` section of `SOUP386.DEF`). The high byte is discarded.
 
+### Actor heading property
+
+`angle.vy` reads the resolved actor's local heading as a complete 32-bit value.
+The property descriptor selects a direct field read; it does not substitute the
+attached pose's heading or perform angular normalization. `Player.angle.vy`
+resolves the currently selected player before reading that field. Ordinary
+heading values use 2048 units per turn.
+
 ## Operators
 
 ### Arithmetic Operators
