@@ -189,6 +189,11 @@ wrap in both directions.
 
 ### Sun framebuffer blending
 
+Sky texture filtering and fog produce colors before framebuffer encoding.
+The RGB565 conversion and dither arithmetic in this section describe the
+software Voodoo 1 framebuffer backend; they are not additional stages in the
+BSI texture or sky fog calculation.
+
 The sun draw enables four-by-four framebuffer dithering and alpha dither
 subtraction. In the software Voodoo 1 renderer, blending reads the existing
 RGB565 destination by shifting the stored red and blue fields left by three
