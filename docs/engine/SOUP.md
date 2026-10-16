@@ -1227,3 +1227,16 @@ Otherwise it passes the selected player and all three full-width arguments to
 the camera-location handler and returns that handler's result. The wrapper does
 not narrow or transform the arguments. Task-slot scheduling and operand
 reevaluation follow the ordinary native-task rules.
+
+### Player camera task state
+
+`showPlayer` is a task with no arguments. Each invocation asks the player camera
+selector for a slot, falling back to slot zero when the selector reports no
+selection. It updates the shared camera selection to that slot.
+
+The task increments its first private word with 32-bit wrapping. When the result
+is one and elapsed input is zero, it sets bit `0x01` in the selected camera
+record's flags and returns one. Otherwise it clears bits `0x01` and `0x20` in
+that record and returns zero. Other bits in the record's flag byte are retained.
+The private word belongs to the task continuation and is distinct from the
+shared camera selection.
