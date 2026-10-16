@@ -176,3 +176,7 @@ alpha 255 and shadow alpha 180. The ordinary label is `%d%%`; debug output
 can include world indices before it. These are world-entry loading visuals,
 separate from the startup title's small bottom-edge labels. World loading
 does not display a right-aligned status message or an asset filename.
+
+New-game entry fades the loading screen in from black, fades it out to black
+after loading, and then fades the first world view in from black. Each fade
+step changes a black overlay by 12 out of 256.
