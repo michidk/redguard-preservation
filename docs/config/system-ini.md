@@ -374,10 +374,6 @@ Glide renderer overrides, active in the GOG release which runs via the Glide/3df
 
 ---
 
-## External References
-
-- [UESP: Mod:SYSTEM.INI Info](https://en.uesp.net/wiki/Mod:SYSTEM.INI_Info)
-
 ## Developer mode
 
 `[debug] final_version=0` selects developer behavior. The `fv` command-line
@@ -388,3 +384,7 @@ In developer mode, startup does not present the book menu and enters the
 starting world directly. In a world, Escape waits for its release and then
 exits the game instead of opening the book. Developer mode also enables the
 camera position/angle diagnostic keys and other developer display paths.
+
+## External References
+
+- [UESP: Mod:SYSTEM.INI Info](https://en.uesp.net/wiki/Mod:SYSTEM.INI_Info)
