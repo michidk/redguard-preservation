@@ -1106,9 +1106,9 @@ fn mpob_transform(record: &MpobRecord) -> [f32; 16] {
     let rx = ex.to_radians();
     let ry = ey.to_radians();
     let rz = ez.to_radians();
-    let (sx, cx) = rx.sin_cos();
-    let (sy, cy) = ry.sin_cos();
-    let (sz, cz) = rz.sin_cos();
+    let (sx, cx) = libm::sincosf(rx);
+    let (sy, cy) = libm::sincosf(ry);
+    let (sz, cz) = libm::sincosf(rz);
 
     let yaw_matrix = [[cy, 0.0, sy], [0.0, 1.0, 0.0], [-sy, 0.0, cy]];
     let pitch_matrix = [[1.0, 0.0, 0.0], [0.0, cx, -sx], [0.0, sx, cx]];
