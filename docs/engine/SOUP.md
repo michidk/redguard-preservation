@@ -1370,3 +1370,28 @@ multiplies it by the selected response direction, scales the result by 256,
 truncates each component toward zero, and adds it to the candidate position.
 No contacts leave the candidate unchanged. Opposing contacts can therefore
 produce a response in the first contact's direction rather than no response.
+
+### Camera distance-height correction
+
+Only slots zero and three run the distance-height correction. It subtracts the
+bound actor position from the candidate, divides each signed fixed-point delta
+by 256 with truncation toward zero, and computes the resulting distance. A zero
+distance is replaced with 0.1 for the following comparison and division.
+
+When that distance is strictly below the record's distance threshold, the stage
+scales the vertical delta by threshold divided by distance. It replaces candidate
+Y with bound actor Y minus the absolute scaled vertical delta converted back to
+fixed point with truncation toward zero. Candidate X and Z remain unchanged.
+Equality with the threshold leaves the candidate unchanged.
+
+### Camera terrain-height clamp
+
+When the terrain-height stage is enabled, both terrain queries receive candidate
+X and Z arithmetic-shifted right by eight. The floating height result is truncated
+toward zero before conversion back to fixed point. The camera body's stored
+clearance parameter is multiplied by 1024 and truncated separately.
+
+Only a candidate Y plus clearance strictly greater than the converted terrain
+height triggers correction. The replacement Y is terrain height minus clearance;
+X and Z remain unchanged, and the shared correction flag is set. Equality does
+not set the flag or replace the pose.
