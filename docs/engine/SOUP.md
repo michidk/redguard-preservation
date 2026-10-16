@@ -321,7 +321,7 @@ using that state before the falling state when both are present.
 
 ### Reference Name Encoding
 
-After object name in property/method opcodes: `u16` reference ID. Only the low byte is used as an index into the global references table (loaded from `[refs]` section of `SOUP386.DEF`). The high byte is discarded.
+Object-property operands carry a little-endian `u16` reference ID after the object encoding. Property reads use the full reference ID to index the global references table loaded from the `[refs]` section of `SOUP386.DEF`. The high byte is not discarded. With native validation enabled, a reference outside the table enters the invalid-reference error path.
 
 ### Actor heading property
 
