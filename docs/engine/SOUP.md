@@ -1319,3 +1319,26 @@ minimum-position output and reports success. A zero hit count leaves the
 candidate unchanged. The response does not separately check whether the query
 replaced its minimum output. An endpoint-only hit can therefore copy the retained
 minimum position from before the query.
+
+### Camera movement limiting
+
+Camera record flag `0x01` bypasses the movement-limiting stage. Otherwise the
+stage uses both the last published camera position and the preceding position.
+Its scalar timing helper floors the signed frame scale at 180, multiplies with
+32-bit wrapping, and arithmetic-shifts the product right by eight.
+
+The movement budget starts with the distance between those two retained
+positions plus the shared budget increment, capped by the record's unsigned
+maximum. The timing helper scales that budget. When the candidate displacement
+exceeds it, the stage forms an integer fraction with eight fractional bits and
+scales displacement components with multiplication followed by an arithmetic
+right shift. It reports that limiting occurred even when integer quantization
+leaves a component unchanged.
+
+A separate vertical limit precedes this distance test except for camera slot
+one and the selected-player special-state branch. The lower bound is the timed
+vertical parameter. A displacement above its negation is replaced with the
+negation of the unscaled parameter. The two sides therefore do not use the same
+timing conversion. The selected-player special-state branch also retains the
+candidate's horizontal components during distance limiting while still applying
+the vertical component and reporting limiting.
