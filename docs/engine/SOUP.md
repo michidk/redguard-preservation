@@ -510,6 +510,79 @@ It does not invoke the native handler or restore earlier animation state.
 Stopping a `PushAnimation` task therefore leaves its animation request and
 current playback state in place.
 
+### Player alignment ownership and targets
+
+`PlayerLineUp(angle, x_offset, z_offset)` moves the selected player relative to
+its receiving actor. Both distance modes move the player; neither moves the
+receiver. Its return value is also stored in the shared player-lineup result
+used by [activation admission](hud.md#activation-prompt).
+
+The first invocation in a native handler state selects the distance mode.
+It compares the shared integer three-axis distance between the effective player
+and receiver positions against `SYSTEM.INI` `lineup_distance * 256`. A strictly
+greater distance selects approach mode; equality selects close alignment.
+Subsequent invocations retain that choice in the native state. The initialized
+marker, mode, fallback flag and retained close-alignment reference belong to
+that handler state. Active task slots save and restore them independently.
+They are separate from the shared activation-admission result.
+
+For the normal target calculation, add `angle` to the reference actor's heading
+and wrap to 2048. Rotate the supplied horizontal offsets by that heading and
+add the reference actor's local X/Z. The final player heading is the rotated
+heading plus 1024, wrapped to 2048. Approach mode uses the current receiver as
+reference. Close alignment retains its first reference in native state and
+uses that actor on later invocations. The target position is recalculated on
+each invocation; it is not a captured destination.
+
+In the normal path, approach mode faces the destination before forward movement. Close alignment
+faces the final heading first, then chooses forward, sideways or backward
+movement from the relative destination bearing. Reaching the destination does
+not by itself finish alignment. The player must finish turning to the final
+heading and request its default animation. A completed alignment clears the
+player's alignment flag and returns zero; ongoing alignment returns one.
+In approach mode, a retained fallback flag or a nonzero packed collision-response
+word masked by `0x01e2` switches to facing the receiver's current local X/Z.
+Completion in that branch also sets the native return-state byte to 6. Close
+alignment's fallback instead turns to the final heading derived from its
+retained reference, requests the default animation, and sets that byte to 6.
+Both completion branches clear the player's alignment flag.
+
+### Alignment distance thresholds
+
+Alignment position tests use local Q8 X/Z and the shared integer distance
+function with Y set to zero. They select a speed byte from the current
+animation group and actor attributes. Missing animation or attributes selects
+zero. Other groups also select zero.
+
+| Current animation group | Speed attribute index |
+|---|---|
+| 18, 30, 142 | 8 |
+| 19, 143 | 9 |
+| 20, 21 | 12 |
+| 22, 23 | 13 |
+| 24 through 27 | 10 |
+| 31 | 19 |
+| 92, 93 | 17 |
+
+Let `speed` be that byte and `scale` the Q8 frame scale. The alignment arrival
+test uses `(((2 * speed - 1) << 8) * scale) >> 8`. The facing helper's arrival
+test instead uses `(((speed + 1) << 8) * scale) >> 8`. Products wrap to signed
+32 bits and the final shifts are arithmetic. A horizontal distance less than
+or equal to the threshold snaps local X/Z to the target and registers a map
+update. Y remains unchanged. With speed zero and a positive ordinary scale,
+the first threshold is negative and cannot admit a nonnegative distance.
+The facing helper's test can still snap in that case.
+
+The movement-distance check is a third test. It uses
+`((speed * 512 - 1) * scale) >> 8`, with the same wrapping and signed shift.
+It permits a movement attempt for actor state 7, speed zero, a nonpositive
+threshold, or a distance strictly greater than the threshold. It does not
+snap or register the actor.
+
+Alignment turning uses the [support-response turn rules](player.md#ordinary-slope-response),
+including selected-player camera updates. Returning to the default animation
+reports success on every normal return; it does not wait for playback to finish.
+
 ### Attribute reads and writes
 
 `GetAttribute` reads an unsigned byte from the receiving actor's attribute table and returns zero when the table is absent. `SetAttribute` returns zero. When the table exists, it writes the low byte of the supplied value. Writing attribute 6 also copies that byte to attribute 115; writing attribute 1 also copies it to attribute 119. These two handlers do not check the attribute index range.
