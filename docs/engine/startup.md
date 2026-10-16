@@ -40,6 +40,16 @@ wrapper. A wrapper using `3DfxSpl2.dll` displays the later metallic lowercase
 implementation determines the splash. OpenGLide's `NoSplash` and nGlide's
 splash setting can also suppress driver startup presentation.
 
+The GOG release's Windows launch runs its bundled DOSBox with Glide
+passthrough (`[glide] glide=true`) to the bundled OpenGLide wrapper, whose
+`glide.ini` sets `NoSplash=1`. That DOSBox build has its own `[glide] splash`
+option, which defaults to on and which the GOG configurations do not set.
+When the game first opens a Glide window successfully, DOSBox loads
+`3DfxSpl2.dll` from the DOSBox directory and plays its animation once. GOG
+Windows players therefore see the metallic splash. Emulated Voodoo hardware,
+such as DOSBox-X with `glide=emu`, runs the full overlay and shows the shield
+animation instead.
+
 The [DLL resource](../formats/GLIDE-SPLASH-DLL.md) contains authored geometry,
 textures and commands for the later animation. The older animation remains
 available in the [DOS overlay tables](../formats/GLIDE-SPLASH.md). These assets
@@ -96,7 +106,9 @@ textures, and authored transforms. No executable code needs to run to extract
 or display the animation.
 
 The full animation renders authored frames 1 through 74. Frame zero is not
-part of that playback. Each mesh's position uses its column-major affine
+part of that playback. Each frame presents with a buffer swap that waits two
+vertical retraces. Redguard opens Glide at 60 Hz, so the animation advances
+at 30 frames per second. Each mesh's position uses its column-major affine
 matrix; its normal uses the linear part without translation or normalization.
 
 With a viewport of width W and height H, a transformed point `(x,y,z)` maps to:
