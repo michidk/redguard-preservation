@@ -1268,6 +1268,15 @@ Otherwise, with `0x08`, it copies the stored request vector directly. These are
 candidate positions supplied to subsequent camera processing, not final rendered
 camera poses.
 
+### Camera collision candidate radius
+
+Candidate collection subtracts the fixed-point endpoints before arithmetic-shifting
+the displacement components right by eight. It separately shifts the starting
+point by eight. When the squared displacement sum fits signed 32-bit arithmetic,
+the added model-bound radius is twice the floor of the Euclidean displacement
+length. The center-distance test accepts equality with the squared sum of the
+model radius and this added radius.
+
 ### Camera collision result selection
 
 The query arithmetic-shifts each fixed-point endpoint component right by eight
