@@ -21,6 +21,9 @@ the [configuration reference](../config/) describes the INI settings.
 [Look and feel](look-and-feel.md) connects the visible result to the rendering
 and presentation rules below.
 
+Start with the [Glide shading overview](shading.md) for flat and smooth shading,
+the color pipeline, and links to the detailed rules.
+
 | Topic | Behavior |
 |---|---|
 | [Model lighting](model-lighting.md) | Face brightness, directional and local lighting, and retained instance colors. |

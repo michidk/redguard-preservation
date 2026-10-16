@@ -2,6 +2,9 @@
 
 Model lighting supplies encoded RGB at each polygon vertex before rasterization.
 
+See the [shading overview](shading.md) for flat and smooth shading, the color
+pipeline, and links to the related terrain, palette and framebuffer rules.
+
 ## Texture transparency
 
 The queued-model draw flags come from the ROB segment's attribute byte for

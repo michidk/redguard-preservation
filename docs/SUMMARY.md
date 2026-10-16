@@ -11,6 +11,7 @@
   - [Look and feel](engine/look-and-feel.md)
   - [Actor prelighting](engine/actor-prelighting.md)
   - [Texture animation](engine/texture-animation.md)
+  - [Glide shading overview](engine/shading.md)
   - [Model lighting](engine/model-lighting.md)
   - [View projection](engine/projection.md)
   - [Terrain lighting](engine/terrain-lighting.md)
