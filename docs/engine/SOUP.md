@@ -1349,3 +1349,10 @@ Camera record flag `0x02` makes the orientation stage copy the previously
 published camera angles into the new pose. This branch skips target-direction
 calculation, leaves the record's bound-position history unchanged, and does not
 refresh the two transformed camera vectors.
+
+Without this flag, slots zero and one use only the target offset's vertical
+component; other slots use the full vector. The stage rotates that offset by
+the bound angles, adds the bound actor position, and derives the camera angles
+from the direction between the published camera position and that target. It
+also refreshes the bound-position history and transforms both stored camera
+vectors using the derived angles.
