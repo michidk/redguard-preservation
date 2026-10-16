@@ -1379,6 +1379,12 @@ from the direction between the published camera position and that target. It
 also refreshes the bound-position history and transforms both stored camera
 vectors using the derived angles.
 
+Before angle conversion, the direction components are stored as single-precision
+values. Their Euclidean length divided by 65536 is stored at single precision.
+Each component is divided by that stored divisor, stored at single precision
+again, and converted to an integer with the active x87 rounding mode. A zero
+divisor produces a zero vector. Angle lookup consumes this quantized direction.
+
 ### Camera contact-normal response
 
 The camera body-response stage converts the candidate fixed-point position to
