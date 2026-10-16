@@ -1250,3 +1250,11 @@ attributes as unsigned bytes. Each byte independently becomes zero when it is
 zero, or `(value - 127) * 500` otherwise. The signed results replace the selected
 camera record's target-offset and camera-offset vectors. This conversion does
 not change the actor attributes or the other fields in the camera record.
+
+### Ordinary camera selection inhibition
+
+On the ordinary camera-update path, a nonzero scripted-camera active word or
+bit `0x20` in the selected camera record suppresses automatic slot reselection.
+The camera still runs its pose-processing stage. These guards precede the
+holding-weapon and other player-state checks used to choose an automatic slot;
+they do not suspend the whole camera update.
