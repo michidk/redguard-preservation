@@ -40,6 +40,12 @@ phase       = (distance_sq * F + T * S) & 2047
 height      = base_height + wave_table[phase] * A - A * 0.5
 ```
 
+The half-amplitude bias is stored as a 32-bit float before the vertex loop.
+For each selected vertex, the table-sample multiplication, base-height addition
+and bias subtraction retain register precision. Only the final height is stored
+as a 32-bit float. Rounding each intermediate operation to 32 bits can change
+the stored height.
+
 The BIOS timer count is independent of rendered frames. The standard PC BIOS
 clock advances approximately 18.2065 times per second. The absolute phase
 depends on that clock's initial value, not on scene loading. The spatial origin
