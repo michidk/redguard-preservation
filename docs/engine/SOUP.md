@@ -1461,6 +1461,17 @@ otherwise it is `(i, j - 1)`. Equality uses the latter triangle. The query
 publishes a normalized plane normal; the integer wrapper scales that normal
 by 256 and converts it using the active x87 integer rounding mode.
 
+### Camera pose stage order
+
+The pose stage composes a candidate and performs a segment collision check.
+A hit replaces the candidate with the retained minimum hit position, then runs
+distance-height correction, contact-normal response and terrain correction.
+
+A second segment check follows on both paths. A hit again replaces the candidate
+with the retained minimum position. The stage then runs distance-height
+correction, contact-normal response, movement limiting and terrain correction,
+in that order, before publishing the pose.
+
 ### Camera pose publication
 
 The transition word clears when the pose stage reports a collision or terrain
