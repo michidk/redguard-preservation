@@ -1356,3 +1356,17 @@ the bound angles, adds the bound actor position, and derives the camera angles
 from the direction between the published camera position and that target. It
 also refreshes the bound-position history and transforms both stored camera
 vectors using the derived angles.
+
+### Camera contact-normal response
+
+The camera body-response stage converts the candidate fixed-point position to
+floating coordinates and gathers contact normals. It sums normal components
+after dividing their integer representation by 256. A nonzero sum is normalized.
+If the sum cancels to zero, it instead uses the first contact normal divided by
+256, without normalizing that fallback.
+
+The response truncates the camera body's floating radius to an integer,
+multiplies it by the selected response direction, scales the result by 256,
+truncates each component toward zero, and adds it to the candidate position.
+No contacts leave the candidate unchanged. Opposing contacts can therefore
+produce a response in the first contact's direction rather than no response.
