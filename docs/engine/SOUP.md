@@ -1241,6 +1241,11 @@ that record and returns zero. Other bits in the record's flag byte are retained.
 The private word belongs to the task continuation and is distinct from the
 shared camera selection.
 
+A request for a different camera slot changes the selection only when the
+shared transition word is zero or the current record has flag `0x01`. Otherwise
+the current slot remains selected. Requesting the current slot leaves selection
+unchanged. The pose-publication stage clears the transition word.
+
 ### Actor camera offsets
 
 Location-camera setup reads the actor's `attr_camera_target_offset_x`,
