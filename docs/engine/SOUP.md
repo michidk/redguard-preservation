@@ -1258,3 +1258,12 @@ bit `0x20` in the selected camera record suppresses automatic slot reselection.
 The camera still runs its pose-processing stage. These guards precede the
 holding-weapon and other player-state checks used to choose an automatic slot;
 they do not suspend the whole camera update.
+
+### Camera request candidate position
+
+The camera's initial position-composition stage gives record flag `0x04`
+priority over `0x08`. With `0x04`, it adds the stored request vector to the
+record's bound actor-position vector, with wrapping signed 32-bit components.
+Otherwise, with `0x08`, it copies the stored request vector directly. These are
+candidate positions supplied to subsequent camera processing, not final rendered
+camera poses.
