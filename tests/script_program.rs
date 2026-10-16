@@ -44,7 +44,7 @@ fn parameter_modes_and_nested_functions_preserve_values() {
 }
 
 #[test]
-fn target_calls_preserve_dispatch_and_low_reference_byte() {
+fn target_calls_preserve_dispatch_and_full_reference_word() {
     let step = decode_script_step(&[25, 4, 3, 2, 2, 0, 0, 99], 0, &definition()).unwrap();
     assert_eq!(step.next, 7);
     let Operation::ObjectCall { call } = step.operation else {
@@ -58,7 +58,7 @@ fn target_calls_preserve_dispatch_and_low_reference_byte() {
         Operation::Increment {
             destination: Place::Property {
                 object: Object::Me,
-                reference: 9
+                reference: 65289
             },
             delta: 1
         }
@@ -224,4 +224,25 @@ fn native_calls_are_expression_forms_not_parameter_forms() {
     }
     let formula = decode_script_step(&[6, 0, 0, 2, 2, 0, 0, 0], 0, &definition()).unwrap();
     assert!(matches!(formula.operation, Operation::Assign { .. }));
+}
+
+#[test]
+fn property_reads_preserve_the_high_reference_byte() {
+    for reference in [38u16, 294, u16::MAX] {
+        let [lo, hi] = reference.to_le_bytes();
+        let step = decode_script_step(&[6, 0, 0, 20, 1, 0, lo, hi, 0], 0, &definition()).unwrap();
+        let Operation::Assign { formula, .. } = step.operation else {
+            panic!("assignment expected")
+        };
+        assert_eq!(
+            formula.first,
+            Value::Read {
+                place: Place::Property {
+                    object: Object::Player,
+                    reference
+                }
+            }
+        );
+        assert_eq!(step.next, 9);
+    }
 }
