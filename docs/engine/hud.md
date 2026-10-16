@@ -227,7 +227,9 @@ When the player's `attr_player_type` is 1, the receiving object's
 10 through 19 inclusive. These two tests apply to the receiving object.
 
 The selected player must not be holding a weapon, drawing a sword, or sheathing
-a sword. The shared player-lineup result must be zero. `Activate` requires the
+a sword. The shared player-lineup result must be zero. Standalone player
+initialization clears this result. Each `PlayerLineUp` invocation stores its
+selected alignment helper's result in the shared value before returning it. `Activate` requires the
 player's torch-burning counter to be zero; `TorchActivate` requires it to be
 nonzero. The prompt text is the RTX entry's text; a missing RTX entry does not
 activate the object. RTX lookup folds ASCII uppercase letters in the four-byte

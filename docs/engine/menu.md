@@ -54,7 +54,28 @@ The installed main-page entries are addressed by ordered index: Save is entry
 zero and Continue is entry five. Disabling an entry sets its grayed flag and
 moves selection away from it when necessary.
 
+## Gameplay book shortcuts
+
+With `SYSTEM.INI` `[debug] final_version` enabled, gameplay samples fixed book
+shortcuts in this order:
+
+| Key | Destination page |
+| --- | --- |
+| F2 | Save, page 1 |
+| F3 | Load, page 2 |
+| F4 | Display, page 5 |
+| F5 | Sound, page 6 |
+| F6 | Controls, page 7 |
+
+Escape takes priority and requests the main page. Otherwise, the shortcut
+sampler chooses the first held key in the table and clears that key's state.
+It returns no request when none is held. The retained request is consumed near
+the start of the following gameplay update. Escape enters the ordinary in-game
+book context; the five shortcuts enter their destination pages directly.
+
 ## Save and load pages
+
+Existing saves are ordered by the filesystem modification time of `SAVEGAME.SAV`, newest first. Equal timestamps retain ascending save-directory number order.
 
 Main action 1 opens Save on page 1. Its camera moves directly to `(336, 0, 0)` with fractional step `0.15`, without turning a page. Action 100 returns directly to the origin. Main action 2 opens Load on page 2 using the three-part camera sweep to the origin and a forward MB_PG01 turn delayed by four updates. Action 200 reverses that turn and repeats the sweep to the origin.
 
@@ -73,7 +94,9 @@ Quick Save reads scan code 67, F9, directly rather than an action binding. It
 clears that key state when latching a request near the end of the world loop.
 With `[debug] final_version` enabled, the following loop consumes the pending
 request before ordinary world processing, calls Quick Save, then clears the
-request.
+request. Menu requests and the Quick Save request are latched independently, so
+both can be pending together. The next loop handles the menu request first. If
+the menu returns without ending the world loop, Quick Save is consumed afterward.
 
 Before preparing a slot, the save writer requires at least 10 MiB of available
 disk space. Below that threshold it displays the failure message and returns
@@ -107,7 +130,7 @@ Configuration lookup matches section/key names without case and returns the firs
 
 ## Frame and camera transitions
 
-Page turns use the authored frame arrays, not an independent hinge rotation. A turn request supplies an initial frame, a target frame, and an update delay. The delay counts down first; at zero it selects the initial frame. Later menu updates move one integer frame toward the target. There is no geometric interpolation between those authored frames in this path.
+Page turns use the authored frame arrays, not an independent hinge rotation. A turn request supplies an initial frame, a target frame, and an update delay. The delay counts down first; at zero it selects the initial frame. Later menu updates move one integer frame toward the target. There is no geometric interpolation between those authored frames in this path. Forward turns and the Quit cover turn target the model's frame count, one past its last authored frame. That final forward step adds an update but does not change the displayed pose. A later reverse turn starts from that index, so its frame stepping takes one update more than the number of authored frames minus one. Placing a page directly on a submenu, without a turn, sets the last authored frame instead.
 
 MB_PG01 changes Z by +4 when a forward turn reaches frame four, and by -4 when a reverse turn reaches frame four. MB_PG03 applies the opposite depth changes. These shifts happen at the middle-frame crossing, not at the final frame. Returning to Main reverses the appropriate page turns. Cover motion and delayed page-turn starts dispatch the effects listed below.
 
