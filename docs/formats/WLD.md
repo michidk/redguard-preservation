@@ -149,7 +149,12 @@ No origin offset is applied to vertex positions. A separate world→grid reverse
 
 Each Map 1 byte is masked to 7 bits (`& 0x7F`) at load time, producing height values in the range 0–127. These values index into a 128-entry float lookup table to produce world-space Y coordinates.
 
-The engine stores a static source table of positive float values and negates them at initialization (`-ABS(source)`), so terrain heights are negative — the terrain surface sits below a reference plane. A second initialization mode computes `world_scapeshift - ABS(source)`, adjusting heights relative to a terrain height offset.
+The engine stores a static source table of positive float values. Terrain
+initialization rebuilds all 128 lookup entries as `offset - ABS(source)`, storing
+each result as a 32-bit float. World setup supplies `world_scapeshift` as the
+offset. A zero offset therefore produces the unshifted negative heights; it does
+not skip rebuilding the table. Nonzero offsets shift the same table rather than
+selecting a different source table.
 
 #### Height Lookup Table
 
