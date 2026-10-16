@@ -1216,3 +1216,14 @@ See [RGM.md](../formats/RGM.md) for record-level layouts and offsets.
 - [Dillonn241/redguard-mod-manager `ScriptParser.java`](https://github.com/Dillonn241/redguard-mod-manager/blob/main/src/redguard/ScriptParser.java) — RASC bytecode assembler (script text to bytecode)
 - [Dillonn241/redguard-mod-manager `MapHeader.java`](https://github.com/Dillonn241/redguard-mod-manager/blob/main/src/redguard/MapHeader.java) — RAHD record parser with field offsets
 - [Dillonn241/redguard-mod-manager `MapDatabase.java`](https://github.com/Dillonn241/redguard-mod-manager/blob/main/src/redguard/MapDatabase.java) — SOUP386.DEF parser (function, flag, reference, attribute definitions)
+
+## Selected-player location camera task
+
+`showCyrusLoc` is a three-argument task. It tests `IsHoldingWeapon` on the
+selected player, independently of the receiving actor. While that predicate is
+true, the task returns zero without invoking its camera-location handler.
+
+Otherwise it passes the selected player and all three full-width arguments to
+the camera-location handler and returns that handler's result. The wrapper does
+not narrow or transform the arguments. Task-slot scheduling and operand
+reevaluation follow the ordinary native-task rules.
