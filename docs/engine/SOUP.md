@@ -1270,6 +1270,10 @@ camera poses.
 
 ### Camera collision result selection
 
+Polygon hits store their position along the tested segment as a rank: the
+segment parameter multiplied by 32768, converted with the active x87 integer
+rounding mode. The segment start has rank zero and the end has rank 32768.
+
 The camera collision query counts all returned hit records independently of
 whether a record replaces either selected output. For segment ranks from zero
 through 32768, minimum selection starts at 32767 and requires a strictly lower
