@@ -599,6 +599,17 @@ signed 32-bit arguments. The receiver's attached yaw is used when `attr_slave`
 is nonzero; otherwise its ordinary yaw is used. This function requires a
 selected player. See [coordinate and heading units](player.md#coordinate-and-heading-units).
 
+`PlayerLooking(tolerance)` tests the selected player's horizontal orientation
+relative to the receiver. Subtract the receiver's effective X/Z position from
+the selected player's ordinary X/Z position, retaining signed 32-bit differences.
+Convert that displacement to the [quantized actor heading](player.md#direction-recovered-from-displacement).
+Compare it with the selected player's current yaw plus 1024, wrapped modulo 2048.
+The result is one when the absolute wrapped angular difference is less than or
+equal to the signed 32-bit tolerance, otherwise zero. A negative tolerance always
+rejects. The query requires a selected player and uses the same effective receiver
+position selection described above. It does not perform a visibility or line-of-sight
+query.
+
 ### Node-marker distance
 
 `AtNodeMarker(marker, distance)` returns one when the receiver's ordinary local
