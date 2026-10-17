@@ -1805,3 +1805,24 @@ for an attached receiver, the linked position when one exists, and the local pos
 otherwise (the same selection as the fighting query). Each pair of corners is ordered
 independently, so the corners may be given in either order, and the comparison is inclusive.
 The arguments use the position's runtime units.
+
+### Camera initial state and player-type settings
+
+At world load the camera actor and the alternate camera actor are both the `CAMERA` instance.
+The shared selection starts at slot zero and record zero is the selected record. Each record's
+bound actor is the selected player. The stored bound-position history of record zero starts as
+the bound actor's current position. The shared state block (transition word, scripted-camera
+active word and both published poses) starts zero until setup runs the full camera pose stage;
+its result then becomes both the current and the preceding published pose.
+
+Record zero's distance, minimum distance, target offset and position offset take the
+installed `[camera]` values listed in the record settings above when the selected player's
+`attr_player_type` is not one. When it is one, they take a reduced set derived from the same
+keys instead:
+
+| Record field | Value for player type one |
+|---|---|
+| Distance | `camera_distance` arithmetic-shifted right one bit |
+| Minimum distance | `camera_min_distance` arithmetic-shifted right one bit |
+| Target offset | `target_offset_x >> 1`, `6400`, `target_offset_z >> 1` |
+| Position offset | `offset_pos_x >> 1`, `6400`, `offset_pos_z >> 1` |
