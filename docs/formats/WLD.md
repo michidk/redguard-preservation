@@ -152,7 +152,8 @@ Each Map 1 byte is masked to 7 bits (`& 0x7F`) at load time, producing height va
 The engine stores a static source table of positive float values. Terrain
 initialization rebuilds all 128 lookup entries as `offset - ABS(source)`, storing
 each result as a 32-bit float. World setup supplies `world_scapeshift` as the
-offset. A zero offset therefore produces the unshifted negative heights; it does
+offset after retaining its low signed 16-bit word. Missing or empty entries
+use zero. A zero offset therefore produces the unshifted negative heights; it does
 not skip rebuilding the table. Nonzero offsets shift the same table rather than
 selecting a different source table.
 
