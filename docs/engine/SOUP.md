@@ -1903,3 +1903,31 @@ actor's [candidate list](#candidate-collection-for-an-ordinary-update): any cont
 typed by source: static placements and the secondary list carry type `0x20`, actor-owned models carry type
 `0x80`. While the actor's queued-motion byte is `0x18` (24), actor-owned candidates are skipped, so
 only static models can block.
+
+### MoveBackward
+
+`MoveBackward(duration)` is a task that steps the receiver backward relative to its heading. Each
+invocation returns zero (complete) or one (continue); it reads the task's elapsed input.
+
+**Admission.** The call does nothing, completing immediately, when the receiver's rope attachment,
+sliding state, falling state or queued-motion byte is nonzero, or its lifecycle byte is neither 0 nor
+15. Otherwise it sets the receiver's motion-direction byte to 7.
+
+**Animation.** The receiver is in the combat stance when it is holding a weapon or its combat flag
+`0x04` is set. In combat stance the [blocked-ahead probe](#nonplayer-blocked-ahead-probe) runs with
+distance 30; a blocked probe completes the call. The group is then 93 and the step length is the
+receiver's attribute byte 18. Outside combat stance the group is 143 in deep water (surface value 2
+or 4), 23 while a torch burns, and 19 otherwise, with step length attribute byte 9. When the receiver
+has no entry for the group, the call skips the rest and uses the final duration test below. Otherwise
+the group is requested as with `PlayAnimation(group, 0)`. When the animation system is enabled and
+the receiver's current group is still not the requested one, the call returns one while
+`duration - 1 > elapsed` and zero otherwise, without moving.
+
+**Movement.** The heading is the receiver's local Y angle plus 1024, wrapped to 2047. The distance is
+the step length in whole units times 256. A two-bit step counter in the receiver's motion byte
+(bits 6 and 7) selects a scale for the first three steps; with the translation-suppression marker clear
+the scale is the identity. Unless the animation's translation-suppression marker is set, the distance
+is multiplied by the frame scale (arithmetic shift right eight) and, when positive, the receiver's X
+and Z move that far along the heading by the heading-based translation rule.
+
+**Result.** One while `duration - 1 > elapsed`, otherwise zero.
