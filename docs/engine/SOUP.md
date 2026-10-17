@@ -1555,3 +1555,47 @@ The ordinary target-offset configuration is assigned to record zero after the
 copies. It therefore does not initialize the other records' target offsets.
 Combat target offsets are assigned separately to slot three. The remaining
 slots retain their cleared target-offset vectors at this initialization stage.
+
+### Camera record installed settings
+
+Camera setup reads `SYSTEM.INI` `[camera]` integers and stores them without
+scaling except where stated. Record zero receives, before the copy to slots one
+through eight:
+
+| Record field | `[camera]` keys |
+|---|---|
+| Position offset | `offset_pos_x`, `offset_pos_y`, `offset_pos_z` |
+| Angle offset | `offset_angle_x`, `offset_angle_y`, `offset_angle_z` |
+| Distance | `camera_distance` |
+| Minimum distance | `camera_min_distance` |
+| Maximum movement rate | `max_vel` |
+| Left position limit | `camera_left_pos` |
+| Right position limit | `camera_right_pos`, negated |
+
+Record zero also gains flag `0x40`. `target_offset_x`, `target_offset_y` and
+`target_offset_z` are assigned to record zero after the copy, and to slot three
+from the same keys.
+
+Slot-specific settings follow the copy. Each replaces the slot's angle offset and
+distance; a nonzero `*_max_vel` replaces its maximum movement rate, and a zero
+value keeps the copied record-zero rate.
+
+| Slot | Mode | Angle offset keys | Distance key | Maximum movement key |
+|---|---|---|---|---|
+| 3 | combat | `camera_combat_angle_offset_x/y/z` | `camera_combat_distance` | `camera_combat_max_vel` |
+| 4 | hanging | `camera_hang_angle_offset_x/y/z` | `camera_hang_distance` | `camera_hang_max_vel` |
+| 5 | rope | `camera_rope_angle_offset_x/y/z` | `camera_rope_distance` | `camera_rope_max_vel` |
+| 6 | rope above | `camera_rope_above_angle_offset_x/y/z` | `camera_rope_above_distance` | `camera_rope_above_max_vel` |
+| 7 | rope below | `camera_rope_below_angle_offset_x/y/z` | `camera_rope_below_distance` | `camera_rope_below_max_vel` |
+| 8 | debug | `camera_debug_angle_offset_x/y/z` (see below) | `camera_debug_distance` | `camera_debug_max_vel` |
+
+The debug slot's three angle-offset reads all store to the first angle-offset field; its second and third angle offsets keep the copied record-zero values.
+
+Slot three gains flag `0x40` (already present from the copy). Slots six and seven
+additionally load aim vectors from `camera_rope_above_aim_x/y/z` and
+`camera_rope_below_aim_x/y/z`, bind the record's aim reference to them, and set
+their flags to exactly `0x40`. Slots four, five and eight keep the copied flags.
+Slots one, two and four through eight keep their cleared target-offset vectors.
+
+`obstacle_size` and `fudge_factor` are shifted left eight bits and `max_y_vel` is
+negated before storage in shared camera state, outside the records.
