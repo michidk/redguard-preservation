@@ -218,6 +218,18 @@ fn installed_save_slot() {
         }
     }
     assert_eq!(slot.game.metadata.version, *b"1.31");
+    if let Some(count) = std::env::var_os("REDGUARD_SAVED_ITEM_COUNT") {
+        use rgpre::import::savegame::{encode_save_inventory, parse_save_inventory};
+        let count = count.to_str().unwrap().parse::<usize>().unwrap();
+        let section = slot
+            .game
+            .sections
+            .iter()
+            .find(|s| s.name == *b"SVIT")
+            .unwrap();
+        let inventory = parse_save_inventory(&section.data, count).unwrap();
+        assert_eq!(encode_save_inventory(&inventory).unwrap(), section.data);
+    }
     assert!(
         slot.game
             .sections
@@ -232,6 +244,52 @@ fn installed_save_slot() {
                 .any(|s| s.name == *b"SMOB" && !s.data.is_empty())
         );
     }
+}
+
+#[test]
+fn inventory_decodes_literal_fields_and_encodes_the_original_bytes() {
+    use rgpre::import::savegame::{
+        SaveInventory, SaveItem, encode_save_inventory, parse_save_inventory,
+    };
+    let bytes = [
+        1, 0xa5, 4, 3, 2, 1, 9, 0, 0, 0, 0xfe, 0xff, 0xff, 0xff, 0x44, 0x33, 0x22, 0x11, 0x88,
+        0x77, 0x66, 0x55, 0x78, 0x56, 0x34, 0x12,
+    ];
+    let expected = SaveInventory {
+        items: vec![SaveItem {
+            hide: 1,
+            unknown_01: 0xa5,
+            total: 0x01020304,
+            player_max: 9,
+            player_total: -2,
+            unknown_0e: 0x11223344,
+            unknown_12: 0x55667788,
+        }],
+        selected_item: 0x12345678,
+    };
+    assert_eq!(parse_save_inventory(&bytes, 1).unwrap(), expected);
+    assert_eq!(encode_save_inventory(&expected).unwrap(), bytes);
+    assert_eq!(
+        parse_save_inventory(&[255; 4], 0).unwrap(),
+        SaveInventory {
+            items: vec![],
+            selected_item: -1,
+        }
+    );
+    for count in [0, 2, usize::MAX] {
+        assert!(
+            parse_save_inventory(&bytes, count)
+                .unwrap_err()
+                .to_string()
+                .contains("SVIT")
+        );
+    }
+    for size in 0..bytes.len() {
+        assert!(parse_save_inventory(&bytes[..size], 1).is_err());
+    }
+    let mut extra = bytes.to_vec();
+    extra.push(0);
+    assert!(parse_save_inventory(&extra, 1).is_err());
 }
 
 #[test]
