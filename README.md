@@ -180,7 +180,8 @@ non-regular resource files return errors with file context.
 
 The loader only reads files. It does not follow the stored bitmap path, write
 saves, convert files, or restore actors and scripts into a running engine.
-State payloads remain opaque. Display strings use UTF-8 replacement characters
+State payloads remain opaque, except the inventory chunk, which
+`parse_save_inventory` and `encode_save_inventory` decode and encode. Display strings use UTF-8 replacement characters
 for invalid bytes; the original bytes remain in `SVGM`. See
 [Save-game containers](docs/formats/SAVEGAME.md).
 
