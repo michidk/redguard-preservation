@@ -1872,3 +1872,11 @@ the decision stage began. The taunt is then presented only when `(combat value +
 multiple of the combat record's taunt period; presenting a type 9 taunt also sets combat flag `0x40`.
 
 Presenting a taunt replaces the current taunt reference in the combat record.
+
+### PlayAnimation
+
+`PlayAnimation(group, modifier)` requests an animation group for the receiver and returns zero
+without waiting (unlike `PushAnimation`, which is a task). The request goes through the ordinary
+[request arbitration](animation.md) with the modifier narrowed to one byte. It does nothing when
+the animation system is disabled, when the receiver has no animation state, or when the receiver
+is excluded from ordinary object updates.
