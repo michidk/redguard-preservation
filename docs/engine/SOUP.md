@@ -1847,33 +1847,28 @@ not create a record.
 
 Every stored value keeps only its low sixteen bits.
 
-### Nonplayer combat action selection
+### Nonplayer combat taunt requests
 
-The decision stage requests an action of a numbered kind from the receiver's candidate action
-records (the combat record's ordered list; each record carries a kind byte, a non-null move
-reference and a second value passed on when the action starts). A request is ignored when the
-receiver is dead or its list is empty, and when kind 9 is requested while combat flag `0x40` is
-set.
+The decision stage requests a taunt of a numbered [type](../config/combat-ini.md#taunt-types) from
+the receiver's taunt list (each record carries a type, a four-byte RTX label, and an animation
+value). A request is ignored when the receiver is dead or its list is empty, and when type 9 is
+requested while combat flag `0x40` is set.
 
-**Distance gate.** For kinds other than 0, 2 and 6, a request with a combat target is ignored
-when the distance to the target is `0x40000` or more.
+**Distance gate.** For types other than 0, 2 and 6, a request with a combat target is ignored when
+the distance to the target is `0x40000` or more.
 
-**Busy gate.** For kinds 10 and 11, the request is ignored while the receiver has a current action
+**Busy gate.** For types 10 and 11, the request is ignored while the receiver has a current taunt
 whose pending field is set.
 
-**Kinds 0, 2, 6, 10 and 11.** Scan the list in order. Each record whose kind equals the request and
-whose move reference is non-null becomes the choice; after each such match, one random draw
-`draw * 4 / 32767` equal to one ends the scan, so the first record that wins the draw is kept,
-otherwise the last match. If nothing matched and the request was kind 6, the request becomes kind 2
-and the scan repeats. A choice starts that action.
+**Types 0, 2, 6, 10 and 11** use the in-order scan with the one-in-four random stop described in the
+taunt selection rules, including the death fallback to the hurt type here expressed as: when
+nothing matched for type 6, the request repeats as type 2.
 
-**Kinds 5, 8 and 9.** Up to fifteen probes, each choosing a list index `draw * count / 32767`. A
-probed record of the requested kind with a non-null move reference becomes the choice when no choice
-exists yet, or otherwise replaces it when `(combat value + frame value) mod 2` is zero, where the
-combat value is the combat record's per-actor value and the frame value is the update's value
-saved when the decision stage began. The action then starts only when `(combat value + frame value)`
-is a multiple of the combat record's action period; starting a kind 9 action also sets combat flag
-`0x40`.
+**Types 5, 8 and 9.** Up to fifteen probes, each choosing a list index `draw * count / 32767`. A
+probed record of the requested type with a nonzero label becomes the choice when no choice exists
+yet, or otherwise replaces it when `(combat value + frame value) mod 2` is zero, where the combat
+value is the combat record's per-actor value and the frame value is the update's value saved when
+the decision stage began. The taunt is then presented only when `(combat value + frame value)` is a
+multiple of the combat record's taunt period; presenting a type 9 taunt also sets combat flag `0x40`.
 
-Starting an action stores the new current action in the combat record. The kind codes and the
-move start itself are not described here.
+Presenting a taunt replaces the current taunt reference in the combat record.
