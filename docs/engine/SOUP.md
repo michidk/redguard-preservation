@@ -1708,3 +1708,17 @@ Slots one, two and four through eight keep their cleared target-offset vectors.
 
 `obstacle_size` and `fudge_factor` are shifted left eight bits and `max_y_vel` is
 negated before storage in shared camera state, outside the records.
+
+### SheathSword
+
+`SheathSword` takes no arguments and returns zero. It acts only when all of these
+hold for the receiver: the task system is enabled, the receiver has animation state and
+a combat record, the combat cooldown is zero, the lifecycle byte is not in 27 through 32,
+the receiver is neither drawing nor sheathing a sword (the `IsDrawingSword` and
+`IsSheathingSword` predicates), and `IsHoldingWeapon` is true. Otherwise it changes
+nothing.
+
+When it acts, the lifecycle byte becomes 21 (sheathing), the companion motion byte is
+cleared, bit `0x04` of the combat flags is cleared, and the combat cooldown becomes 24.
+For the selected player it additionally sets the HUD health-display timer to 25 and selects
+camera slot zero.
