@@ -413,6 +413,10 @@ The single byte before a comma is converted to an integer font-table index;
 missing prefixes use index 7. The reader follows the font-table entry's small-font link directly. Index 7 therefore uses `FONTNORS.FNT` with main alpha
 200; index 9 uses `FONTSELS.FNT` with main alpha 255. Text shadows are disabled here.
 
+Glyph colors come from the font palette's 6-bit components. Index 9 text shifts them
+left by two bits. Index 7 text shifts them left by one bit, so its glyphs are half as
+bright before the alpha blend with the paper.
+
 ## Toggle notices
 
 Tab (scan code 15) toggles walk mode and F7 (scan code 65) toggles
