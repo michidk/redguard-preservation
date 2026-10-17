@@ -40,6 +40,16 @@ wrapper. A wrapper using `3DfxSpl2.dll` displays the later metallic lowercase
 implementation determines the splash. OpenGLide's `NoSplash` and nGlide's
 splash setting can also suppress driver startup presentation.
 
+The GOG release's Windows launch runs its bundled DOSBox with Glide
+passthrough (`[glide] glide=true`) to the bundled OpenGLide wrapper, whose
+`glide.ini` sets `NoSplash=1`. That DOSBox build has its own `[glide] splash`
+option, which defaults to on and which the GOG configurations do not set.
+When the game first opens a Glide window successfully, DOSBox loads
+`3DfxSpl2.dll` from the DOSBox directory and plays its animation once. GOG
+Windows players therefore see the metallic splash. Emulated Voodoo hardware,
+such as DOSBox-X with `glide=emu`, runs the full overlay and shows the shield
+animation instead.
+
 The [DLL resource](../formats/GLIDE-SPLASH-DLL.md) contains authored geometry,
 textures and commands for the later animation. The older animation remains
 available in the [DOS overlay tables](../formats/GLIDE-SPLASH.md). These assets
@@ -96,7 +106,9 @@ textures, and authored transforms. No executable code needs to run to extract
 or display the animation.
 
 The full animation renders authored frames 1 through 74. Frame zero is not
-part of that playback. Each mesh's position uses its column-major affine
+part of that playback. Each frame presents with a buffer swap that waits two
+vertical retraces. Redguard opens Glide at 60 Hz, so the animation advances
+at 30 frames per second. Each mesh's position uses its column-major affine
 matrix; its normal uses the linear part without translation or normalization.
 
 With a viewport of width W and height H, a transformed point `(x,y,z)` maps to:
@@ -149,7 +161,9 @@ for geometry. Two triangles cover the quad, submitted in both windings.
 
 S and T are stored multiplied by the projected point's reciprocal Z. The
 per-TMU reciprocal-W field additionally contains the light-to-projected-point
-distance divided by Z.
+distance divided by Z. The splash sets no STW hint, so texturing ignores
+that field: S and T interpolate perspective-correctly with the projected
+point's reciprocal Z, and the shadow texture spans the projected quad.
 
 ## External references
 
@@ -176,3 +190,7 @@ alpha 255 and shadow alpha 180. The ordinary label is `%d%%`; debug output
 can include world indices before it. These are world-entry loading visuals,
 separate from the startup title's small bottom-edge labels. World loading
 does not display a right-aligned status message or an asset filename.
+
+New-game entry fades the loading screen in from black, fades it out to black
+after loading, and then fades the first world view in from black. Each fade
+step changes a black overlay by 12 out of 256.

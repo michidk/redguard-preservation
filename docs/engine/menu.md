@@ -54,6 +54,10 @@ The installed main-page entries are addressed by ordered index: Save is entry
 zero and Continue is entry five. Disabling an entry sets its grayed flag and
 moves selection away from it when necessary.
 
+The startup entry context (`1`) also disables Save. Entry context `2` disables
+Continue. These context checks run independently of the selected-player death
+restriction.
+
 ## Gameplay book shortcuts
 
 With `SYSTEM.INI` `[debug] final_version` enabled, gameplay samples fixed book
@@ -82,6 +86,14 @@ Main action 1 opens Save on page 1. Its camera moves directly to `(336, 0, 0)` w
 Save displays `<NEW SAVE GAME>` as its first selectable row on the first list page, followed by eight existing saves. Subsequent list pages contain nine existing saves. Load displays nine existing saves per list page. Rows are addressed by their ordered entry index and list-page offset, not by action alone: existing Save rows share action 102, and Load rows share action 202. Missing saves produce empty, disabled rows. Slot descriptions are copied into menu labels with a limit of forty characters.
 
 Action 101 asks for `Game Description` before creating a save. Action 102 opens the same input dialog with the existing description before overwriting that save. The input accepts at most 64 characters, requires nonempty text to confirm, and permits Escape to cancel. New manual saves use the first free directory number from 2 through 299. The Save list excludes the slot numbered zero; Load may include it. Delete on an existing save opens a `DELETE GAME?` confirmation that includes its description.
+
+Newly typed ASCII lowercase letters become uppercase; prefilled text retains its case. Without Shift, Backspace deletes the preceding character and Enter confirms nonempty text. With Shift, Backspace and Enter append character codes 13 and 11 respectively, without deleting or confirming.
+
+The description display wraps a copy of the edited text. It scans for spaces starting at zero-based character 13, excluding the final character. Each encountered space becomes a newline, and scanning resumes fourteen characters after that replacement. This preparation uses character positions without measuring font width; the edited value retains its spaces.
+
+The delete confirmation presents `Yes` first and `No` second, with `Yes` initially selected. Enter confirms the current selection before simultaneous directional selection is applied.
+
+Centered dialog text starts at `x + trunc((available_width - text_width) / 2)`, where `trunc` rounds toward zero. A zero available width centers the measured text around `x`.
 
 The reserved quick-save slot is zero, with description `Quick Save Game`.
 The reserved automatic-save slot is one, with description `Redguard AutoSave`.
@@ -149,7 +161,7 @@ The submenu requests use these camera paths. Each row's targets execute in order
 | Display or Sound to Options | `(0, 0, 0)` | `0` | `0.15` |
 | Quit | `(232, 284, -96)`, `(232, 284, -96)`, `(408, 0, 0)` | `-152`, `0`, `+152` | `0.15`, `0.12`, `0.15` |
 
-The repeated target holds the position while the request fraction advances. Main to Movies and its return delay the first page turn by four menu updates. Main to Options delays MB_PG01 by three and MB_PG02 by five; its return delays them by five and three respectively. Options to Controls and back delay MB_PG03 by four. Quit delays the cover turn by two. Normal menu direction, activation, and Escape handling wait until the camera queue and page turns finish, including the update that settles their final targets.
+The repeated target holds the position while the request fraction advances. Main to Movies and its return delay the first page turn by four menu updates. Main to Options delays MB_PG01 by three and MB_PG02 by five; its return delays them by five and three respectively. Options to Controls and back delay MB_PG03 by four. Quit delays the cover turn by two. Outside the startup context, Quit then fades the closed book to black before the menu returns. Each fade update with a nonzero [whole nominal-tick increment](player.md#whole-nominal-ticks) redraws the book, clamping each page frame to its last authored frame, and raises a black overlay by 12 times that increment, out of 256, until the overlay is opaque. Startup-context Quit returns without this fade. Normal menu direction, activation, and Escape handling wait until the camera queue and page turns finish, including the update that settles their final targets.
 
 For these paths, only the first camera angle changes. Subtract the camera position from a world point to obtain `(x, y, z)`, then apply the view rotation before viewport projection:
 

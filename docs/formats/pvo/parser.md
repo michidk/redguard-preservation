@@ -328,3 +328,7 @@ fn query_visible(tree: OctrNode, header: OcthHeader, leaves: Vec<PlstLeaf>,
 
     return visible
 ```
+
+## External References
+
+- [UESP: Redguard file formats](https://en.uesp.net/wiki/Mod:Redguard_File_Formats)

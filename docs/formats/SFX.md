@@ -5,9 +5,9 @@ Single-file container for all game sound effects, stored as `MAIN.SFX` in the `S
 ## Overall Structure
 
 ```
-FXHD section (44 bytes)
-FXDT section (variable)
-"END " (4 bytes)
+[FXHD — effect-bank header]
+[FXDT — sequential effect records and PCM data]
+[END — four-byte terminator]
 ```
 
 Effects are stored sequentially with no offset table. The game references effects by their 0-based index in the file.
@@ -35,15 +35,15 @@ All fields little-endian unless noted.
 
 | Offset | Size | Type | Name | Description |
 |---|---|---|---|---|
-| 0x00 | 4 | u32 | type_id | Audio type: 0 = 8-bit mono, 1 = 16-bit mono, 2 = 8-bit stereo (unused), 3 = 16-bit stereo |
-| 0x04 | 4 | u32 | bit_depth | 0 = 8-bit, 1 = 16-bit |
-| 0x08 | 4 | u32 | sample_rate | Always 11025 or 22050 Hz |
-| 0x0C | 1 | u8 | base_volume | Always 64 (all 118 effects). Base volume (Miles 0..127 scale) of every start: the caller's volume is added and the sum clamped to 0..127. Positional callers pass the distance volume relative to this base; `FlatSound(e, 0, 0)` plays at 64. See [positional sound](../engine/sound.md). |
-| 0x0D | 1 | u8 | loop_flag | 0 = play once. Non-zero enables looping; 0xFF loops forever, any other value is passed as the Miles loop count (see Loop Behavior). |
-| 0x0E | 4 | u32 | loop_offset | Byte offset into PCM data for loop restart point (always 0) |
-| 0x12 | 4 | u32 | loop_end | Sample count before looping (always 0xFFFFFFFF) |
-| 0x16 | 4 | u32 | data_length | Byte count of raw PCM data following this header |
-| 0x1A | 1 | u8 | reserved_1a | Padding between header and PCM data. Always 0. |
+| 0x00 | 4 | `u32` | type_id | Audio type: 0 = 8-bit mono, 1 = 16-bit mono, 2 = 8-bit stereo (unused), 3 = 16-bit stereo |
+| 0x04 | 4 | `u32` | bit_depth | 0 = 8-bit, 1 = 16-bit |
+| 0x08 | 4 | `u32` | sample_rate | Always 11025 or 22050 Hz |
+| 0x0C | 1 | `u8` | base_volume | Always 64 (all 118 effects). Base volume (Miles 0..127 scale) of every start: the caller's volume is added and the sum clamped to 0..127. Positional callers pass the distance volume relative to this base; `FlatSound(e, 0, 0)` plays at 64. See [positional sound](../engine/sound.md). |
+| 0x0D | 1 | `u8` | loop_flag | 0 = play once. Non-zero enables looping; 0xFF loops forever, any other value is passed as the Miles loop count (see Loop Behavior). |
+| 0x0E | 4 | `u32` | loop_offset | Byte offset into PCM data for loop restart point (always 0) |
+| 0x12 | 4 | `u32` | loop_end | Sample count before looping (always 0xFFFFFFFF) |
+| 0x16 | 4 | `u32` | data_length | Byte count of raw PCM data following this header |
+| 0x1A | 1 | `u8` | reserved_1a | Padding between header and PCM data. Always 0. |
 | 0x1B | var | `[u8]` | pcm_data | Raw PCM audio: u8 samples for 8-bit, i16 LE samples for 16-bit |
 
 ### Loop Behavior
@@ -56,7 +56,7 @@ The engine interprets `loop_flag` as follows:
 
 When looping is enabled the engine also passes `loop_offset` and `loop_end` as the Miles loop block.
 
-`loop_offset` and `loop_end` appear to be unused features — always `loop_offset = 0` and `loop_end = 0xFFFFFFFF`.
+All shipped effects use `loop_offset = 0` and `loop_end = 0xFFFFFFFF`.
 
 ### Runtime Effect Structure
 

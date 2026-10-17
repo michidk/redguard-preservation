@@ -228,7 +228,7 @@ Interpreted as four dwords (`u32`, little-endian):
 3. `0xFFFFFFFF`
 4. `0x00043735`
 
-The WLD loader does not read or parse this footer; it stops after reading the 4 section data blocks. The footer is a build-time artifact or reserved metadata ignored at runtime. Field-level semantics are unknown.
+The WLD loader does not read or parse this footer; it stops after reading the 4 section data blocks. The footer is ignored at runtime.
 
 ## Relationships to Other Formats
 

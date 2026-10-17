@@ -112,10 +112,10 @@ Numeric fields are little-endian.
 | 0x8C | 4 | `u32` | unknown_94 | Non-zero metadata field |
 | 0x90 | 4 | `u32` | unknown_98 | Always 0 |
 | 0x94 | 4 | `u32` | unknown_9c | Usually 0; value 2 in `ARIALBG.FNT` |
-| 0x98 | 4 | `u32` | unknown_a0 | Near `max_width`-like values |
-| 0x9C | 4 | `u32` | unknown_a4 | Near `line_height`-like values |
-| 0xA0 | 4 | `u32` | unknown_a8 | Small enum-like values (1..3) |
-| 0xA4 | 4 | `u32` | unknown_ac | Small enum-like values (1..2) |
+| 0x98 | 4 | `u32` | unknown_a0 | Unknown field |
+| 0x9C | 4 | `u32` | unknown_a4 | Unknown field |
+| 0xA0 | 4 | `u32` | unknown_a8 | Values 1 through 3 |
+| 0xA4 | 4 | `u32` | unknown_ac | Values 1 through 2 |
 | 0xA8 | 4 | `u32` | unknown_b0 | Always 0 |
 | 0xAC | 1 | `u8` | unknown_b4 | Always 0 |
 

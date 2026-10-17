@@ -2,6 +2,41 @@
 
 Bytecode scripting engine used by the Redguard runtime for actor behavior, dialogue, puzzle logic, and scene control.
 
+<a id="function-table"></a>
+
+## Function overview
+
+`SOUP386.DEF` declares callable functions in installed order. Index 0 is the
+synthetic `NullFunction`; authored entries start at index 1. See
+[SOUP386.DEF](SOUPDEF.md) for function IDs and parameter declarations, and
+[function dispatch](#function-dispatch) for argument evaluation and task lifetime.
+
+| Functions | Behavior |
+|---|---|
+| `TaskStop`, `TaskPause`, `TaskResume` | [Control task slots](#actor-task-controls-and-return-state) |
+| `Wait`, `WaitOnTasks`, `WaitNonMulti` | [Wait for time or other tasks](#wait-waitontasks-and-waitnonmulti) |
+| `Anchor`, `Yield`, `ScriptRV` | [Control continuation and return state](#anchor-yield-and-scriptrv) |
+| `PushAnimation`, `TaskStop` | [Animation ownership and stopping](#animation-task-ownership-and-stopping) |
+| `GetAttribute`, `SetAttribute`, `GetMyAttr`, `SetMyAttr` | [Read and write actor attributes](#attribute-reads-and-writes) |
+| `SetAttribute`, `SetMyAttr` | [Default-group side effects](#attribute-default-group-side-effects) |
+| `PlayerDistance`, `PlayerFacing` | [Query distance and relative facing](#player-distance-and-facing) |
+| `AtNodeMarker` | [Query distance to a node marker](#node-marker-distance) |
+| `Wander` | [Choose destinations and limit movement](#wandering-without-walk-node-maps) |
+| `MoveToLocation` | [Move toward an authored location](#authored-location-movement) |
+| `RotateByAxis`, `sRotateByAxis` | [Relative rotation](#relative-axis-rotation), [elapsed rotation](#elapsed-relative-axis-rotation) |
+| `RotateToAxis`, `sRotateToAxis` | [Absolute rotation](#absolute-axis-rotation), [elapsed rotation](#elapsed-axis-rotation) |
+| `MoveObjectAxis` | [Move along the actor's orientation](#actor-local-axis-movement) |
+| `MoveByAxis`, `sMoveByAxis` | [Relative movement](#relative-axis-movement) |
+| `Rnd`, `QuickRnd` | [Draw from the shared random stream](#random-functions) |
+| `HideMe`, `ShowMe` | [Change model visibility](#object-visibility) |
+| `PlayerStand`, `Fighting` | [Standing query](#playerstand-query), [combat query](#fighting-query) |
+| `PlayAnimation`, `PushAnimation`, `WaitAnimFrame` | [Animation playback](animation.md) |
+| `Sound`, `AmbientSound`, `FlatSound`, `RTX`, `RTXp` | [Sound and dialogue](sound.md#soup-functions) |
+| Weapon and attachment functions | [Item attachment](attachment.md#soup-script-interface) |
+
+Shared actor setup, navigation, family transforms, and model admission are
+specified alongside the functions that use them below.
+
 ## Script Data Sources
 
 | Source | Container | Notes |
@@ -35,9 +70,7 @@ The main and entry invocations share bytecode and local variables. Entry process
 
 Execution is cooperative. The original runtime consumes non-blocking instructions
 until a blocking task or an explicit yield returns control. Existing tasks are
-revisited before the main script body can continue. It does not execute exactly
-one instruction per nominal tick; that describes a reimplementation rather than
-the original runtime.
+revisited before the main script body can continue.
 
 `End` (opcode `0x05`) stores its authored target and ends the current invocation.
 It does not permanently terminate the actor's main script. An eligible later
@@ -356,22 +389,22 @@ does not run torch effects or decrement the counter.
 
 Assignments use a terminated list of (value, operator) pairs. The formula loop reads a value (any value-producing opcode in FORMULA mode), then an operator byte, repeating until the terminator.
 
-| Byte | Operator | Arity | Engine instruction |
+| Byte | Operator | Arity | Operation |
 |---|---|---|---|
-| 0 | `;` (end) | — | (return result) |
-| 1 | `+` | binary | `add eax, ebx` |
-| 2 | `-` | binary | `sub eax, ebx` |
-| 3 | `*` | binary | `imul ebx` (signed) |
-| 4 | `/` | binary | `div ebx` (unsigned, zero-check via CPU trap) |
-| 5 | `<<` | binary | `shl eax, cl` |
-| 6 | `>>` | binary | `sar eax, cl` (arithmetic/signed) |
-| 7 | `&` | binary | `and eax, ebx` |
-| 8 | `\|` | binary | `or eax, ebx` |
-| 9 | `^` | binary | `xor eax, ebx` |
+| 0 | `;` (end) | — | Return result |
+| 1 | `+` | binary | Addition |
+| 2 | `-` | binary | Subtraction |
+| 3 | `*` | binary | Signed multiplication |
+| 4 | `/` | binary | Unsigned division |
+| 5 | `<<` | binary | Left shift |
+| 6 | `>>` | binary | Arithmetic right shift |
+| 7 | `&` | binary | Bitwise AND |
+| 8 | `\|` | binary | Bitwise OR |
+| 9 | `^` | binary | Bitwise XOR |
 
 The formula evaluator accepts only zero and binary operator bytes 1–9. Other operator bytes enter the fatal error path. Division by zero is not checked in software — it raises a CPU divide-by-zero exception caught by the C runtime signal handler.
 
-> **Note:** The Dillonn241 disassembler/assembler tools swap operators 3 and 4 (`/` and `*`). This swap is internally consistent within those tools (scripts round-trip correctly) but does not match the engine binary, where byte 3 maps to `imul` (multiply) and byte 4 maps to `div` (divide).
+The [ScriptReader and ScriptParser tools](https://github.com/Dillonn241/redguard-mod-manager/tree/main/src/redguard) interchange multiplication and division bytes. Engine bytecode uses 3 for multiplication and 4 for division.
 
 ### Comparison Operators
 
@@ -458,9 +491,9 @@ SOUP386 distinguishes three call types, encoded in the opcode byte:
 
 | Type | Behavior | Script syntax |
 |---|---|---|
-| Task | Blocking — script waits for completion | `FunctionName(...)` |
-| Multitask | Asynchronous — script continues immediately | `@FunctionName(...)` |
-| Function | Immediate — returns a value | `FunctionName(...)` (context determines) |
+| `Task` | Blocking — script waits for completion | `FunctionName(...)` |
+| `Multitask` | Asynchronous — script continues immediately | `@FunctionName(...)` |
+| `Function` | Immediate — returns a value | `FunctionName(...)` (context determines) |
 
 Self-calls use opcodes `0x00`/`0x01`/`0x02`. Object-targeted calls use `0x19`/`0x1A` with an additional dispatch-type byte (`0x00` = task, `0x01` = multitask, `0x02` = function) when used as a top-level statement. In non-MAIN modes, the dispatch-type byte is absent and the call is always treated as a function.
 
@@ -482,10 +515,10 @@ When a Numeric (`0x07`) or NumericAlt (`0x16`) opcode appears in PARAMETER mode,
 
 | Functions | Type | Encoding |
 |---|---|---|
-| `ACTIVATE`, `AddLog`, `AmbientRtx`, `menuAddItem`, `RTX`, `rtxAnim`, `RTXp`, `RTXpAnim`, `TorchActivate` | Dialogue key | 4-byte ASCII string (RTX lookup key) |
-| `LoadWorld` | Map ID | `i32` map identifier |
-| `AddItem`, `DropItem`, `HandItem`, `HaveItem`, `SelectItem`, `ShowItem`, `ShowItemNoRtx` | Item ID | `i32` item identifier |
-| All others | Integer | `i32` signed integer |
+| `ACTIVATE`, `AddLog`, `AmbientRtx`, `menuAddItem`, `RTX`, `rtxAnim`, `RTXp`, `RTXpAnim`, `TorchActivate` | `Dialogue key` | 4-byte ASCII string (RTX lookup key) |
+| `LoadWorld` | `Map ID` | `i32` map identifier |
+| `AddItem`, `DropItem`, `HandItem`, `HaveItem`, `SelectItem`, `ShowItem`, `ShowItemNoRtx` | `Item ID` | `i32` item identifier |
+| All others | `Integer` | `i32` signed integer |
 
 `ACTIVATE` and `TorchActivate` receive the dialogue key as a packed 32-bit
 numeric value, not a string-table index. Its least significant byte is the
@@ -510,7 +543,9 @@ cursor. The resulting cursor is saved back as the entry continuation, and the
 main continuation is restored. A yielding entry therefore resumes from its
 saved position. `Endint` resets that entry continuation to the script base.
 
-### Actor task controls and return state
+<a id="actor-task-controls-and-return-state"></a>
+
+### TaskStop, TaskPause, and TaskResume
 
 An actor has six task slots shared by its entry and main invocations. Existing-task processing traverses those slots in allocation order, skips paused slots, reevaluates encoded operands, and removes a slot when its handler reports completion. Unpaused blocking slots suppress the subsequent main-body invocation; multitask slots do not. Reissuing a call whose operand address is already in a slot does not execute its handler again. Task labels resolve against the receiving actor's script base and match the byte immediately after the labelled dispatch opcode. Self task calls store the operand address immediately after their Task or Multitask opcode. Object task calls store the operand address immediately after the embedded dispatch byte following the two-byte object selector. Routing retains that encoded operand location; it does not rebase foreign bytecode into the receiver's script. `TaskStop` removes every matching slot and clears its blocking and pause state. `TaskPause` and `TaskResume` set and clear the matching slots' pause state.
 
@@ -518,13 +553,19 @@ The initial task call invokes its native handler, then allocates a slot independ
 
 Each active slot has a 16-bit invocation counter. Allocation sets it to one. An eligible existing-task pass computes its elapsed input as the low 32 bits of counter times the current frame scale, shifted right by eight, then increments the counter with 16-bit wrapping. Paused slots do not advance. The initial native call receives elapsed input zero.
 
+#### Wait, WaitOnTasks, and WaitNonMulti
+
 `Wait(duration)` stays active while the elapsed input is less than the wrapping 32-bit value `duration - 1`, compared as signed integers. `WaitOnTasks` stays active when more than one unpaused slot is occupied. `WaitNonMulti` stays active when more than one unpaused blocking slot is occupied. These count tests include the current wait slot when it has already been allocated.
+
+#### Anchor, Yield, and ScriptRV
 
 `Anchor` stores its operand byte as the actor's anchor state. `Yield` retains the following cursor without issuing the `End` notifications.
 
 `ScriptRV` reads an expected byte. On mismatch it skips the next five bytes. On a match, a following `Return` byte advances the cursor by four bytes; a following `Gosub` saves the current script-return byte before the control instruction runs. Other following instructions remain eligible. `Return` restores that saved byte.
 
-### Animation task ownership and stopping
+<a id="animation-task-ownership-and-stopping"></a>
+
+### PushAnimation and TaskStop: animation ownership
 
 Each task slot saves and restores its native handler state independently.
 Multiple `PushAnimation` slots therefore retain separate not-started/started
@@ -537,7 +578,9 @@ It does not invoke the native handler or restore earlier animation state.
 Stopping a `PushAnimation` task therefore leaves its animation request and
 current playback state in place.
 
-### Attribute reads and writes
+<a id="attribute-reads-and-writes"></a>
+
+### GetAttribute, SetAttribute, GetMyAttr, and SetMyAttr
 
 `GetAttribute` reads an unsigned byte from the receiving actor's attribute table and returns zero when the table is absent. `SetAttribute` returns zero. When the table exists, it writes the low byte of the supplied value. Writing attribute 6 also copies that byte to attribute 115; writing attribute 1 also copies it to attribute 119. These two handlers do not check the attribute index range.
 
@@ -579,7 +622,9 @@ that byte as its frame count. When the actor has an attribute table, this
 fallback replaces attribute 125 with the next shared counter value. A zero
 frame count still takes the animation-table branch.
 
-### Attribute default-group side effects
+<a id="attribute-default-group-side-effects"></a>
+
+### SetAttribute and SetMyAttr: default-group side effects
 
 `SetAttribute` first writes the low byte to attribute 44. Only when `IsDead`
 returns true does it release the actor's two held walk-node reservations and
@@ -598,7 +643,9 @@ Ordinary actor updates select the playback default using actor state; these
 attribute writes do not directly replace that selection step. See
 [ordinary default selection](animation.md#placed-actor-initialization-and-eligibility).
 
-### Player distance and facing
+<a id="player-distance-and-facing"></a>
+
+### PlayerDistance and PlayerFacing
 
 `PlayerDistance()` returns the sum of the absolute X, Y and Z differences
 between the selected player's current position and the receiver's effective
@@ -626,7 +673,9 @@ signed 32-bit arguments. The receiver's attached yaw is used when `attr_slave`
 is nonzero; otherwise its ordinary yaw is used. This function requires a
 selected player. See [coordinate and heading units](player.md#coordinate-and-heading-units).
 
-### Node-marker distance
+<a id="node-marker-distance"></a>
+
+### AtNodeMarker: node-marker distance
 
 `AtNodeMarker(marker, distance)` returns one when the receiver's ordinary local
 position is within the supplied distance of the indexed marker, otherwise zero.
@@ -681,7 +730,9 @@ Speed comes from the actor's current animation group when it provides a nonzero
 movement speed. Otherwise it is the minimum nonzero attribute among indices
 8, 19, 17, 12, 9, 13 and 10. When all seven are zero, the fallback speed is 8.
 
-### Wandering without walk-node maps
+<a id="wandering-without-walk-node-maps"></a>
+
+### Wander: destination selection and movement limits
 
 `Wander(radius, tolerance)` validates the actor's current navigation-map state
 and sets attribute 94, `attr_node_in_use`, to one. With no current map, validation
@@ -712,7 +763,9 @@ signed right shift. If the rounded displacement exceeds the limit, it restores
 all three previous local coordinates. Equality retains the current position.
 The function returns the measured displacement before any restoration.
 
-### Authored location movement
+<a id="authored-location-movement"></a>
+
+### MoveToLocation: authored locations
 
 Ordinary actor setup creates location 0 from the saved original home position,
 then appends the actor header's RALC entries relative to that home. These stored
@@ -886,7 +939,9 @@ or effective angles. Consequently, an ordinary script's `RotateByAxis` followed
 by `PlayerFacing` reads the previously composed attached yaw until another
 family refresh occurs.
 
-### Relative axis rotation
+<a id="relative-axis-rotation"></a>
+
+### RotateByAxis: relative rotation
 
 `RotateByAxis(axis, delta, duration)` modifies the receiver's local angles.
 Axis zero selects X, axis one selects Y, and every other axis value selects Z.
@@ -919,7 +974,9 @@ Transform and attachment updates consume the changed local angles separately;
 the handler does not update their matrices itself. Frame scale and nominal ticks
 are distinct inputs; see [animation timing](animation.md#timing-boundary).
 
-### Elapsed relative axis rotation
+<a id="elapsed-relative-axis-rotation"></a>
+
+### sRotateByAxis: elapsed relative rotation
 
 `sRotateByAxis(axis, delta, duration)` stores the selected angle as its origin
 whenever elapsed input is zero. Only axes zero through two select and write an
@@ -939,7 +996,9 @@ Duration one completes on the initial invocation. Duration zero produces a
 division-by-zero fault before the completion check. This task uses elapsed input,
 not shared frame scale or nominal ticks, and does not refresh composed transforms.
 
-### Absolute axis rotation
+<a id="absolute-axis-rotation"></a>
+
+### RotateToAxis: absolute rotation
 
 `RotateToAxis(axis, target, duration)` modifies the receiver's local angle.
 Axis zero selects X, axis one selects Y, and every other value selects Z.
@@ -972,7 +1031,9 @@ Otherwise it writes the masked target and completes. The initial invocation
 can change the angle. The handler does not refresh the receiver's composed
 transform or attachment matrix.
 
-### Elapsed axis rotation
+<a id="elapsed-axis-rotation"></a>
+
+### sRotateToAxis: elapsed absolute rotation
 
 `sRotateToAxis(axis, target, duration)` stores the selected angle as its origin
 whenever the elapsed input is zero. Only axes zero through two select and
@@ -996,7 +1057,9 @@ positive-difference mask can make the interpolated path approach a different
 angle before this final snap. This task uses elapsed input rather than shared
 frame scale or nominal ticks.
 
-### Actor-local axis movement
+<a id="actor-local-axis-movement"></a>
+
+### MoveObjectAxis: actor-local movement
 
 `MoveObjectAxis(axis, delta, duration)` moves along the receiver's orientation,
 using its current stored matrix or the upright forward shortcut. Delta and
@@ -1023,7 +1086,9 @@ wrapping value `duration - 1`. Later invocations reevaluate arguments while
 retaining target and accumulator unless elapsed is zero again. The task does
 not perform collision or restore position when stopped.
 
-### Relative axis movement
+<a id="relative-axis-movement"></a>
+
+### MoveByAxis and sMoveByAxis: relative movement
 
 `MoveByAxis(axis, delta, duration)` changes a receiver's local position in the
 same eight-fractional-bit units as the position fields. Axis zero selects X,
@@ -1061,7 +1126,9 @@ performs collision, matrix, or attachment refresh. Stopping a task does not
 restore position. Signed division overflow, including division by zero in
 `sMoveByAxis`, has no successful movement result.
 
-### Random functions
+<a id="random-functions"></a>
+
+### Rnd and QuickRnd
 
 `Rnd(bound)` and `QuickRnd(mask)` each consume one draw from the shared
 engine random stream, also used by [sky scroll initialization](sky.md).
@@ -1087,7 +1154,9 @@ and take the remainder modulo the bound. The result is not uniformly
 distributed for every bound. Zero and negative bounds do not define a valid
 bounded draw.
 
-### Object visibility
+<a id="object-visibility"></a>
+
+### HideMe and ShowMe
 
 `HideMe()` sets the receiver's hidden flag and clears its current presentation
 record. `ShowMe()` clears that flag. For a static-model receiver, showing it also
@@ -1148,33 +1217,6 @@ owners before ground processing. A selected model face assigns its candidate's
 actor and static-placement owners. Model presentation precedes that ordinary
 update, so its admission reads support retained from earlier ground processing.
 Actor-following also consumes the retained actor support owner.
-
-### Function Table
-
-`SOUP386.DEF` declares callable functions in installed order. Index 0 is the synthetic `NullFunction`; authored entries start at index 1. Functions span the following categories:
-
-| Category | Examples | Count |
-|---|---|---|
-| Movement | `Move`, `WalkForward`, `MoveToLocation`, `WanderToLocation` | ~16 |
-| Rotation / Facing | `Rotate`, `RotateByAxis`, `FacePlayer`, `FaceAngle`, `FaceObject` | ~10 |
-| Camera | `showObj`, `showPlayer`, `lookCyrus`, `showCyrusPan` | ~13 |
-| Dialogue / RTX | `RTX`, `rtxAnim`, `menuNew`, `menuProc`, `menuAddItem`, `menuSelection` | ~8 |
-| Animation | `PlayAnimation`, `PushAnimation`, `WaitAnimFrame`, `SetAction` | ~10 |
-| Combat | `beginCombat`, `endCombat`, `isDead`, `adjustHealth`, `shoot`, `shootPlayer` | ~16 |
-| Lighting / FX | `Light`, `LightRadius`, `LightFlicker`, `FxPhase`, `FxFlickerOnOff` | ~14 |
-| Object control | `EnableObject`, `DisableObject`, `HideMe`, `ShowMe`, `KillMe` | ~12 |
-| Inventory | `AddItem`, `DropItem`, `HaveItem`, `HandItem`, `ShowItem`, `SelectItem` | ~9 |
-| Sound | `Sound`, `AmbientSound`, `EndSound`, `StopAllSounds` | ~5 |
-| Weapon / Attachment | `handitem`, `displayhandmodel`, `drawsword`, `sheathsword` | ~11 |
-| Spatial queries | `InRectangle`, `InCircle`, `DistanceFromStart`, `AtPos` | ~5 |
-| Flat (billboards) | `Flat`, `FlatSetTexture`, `FlatAnimate`, `FlatOff` | ~7 |
-| AI | `SetAiType`, `SetAiMode`, `Guard`, `Animal` | ~5 |
-| Static objects | `LoadStatic`, `UnLoadStatic`, `PointAt` | ~3 |
-| Global flags | `SetGlobalFlag`, `TestGlobalFlag`, `ResetGlobalFlag` | 3 |
-| Attributes | `SetAttribute`, `GetAttribute`, `SetMyAttr`, `GetMyAttr` | 4 |
-| Debug | `PrintParms`, `LogParms`, `PrintStringParm` | ~3 |
-
-For the weapon/attachment function interface, see [Item Attachment — SOUP Script Interface](attachment.md#soup-script-interface). For the definition-file format and section layout, see [SOUP386.DEF](SOUPDEF.md).
 
 ## Global Flags
 

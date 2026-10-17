@@ -66,7 +66,7 @@ The cursor archive `pointers.bmp` has an empty title.
 | 0x0A | 2 | `i16` | compression | Compression type (`0` = raw, `1` = RLE, `2` = LZHUF). |
 | 0x0C | 6 | `[i16; 3]` | unknown_0c | Three unknown frame fields. |
 
-`offset_x` and `offset_y` are 0 in all 450 frames of the 65 shipped files, including the HUD atlases `SNUFF`, `COMPASS2`, `PICKUPS`, `PICKUPSS`, `POWERUP` and `SCROLL`. The candle, active-item and compass HUD elements add them to their anchor; the power-up slots and the logbook icon ignore them. See [In-game HUD](../engine/hud.md).
+`offset_x` and `offset_y` are zero in shipped files. The candle, active-item and compass HUD elements add them to their anchor; the power-up slots and the logbook icon ignore them. See [In-game HUD](../engine/hud.md).
 
 ### Pixel Decode Rules
 

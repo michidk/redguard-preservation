@@ -91,7 +91,7 @@ Digital playback and MIDI drivers add type-specific operations in the `0x400` an
 
 Hardware selection and installation messages are separate from the binary header.
 `MSSDRVR.LST` supplies selection rules and device labels, including a label for `JAMMER.DIG`, whose header has no name block.
-`DIG.INI` and `MDI.INI` select the digital and MIDI driver filenames and their I/O parameters. See the [configuration overview](../config/README.md).
+`DIG.INI` and `MDI.INI` select the digital and MIDI driver filenames and their I/O parameters. See the [configuration overview](../config/).
 Background [music](../engine/music.md) uses CD audio, separate from these MIDI synthesis drivers.
 
 ## Use by the Game

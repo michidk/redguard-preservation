@@ -123,11 +123,6 @@ is `p + (cos(a) - 1) * q * h`, and its relative vertical position is
 the unrotated corners. The camera-relative tilt is applied before adding the
 height, not around the world origin.
 
-Transform samples before adding height, with the camera facing positive Z:
-`(-65000, 0, 65000)` becomes approximately
-`(-65000, 4781.6963, 64823.8789)`. Facing positive X, the same corner becomes
-approximately `(-64823.875, -4781.6963, 65000)`.
-
 ### Initial scroll direction
 
 The sky consumes one value from the engine's shared random stream and keeps its
@@ -188,6 +183,11 @@ resulting integer alpha feeds framebuffer blending. Sun texture coordinates
 wrap in both directions.
 
 ### Sun framebuffer blending
+
+Sky texture filtering and fog produce colors before framebuffer encoding.
+The RGB565 conversion and dither arithmetic in this section describe the
+software Voodoo 1 framebuffer backend; they are not additional stages in the
+BSI texture or sky fog calculation.
 
 The sun draw enables four-by-four framebuffer dithering and alpha dither
 subtraction. In the software Voodoo 1 renderer, blending reads the existing

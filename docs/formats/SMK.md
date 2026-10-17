@@ -11,7 +11,7 @@ Smacker files carry compressed indexed video, palette changes, and up to seven a
 [Compressed frame and audio packets]
 ```
 
-The fixed header uses little-endian fields. `import::smacker::SmackerHeader` reads metadata only; it does not decode compressed packets.
+The fixed header uses little-endian fields.
 
 | Offset | Size | Type | Name | Description |
 |---|---|---|---|---|

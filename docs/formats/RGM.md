@@ -201,7 +201,7 @@ All fields little-endian.
 | +0x14 | 3 | `s24` | map_pos_z | Map position Z |
 | +0x17 | 1 | `u8` | pad_z | Alignment byte |
 | +0x18 | 4 | `u32` | radius | Map bounding radius |
-| +0x1C | ... | variable | walk_nodes | `node_count` × WalkNode records |
+| +0x1C | ... | — | walk_nodes | `node_count` × WalkNode records |
 
 The map length excludes its own four-byte length word. Its payload contains
 the remaining 24-byte map header and all length-prefixed nodes. Embedded maps
@@ -218,7 +218,7 @@ visits them in reverse file order.
 | +0x08 | 2 | `u16` | node_pos_z | Local position Z |
 | +0x0A | 1 | `u8` | reserved | File value discarded; runtime storage holds node ownership. |
 | +0x0B | 1 | `u8` | route_count | Number of routes from this node |
-| +0x0C | ... | variable | routes | `route_count` × NodeRoute records |
+| +0x0C | ... | — | routes | `route_count` × NodeRoute records |
 
 The node length excludes its own four-byte length word and equals
 `8 + 4 * route_count`. Loading copies the packed node coordinates directly;
@@ -303,7 +303,7 @@ All typed fields are little-endian.
 | 0x95 | 2 | `i16` | combat_flag | Combat/state flag. |
 | 0x97 | 2 | `i16` | raex_stat | Stored at actor state +0x97 after SOUP function lookup. -1 = disabled. |
 | 0x99 | 2 | `i16` | reserved_99 | Always -1. Not read at runtime. |
-| 0x9B | 2 | `i16` | reserved_9b | Always 0. Not read at runtime. |
+| 0x9B | 2 | `i16` | texture_id | Actor texture set. Equal to the RAEX `texture_id` of the same actor in every shipped file; zero when the actor has none. |
 | 0x9D | 4 | `i32` | ravc_offset | Byte offset into RAVC section data (rebased to pointer at load; -1 = none) |
 | 0xA1 | 4 | `i32` | ravc_count | Number of RAVC collision entries for this actor |
 
@@ -413,7 +413,7 @@ All fields little-endian.
 | 0x04 | 2 | `i16` | scabbard0 | Named from console. Same subsystem as grip0. |
 | 0x06 | 2 | `i16` | scabbard1 | Same subsystem as scabbard0. |
 | 0x08 | 2 | `i16` | anim_frame_ref | Matches RAHD `anim_frame_data` at 0x85. Set on mobile actors only. |
-| 0x0A | 2 | `u16` | texture_id | Texture override id for actor skin variants. |
+| 0x0A | 2 | `u16` | texture_id | Actor texture set (TEXBSI number) for skin variants; zero selects the models' own textures. See [actor texture sets](#actor-texture-sets). |
 | 0x0C | 2 | `i16` | v_vertex | Vertex-related field. |
 | 0x0E | 2 | `i16` | v_size | Size-related field. |
 | 0x10 | 2 | `i16` | taunt_id | First taunt animation id; additional taunts count up from this value. |
@@ -425,6 +425,16 @@ All fields little-endian.
 | 0x1C | 2 | `i16` | range_max | Combat maximum range. Same scaling. |
 
 Total record size: 30 bytes (0x1E). Record count is `section_data_length / 30`.
+
+### Actor texture sets
+
+A nonzero RAEX `texture_id` applies to every multi-frame model the actor draws,
+including each RAAN frame-source model. The engine keeps one copy of a frame-source
+model per texture set and shares it between actors with the same set. Each face
+texture word of the copy is `bank << 7 | image`; words whose bank is greater than 1
+take the actor's texture set as their bank and keep their image index. Words with
+bank 0 or 1 are unchanged. Geometry, frame data and normals are those of the source
+model.
 
 ## RAAT (Attribute Data)
 
@@ -559,12 +569,11 @@ MPSZ is an array of 49-byte bounding volume records used to build per-actor **fs
 | 0x29 | 4 | `i32` | neg_y | Absolute negative half-extent Y |
 | 0x2D | 4 | `i32` | neg_z | Absolute negative half-extent Z |
 
-Invariant: `total = neg + pos` for each axis. Center is always zero in shipped files. About 30% of records are symmetric (`neg == pos`); the rest have asymmetric bounds.
+Invariant: `total = neg + pos` for each axis. Center is always zero in shipped files. Bounds can be asymmetric (`neg != pos`).
 
-At runtime, the engine copies these 49 bytes and calls the fsphere builder to create a 3D bounding volume for the actor. RAHD provides three index fields per actor, allowing reference to different bounding records. Only a subset of actors have direct RAHD indices — other records may be referenced by MPOB objects or other runtime systems.
+At runtime, the engine copies these 49 bytes and calls the fsphere builder to create a 3D bounding volume for the actor. RAHD provides three index fields per actor, allowing reference to different bounding records. Only a subset of actors have direct RAHD indices.
 
-Across all 806 records in the 27 shipped RGM files, flags and centers are zero,
-and each total equals its positive plus negative extent. The flag byte precedes
+Flags are zero in shipped files. The flag byte precedes
 the integers; placing it last shifts every decoded field.
 
 ISLAND `CYRUS` references primary record 120 and secondary record 121, with no tertiary record. Its primary totals are `(48, 128, 49)`, positive extents `(24, 62, 11)`, and negative extents `(24, 66, 38)`.

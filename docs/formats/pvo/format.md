@@ -35,25 +35,15 @@ Each section is framed as:
 | 0x00 | 4 | `[u8; 4]` | — | tag | ASCII section tag |
 | 0x04 | 4 | `u32` | **BE** | data_length | Payload size in bytes (0 for `END `) |
 
-### Section layout
+The optional `PTCH` section is absent from shipped files. The engine writes and loads PTCH sections through dedicated save/load paths (the `pvopatchsave` console command triggers a write).
 
-| File | OCTH | OCTR | PLST | MLST | END | Total |
-|---|---|---|---|---|---|---|
-| CATACOMB | @0x00 (52) | @0x3C (256,091) | @0x3E89F (827,861) | @0x108A7C (110,788) | @0x123B48 (0) | 1,194,832 |
-| CAVERNS | @0x00 (52) | @0x3C (271,546) | @0x424FE (900,844) | @0x11E3F2 (33,630) | @0x126758 (0) | 1,206,112 |
-| DRINT | @0x00 (52) | @0x3C (300,688) | @0x496D4 (994,987) | @0x13C587 (81,074) | @0x150241 (0) | 1,376,841 |
-| ISLAND | @0x00 (52) | @0x3C (213,134) | @0x340D2 (1,053,725) | @0x1354F7 (216,378) | @0x16A239 (0) | 1,483,329 |
-| PALACE | @0x00 (52) | @0x3C (48,125) | @0xBC41 (224,647) | @0x429D0 (108,922) | @0x5D352 (0) | 381,786 |
-
-A sixth section tag `PTCH` exists in the executable's string table but is not present in shipped files. The engine writes and loads PTCH sections through dedicated save/load paths (the `pvopatchsave` console command triggers a write).
-
-Best-effort runtime characterization from engine behavior:
+### PTCH patch records
 
 - `PTCH` section length is serialized as `patch_count * 6` bytes.
 - The loader allocates and reads 6-byte records from `PTCH`.
 - Patch application expands record data into MLST object-id lists used by PVO visibility checks.
 
-Per-record layout (resolved from add/remove/apply behavior):
+Each patch record has this layout:
 
 | Offset | Size | Type | Endian | Name | Description |
 |---|---|---|---|---|---|
@@ -85,35 +75,14 @@ Engine behavior:
 
 ### Node count relationship
 
-`total_nodes = leaf_nodes + interior_nodes` where `interior_nodes` equals the number of `0xFFFFFFFF` leaf_ref values in the OCTR section:
+`total_nodes = leaf_nodes + interior_nodes` where `interior_nodes` equals the number of `0xFFFFFFFF` leaf_ref values in the OCTR section.
 
-| File | total_nodes | leaf_nodes | interior_nodes |
-|---|---|---|---|
-| CATACOMB | 23,287 | 16,787 | 6,500 |
-| CAVERNS | 25,694 | 19,618 | 6,076 |
-| DRINT | 29,112 | 22,717 | 6,395 |
-| ISLAND | 23,154 | 18,971 | 4,183 |
-| PALACE | 5,113 | 4,105 | 1,008 |
+### Master polygon count
 
-### mlst_polygon_count confirmation
-
-| File | mlst_polygon_count | MLST data_length | count × 2 == length |
-|---|---|---|---|
-| CATACOMB | 55,394 | 110,788 | yes |
-| CAVERNS | 16,815 | 33,630 | yes |
-| DRINT | 40,537 | 81,074 | yes |
-| ISLAND | 108,189 | 216,378 | yes |
-| PALACE | 54,461 | 108,922 | yes |
+The MLST payload contains `mlst_polygon_count` two-byte entries, so its byte
+length is `mlst_polygon_count * 2`.
 
 ### Center coordinates and extents
-
-| File | center_x | center_y | center_z | cell_size |
-|---|---|---|---|---|
-| CATACOMB | 35,584 | -11,520 | 29,952 | 16,384 |
-| CAVERNS | 27,392 | -9,984 | 21,504 | 16,384 |
-| DRINT | 23,808 | -13,056 | 33,024 | 16,384 |
-| ISLAND | 35,584 | -16,384 | 36,608 | 16,384 |
-| PALACE | 31,488 | -6,144 | 30,720 | 8,192 |
 
 The octree root spans `[center - cell_size, center + cell_size]` on each axis.
 

@@ -23,6 +23,8 @@ The [project README](https://github.com/michidk/redguard-preservation/blob/main/
 | Format | Extension | Contents |
 |---|---|---|
 | [TEXBSI](TEXBSI.md) | `.###` | Texture container (`TEXBSI.###`); indexed-color images with optional palettes and animation. |
+| [Software textures](TEXTURE.md) | `.###` | Indexed software-renderer texture banks. |
+| [Software palette tables](SHADE-HAZE.md) | `.###` | Shade and haze palette-index lookup rows. |
 | [Palette](COL.md) | `.col` | 256-color palette files; 776 bytes (8-byte header + 256×RGB). |
 | [Font](FNT.md) | `.fnt` | Bitmap glyphs with a 56-byte header and optional palette. |
 | [GXA Bitmap](GXA.md) | `.gxa` | Indexed-color bitmap archive used for UI, loading flashes, and sky panoramas. |
@@ -46,7 +48,6 @@ The [project README](https://github.com/michidk/redguard-preservation/blob/main/
 | [SOUP386.DEF](../engine/SOUPDEF.md) | `.def` | Definition-file format for SOUP callable functions, references/equates, attributes, and global flags. |
 | [Save Games](SAVEGAME.md) | `.sav`, `.tsg` | Save metadata, state chunks, and per-map snapshots. |
 | [Cheat States](CHT.md) | `.cht` | Cheat persistence file (`REDGUARD.CHT`); 256-byte raw dump of 64 u32 LE cheat state slots. |
-
 | [Console Preferences](CPF.md) | `.cpf` | Saved developer-console settings. |
 
 ## Startup graphics

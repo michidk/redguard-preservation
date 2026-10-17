@@ -18,9 +18,16 @@ the [configuration reference](../config/) describes the INI settings.
 
 ## World rendering
 
+[Look and feel](look-and-feel.md) connects the visible result to the rendering
+and presentation rules below.
+
+Start with the [Glide shading overview](shading.md) for flat and smooth shading,
+the color pipeline, and links to the detailed rules.
+
 | Topic | Behavior |
 |---|---|
 | [Model lighting](model-lighting.md) | Face brightness, directional and local lighting, and retained instance colors. |
+| [Actor prelighting](actor-prelighting.md) | Retained map-light colors on eligible static-model actors. |
 | [Terrain lighting](terrain-lighting.md) | Ambient and directional RGB lighting and terrain normals. |
 | [View projection](projection.md) | Horizontal field of view, viewport scaling, and camera coordinates. |
 | [Fog and clipping](fog.md) | Scene and sky ranges, fog tables, and color blending. |

@@ -307,3 +307,107 @@ rgpre scan 3dart
 The library builds as a C-compatible shared library (`cdylib`) alongside the CLI binary. This lets game engines like Unity load it as a native plugin and call the conversion functions directly at runtime.
 
 See [`src/ffi/README.md`](src/ffi/README.md) for the full API reference — architecture, C struct definitions, function signatures, memory management, and error handling.
+
+## Export metadata and configuration APIs
+
+### Model rendering metadata
+
+Textured GLTF materials retain their effective palette-zero RGB in
+`rgpre_texture` extras with `version: 1` and `chroma_key_rgb: [r, g, b]`.
+Embedded PNGs preserve those RGB bytes at alpha-zero texels. The alpha marker
+supports generic viewers; engine renderers use the RGB key after filtering.
+
+Positioned-model GLTF nodes retain the selected ROB segment attribute byte in
+`rgpre_render`, with `version: 1` and `rob_attributes`. The attribute is null
+for standalone model files and generated geometry. The loader retains it from
+the same successful archive segment as the geometry, including fallback
+selection and cached loads. Node metadata keeps instance attributes separate
+when exported instances share one mesh.
+
+MPSF nodes additionally carry `rgpre_flat` with `version: 1`, `texture_id`,
+`image_id`, source-image `dimensions: [width, height]`, `texture_scale`,
+submission `flags`, and integer `alpha`. Dimensions and scale are null when
+texture data is unavailable. Scale includes the zero-to-one default and the
+BSI fixed-point conversion. Flags include the centered-anchor base flag; alpha
+includes the non-wrapping attribute increment or the default 255. See
+[flat placement and attributes](docs/formats/RGM.md#mpsf-flat-objects).
+
+The flat metadata identifies a separate engine drawing path. Its dimensions
+and scale define camera-facing geometry; the generated mesh is a generic-viewer
+fallback, not authored model geometry. ROB model lighting and polygon-admission
+metadata do not describe flat drawing. Malformed FLAT sections produce placement
+diagnostics instead of flat nodes with assumed defaults.
+
+GLTF model primitives retain per-vertex face inputs in the `rgpre_lighting`
+extras object. Version 5 has `version: 5`, the model header radius as
+`radius_fixed` in 1/256 engine units, and a `vertices` array in exported
+vertex order. `solid_rgb` holds the resolved palette RGB for solid-color
+primitives and is null for textured primitives. Retained-color baking applies
+this RGB before integer rounding. Each entry is `[brightness, solid]`, where
+brightness is the converted runtime byte, `(tex_hi * 4) & 255`, and solid is 1
+for palette-color faces or 0 for textured faces. Version 3 retained the stored
+byte and requires re-export for the runtime-brightness contract. Version 5 also
+preserves all referenced authored corner normals when their count exceeds the
+position count. Earlier exports can substitute face normals for those omitted
+records and require re-export. Material grouping and polygon triangulation retain these inputs for
+every emitted vertex. Terrain primitives omit this metadata.
+
+Indexed solid-color primitives retain `rgpre_solid_palette` with `version: 1`
+and the original eight-bit `index`. Different indices remain separate primitives
+when their resolved RGB values match. Generic material colors remain unchanged;
+engine renderers can distinguish world index zero before applying palette
+conversion and lighting. Textured primitives omit this metadata.
+
+Textured model primitives also retain `rgpre_texcoords` version 1 with a `pixels`
+array in exported vertex order. Each pair is the decoded model coordinate divided
+by 16, in original source-image pixel units, before dimension normalization or
+vertical reversal. Negative and out-of-image coordinates are retained. Material
+splitting and triangle fans duplicate the corresponding pairs. `TEXCOORD_0`
+remains normalized and vertically reversed for generic GLTF viewers. Terrain and
+solid-color primitives omit `rgpre_texcoords`. Generated flat fallback meshes may
+carry these pairs, but their `rgpre_flat` node metadata defines their separate
+runtime geometry and coordinate path.
+
+### Texture animation and polygon metadata
+
+Textured glTF material names identify the resolved TEXBSI or TEXTURE bank,
+original image name and image ID.
+
+Animated glTF materials carry `extras.rgpre_texture_animation` with version 1.
+It contains the original `image_name`, signed header `delay_ms`, and `textures`,
+an ordered array of glTF texture indices including frame zero. The base-color
+texture remains frame zero for consumers without animation support. Static
+images omit this metadata.
+
+Every frame uses the same palette, row orientation and sampler as frame zero.
+Model materials retain alpha masking when any exported frame contains
+transparent pixels. Terrain materials and every exported terrain frame remain
+opaque, including palette index zero, whose RGB comes from the selected palette.
+Terrain and model uses of the same image have separate exported textures.
+Runtime model render attributes can impose a different chroma policy. Consumers sharing one loaded original image must share its playback
+state even when different materials reference separate exported copies.
+
+Model glTF primitives also carry `extras.rgpre_admission` with version 1. Its
+`radius_fixed` retains the model header radius without conversion. `polygons`
+contains the primitive's authored polygons in source order. Each entry has
+`source_face`, the zero-based model face index; `vertices`, indices into that
+primitive's POSITION accessor in original polygon order; and `normal`, the
+authored base-frame face normal in glTF export axes without normalization.
+The normal is independent of the vertex normals used for lighting.
+
+Material splitting and fan triangulation preserve these records for both static
+and animated models. Coincident authored vertices remain separate polygon
+corners. Animated consumers use the source face identity to select the current
+frame's normal, and the vertex mapping to read the updated mesh positions.
+A missing or nonfinite authored normal is `null`. If invalid source vertex
+indices prevent a complete polygon mapping, `vertices` is `null`; consumers
+must not infer faithful admission from the remaining raster triangles.
+Terrain primitives omit this model-specific metadata.
+
+### KEYS.INI parser
+
+`import::keys_ini::KeysIni` exposes the eight keyboard bindings and user overrides, seven additional gameplay keys, and the installed key-name table. Section/key matching ignores case, and the first occurrence wins. `control_codes()` returns bindings in menu-action order 710 through 724.
+
+### MENU.INI parser
+
+`import::menu_ini::MenuPage::parse(content, page)` reads a page's optional texture slots, ordered text entries, widget positions/alignment, and inclusive slider bounds. Missing numeric element fields default to zero; malformed values and nonsequential text indices report the page and field. The first texture slot is required; a second may be omitted when no element references it. The parser rejects incomplete references and reversed slider bounds. `import::menu_movies::parse_menu_movies` separately reads cinematic names, forward skip points, and timed subtitles. Runtime save labels remain outside these parsers. Rendering and traversal rules are documented in [Book menu](docs/engine/menu.md).
