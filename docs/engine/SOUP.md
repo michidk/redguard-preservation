@@ -1587,7 +1587,9 @@ value keeps the copied record-zero rate.
 | 5 | rope | `camera_rope_angle_offset_x/y/z` | `camera_rope_distance` | `camera_rope_max_vel` |
 | 6 | rope above | `camera_rope_above_angle_offset_x/y/z` | `camera_rope_above_distance` | `camera_rope_above_max_vel` |
 | 7 | rope below | `camera_rope_below_angle_offset_x/y/z` | `camera_rope_below_distance` | `camera_rope_below_max_vel` |
-| 8 | debug | `camera_debug_angle_offset_x/y/z` | `camera_debug_distance` | `camera_debug_max_vel` |
+| 8 | debug | `camera_debug_angle_offset_x/y/z` (see below) | `camera_debug_distance` | `camera_debug_max_vel` |
+
+The debug slot's three angle-offset reads all store to the first angle-offset field; its second and third angle offsets keep the copied record-zero values.
 
 Slot three gains flag `0x40` (already present from the copy). Slots six and seven
 additionally load aim vectors from `camera_rope_above_aim_x/y/z` and
