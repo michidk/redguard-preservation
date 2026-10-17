@@ -74,6 +74,15 @@ Each world is identified by an integer index `N`. Keys follow the pattern `key_n
 | `world_sunimgrgb[N]` | r, g, b | Tint color for the sun disc texture. |
 | `world_sunscale[N]` | integer | Size scale of the sun disc. |
 
+#### Terrain height offset
+
+| Key | Type | Description |
+|---|---|---|
+| `world_scapeshift[N]` | integer | Offset added to the negative source heights when rebuilding the [terrain height table](../formats/WLD.md#height-values-map-1). The parsed value is retained as a signed 16-bit word, then converted to a float for terrain setup. |
+
+A missing or empty value supplies zero. The integer-setting reader also returns
+zero when the world section is absent. This zero still rebuilds the height table.
+
 #### Water
 
 | Key | Type | Description |

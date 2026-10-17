@@ -356,13 +356,32 @@ using that state before the falling state when both are present.
 
 Object-property operands carry a little-endian `u16` reference ID after the object encoding. Property reads use the full reference ID to index the global references table loaded from the `[refs]` section of `SOUP386.DEF`. The high byte is not discarded. With native validation enabled, a reference outside the table enters the invalid-reference error path.
 
-### Actor heading property
+### Local pose properties
 
-`angle.vy` reads the resolved actor's local heading as a complete 32-bit value.
-The property descriptor selects a direct field read; it does not substitute the
-attached pose's heading or perform angular normalization. `Player.angle.vy`
-resolves the currently selected player before reading that field. Ordinary
+`pos.vx`, `pos.vy` and `pos.vz` access the resolved actor's local position.
+`angle.vx`, `angle.vy` and `angle.vz` access its local angles. Each property
+reads or writes the complete 32-bit field selected by its installed descriptor.
+`Player` resolves the currently selected player before accessing the field.
+
+These accesses do not substitute an attached pose, normalize angles, recompute
+matrices or update other actor fields. Each write changes only its selected
+field; subsequent actor processing performs the usual transform work. Ordinary
 heading values use 2048 units per turn.
+
+### Current animation property
+
+`anim.current` reads the resolved actor's current animation group as a signed
+16-bit value, extended to the script integer width. It preserves negative
+values, including the no-current-group value of `-1`. If the actor has no
+animation association, the read returns zero. Reading this property neither
+requests nor advances an animation and does not change actor or animation state.
+
+### Torch counter property
+
+`torch_timer` accesses the resolved actor's torch-burning counter. Reads return
+the unsigned byte as a script integer. Writes retain only the low eight bits of
+the assigned value and change no other actor field. The property access itself
+does not run torch effects or decrement the counter.
 
 ## Operators
 
@@ -1239,3 +1258,300 @@ See [RGM.md](../formats/RGM.md) for record-level layouts and offsets.
 - [Dillonn241/redguard-mod-manager `ScriptParser.java`](https://github.com/Dillonn241/redguard-mod-manager/blob/main/src/redguard/ScriptParser.java) — RASC bytecode assembler (script text to bytecode)
 - [Dillonn241/redguard-mod-manager `MapHeader.java`](https://github.com/Dillonn241/redguard-mod-manager/blob/main/src/redguard/MapHeader.java) — RAHD record parser with field offsets
 - [Dillonn241/redguard-mod-manager `MapDatabase.java`](https://github.com/Dillonn241/redguard-mod-manager/blob/main/src/redguard/MapDatabase.java) — SOUP386.DEF parser (function, flag, reference, attribute definitions)
+
+## Selected-player location camera task
+
+`showCyrusLoc` is a three-argument task. It tests `IsHoldingWeapon` on the
+selected player, independently of the receiving actor. While that predicate is
+true, the task returns zero without invoking its camera-location handler.
+
+Otherwise it passes the selected player and all three full-width arguments to
+the camera-location handler and returns that handler's result. The wrapper does
+not narrow or transform the arguments. Task-slot scheduling and operand
+reevaluation follow the ordinary native-task rules.
+
+### Player camera task state
+
+`showPlayer` is a task with no arguments. Each invocation asks the player camera
+selector for a slot, falling back to slot zero when the selector reports no
+selection. It updates the shared camera selection to that slot.
+
+The task increments its first private word with 32-bit wrapping. When the result
+is one and elapsed input is zero, it sets bit `0x01` in the selected camera
+record's flags and returns one. Otherwise it clears bits `0x01` and `0x20` in
+that record and returns zero. Other bits in the record's flag byte are retained.
+The private word belongs to the task continuation and is distinct from the
+shared camera selection.
+
+A request for a different camera slot changes the selection only when the
+shared transition word is zero or the current record has flag `0x01`. Otherwise
+the current slot remains selected. Requesting the current slot leaves selection
+unchanged. The pose stage clears this word according to its correction and
+movement-limiting results.
+
+### Actor camera offsets
+
+Location-camera setup reads the actor's `attr_camera_target_offset_x`,
+`attr_camera_target_offset_y`, `attr_camera_target_offset_z`,
+`attr_camera_offset_x`, `attr_camera_offset_y`, and `attr_camera_offset_z`
+attributes as unsigned bytes. Each byte independently becomes zero when it is
+zero, or `(value - 127) * 500` otherwise. The signed results replace the selected
+camera record's target-offset and camera-offset vectors. This conversion does
+not change the actor attributes or the other fields in the camera record.
+
+### Ordinary camera selection inhibition
+
+On the ordinary camera-update path, a nonzero scripted-camera active word or
+bit `0x20` in the selected camera record suppresses automatic slot reselection.
+The camera still runs its pose-processing stage. These guards precede the
+holding-weapon and other player-state checks used to choose an automatic slot;
+they do not suspend the whole camera update.
+
+### Camera request candidate position
+
+The camera's initial position-composition stage gives record flag `0x04`
+priority over `0x08`. With `0x04`, it adds the stored request vector to the
+record's bound actor-position vector, with wrapping signed 32-bit components.
+Otherwise, with `0x08`, it copies the stored request vector directly. These are
+candidate positions supplied to subsequent camera processing, not final rendered
+camera poses.
+
+Before testing either request flag, this stage compares the stored distance
+shifted left by eight against the stored minimum, using signed comparison. If
+it is lower, the minimum replaces the distance without a compensating shift.
+Equality leaves the distance unchanged.
+
+Without either explicit request flag, the stage rotates the record's position
+offset by the bound angles. It separately constructs a vector with zero X and Y
+and negative distance shifted left by eight as Z. The angles for this second
+rotation are the bound angles minus the record's angle offsets, masked to one
+revolution. Flag `0x80` replaces the first of these angles with the negated first
+angle offset, ignoring that bound-angle component. The candidate is the bound
+position plus both rotated vectors, with wrapping signed components.
+
+Camera vector rotation builds an identity matrix, applies negative yaw, then
+positive pitch and roll, and transforms the supplied integer vector. These
+angle signs differ from the ordinary actor-matrix update convention.
+
+### Camera collision candidate radius
+
+`SYSTEM.INI` `[camera] obstacle_size` supplies the candidate-size cutoff. Setup
+stores it with eight fractional bits, and collection shifts it back before
+comparing with each candidate model's radius. The model radius must be strictly
+greater than this cutoff. This is separate from the added bounds-test radius
+computed from the queried segment.
+
+Candidate collection subtracts the fixed-point endpoints before arithmetic-shifting
+the displacement components right by eight. It separately shifts the starting
+point by eight. When the squared displacement sum fits signed 32-bit arithmetic,
+the added model-bound radius is twice the floor of the Euclidean displacement
+length. The center-distance test accepts equality with the squared sum of the
+model radius and this added radius.
+
+The bounds test stores each integer-origin minus model-center component at
+single precision, then stores their summed squared distance at single precision.
+It also stores the model radius plus added radius at single precision before
+squaring that combined radius for comparison. Equality admits the model.
+
+### Camera collision result selection
+
+The query arithmetic-shifts each fixed-point endpoint component right by eight
+before the geometry test. The integer wrapper converts returned hit positions
+with the active x87 integer rounding mode and scales normal components by 256
+before converting them. Selected output positions are shifted left by eight;
+selected output normals retain the wrapper's scale.
+
+Polygon hits store their position along the tested segment as a rank: the
+segment parameter multiplied by 32768, converted with the active x87 integer
+rounding mode. The segment start has rank zero and the end has rank 32768.
+
+The camera collision query counts all returned hit records independently of
+whether a record replaces either selected output. For segment ranks from zero
+through 32768, minimum selection starts at 32767 and requires a strictly lower
+rank. Maximum selection starts at zero and requires a strictly higher rank.
+Equal ranks retain the first selected record.
+
+A result containing only ranks 32767 or 32768 therefore reports hits without
+replacing the shared minimum-position output. A result containing only rank
+zero leaves the shared maximum-position output unchanged. The query does not
+clear these output positions before scanning its candidates.
+
+### Camera collision response
+
+The pose collision stage runs when the selected camera record has flag `0x40`
+and the shared collision-inhibition word is zero. It rotates the record's target
+offset using its bound angles, adds the bound position, and queries the segment
+from that target to the candidate camera position. Candidate collection excludes
+the bound actor's model instance.
+
+A nonzero query hit count replaces the candidate camera position with the shared
+minimum-position output and reports success. A zero hit count leaves the
+candidate unchanged. The response does not separately check whether the query
+replaced its minimum output. An endpoint-only hit can therefore copy the retained
+minimum position from before the query.
+
+### Camera movement limiting
+
+Camera record flag `0x01` bypasses the movement-limiting stage. Otherwise the
+stage uses both the last published camera position and the preceding position.
+Its scalar timing helper floors the signed frame scale at 180, multiplies with
+32-bit wrapping, and arithmetic-shifts the product right by eight.
+
+The movement budget starts with the distance between those two retained
+positions plus the shared budget increment, capped by the record's unsigned
+maximum. The timing helper scales that budget. When the candidate displacement
+exceeds it, the stage forms an integer fraction with eight fractional bits and
+scales displacement components with multiplication followed by an arithmetic
+right shift. It reports that limiting occurred even when integer quantization
+leaves a component unchanged.
+
+A separate vertical limit precedes this distance test except for camera slot
+one and the selected-player special-state branch. The lower bound is the timed
+vertical parameter. A displacement above its negation is replaced with the
+negation of the unscaled parameter. The two sides therefore do not use the same
+timing conversion. The selected-player special-state branch also retains the
+candidate's horizontal components during distance limiting while still applying
+the vertical component and reporting limiting.
+
+### Camera orientation retention
+
+Camera record flag `0x02` makes the orientation stage copy the previously
+published camera angles into the new pose. This branch skips target-direction
+calculation, leaves the record's bound-position history unchanged, and does not
+refresh the two transformed camera vectors.
+
+Without this flag, slots zero and one use only the target offset's vertical
+component; other slots use the full vector. The stage rotates that offset by
+the bound angles, adds the bound actor position, and derives the camera angles
+from the direction between the published camera position and that target. It
+also refreshes the bound-position history and transforms both stored camera
+vectors using the derived angles.
+
+Before angle conversion, the direction components are stored as single-precision
+values. Their Euclidean length divided by 65536 is stored at single precision.
+Each component is divided by that stored divisor, stored at single precision
+again, and converted to an integer with the active x87 rounding mode. A zero
+divisor produces a zero vector. Angle lookup consumes this quantized direction.
+
+The direction is camera position minus the rotated target position. Using the
+signed bearing lookup whose positive X axis is a quarter turn and positive Z
+axis is zero, yaw is the X/Z bearing minus half a turn. Pitch is the bearing
+of the rounded horizontal length against Y, minus a quarter turn. Both wrap
+to 2048 units per revolution; roll is zero.
+
+The two retained basis vectors use a direct angle matrix with positive pitch,
+negative yaw and positive roll. Each output component is a dot product with a
+matrix column. Vector inputs and dot products are stored at single precision;
+final integer components use the active x87 rounding mode.
+
+### Camera contact-normal response
+
+The camera body-response stage converts the candidate fixed-point position to
+floating coordinates and gathers contact normals. It sums normal components
+after dividing their integer representation by 256. A nonzero sum is normalized.
+If the sum cancels to zero, it instead uses the first contact normal divided by
+256, without normalizing that fallback.
+
+The response truncates the camera body's floating radius to an integer,
+multiplies it by the selected response direction, scales the result by 256,
+truncates each component toward zero, and adds it to the candidate position.
+No contacts leave the candidate unchanged. Opposing contacts can therefore
+produce a response in the first contact's direction rather than no response.
+
+Each accumulated normal component is stored at single precision after each
+addition. Normalization stores the reciprocal length at single precision, then
+stores each scaled direction component at single precision. Each product of the
+integer radius and selected direction is also stored at single precision before
+scaling by 256 and truncating toward zero.
+
+### Camera distance-height correction
+
+Only slots zero and three run the distance-height correction. It subtracts the
+bound actor position from the candidate, divides each signed fixed-point delta
+by 256 with truncation toward zero, and computes the resulting distance. A zero
+distance is replaced with 0.1 for the following comparison and division.
+
+When that distance is strictly below the record's distance threshold, the stage
+scales the vertical delta by threshold divided by distance. It replaces candidate
+Y with bound actor Y minus the absolute scaled vertical delta converted back to
+fixed point with truncation toward zero. Candidate X and Z remain unchanged.
+Equality with the threshold leaves the candidate unchanged.
+
+The divided deltas, summed squared distance, square root and threshold are
+stored as single-precision values. The vertical division and subsequent
+threshold multiplication each store a single-precision result before conversion
+back to fixed point.
+
+### Camera terrain-height clamp
+
+When the terrain-height stage is enabled, both terrain queries receive candidate
+X and Z arithmetic-shifted right by eight. The floating height result is truncated
+toward zero before conversion back to fixed point. The camera body's stored
+clearance parameter is multiplied by 1024 and truncated separately.
+
+Only a candidate Y plus clearance strictly greater than the converted terrain
+height triggers correction. The replacement Y is terrain height minus clearance;
+X and Z remain unchanged, and the shared correction flag is set. Equality does
+not set the flag or replace the pose.
+
+The terrain query converts horizontal coordinates to cells with the active x87
+integer rounding mode after applying `x / 256 - 0.5` and `z / 256 + 0.5`.
+When both cell offsets from the retained terrain-window center are strictly
+between -16 and 16, height comes from that retained grid. At either boundary or
+outside the window, it comes from map samples through the height lookup table.
+The camera query therefore does not always use the static map heights.
+
+Each selected cell uses a triangle plane rather than bilinear interpolation.
+Its diagonal joins `(i, j)` to `(i + 1, j - 1)`. When the horizontal offset
+`x - i * 256` is greater than `j * 256 - z`, the third corner is `(i + 1, j)`;
+otherwise it is `(i, j - 1)`. Equality uses the latter triangle. The query
+publishes a normalized plane normal; the integer wrapper scales that normal
+by 256 and converts it using the active x87 integer rounding mode.
+
+For plane construction, the first vertex is `(i, j)`. In the greater-offset
+branch the next vertices are `(i + 1, j - 1)` and `(i + 1, j)`; otherwise they
+are `(i, j - 1)` and `(i + 1, j - 1)`. The two edges are second minus first
+and third minus second. Each edge component is stored at single precision
+before their cross product is formed. Replacing these adjacent edges with
+mathematically equivalent edges can change the sampled height through rounding.
+
+### Camera pose stage order
+
+The pose stage composes a candidate and performs a segment collision check.
+A hit replaces the candidate with the retained minimum hit position, then runs
+distance-height correction, contact-normal response and terrain correction.
+
+A second segment check follows on both paths. A hit again replaces the candidate
+with the retained minimum position. The stage then runs distance-height
+correction, contact-normal response, movement limiting and terrain correction,
+in that order, before publishing the pose.
+
+### Camera pose publication
+
+The transition word clears when the pose stage reports a collision or terrain
+correction. Without such a correction, it clears only when its value is one
+and movement limiting did not occur. A limited update can retain value one;
+other nonzero values also remain unchanged without correction.
+
+After position correction, the pose stage moves the previously published camera
+position and angles into their respective history vectors. It then publishes the
+new position to shared camera state and to both the camera actor and alternate
+camera actor. Orientation processing follows position publication, and its
+result replaces the shared published angles.
+
+Position history therefore contains the preceding published pose, not the new
+request or a temporary collision candidate. Retaining orientation still advances
+angle history to the preceding published angles.
+
+### Camera record initialization
+
+Camera setup clears all nine records, initializes record zero, and copies that
+record into slots one through eight before applying slot-specific configuration.
+The copied fields include the selected-player binding, position and angle
+bindings, position offsets, angle offsets, distance limits and maximum movement
+rate. Record zero has collision flag `0x40` before these copies.
+
+The ordinary target-offset configuration is assigned to record zero after the
+copies. It therefore does not initialize the other records' target offsets.
+Combat target offsets are assigned separately to slot three. The remaining
+slots retain their cleared target-offset vectors at this initialization stage.

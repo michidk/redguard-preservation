@@ -40,6 +40,12 @@ phase       = (distance_sq * F + T * S) & 2047
 height      = base_height + wave_table[phase] * A - A * 0.5
 ```
 
+The half-amplitude bias is stored as a 32-bit float before the vertex loop.
+For each selected vertex, the table-sample multiplication, base-height addition
+and bias subtraction retain register precision. Only the final height is stored
+as a 32-bit float. Rounding each intermediate operation to 32 bits can change
+the stored height.
+
 The BIOS timer count is independent of rendered frames. The standard PC BIOS
 clock advances approximately 18.2065 times per second. The absolute phase
 depends on that clock's initial value, not on scene loading. The spatial origin
@@ -55,11 +61,12 @@ It does not center the oscillation on the base height.
 ## Wave lookup table
 
 The shared rotation table contains samples of
-`sin(float32(n * 6.2831852 / 2048))`, stored as 32-bit floats. The angle itself
-is rounded to single precision before taking sine. The table contains 2,560
-entries, including the extended quarter revolution used by cosine. Water addresses the table
+`sin(n * 6.2831852 / 2048)`, stored as 32-bit floats. The angle remains in
+the x87 register through the sine operation; a single-precision scratch store
+does not replace that register value. The initializer writes 2,561 entries,
+including the extended quarter revolution and its endpoint. Water addresses the table
 starting at sample 512, so `wave_table[p]` is the float sample
-`sin(float32((p + 512) * 6.2831852 / 2048))`. The 2048 wave phases therefore start near
+`sin((p + 512) * 6.2831852 / 2048)`. The 2048 wave phases therefore start near
 one, zero, minus one, and zero at phases 0, 512, 1024, and 1536 respectively.
 The decimal full-period constant is part of the table construction.
 
