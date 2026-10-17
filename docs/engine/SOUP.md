@@ -1722,3 +1722,20 @@ When it acts, the lifecycle byte becomes 21 (sheathing), the companion motion by
 cleared, bit `0x04` of the combat flags is cleared, and the combat cooldown becomes 24.
 For the selected player it additionally sets the HUD health-display timer to 25 and selects
 camera slot zero.
+
+### FacePlayer
+
+`FacePlayer(duration)` is a task that turns the receiver's local Y angle toward the
+selected player. Each invocation computes the bearing from the receiver's local position to
+the selected player's local position with the signed-coordinate bearing used by
+the `PlayerLooking` query, then:
+
+1. `gap = (-heading - bearing) & 2047`. A zero gap completes the task without a change.
+2. `remaining = |elapsed - duration|`, treated as 1 when zero.
+3. If `gap` is above 1024, `gap = (-gap - 1024) & 1023` and the step is subtracted from
+   the heading; otherwise the step is added.
+4. `step = ((gap << 8) / remaining) >> 8`. A zero step completes the task without a change.
+5. The heading wraps modulo 2048.
+
+After a turn the task completes when `elapsed >= duration - 1`, and remains active
+otherwise.
