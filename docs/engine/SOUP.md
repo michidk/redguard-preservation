@@ -1826,3 +1826,23 @@ keys instead:
 | Minimum distance | `camera_min_distance` arithmetic-shifted right one bit |
 | Target offset | `target_offset_x >> 1`, `6400`, `target_offset_z >> 1` |
 | Position offset | `offset_pos_x >> 1`, `6400`, `offset_pos_z >> 1` |
+
+### Script light controls
+
+`Light`, `LightRadius`, `LightIntensity`, `LightOffset`, `LightFlicker`, `FlickerLight` and
+`LightFlickerOff` act on the receiver's light record and return zero. When the receiver has no
+record, the first call creates one: disabled and unlocked, offsets zero, intensity 256 and
+radius 100 (each current value equal to its starting value), flicker fields zero. `LightOff` does
+not create a record.
+
+| Function | Effect |
+|---|---|
+| `Light(radius, intensity)` | Enable; set current and starting radius and intensity |
+| `LightRadius(radius)` | Set current and starting radius; enable; clear the inactive counter |
+| `LightIntensity(intensity)` | Set current and starting intensity; enable; clear the inactive counter |
+| `LightOffset(x, y, z)` | Set the three offsets |
+| `LightFlicker(a, b)` | Set flicker values `a` and `b` and clear the flicker phase word |
+| `FlickerLight(a)` | The same as `LightFlicker(a, 1)` |
+| `LightFlickerOff` | Set flicker value `a` to zero |
+
+Every stored value keeps only its low sixteen bits.
