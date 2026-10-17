@@ -573,3 +573,14 @@ The separately stored default animation selection is not restored.
 Restoring a remembered sample slot does not stop channels started after the
 snapshot or restart a channel that has already stopped. A later animation stop
 uses the restored reusable slot, including a replacement sound occupying it.
+
+## Animation group classes
+
+The engine keeps a table of one class value per animation group number (0 through 177), consulted
+by combat and movement code to decide whether a group is a fighting group or a reaction group.
+Groups not listed have class zero.
+
+| Class | Meaning | Groups |
+|---|---|---|
+| 1 | Fighting group | 8, 31, 91 through 120, 129 through 133, 135 through 140, 175, 176, 177 |
+| 2 | Hit-reaction or death group | 74, 121 through 128, 134 |

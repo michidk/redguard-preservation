@@ -1890,3 +1890,14 @@ position, with the actor's own model excluded. The sphere radius is twice the st
 actor's current model, rounded to the nearest integer, or 200 when the actor has no model. The
 collector keeps at most 64 entries. Queries made later in the same update (the in-sight test and the
 nonplayer movement probes) read this list without collecting again.
+
+### Nonplayer blocked-ahead probe
+
+The movement helpers used by the combat decision ask whether the space ahead of the receiver is
+blocked by `distance`. The probe applies only when the receiver has a combat record and its current
+animation group has [class](animation.md#animation-group-classes) one. It forms a local offset with
+X zero, Y equal to `(positive Y extent of the actor's body - SYSTEM.INI post_collide_height - distance)`
+in eight-fractional-bit units, and Z equal to `-14336`; rotates it by the actor's matrix; and adds the
+actor's query position. The resulting single point (radius zero) is tested against each model in the
+actor's [candidate list](#candidate-collection-for-an-ordinary-update): any contact blocks. While
+the actor's directional byte is `0x18`, candidates whose flag byte is `0x80` are skipped.
