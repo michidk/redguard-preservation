@@ -1774,7 +1774,7 @@ position's eight fractional bits.
 
 **In sight.** The test is false for an absent actor or target and when their distance exceeds
 the limit. Otherwise the segment between the two query positions, in whole map units, is tested
-against each entry of the engine's retained candidate model list, in order. The test does not collect candidates itself: the list is whatever the most recent candidate collection left (the collector also used by the camera's [candidate collection](#camera-collision-candidate-radius)), so its contents depend on the preceding query. An entry that is
+against each entry of the engine's retained candidate model list, in order. The test does not collect candidates itself: it reads the list collected for the receiver by ordinary actor traversal immediately before the receiver's update (see [Candidate collection for an ordinary update](#candidate-collection-for-an-ordinary-update)), so only models near the receiver can block the line. An entry that is
 not hit, or whose owner is the target, does not block; any other hit makes the result false.
 The result is true when no entry blocks.
 
@@ -1880,3 +1880,13 @@ without waiting (unlike `PushAnimation`, which is a task). The request goes thro
 [request arbitration](animation.md) with the modifier narrowed to one byte. It does nothing when
 the animation system is disabled, when the receiver has no animation state, or when the receiver
 is excluded from ordinary object updates.
+
+### Candidate collection for an ordinary update
+
+When ordinary traversal reaches an actor whose collection flag is set, it fills the engine's
+retained candidate model list before running that actor's update (native hook, combat decision and
+script stages included). The list holds the models inside a sphere centred on the actor's
+position, with the actor's own model excluded. The sphere radius is twice the stored radius of the
+actor's current model, rounded to the nearest integer, or 200 when the actor has no model. The
+collector keeps at most 64 entries. Queries made later in the same update (the in-sight test and the
+nonplayer movement probes) read this list without collecting again.
