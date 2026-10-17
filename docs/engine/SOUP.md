@@ -1788,3 +1788,11 @@ and return zero.
 
 `GetFramePassed` takes no arguments and returns the shared whole nominal-tick increment of
 the current update (the same value the elapsed-time tasks consume).
+
+### DropAllItems
+
+`DropAllItems` takes no arguments and returns zero. When the task system is enabled it
+applies the `DropItem` routine to every item id from zero up to the item count, each with the
+count currently owned, in ascending order, and then clears the selected item. Ids with a
+zero count are skipped. Each id must have an `ITEM.INI` definition; the shipped file
+defines ids 0 through 86 without gaps.
