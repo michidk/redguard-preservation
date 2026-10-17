@@ -107,6 +107,26 @@ Scancodes 128–139 are mouse/joystick inputs:
 | 136–137 | `joy left`, `joy right` |
 | 138–139 | `joy up`, `joy down` |
 
+## Input state
+
+Every input update fills one state table indexed by input code, then each
+action reads the state at its primary code OR its secondary code (the `[0]` and
+`[1]` bindings). Codes below 128 are keyboard scancodes written by the keyboard
+interrupt. Codes 128 through 139 are written by the pointer and joystick polls,
+which run at the start of each update:
+
+| Code | Value |
+|---|---|
+| 128, 129 | Left and right mouse button **release**: nonzero for one update, when the button goes from pressed to released, and zero otherwise. A held button never reads as pressed. |
+| 132–135 | Joystick buttons 1 through 4: nonzero while the button is pressed. |
+| 136 | Joystick X reading is more than `joy_tolerance` below the calibrated center. |
+| 137 | Joystick X reading is more than `joy_tolerance` above the calibrated center. |
+| 138 | Joystick Y reading is more than `joy_tolerance` below the calibrated center. |
+| 139 | Joystick Y reading is more than `joy_tolerance` above the calibrated center. |
+
+Controls capture reads the same table: it accepts a keyboard scancode, a mouse
+button release (128 or 129) or a joystick button (132 through 135).
+
 ## Action semantics
 
 The shipped manual, User's Guide page 1, identifies Shift as Walk/Run and
