@@ -1739,3 +1739,14 @@ the `PlayerLooking` query, then:
 
 After a turn the task completes when `elapsed >= duration - 1`, and remains active
 otherwise.
+
+### Potion counters and combat strength and armor
+
+`SetPotion(index, value)` stores the full 32-bit `value` in a global counter table and
+returns one. `GetPotion(index)` returns the stored value. The table is zero-filled when
+the engine starts and is not cleared by world changes. The shipped scripts use indices
+0 through 3 (blood, milk, ectoplasm and sap items).
+
+`setStrength(value)` and `setArmor(value)` store the full 32-bit value in the strength and
+armor fields of the receiver's combat record and return nothing. They apply to a receiver
+that has a combat record.
