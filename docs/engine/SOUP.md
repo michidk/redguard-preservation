@@ -1846,3 +1846,34 @@ not create a record.
 | `LightFlickerOff` | Set flicker value `a` to zero |
 
 Every stored value keeps only its low sixteen bits.
+
+### Nonplayer combat action selection
+
+The decision stage requests an action of a numbered kind from the receiver's candidate action
+records (the combat record's ordered list; each record carries a kind byte, a non-null move
+reference and a second value passed on when the action starts). A request is ignored when the
+receiver is dead or its list is empty, and when kind 9 is requested while combat flag `0x40` is
+set.
+
+**Distance gate.** For kinds other than 0, 2 and 6, a request with a combat target is ignored
+when the distance to the target is `0x40000` or more.
+
+**Busy gate.** For kinds 10 and 11, the request is ignored while the receiver has a current action
+whose pending field is set.
+
+**Kinds 0, 2, 6, 10 and 11.** Scan the list in order. Each record whose kind equals the request and
+whose move reference is non-null becomes the choice; after each such match, one random draw
+`draw * 4 / 32767` equal to one ends the scan, so the first record that wins the draw is kept,
+otherwise the last match. If nothing matched and the request was kind 6, the request becomes kind 2
+and the scan repeats. A choice starts that action.
+
+**Kinds 5, 8 and 9.** Up to fifteen probes, each choosing a list index `draw * count / 32767`. A
+probed record of the requested kind with a non-null move reference becomes the choice when no choice
+exists yet, or otherwise replaces it when `(combat value + frame value) mod 2` is zero, where the
+combat value is the combat record's per-actor value and the frame value is the update's value
+saved when the decision stage began. The action then starts only when `(combat value + frame value)`
+is a multiple of the combat record's action period; starting a kind 9 action also sets combat flag
+`0x40`.
+
+Starting an action stores the new current action in the combat record. The kind codes and the
+move start itself are not described here.
