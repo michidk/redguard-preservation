@@ -309,3 +309,23 @@ fn parses_installed_configs_and_matches_existing_player_settings() {
     assert_eq!(items.items[&74].use_script, None);
     assert_eq!(items.items[&86].name.as_deref(), Some("?xsw"));
 }
+
+#[test]
+fn camera_mode_movement_rates_parse() {
+    let ini = SystemIni::parse(
+        "[system]\n[camera]\ncamera_combat_max_vel=1\ncamera_hang_max_vel=2\n\
+         camera_rope_above_max_vel=3\ncamera_rope_below_max_vel=4\ncamera_debug_max_vel=5\n",
+    )
+    .unwrap();
+    let camera = ini.camera;
+    assert_eq!(
+        [
+            camera.camera_combat_max_vel,
+            camera.camera_hang_max_vel,
+            camera.camera_rope_above_max_vel,
+            camera.camera_rope_below_max_vel,
+            camera.camera_debug_max_vel,
+        ],
+        [Some(1), Some(2), Some(3), Some(4), Some(5)]
+    );
+}
