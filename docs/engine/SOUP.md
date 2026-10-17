@@ -1750,3 +1750,30 @@ the engine starts and is not cleared by world changes. The shipped scripts use i
 `setStrength(value)` and `setArmor(value)` store the full 32-bit value in the strength and
 armor fields of the receiver's combat record and return nothing. They apply to a receiver
 that has a combat record.
+
+### Nonplayer combat decision: target, distance and engagement
+
+The nonplayer decision stage (death and state selector 6, actor not dead) begins as follows.
+
+**Valid target.** An actor is a valid combat target when it exists, it is not both in
+lifecycle state 8 and killed, it has a combat record, and its own combat target is not itself.
+
+**Target selection.** When the receiver's combat target is not valid, the target becomes
+the selected player, whether or not the player is itself a valid target, and the target's
+current position (twelve bytes) is copied into the receiver's combat record.
+
+**Distance and counter.** The distance from the receiver to its target uses the query
+positions of both actors (attached, linked or local, as for the fighting query) and the
+three-dimensional rounded distance. While that distance is below 25000 a counter in the combat
+record increments each pass; otherwise the counter is zero.
+
+**Engagement.** The receiver is engaged when `attr_combat_ignore_in_sight` is nonzero.
+Otherwise, with `attr_combat_long_sight` nonzero, it is engaged when the target is in sight
+within a distance of `0x80000`; with it zero, within `0x40000`. Both distances use the
+position's eight fractional bits.
+
+**In sight.** The test is false for an absent actor or target and when their distance exceeds
+the limit. Otherwise the segment between the two query positions, in whole map units, is tested
+against each entry of the engine's retained candidate model list, in order. An entry that is
+not hit, or whose owner is the target, does not block; any other hit makes the result false.
+The result is true when no entry blocks.
