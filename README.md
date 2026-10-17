@@ -2,35 +2,151 @@
 
 [![Crates.io](https://img.shields.io/crates/v/redguard-preservation.svg)](https://crates.io/crates/redguard-preservation)
 
-Preserving *The Elder Scrolls Adventures: Redguard* (1998) — reverse-engineered file format specifications, engine documentation, and a Rust CLI for parsing and converting game assets.
+Documentation and tools for preserving *The Elder Scrolls Adventures: Redguard* (1998), Bethesda's action-adventure game. The project reverse-engineers the game's file formats and engine, writes down what it finds, and provides software that reads and converts the game's assets.
 
-> **📖 Full documentation** — file format specifications, engine internals, INI references, and more — is published at **<https://michidk.github.io/redguard-preservation/>**. This README is the CLI / library / FFI quick reference.
+## What is in this repository
 
-## Conversion Matrix
-
-| Input Type | Input Extension(s) | Output File(s) |
+| Part | What it gives you | Start here |
 |---|---|---|
-| Model | `.3d`, `.3dc` | `.glb` |
-| ROB archive | `.rob` | `.glb` |
-| RGM scene | `.rgm` | directory: `.glb` + scene/actors/navigation `.json` + per-actor `.soup`/`.json` scripts |
-| WLD world | `.wld` | `.glb` + actor metadata `.json` (scene mode), or map `.png` set |
-| Font | `.fnt` | bitmap `.png` + BMFont `.fnt` + glyph metadata `.json`, or `.ttf` |
-| Visibility octree | `.pvo` | `.json` |
-| Palette | `.col` | swatch `.png` + palette metadata `.json` |
-| Sound effects bank | `.sfx` | extracted `.wav` files + `index.json` metadata (directory output) |
-| Dialogue audio | `.rtx` | extracted `.wav` files + `index.json` metadata (directory output) |
-| Software texture bank | `TEXTURE.###` | animated `.gif` or frame `.png` files + `index.json` |
-| Software lookup table | `SHADE.###`, `HAZE.###` | grayscale index `.png` |
-| Texture bank | `TEXBSI.###` | animated `.gif` + static `.png` files + `index.json` (directory output) |
-| GXA bitmap archive | `.gxa` | animated `.gif` + `index.json` (directory output) |
-| Cheat states | `.cht` | `.json` |
-| PCX image | `.pcx` | `.png` |
-| IFF packed bitmap | `.lbm` | `.png` |
-| Deluxe Paint animation | `.anm` | directory: `animation.gif` + `index.json` |
+| **Documentation** | Reverse-engineered file format specifications, engine behavior, and INI references. | [Published docs](https://michidk.github.io/redguard-preservation/) |
+| **`rgpre` command-line tool** | Inspect game files and convert them to open formats such as GLB, PNG, GIF, WAV, and JSON. | [Quick start](#quick-start) |
+| **Rust library** | The same parsers as a crate, for your own tools. | [Using the Rust library](#using-the-rust-library) |
+| **Native plugin** | The library as a C-compatible shared library, for engines such as Unity. | [Native plugin](#native-plugin-ffi) |
 
-The `scan` command recursively detects known Redguard files in a directory tree. The CLI and Rust parsers focus on game assets. Hardware drivers, audio utilities, controller profiles, and development reports remain documented in [Bundled support resources](docs/formats/BUNDLED-RESOURCES.md).
+**You need your own copy of the game.** This repository contains no game files. The GOG release contains the Glide assets that most examples here use; the original CD also contains the software renderer's assets (see [Game editions](#game-editions)). Point the tools at the installed game directory.
 
-## Rust inspection exports
+## Quick start
+
+Install the CLI from [crates.io](https://crates.io/crates/redguard-preservation) (requires Rust 1.85 or newer):
+
+```bash
+cargo install redguard-preservation
+```
+
+To build from source instead, run `cargo build` in a checkout; the binary is `target/debug/rgpre`.
+
+The binary is called `rgpre`. It has three commands:
+
+| Command | Alias | What it does |
+|---|---|---|
+| `read <FILE>` | `r` | Parse a file and print its decoded structure. |
+| `scan <DIR>` | `s` | Recursively find known Redguard files in a directory. |
+| `convert <FILE>` | `c` | Export a file to an open format. |
+
+A first session, assuming the game is installed at `Redguard/`:
+
+```bash
+mkdir -p out
+rgpre scan Redguard/fxart                                  # what is in here?
+rgpre read Redguard/fxart/ISLAND.COL                       # print a palette's contents
+rgpre convert Redguard/fxart/ISLAND.COL -o out/            # export it as PNG + JSON
+rgpre convert Redguard/fxart/BELLTOWR.ROB \
+  --palette Redguard/fxart/ISLAND.COL --assets Redguard \
+  -o out/BELLTOWR.glb                                      # export a textured model
+```
+
+`convert <FILE>` detects the format from the file and uses defaults. `-o` takes a file path, or an existing directory in which the filename is derived. Formats that write many files (texture banks, sound banks, scenes) create their output directory themselves.
+
+Models, worlds, and scenes need a palette (`--palette`) and an asset root (`--assets`) to get textures; without a palette they export as plain white. Both flags also read the `PALETTE` and `ASSETS` environment variables. Each scene uses its own palette, such as `ISLAND.COL` or `NECRO.COL`.
+
+Run `rgpre --help` or `rgpre convert <FORMAT> --help` for the full option list.
+
+## Converting files
+
+`convert <FORMAT> <FILE>` selects a format explicitly and enables that format's flags. Every subcommand accepts `-o/--output`, and the image-producing ones accept `--compress-textures` (higher PNG compression).
+
+| Subcommand | Input | Output | Format-specific flags |
+|---|---|---|---|
+| `convert model` | `.3d`, `.3dc`, `.rob` | `.glb` | `--assets`, `--palette` |
+| `convert rgm` | `.rgm` scene | directory: `.glb`, scene/actors/navigation `.json`, and per-actor `.soup`/`.json` scripts | `--assets`, `--palette`, `--software` |
+| `convert wld` | `.wld` world | `.glb` plus actor metadata `.json` (scene mode), or a set of map `.png` files | `--assets`, `--palette`, `--software`, `--terrain-only`, `--terrain-textures true\|false` |
+| `convert texbsi` | `TEXBSI.###` texture bank | animated `.gif` and static `.png` files plus `index.json` (directory) | `--format gif\|png\|frames`, `--palette` |
+| `convert texture` | `TEXTURE.###` software texture bank | animated `.gif` or frame `.png` files plus `index.json` | `--format gif\|png\|frames`, `--palette` |
+| `convert shade`, `convert haze` | `SHADE.###`, `HAZE.###` software lookup tables | grayscale index `.png` | (none) |
+| `convert gxa` | `.gxa` bitmap archive | animated `.gif` plus `index.json` (directory) | `--format gif\|png` |
+| `convert fnt` | `.fnt` font | bitmap `.png` + BMFont `.fnt` + glyph `.json`, or `.ttf`¹ | `--format bitmap\|ttf` |
+| `convert col` | `.col` palette | swatch `.png` + palette `.json` | `--format png\|json` (default: both) |
+| `convert rtx` | `.rtx` dialogue audio | `.wav` files plus `index.json` (directory) | `--resolve-names` |
+| `convert sfx` | `.sfx` sound effects bank | `.wav` files plus `index.json` (directory) | (none) |
+| `convert cht` | `.cht` cheat states | `.json` | (none) |
+| `convert pvo` | `.pvo` visibility octree | `.json` | (none) |
+| `convert pcx` | `.pcx` image | `.png` | (none) |
+| `convert lbm` | `.lbm` IFF packed bitmap | `.png` | (none) |
+| `convert anm` | `.anm` Deluxe Paint animation | directory: `animation.gif` plus `index.json` | (none) |
+
+¹ Exported TTF fonts are bitmap-traced vector outlines without hinting. They can be installed on Windows, used in game engines (Unity, Godot, etc.), and previewed at [fontdrop.info](https://fontdrop.info).
+
+Without `--palette`, image exports show palette indices as grayscale. `rgpre convert system/gui.anm` writes `system/gui_anm/animation.gif` and timing metadata. `rgpre convert system/SKY_61.PCX` and `rgpre convert system/gui.lbm` export PNG images.
+
+### More examples
+
+```bash
+# Model with palette and asset root
+rgpre convert model fxart/BELLTOWR.ROB --palette fxart/ISLAND.COL --assets . -o output/BELLTOWR.glb
+
+# Scene (RGM) with palette and asset root
+rgpre convert rgm maps/BELLTOWR.RGM --palette fxart/ISLAND.COL --assets . -o output/BELLTOWR_scene.glb
+
+# World (WLD): terrain plus the placed objects from the companion RGM
+rgpre convert wld maps/ISLAND.WLD --palette fxart/ISLAND.COL --assets . -o output/ISLAND_world.glb
+
+# World terrain only
+rgpre convert wld maps/ISLAND.WLD --palette fxart/ISLAND.COL --assets . --terrain-only -o output/ISLAND_terrain.glb
+
+# Texture bank, as an animated GIF per texture (default) or every frame as a PNG
+rgpre convert texbsi fxart/TEXBSI.302 --palette fxart/ISLAND.COL -o output/TEXBSI_302/
+rgpre convert texbsi fxart/TEXBSI.302 --palette fxart/ISLAND.COL --format frames -o output/TEXBSI_302/
+
+# Font to TrueType
+rgpre convert fnt fonts/FONT01.FNT --format ttf -o output/FONT01.ttf
+
+# Palette as JSON only
+rgpre convert col fxart/ISLAND.COL --format json -o output/ISLAND.json
+
+# Dialogue audio, named by text instead of 4-character tags
+rgpre convert rtx ENGLISH.RTX --resolve-names -o output/dialog/
+```
+
+## Game editions
+
+Redguard shipped with two parallel sets of 3D assets, one per renderer:
+
+| Directory | Renderer | Model versions | Palette files | Included in GOG |
+|---|---|---|---|---|
+| `fxart/` | Glide (3dfx) | v4.0, v5.0 | 27 populated COL palettes; one empty placeholder | ✓ |
+| `3dart/` | Software | v2.6, v2.7 | 18 COL palettes, including `art_pal.col` | Original CD only |
+
+The examples above use the Glide assets in `fxart/`, which both editions have. Model exports select their texture format from the model version. Software textures live in `TEXTURE.###` banks and software lookup tables in `SHADE.###` and `HAZE.###`.
+
+For scene or terrain exports, the tools use software art only when the asset root has `TEXTURE.###` banks and no `TEXBSI.###` banks. An install containing both art trees defaults to Glide; add `--software` to `convert rgm` or `convert wld` to choose software instead:
+
+```bash
+rgpre convert texture 3dart/TEXTURE.302 --palette 3dart/ISLAND.COL --format frames -o output/texture_302
+rgpre convert shade 3dart/SHADE.000 -o output/shade_000
+rgpre convert rgm maps/START.RGM --assets . --software -o output/start.glb
+```
+
+Lookup exports write `indices.png`, preserving each mapping byte as a grayscale value. Texture exports include `index.json` with record metadata.
+
+Rust consumers select the edition with `TextureCache::new_for_edition`, `registry::scan_dir_for_edition`, and `WorldHandle::open_for_edition`. The equivalent C entry point is `rg_open_world_for_edition`. See [CD and GOG differences](docs/README.md#gog-vs-original-cd-differences) for the full comparison.
+
+To check every model frame, texture frame, and lookup table in an art directory (a developer tool, not needed for conversion):
+
+```bash
+cargo run --example check_edition_assets -- /path/to/Redguard/3dart
+cargo run --example check_edition_assets -- /path/to/Redguard/fxart
+```
+
+## Using the Rust library
+
+The package `redguard-preservation` builds a library named `rgpre` next to the CLI, and the CLI is a thin layer over it. Add the package to your `Cargo.toml` and import from `rgpre`. Parsers live under `rgpre::import`, for example `rgpre::import::pcx::parse_pcx_file`, `lbm::parse_lbm_file`, and `anm::parse_anm_file`. This section covers the APIs that go beyond "parse a file":
+
+- [Inspection exports](#inspection-exports): decoded file data as JSON
+- [Save-game loading](#save-game-loading)
+- [Typed configuration parsers](#typed-configuration-parsers): `SYSTEM.INI`, `COMBAT.INI`, `SURFACE.INI`, `ITEM.INI`, `KEYS.INI`, `MENU.INI`
+- [GLB export metadata](#model-rendering-metadata): the extra data attached to exported glTF nodes, materials, and primitives
+
+### Inspection exports
 
 `import::wld::export_wld_metadata`, `import::model3d::export_model_metadata`, and
 `import::bsi::export_bsi_metadata` expose decoded file data as JSON. Model metadata
@@ -44,32 +160,7 @@ same coordinates as GLB exports. `PvoFile::visibility_ids` resolves a PLST leaf
 reference to placed-object IDs: IDs below the world's MPSO count select that record,
 while higher IDs require the runtime secondary object table.
 
-## Convert Subcommands
-
-Each format has its own subcommand with scoped flags. `convert <FILE>` auto-detects the format and uses defaults.
-
-| Subcommand | Input | Output | Format-specific flags |
-|---|---|---|---|
-| `convert texbsi` | `TEXBSI.###` | `.gif` / `.png` | `--format gif\|png\|frames`, `--palette`, `--compress-textures` |
-| `convert gxa` | `.gxa` | `.gif` / `.png` | `--format gif\|png`, `--compress-textures` |
-| `convert fnt` | `.fnt` | `.png` + `.fnt` + `.json`, or `.ttf` | `--format bitmap\|ttf`, `--compress-textures` |
-| `convert col` | `.col` | `.png` + `.json` | `--format png\|json` (default: both), `--compress-textures` |
-| `convert wld` | `.wld` | `.glb` + `.json`, or map `.png` set | `--assets`, `--palette`, `--terrain-only`, `--terrain-textures`, `--compress-textures` |
-| `convert model` | `.3d`, `.3dc`, `.rob` | `.glb` | `--assets`, `--palette`, `--compress-textures` |
-| `convert rgm` | `.rgm` | output directory | `--assets`, `--palette`, `--compress-textures` |
-| `convert rtx` | `.rtx` | `.wav` + `index.json` | `--resolve-names` |
-| `convert sfx` | `.sfx` | `.wav` + `index.json` | (none) |
-| `convert cht` | `.cht` | `.json` | (none) |
-| `convert pvo` | `.pvo` | `.json` | (none) |
-| `convert pcx` | `.pcx` | `.png` | (none) |
-| `convert lbm` | `.lbm` | `.png` | (none) |
-| `convert anm` | `.anm` | `animation.gif` + `index.json` | (none) |
-
-`rgpre convert system/SKY_61.PCX` and `rgpre convert system/gui.lbm` export PNG images. `rgpre convert system/gui.anm` writes `system/gui_anm/animation.gif` and timing metadata. The Rust entry points are `rgpre::import::pcx::parse_pcx_file`, `rgpre::import::lbm::parse_lbm_file`, and `rgpre::import::anm::parse_anm_file`.
-
-¹ Exported TTF fonts are bitmap-traced vector outlines without hinting. They can be installed on Windows, used in game engines (Unity, Godot, etc.), and previewed at [fontdrop.info](https://fontdrop.info).
-
-## Save-game loading
+### Save-game loading
 
 The read-only Rust API parses version `1.31` save containers and loads a slot directory:
 
@@ -93,9 +184,9 @@ State payloads remain opaque. Display strings use UTF-8 replacement characters
 for invalid bytes; the original bytes remain in `SVGM`. See
 [Save-game containers](docs/formats/SAVEGAME.md).
 
-## Typed configuration parsers
+### Typed configuration parsers
 
-The Rust library parses the gameplay configuration files into named structs:
+The library parses the gameplay configuration files into named structs:
 
 | File | Entry point | Contents |
 |---|---|---|
@@ -128,187 +219,13 @@ The narrower `rgpre::import::player_ini::PlayerConfig` API remains available for
 ordinary grounded movement. It requires its six player settings and rejects
 duplicate relevant keys.
 
-## Documentation
+### KEYS.INI parser
 
-The full documentation is published at **<https://michidk.github.io/redguard-preservation/>** (rendered with `mdBook`). The Markdown sources live under [`docs/`](docs/README.md) and are organised into three sections:
+`import::keys_ini::KeysIni` exposes the eight keyboard bindings and user overrides, seven additional gameplay keys, and the installed key-name table. Section/key matching ignores case, and the first occurrence wins. `control_codes()` returns bindings in menu-action order 710 through 724.
 
-- [**File Formats**](https://michidk.github.io/redguard-preservation/formats/) ([source](docs/formats/README.md)) — binary format specifications for models, textures, audio, maps, palettes, and other game assets
-- [**Engine Details**](https://michidk.github.io/redguard-preservation/engine/) ([source](docs/engine/README.md)) — reverse-engineered engine internals: cheat system, item attachment, SOUP scripting, sky renderer, water waves
-- [**Configuration**](https://michidk.github.io/redguard-preservation/config/) ([source](docs/config/README.md)) — text-based INI files shipped with the game (surface types, combat, keys, etc.)
+### MENU.INI parser
 
-## Related projects
-
-[Cyrus](https://github.com/michidk/cyrus) is a modern, faithful Rust
-reimplementation of Redguard built on this project's research and the
-`redguard-preservation` crate. It ships an asset viewer that opens every file
-format documented here: models, worlds, textures, fonts, animations, scripts,
-and audio. Use it [in the browser](https://michidk.github.io/cyrus/viewer/) or
-download a native build from the
-[latest Cyrus release](https://github.com/michidk/cyrus/releases/latest).
-
-[![Cyrus asset viewer showing a textured character model](https://raw.githubusercontent.com/michidk/cyrus/main/dev/pages/viewer-model.webp)](https://michidk.github.io/cyrus/viewer/)
-
-## Acknowledgements
-
-[RGUnity](https://github.com/RGUnity/redguard-unity) inspired
-redguard-preservation and provided foundational Redguard research used by this
-project. RGUnity is a human-developed Unity reimplementation built without AI
-assistance. Its contributors focus on meticulous fidelity and the small details
-that make the original game behave correctly.
-
-redguard-preservation uses AI-assisted development to document broad working
-coverage quickly. This complements RGUnity's detail-first work. We are grateful
-to its contributors for their research, implementation, and continued care for
-Redguard.
-
-## Repository Layout
-
-- `src/` - Rust source
-- `src/import/` - format importers/parsers
-- `src/gltf/` - GLTF/GLB conversion (builder, primitives, terrain, texture cache)
-- `src/ffi/` - C-compatible FFI layer for native plugin use (Unity, etc.)
-- `src/cli/` - CLI command handlers (`cli/convert/` for per-format converters)
-- `src/error.rs` - shared error types
-- `docs/` - format specifications and engine notes
-- `tests/` - integration tests
-
-## Quick Start
-
-Install the CLI from [crates.io](https://crates.io/crates/redguard-preservation):
-
-```bash
-cargo install redguard-preservation
-```
-
-To build from source, install the stable Rust toolchain, then run:
-
-```bash
-cargo build
-```
-
-Show CLI help:
-
-```bash
-rgpre --help
-```
-
-## CLI Commands
-
-- `read` (`r`) — parse an input file and print decoded structure
-- `convert` (`c`) — export supported inputs to output formats
-  - `convert <FILE>` — auto-detect format, use defaults
-  - `convert <FORMAT> <FILE>` — format-specific subcommand with scoped flags
-- `scan` (`s`) — recursively scan a directory for known Redguard files
-
-## Asset Directories
-
-Redguard shipped with two parallel sets of 3D assets for different renderers:
-
-| Directory | Renderer | Model versions | Palette files | Included in GOG |
-|---|---|---|---|---|
-| `3dart/` | Software | v2.6, v2.7 | 18 COL palettes, including `art_pal.col` | Original CD only |
-| `fxart/` | Glide (3dfx) | v4.0, v5.0 | 27 populated COL palettes; one empty placeholder | ✓ |
-
-The library decodes software and Glide model geometry and animation frames. Textured exports use software `TEXTURE.*` or Glide `TEXBSI.*` banks. Software `SHADE.*` and `HAZE.*` lookup tables have a separate parser. See [CD and GOG differences](docs/README.md#gog-vs-original-cd-differences) for resource selection.
-
-Model exports select their texture format from the model version. For scene or terrain exports from an install containing both art trees, use `convert rgm ... --software` or `convert wld ... --software`. Rust consumers can select the edition with `TextureCache::new_for_edition`, `registry::scan_dir_for_edition`, and `WorldHandle::open_for_edition`. The equivalent C entry point is `rg_open_world_for_edition`.
-
-```sh
-rgpre convert texture 3dart/TEXTURE.302 --palette 3dart/ISLAND.COL --format frames -o output/texture_302
-rgpre convert shade 3dart/SHADE.000 -o output/shade_000
-rgpre convert haze 3dart/HAZE.000 -o output/haze_000
-rgpre convert rgm maps/START.RGM --assets . --software -o output/start.glb
-```
-
-Texture exports include `index.json` with record metadata. Without `--palette`, image exports display indices as grayscale. Lookup exports write `indices.png`, preserving each mapping byte as a grayscale value.
-
-To check every model frame, texture frame and lookup table in a local art directory:
-
-```sh
-cargo run --example check_edition_assets -- /path/to/Redguard/3dart
-cargo run --example check_edition_assets -- /path/to/Redguard/fxart
-```
-
-The `fxart/` Glide assets are included in GOG and use the newer model format.
-Each scene uses its own palette, such as `ISLAND.COL` or `NECRO.COL`. Pass the
-matching palette via `--palette` for textured exports.
-
-## Usage Examples
-
-Auto-detect format (uses defaults):
-
-```bash
-rgpre convert 3dart/LHBM4.3DC -o output/LHBM4.glb
-rgpre convert fxart/TEXBSI.302 -o output/TEXBSI_302/
-```
-
-Convert model with palette and asset root:
-
-```bash
-rgpre convert model fxart/BELLTOWR.ROB --palette fxart/ISLAND.COL --assets . -o output/BELLTOWR.glb
-```
-
-Convert RGM scene with palette and asset root:
-
-```bash
-rgpre convert rgm maps/BELLTOWR.RGM --palette fxart/ISLAND.COL --assets . -o output/BELLTOWR_scene.glb
-```
-
-Convert WLD world to GLB terrain + companion RGM placement:
-
-```bash
-rgpre convert wld maps/ISLAND.WLD --palette fxart/ISLAND.COL --assets . -o output/ISLAND_world.glb
-```
-
-Convert WLD terrain only:
-
-```bash
-rgpre convert wld maps/ISLAND.WLD --palette fxart/ISLAND.COL --assets . --terrain-only -o output/ISLAND_terrain.glb
-```
-
-Convert TEXBSI texture bank with palette:
-
-```bash
-rgpre convert texbsi fxart/TEXBSI.302 --palette fxart/ISLAND.COL -o output/TEXBSI_302/
-```
-
-Export all animation frames as separate PNGs:
-
-```bash
-rgpre convert texbsi fxart/TEXBSI.302 --palette fxart/ISLAND.COL --format frames -o output/TEXBSI_302/
-```
-
-Convert font to TrueType:
-
-```bash
-rgpre convert fnt input/FONT01.FNT --format ttf -o output/FONT01.ttf
-```
-
-Export COL palette as JSON only:
-
-```bash
-rgpre convert col fxart/ISLAND.COL --format json -o output/ISLAND.json
-```
-
-Extract RTX dialogue with resolved filenames:
-
-```bash
-rgpre convert rtx input/DIALOG.RTX --resolve-names -o output/dialog/
-```
-
-Scan a directory:
-
-```bash
-rgpre scan 3dart
-```
-
-## Native Plugin (FFI)
-
-The library builds as a C-compatible shared library (`cdylib`) alongside the CLI binary. This lets game engines like Unity load it as a native plugin and call the conversion functions directly at runtime.
-
-See [`src/ffi/README.md`](src/ffi/README.md) for the full API reference — architecture, C struct definitions, function signatures, memory management, and error handling.
-
-## Export metadata and configuration APIs
+`import::menu_ini::MenuPage::parse(content, page)` reads a page's optional texture slots, ordered text entries, widget positions/alignment, and inclusive slider bounds. Missing numeric element fields default to zero; malformed values and nonsequential text indices report the page and field. The first texture slot is required; a second may be omitted when no element references it. The parser rejects incomplete references and reversed slider bounds. `import::menu_movies::parse_menu_movies` separately reads cinematic names, forward skip points, and timed subtitles. Runtime save labels remain outside these parsers. Rendering and traversal rules are documented in [Book menu](docs/engine/menu.md).
 
 ### Model rendering metadata
 
@@ -404,10 +321,68 @@ indices prevent a complete polygon mapping, `vertices` is `null`; consumers
 must not infer faithful admission from the remaining raster triangles.
 Terrain primitives omit this model-specific metadata.
 
-### KEYS.INI parser
 
-`import::keys_ini::KeysIni` exposes the eight keyboard bindings and user overrides, seven additional gameplay keys, and the installed key-name table. Section/key matching ignores case, and the first occurrence wins. `control_codes()` returns bindings in menu-action order 710 through 724.
+## Native plugin (FFI)
 
-### MENU.INI parser
+The library also builds as a C-compatible shared library (`cdylib`). Game engines like Unity can load it as a native plugin and call the conversion functions directly at runtime.
 
-`import::menu_ini::MenuPage::parse(content, page)` reads a page's optional texture slots, ordered text entries, widget positions/alignment, and inclusive slider bounds. Missing numeric element fields default to zero; malformed values and nonsequential text indices report the page and field. The first texture slot is required; a second may be omitted when no element references it. The parser rejects incomplete references and reversed slider bounds. `import::menu_movies::parse_menu_movies` separately reads cinematic names, forward skip points, and timed subtitles. Runtime save labels remain outside these parsers. Rendering and traversal rules are documented in [Book menu](docs/engine/menu.md).
+See [`src/ffi/README.md`](src/ffi/README.md) for the full API reference: architecture, C struct definitions, function signatures, memory management, and error handling.
+
+## Documentation
+
+The full documentation is published at **<https://michidk.github.io/redguard-preservation/>** (rendered with `mdBook`). The Markdown sources live under [`docs/`](docs/README.md) in three sections:
+
+- [**File Formats**](https://michidk.github.io/redguard-preservation/formats/) ([source](docs/formats/README.md)): binary format specifications for models, textures, audio, maps, palettes, and other game assets
+- [**Engine Details**](https://michidk.github.io/redguard-preservation/engine/) ([source](docs/engine/README.md)): reverse-engineered engine internals such as the cheat system, item attachment, SOUP scripting, sky renderer, and water waves
+- [**Configuration**](https://michidk.github.io/redguard-preservation/config/) ([source](docs/config/README.md)): text-based INI files shipped with the game (surface types, combat, keys, etc.)
+
+The CLI and Rust parsers focus on game assets. Hardware drivers, audio utilities, controller profiles, and development reports are documented in [Bundled support resources](docs/formats/BUNDLED-RESOURCES.md).
+
+## Related projects
+
+[Cyrus](https://github.com/michidk/cyrus) is a modern, faithful Rust
+reimplementation of Redguard built on this project's research and the
+`redguard-preservation` crate. It ships an asset viewer that opens every file
+format documented here: models, worlds, textures, fonts, animations, scripts,
+and audio. Use it [in the browser](https://michidk.github.io/cyrus/viewer/) or
+download a native build from the
+[latest Cyrus release](https://github.com/michidk/cyrus/releases/latest).
+
+[![Cyrus asset viewer showing a textured character model](https://raw.githubusercontent.com/michidk/cyrus/main/dev/pages/viewer-model.webp)](https://michidk.github.io/cyrus/viewer/)
+
+## Contributing
+
+Commits and pull request titles follow [Conventional Commits](https://www.conventionalcommits.org/), for example `docs(menu): document delete confirmation`. Before opening a pull request, run:
+
+```bash
+cargo fmt --all -- --check
+cargo clippy --all-targets --all-features -- -D warnings
+cargo test
+```
+
+Tests run against the small files in `tests/fixtures/`. Some tests and examples inspect a real install and are skipped unless the `REDGUARD_DIR` environment variable points at the game directory.
+
+### Repository layout
+
+- `src/` - Rust source
+  - `src/import/` - format importers and parsers
+  - `src/gltf/` - GLB conversion (builder, primitives, terrain, texture cache)
+  - `src/ffi/` - C-compatible FFI layer for native plugin use (Unity, etc.)
+  - `src/cli/` - CLI command handlers (`cli/convert/` for per-format converters)
+  - `src/error.rs` - shared error types
+- `docs/` - format specifications, engine notes, and configuration references (the mdBook source)
+- `tests/` - integration tests and fixtures
+- `examples/` - developer tools that run against a game install
+
+## Acknowledgements
+
+[RGUnity](https://github.com/RGUnity/redguard-unity) inspired
+redguard-preservation and provided foundational Redguard research used by this
+project. RGUnity is a human-developed Unity reimplementation built without AI
+assistance. Its contributors focus on meticulous fidelity and the small details
+that make the original game behave correctly.
+
+redguard-preservation uses AI-assisted development to document broad working
+coverage quickly. This complements RGUnity's detail-first work. We are grateful
+to its contributors for their research, implementation, and continued care for
+Redguard.

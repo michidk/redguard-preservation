@@ -4,6 +4,17 @@
 
 Preserving *The Elder Scrolls Adventures: Redguard* (1998) — reverse-engineered file format specifications, engine documentation, and a Rust CLI for parsing and converting game assets.
 
+The repository ships four things from one Cargo package (`redguard-preservation`):
+
+- **Docs** in `docs/`, published with mdBook at <https://michidk.github.io/redguard-preservation/>. This is the main product: finished reference material for formats, engine behavior, and INI settings.
+- **CLI** `rgpre` (`src/main.rs`) with `read`, `scan`, and `convert` commands.
+- **Rust library** `rgpre` (`src/lib.rs`), which holds all parsing and conversion logic. The CLI is a thin layer over it.
+- **Native plugin**: the same library built as a `cdylib` with a C API (`src/ffi/`), used by Unity-style consumers.
+
+[Cyrus](https://github.com/michidk/cyrus), a Rust reimplementation of Redguard, depends on the crate, so public library APIs and documented behavior are load-bearing.
+
+The repo contains no game data apart from small synthetic files in `tests/fixtures/`. Anything that needs a real install reads the `REDGUARD_DIR` environment variable and skips itself when it is unset.
+
 Most formats are binary little-endian; ROB includes mixed endianness (some big-endian fields from Saturn-era heritage).
 
 Primary outcomes in this repo:
@@ -14,16 +25,20 @@ Primary outcomes in this repo:
 
 ## Repository map
 
-- Rust source: `src/`
-- Importers/parsers: `src/import/`
+- Rust source: `src/` (`main.rs` CLI entry, `lib.rs` library root, `opts.rs` clap definitions, `geometry.rs` coordinate conventions)
+- Importers/parsers: `src/import/` (one module per format or INI file; `model3d/`, `rgm/`, `rob/`, and `bsi/` are directories)
 - GLTF/GLB conversion: `src/gltf/` (`builder.rs`, `primitives.rs`, `terrain.rs`, `texture_cache.rs`)
-- FFI native plugin: `src/ffi/` (`mod.rs` for GLB exports, `scene.rs` for mesh data + textures + audio + config, `buffer.rs` for memory management)
-- CLI handlers: `src/cli/` (convert subcommands in `src/cli/convert/`)
+- FFI native plugin: `src/ffi/` (`mod.rs` for GLB exports, `scene.rs` for mesh data + textures + audio + config, `world.rs` for world handles, `types.rs` for `#[repr(C)]` structs, `buffer.rs` for memory management, `rgpre.h` for the C header, `README.md` for the API reference)
+- CLI handlers: `src/cli/` (`read.rs`, `scan.rs`, `filetype.rs` for auto-detection; convert subcommands in `src/cli/convert/`)
 - Error types: `src/error.rs`
+- Tests: `tests/` (integration tests; sample inputs in `tests/fixtures/`)
+- Examples: `examples/` (developer tools that run against a game install via `REDGUARD_DIR`)
 - Format specifications: `docs/formats/`
-- Engine discoveries: `docs/engine/` (`cheats.md`, `attachment.md`, `SOUP.md`, `SOUPDEF.md`)
+- Engine behavior: `docs/engine/` (index in `docs/engine/README.md`; includes `cheats.md`, `attachment.md`, `SOUP.md`, `SOUPDEF.md`, rendering, sound, menu, and HUD references)
 - Configuration docs: `docs/config/`
-- Docs index: `docs/README.md`
+- Docs index: `docs/README.md`; mdBook navigation: `docs/SUMMARY.md`; mdBook config and theme: `docs/book.toml`, `docs/theme/`
+- Release notes config: `cliff.toml`; CI and publishing: `.github/workflows/`
+- Root `README.md`: the public entry point for the CLI, library, and FFI (see [README conventions](#readme-conventions))
 
 ## Commit conventions
 
@@ -35,7 +50,9 @@ type(scope): description
 
 **Types:** `feat`, `fix`, `refactor`, `perf`, `docs`, `style`, `test`, `build`, `ci`, `chore`
 
-**Scopes** (optional, use when it clarifies): `ffi`, `cli`, `gltf`, `import`, `wld`, `rgm`, `rob`, `3d`, `texbsi`, `sfx`, `rtx`, `fnt`, `col`, `pvo`, `cht`
+**Scopes** (optional, use when it clarifies): a format (`wld`, `rgm`, `rob`, `3d`, `texbsi`, `sfx`, `rtx`, `fnt`, `col`, `pvo`, `cht`, `keys`), a code area (`ffi`, `cli`, `gltf`, `import`), or, for docs, the subsystem described (`player`, `sound`, `menu`, `soup`, `animation`, `render`, `startup`, `combat`, `items`, `hud`, `config`). Prefer an existing scope from `git log` over inventing a new one.
+
+Pull request titles are checked by CI against the same format. `cliff.toml` groups release notes by type (`feat`, `fix`, `perf`, `refactor`, `docs`, `style`, `test`) and skips `chore`.
 
 **Examples:**
 - `feat(ffi): add scene-data FFI with pre-transformed mesh output`
@@ -43,8 +60,6 @@ type(scope): description
 - `perf: parallelize mesh primitive building with rayon`
 - `docs: document FFI native plugin API in README`
 - `ci: add FFI library assets to release workflow`
-
-Release notes are auto-generated from these prefixes via `cliff.toml`.
 
 ## Working style for agents
 
@@ -64,6 +79,21 @@ cargo clippy --all-targets --all-features -- -D warnings
 cargo test
 ```
 
+Tests use `tests/fixtures/` and pass without the game. To also run the install-backed tests and examples, set `REDGUARD_DIR` to a Redguard install directory.
+
+When changing anything exported from `src/ffi/`, update `src/ffi/rgpre.h` by hand; it is not generated (see the checklist in `src/ffi/README.md`).
+
+The docs site is built with `mdbook build docs` (`cargo install mdbook --locked`) only when `main` is deployed, not on pull requests. After editing `docs/`, check that links resolve and new pages are in `docs/SUMMARY.md`; build locally if you changed structure.
+
+## README conventions
+
+The root `README.md` is read first by people who may not know Redguard or this project. Keep this order: what the project is and what you need (your own game copy), install and a first working session, CLI reference, game editions, Rust library, native plugin, documentation map, then contributor material.
+
+- Lead with tasks and working commands; put dense API detail after the quick start.
+- Keep the convert table in step with `rgpre convert --help`. When a subcommand or flag changes, update the table and run the example commands.
+- Keep format and engine detail in `docs/` and link to it. Do not duplicate specs in the README.
+- Give every code example paths that exist in a real install, and say which edition (`fxart/` Glide or `3dart/` software) it assumes.
+
 ## Documentation conventions (`docs/`)
 
 - **Game context** (game name/year/global notes) belongs in `docs/README.md` only.
@@ -78,6 +108,7 @@ cargo test
 - Cross-link related formats (for example `3DC` -> `3D`, `ROB` -> `3D`).
 - End each format doc with `## External References`.
 - In references, link to the **exact file/folder page**, not generic repo root links.
+- A new doc page must be added to `docs/SUMMARY.md` (the mdBook navigation) and to the index table of its section (`docs/formats/README.md`, `docs/engine/README.md`, or `docs/config/README.md`).
 
 ## Contributing to RGUnity
 
