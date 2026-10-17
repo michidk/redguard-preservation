@@ -1783,3 +1783,8 @@ The result is true when no entry blocks.
 `DisableHook` sets and `EnableHook` clears mask `0x02` of the receiver's script-control byte
 (the native-hook suppression flag above) and changes nothing else. Both take no arguments
 and return zero.
+
+### GetFramePassed
+
+`GetFramePassed` takes no arguments and returns the shared whole nominal-tick increment of
+the current update (the same value the elapsed-time tasks consume).
