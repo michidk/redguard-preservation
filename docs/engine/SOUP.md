@@ -1796,3 +1796,12 @@ applies the `DropItem` routine to every item id from zero up to the item count, 
 count currently owned, in ascending order, and then clears the selected item. Ids with a
 zero count are skipped. Each id must have an `ITEM.INI` definition; the shipped file
 defines ids 0 through 86 without gaps.
+
+### InRectangle
+
+`InRectangle(x1, z1, x2, z2)` returns one when the receiver's query position lies inside the
+rectangle on both horizontal axes, otherwise zero. The query position is the attached pose
+for an attached receiver, the linked position when one exists, and the local position
+otherwise (the same selection as the fighting query). Each pair of corners is ordered
+independently, so the corners may be given in either order, and the comparison is inclusive.
+The arguments use the position's runtime units.
