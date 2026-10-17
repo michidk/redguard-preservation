@@ -58,6 +58,11 @@ The startup entry context (`1`) also disables Save. Entry context `2` disables
 Continue. These context checks run independently of the selected-player death
 restriction.
 
+Escape is processed after the key is released. On the main page, the selected
+player's death override also prevents Escape from resuming gameplay. This
+restriction applies to leaving the main page; Escape can still return from a
+submenu to its parent while the death override is active.
+
 ## Gameplay book shortcuts
 
 With `SYSTEM.INI` `[debug] final_version` enabled, gameplay samples fixed book

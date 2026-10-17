@@ -139,6 +139,25 @@ retained supporting-actor reference. It returns one for equality and zero
 otherwise. The query performs no collision search and does not update either
 actor or the retained reference.
 
+### PlayerArc query
+
+`PlayerArc(offset, tolerance)` tests the selected player's horizontal direction
+relative to the receiver's heading. Angles use 2048 units per turn. The query uses
+the receiver's attached position when attached, otherwise its linked query position
+when present, otherwise its local position. It reads the selected player's local
+position. Vertical separation does not affect the result.
+
+The receiver heading comes from its attached pose when attached and its local pose
+otherwise. A linked query position alone does not replace that heading. The query
+forms the horizontal vector from the player to the receiver with wrapping signed
+32-bit subtraction, computes its quantized bearing, and negates that bearing modulo
+2048. It subtracts `offset` from the receiver heading modulo 2048, then compares the
+absolute shortest wrapped angular difference with the signed `tolerance`.
+Equality succeeds; negative tolerance fails.
+
+The query returns one for success and zero otherwise. It performs no visibility
+or distance test and does not update either actor.
+
 ### Fighting query
 
 `isFighting` searches the retained ordinary actor traversal for another actor
@@ -336,7 +355,10 @@ continuations, local-variable and string pointers, and native task-slot state.
 After processing, it copies position, continuations and task state back to the
 separate record. Attribute writes in that temporary actor are not copied back.
 The separate-object traversal runs after ordinary actor traversal and retains
-its own list membership.
+its own list membership. Outside editor mode, it maintains the optional light
+record after script/task dispatch and before copying the temporary actor back
+to its separate record. This light maintenance also runs when task-system
+advancement is disabled.
 Separate records always belong to their position's 512-unit map cell, regardless
 of the MPOB activation byte. Loading prepends each record to its cell's separate
 list. The cached view-window rebuild appends those lists in the same cell order
@@ -578,6 +600,79 @@ It does not invoke the native handler or restore earlier animation state.
 Stopping a `PushAnimation` task therefore leaves its animation request and
 current playback state in place.
 
+### Player alignment ownership and targets
+
+`PlayerLineUp(angle, x_offset, z_offset)` moves the selected player relative to
+its receiving actor. Both distance modes move the player; neither moves the
+receiver. Its return value is also stored in the shared player-lineup result
+used by [activation admission](hud.md#activation-prompt).
+
+The first invocation in a native handler state selects the distance mode.
+It compares the shared integer three-axis distance between the effective player
+and receiver positions against `SYSTEM.INI` `lineup_distance * 256`. A strictly
+greater distance selects approach mode; equality selects close alignment.
+Subsequent invocations retain that choice in the native state. The initialized
+marker, mode, fallback flag and retained close-alignment reference belong to
+that handler state. Active task slots save and restore them independently.
+They are separate from the shared activation-admission result.
+
+For the normal target calculation, add `angle` to the reference actor's heading
+and wrap to 2048. Rotate the supplied horizontal offsets by that heading and
+add the reference actor's local X/Z. The final player heading is the rotated
+heading plus 1024, wrapped to 2048. Approach mode uses the current receiver as
+reference. Close alignment retains its first reference in native state and
+uses that actor on later invocations. The target position is recalculated on
+each invocation; it is not a captured destination.
+
+In the normal path, approach mode faces the destination before forward movement. Close alignment
+faces the final heading first, then chooses forward, sideways or backward
+movement from the relative destination bearing. Reaching the destination does
+not by itself finish alignment. The player must finish turning to the final
+heading and request its default animation. A completed alignment clears the
+player's alignment flag and returns zero; ongoing alignment returns one.
+In approach mode, a retained fallback flag or a nonzero packed collision-response
+word masked by `0x01e2` switches to facing the receiver's current local X/Z.
+Completion in that branch also sets the native return-state byte to 6. Close
+alignment's fallback instead turns to the final heading derived from its
+retained reference, requests the default animation, and sets that byte to 6.
+Both completion branches clear the player's alignment flag.
+
+### Alignment distance thresholds
+
+Alignment position tests use local Q8 X/Z and the shared integer distance
+function with Y set to zero. They select a speed byte from the current
+animation group and actor attributes. Missing animation or attributes selects
+zero. Other groups also select zero.
+
+| Current animation group | Speed attribute index |
+|---|---|
+| 18, 30, 142 | 8 |
+| 19, 143 | 9 |
+| 20, 21 | 12 |
+| 22, 23 | 13 |
+| 24 through 27 | 10 |
+| 31 | 19 |
+| 92, 93 | 17 |
+
+Let `speed` be that byte and `scale` the Q8 frame scale. The alignment arrival
+test uses `(((2 * speed - 1) << 8) * scale) >> 8`. The facing helper's arrival
+test instead uses `(((speed + 1) << 8) * scale) >> 8`. Products wrap to signed
+32 bits and the final shifts are arithmetic. A horizontal distance less than
+or equal to the threshold snaps local X/Z to the target and registers a map
+update. Y remains unchanged. With speed zero and a positive ordinary scale,
+the first threshold is negative and cannot admit a nonnegative distance.
+The facing helper's test can still snap in that case.
+
+The movement-distance check is a third test. It uses
+`((speed * 512 - 1) * scale) >> 8`, with the same wrapping and signed shift.
+It permits a movement attempt for actor state 7, speed zero, a nonpositive
+threshold, or a distance strictly greater than the threshold. It does not
+snap or register the actor.
+
+Alignment turning uses the [support-response turn rules](player.md#ordinary-slope-response),
+including selected-player camera updates. Returning to the default animation
+reports success on every normal return; it does not wait for playback to finish.
+
 <a id="attribute-reads-and-writes"></a>
 
 ### GetAttribute, SetAttribute, GetMyAttr, and SetMyAttr
@@ -672,6 +767,20 @@ to the signed `tolerance`, otherwise zero. The offset and tolerance are full
 signed 32-bit arguments. The receiver's attached yaw is used when `attr_slave`
 is nonzero; otherwise its ordinary yaw is used. This function requires a
 selected player. See [coordinate and heading units](player.md#coordinate-and-heading-units).
+
+`PlayerLooking(tolerance)` tests the selected player's horizontal orientation
+relative to the receiver. Subtract the receiver's effective X/Z position from
+the selected player's ordinary X/Z position, retaining signed 32-bit differences.
+Convert that displacement to the [quantized actor heading](player.md#direction-recovered-from-displacement).
+This query retains signed 32-bit wrapping absolute values and signed comparisons
+during bearing reduction. The minimum signed coordinate difference therefore
+does not behave like a widened positive magnitude.
+Compare it with the selected player's current yaw plus 1024, wrapped modulo 2048.
+The result is one when the absolute wrapped angular difference is less than or
+equal to the signed 32-bit tolerance, otherwise zero. A negative tolerance always
+rejects. The query requires a selected player and uses the same effective receiver
+position selection described above. It does not perform a visibility or line-of-sight
+query.
 
 <a id="node-marker-distance"></a>
 

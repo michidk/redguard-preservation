@@ -354,6 +354,27 @@ world-entry map-light bake.
 `RgmFile::object_lights(world_id)` returns these admitted authored records in
 file order, before runtime script changes and active-region selection.
 
+## Script light state and cleanup
+
+Actor-attached light records retain a lock flag, an enabled flag and an
+unsigned byte inactivity counter. During light maintenance, a nonzero lock
+forces the enabled flag on.
+
+`LightOff` returns zero. If the actor has no light record, it does not allocate
+one. Otherwise it clears the lock, enabled flag and inactivity counter without
+changing the retained offsets, intensity, radius, colors or modulation settings.
+It does not immediately release the record.
+
+While a record is disabled, maintenance adds the low byte of the elapsed tick
+count to its inactivity counter with byte wrapping. It releases the record and
+clears the actor's association only when the resulting unsigned counter exceeds
+32. Enabled records do not accumulate this inactivity counter.
+
+`Light(radius, intensity)` enables the record and replaces both the starting and
+current radius and intensity. `LightRadius` and `LightIntensity` each replace
+both copies of their respective value, enable the record and clear its inactivity
+counter. These setters store the low sixteen bits of their arguments.
+
 ## Runtime object-light region
 
 The normal world loop selects spatial lists using the target camera's integer
