@@ -1777,3 +1777,31 @@ the limit. Otherwise the segment between the two query positions, in whole map u
 against each entry of the engine's retained candidate model list, in order. The test does not collect candidates itself: the list is whatever the most recent candidate collection left (the collector also used by the camera's [candidate collection](#camera-collision-candidate-radius)), so its contents depend on the preceding query. An entry that is
 not hit, or whose owner is the target, does not block; any other hit makes the result false.
 The result is true when no entry blocks.
+
+### DisableHook and EnableHook
+
+`DisableHook` sets and `EnableHook` clears mask `0x02` of the receiver's script-control byte
+(the native-hook suppression flag above) and changes nothing else. Both take no arguments
+and return zero.
+
+### GetFramePassed
+
+`GetFramePassed` takes no arguments and returns the shared whole nominal-tick increment of
+the current update (the same value the elapsed-time tasks consume).
+
+### DropAllItems
+
+`DropAllItems` takes no arguments and returns zero. When the task system is enabled it
+applies the `DropItem` routine to every item id from zero up to the item count, each with the
+count currently owned, in ascending order, and then clears the selected item. Ids with a
+zero count are skipped. Each id must have an `ITEM.INI` definition; the shipped file
+defines ids 0 through 86 without gaps.
+
+### InRectangle
+
+`InRectangle(x1, z1, x2, z2)` returns one when the receiver's query position lies inside the
+rectangle on both horizontal axes, otherwise zero. The query position is the attached pose
+for an attached receiver, the linked position when one exists, and the local position
+otherwise (the same selection as the fighting query). Each pair of corners is ordered
+independently, so the corners may be given in either order, and the comparison is inclusive.
+The arguments use the position's runtime units.
