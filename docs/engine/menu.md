@@ -154,8 +154,8 @@ The submenu requests use these camera paths. Each row's targets execute in order
 
 | Navigation | Ordered camera targets | Angle changes | Fractional steps |
 |---|---|---|---|
-| Main to Movies | `(192, 284, -160)`, `(192, 284, -160)`, `(336, 0, 0)` | `-152`, `0`, `+152` | `0.15`, `0.12`, `0.15` |
-| Main to Options, Movies or Options to Main, Options to Controls, Controls to Options | `(192, 284, -160)`, `(192, 284, -160)`, `(0, 0, 0)` | `-152`, `0`, `+152` | `0.15`, `0.12`, `0.15` |
+| Main to Movies | `(192, 284, -96)`, `(192, 284, -96)`, `(336, 0, 0)` | `-152`, `0`, `+152` | `0.15`, `0.12`, `0.15` |
+| Main to Options, Movies or Options to Main, Options to Controls, Controls to Options | `(192, 284, -96)`, `(192, 284, -96)`, `(0, 0, 0)` | `-152`, `0`, `+152` | `0.15`, `0.12`, `0.15` |
 | Options to Display | `(336, -128, 0)` | `0` | `0.15` |
 | Options to Sound | `(336, 176, 0)` | `0` | `0.15` |
 | Display or Sound to Options | `(0, 0, 0)` | `0` | `0.15` |
