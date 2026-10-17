@@ -1777,3 +1777,9 @@ the limit. Otherwise the segment between the two query positions, in whole map u
 against each entry of the engine's retained candidate model list, in order. The test does not collect candidates itself: the list is whatever the most recent candidate collection left (the collector also used by the camera's [candidate collection](#camera-collision-candidate-radius)), so its contents depend on the preceding query. An entry that is
 not hit, or whose owner is the target, does not block; any other hit makes the result false.
 The result is true when no entry blocks.
+
+### DisableHook and EnableHook
+
+`DisableHook` sets and `EnableHook` clears mask `0x02` of the receiver's script-control byte
+(the native-hook suppression flag above) and changes nothing else. Both take no arguments
+and return zero.
