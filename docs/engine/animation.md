@@ -510,7 +510,18 @@ Zero-tick updates retain the currently selected frame. The walk group's
 PlaySound command in the exit tail does not end the group or consume a frame
 skip. See [animation sound requests](sound.md#animation-playsound).
 
-The type-two `GoToFuture` exception for a pending default uses separate rules.
+## Forward type-two groups
+
+A forward type-two group (ledge-hang loops, and the player's and pirates' idle and
+movement groups) uses the same exit-marker replacement rule as type one: once the
+exit marker is set, a pending group that exists and differs from the actor's default
+group replaces the current group at the start of the next advancement.
+
+`GoToFuture` differs. With no finite loop countdown and either the exit marker set or a
+pending group differing from the current one, a type-two group whose pending group is
+the actor's default group does not take the exit target: the cursor advances by one
+command, the exit marker is not set, and playback continues past the jump. Any other
+pending group takes the exit target as in type one.
 
 ## Forward animation delays
 
