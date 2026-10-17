@@ -1774,6 +1774,6 @@ position's eight fractional bits.
 
 **In sight.** The test is false for an absent actor or target and when their distance exceeds
 the limit. Otherwise the segment between the two query positions, in whole map units, is tested
-against each entry of the engine's retained candidate model list, in order. An entry that is
+against each entry of the engine's retained candidate model list, in order. The test does not collect candidates itself: the list is whatever the most recent candidate collection left (the collector also used by the camera's [candidate collection](#camera-collision-candidate-radius)), so its contents depend on the preceding query. An entry that is
 not hit, or whose owner is the target, does not block; any other hit makes the result false.
 The result is true when no entry blocks.
