@@ -82,6 +82,40 @@ impl NewGameEntry {
     }
 }
 
+/// Read the terrain height-table offset in engine units, positive Y down.
+/// The world loader retains the low signed word. Missing or empty entries are
+/// zero. Section/key matching is case-insensitive and the first value wins.
+/// See `docs/formats/WLD.md` and `docs/engine/water.md`.
+pub fn terrain_height_offset(content: &str, world: u32) -> crate::Result<i16> {
+    let key = format!("world_scapeshift[{world}]");
+    let mut in_world = false;
+    for (line_number, line) in content.lines().enumerate() {
+        let line = line.split(';').next().unwrap_or_default().trim();
+        if line.starts_with('[') && line.ends_with(']') {
+            in_world = line[1..line.len() - 1].eq_ignore_ascii_case("world");
+        } else if in_world
+            && let Some((name, value)) = line.split_once('=')
+            && name.trim().eq_ignore_ascii_case(&key)
+        {
+            let value = value.trim();
+            return if value.is_empty() {
+                Ok(0)
+            } else {
+                value
+                    .parse::<i32>()
+                    .map(|value| value as i16)
+                    .map_err(|error| {
+                        crate::error::Error::Parse(format!(
+                            "WORLD.INI [world] {key}, line {}: {error}",
+                            line_number + 1
+                        ))
+                    })
+            };
+        }
+    }
+    Ok(0)
+}
+
 /// Extract the filename (last path component) from a WORLD.INI path value,
 /// normalizing backslash separators.
 #[must_use]
@@ -406,5 +440,29 @@ world_palette[3]=3DART\\palace00.COL
         let ini = WorldIni::parse(content);
         assert_eq!(ini.entries.len(), 1);
         assert!(ini.entries[0].world.is_none());
+    }
+}
+
+#[cfg(test)]
+mod terrain_offset_tests {
+    use super::terrain_height_offset;
+
+    #[test]
+    fn terrain_offsets_keep_word_sign_and_missing_defaults() {
+        for text in [
+            "",
+            "[world]",
+            "[world]\nworld_scapeshift[2]=",
+            "[other]\nworld_scapeshift[2]=12",
+        ] {
+            assert_eq!(terrain_height_offset(text, 2).unwrap(), 0);
+        }
+        let text = "[WORLD]\nworld_scapeshift[2]=-120 ; comment\nworld_scapeshift[2]=35\nworld_scapeshift[3]=65535";
+        assert_eq!(terrain_height_offset(text, 2).unwrap(), -120);
+        assert_eq!(terrain_height_offset(text, 3).unwrap(), -1);
+        let error = terrain_height_offset("[world]\nworld_scapeshift[2]=bad", 2)
+            .unwrap_err()
+            .to_string();
+        assert!(error.contains("world_scapeshift[2]") && error.contains("line 2"));
     }
 }
