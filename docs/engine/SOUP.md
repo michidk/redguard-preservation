@@ -1899,5 +1899,7 @@ animation group has [class](animation.md#animation-group-classes) one. It forms 
 X zero, Y equal to `(positive Y extent of the actor's body - SYSTEM.INI post_collide_height - distance)`
 in eight-fractional-bit units, and Z equal to `-14336`; rotates it by the actor's matrix; and adds the
 actor's query position. The resulting single point (radius zero) is tested against each model in the
-actor's [candidate list](#candidate-collection-for-an-ordinary-update): any contact blocks. While
-the actor's directional byte is `0x18`, candidates whose flag byte is `0x80` are skipped.
+actor's [candidate list](#candidate-collection-for-an-ordinary-update): any contact blocks. Candidates are
+typed by source: static placements and the secondary list carry type `0x20`, actor-owned models carry type
+`0x80`. While the actor's queued-motion byte is `0x18` (24), actor-owned candidates are skipped, so
+only static models can block.
