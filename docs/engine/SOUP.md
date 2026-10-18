@@ -188,6 +188,13 @@ A newly constructed combat record has no target, an action selector of -1 and a
 zero cooldown. Combat construction clears the record before assigning its
 attribute-derived counters and attack metadata.
 
+Combat construction copies actor attribute 2 into the record's strength value and attribute 4 into its
+armor value (the values `Strength`, `Armor`, `setStrength` and `setArmor` use). It stores five
+counters as 129 minus attribute 58, 62, 63, 87 and 88 respectively, and four more as copies of attributes
+59, 64, 65 and 66. The nonplayer decision stage uses the counters from attributes 58, 62 and 63 as divisors
+of its tick-based pacing tests. The action, pending-move and defence selectors start at -1, the aggression
+budget at 50, the attack state at 0, and combat flag mask 0x08 is cleared.
+
 Selected-player maintenance is skipped when its retained entry-inhibition value
 is nonzero. Player initialization clears this value. Player activation replaces
 it with the activation operation's result, so initialization does not make it
