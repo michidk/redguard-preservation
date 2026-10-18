@@ -1886,6 +1886,27 @@ and let `c` be the motion's arc centre plus 512. The test passes only when
 `c + arc > a` and `c - arc < a`, using signed 32-bit wrapping arithmetic for the
 bounds. It does not halve the configured arc or include either boundary.
 
+### Defence start admission
+
+The starter dispatch admits kinds zero through six and kind eight only when the
+corresponding receiver attack slot is populated. Kind seven and values outside
+zero through eight do nothing. Admission differs by kind:
+
+- Kind zero, three, five and six require no selected move.
+- For a nonplayer receiver, kinds one and two do not require an idle selection.
+  For the selected player, kind one requires selected move zero and kind two
+  requires selected move one.
+- Kinds four and eight require zero combat cooldown, neither drawing nor
+  sheathing, and no selected move.
+
+An admitted start first writes its kind into the defence selector, then selects
+that move, then invokes the defence executor with request zero synchronously.
+The executor can therefore change state before a later picker or starter reads it.
+For selected-player kind four, the movement update precedes those writes and uses
+attribute 16 shifted left eight bits with movement mode one. Its return value does
+not gate the subsequent defence start. The nonplayer kind-four path omits that
+movement update.
+
 ### DisableHook and EnableHook
 
 `DisableHook` sets and `EnableHook` clears mask `0x02` of the receiver's script-control byte
