@@ -1820,7 +1820,10 @@ Intent updates preserve every other combat flag bit.
 
 ### Best and open defence picks
 
-Both pickers scan the receiver's nine defence slots in ascending slot order.
+Both pickers scan the receiver's nine authored attack slots in ascending slot order.
+These are the attack slots bound from attributes 70 through 78, not the separate
+four defence records. The first motion supplies each slot's distance window,
+near timing and counter-attack reference.
 Absent slots are skipped. A slot is usable only when the signed actor-to-target
 distance is strictly greater than its minimum range and strictly less than its
 maximum range. The best picker chooses the usable slot with the lowest signed
@@ -1843,9 +1846,9 @@ require arc or elevation admission and does not remap the slot.
 The picker then scans slots zero through five in ascending order. A populated
 slot must pass distance, arc and elevation admission. If the receiver and target
 face alike, or the target is outside combat stance, a slot replaces the choice
-only when its signed priority exceeds the retained priority, initially zero,
+only when its signed accumulated damage exceeds the retained damage, initially zero,
 and the pacing sum has zero signed remainder by the defence pacing divisor.
-A successful replacement retains that priority. Equal priorities retain the
+A successful replacement retains that damage. Equal damage totals retain the
 previous choice.
 
 Otherwise, each admitted slot resets the defence counter to `129 - attribute 58`.
