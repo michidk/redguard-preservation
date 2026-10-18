@@ -1918,7 +1918,10 @@ attribute 16 shifted left eight bits with movement mode one. Its return value do
 not gate the subsequent defence start. The nonplayer kind-four path omits that
 movement update.
 
-When the defence executor starts or advances to a new motion, it clears mask
+When the defence executor starts or advances to a new motion, it requests the
+animation group, then sets the animation record's finite loop countdown to one.
+This is the same countdown used by `PushAnimation` and the animation interpreter.
+It also clears mask
 `0x20` of the receiver's combat flags. This operation leaves every other bit
 unchanged.
 
