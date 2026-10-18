@@ -206,6 +206,19 @@ counters as 129 minus attribute 58, 62, 63, 87 and 88 respectively, and four mor
 of its tick-based pacing tests. The action, pending-move and defence selectors start at -1, the aggression
 budget at 50, the attack state at 0, and combat flag mask 0x08 is cleared.
 
+Combat construction derives three spacing ranges from the nine attack slots.
+Every populated slot contributes to the divisor. Only slots whose first motion
+has kind 1 contribute range values. The near range is the smallest attack minimum.
+The far range starts at zero; when a qualifying first motion's maximum exceeds
+the retained far range, the attack maximum replaces that range. The comparison
+uses the motion maximum, while the assignment uses the attack maximum.
+For each qualifying slot, the constructor adds the attack minimum plus half of
+the difference between its maximum and minimum to a signed midpoint sum. The
+subtraction and additions wrap at 32 bits; division truncates toward zero.
+The third spacing range is that sum divided by the number of populated slots,
+including slots whose first motion has another kind. If no slot qualifies,
+the near, far and third ranges are 10000, 30000 and 20000 respectively.
+
 Selected-player maintenance is skipped when its retained entry-inhibition value
 is nonzero. Player initialization clears this value. Player activation replaces
 it with the activation operation's result, so initialization does not make it
