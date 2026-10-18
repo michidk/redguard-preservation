@@ -219,7 +219,9 @@ Each `[tauntNN]` section defines one combat voice line or audio cue. There are 3
 An actor's taunt list begins at its [RAEX](../formats/RGM.md) `taunt_id` and
 contains `attr_num_taunts` consecutive entries. A zero count creates no list.
 The range is selected per actor; it is independent of which taunt sections are
-present elsewhere in the file. Without RAEX, the first index is zero.
+present elsewhere in the file. Without RAEX, the first index is zero. Each actor
+allocates exactly `attr_num_taunts` pointers and fills them from that range in
+order. The per-actor pointer list has no additional sentinel entry.
 
 The loader creates an empty record for each absent section and an additional
 empty sentinel at `max_taunts`. Empty records have a zero label, type, and
