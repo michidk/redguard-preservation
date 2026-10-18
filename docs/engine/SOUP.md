@@ -1889,14 +1889,18 @@ window. The maximum draw therefore probes slot six. This fallback does not
 require arc or elevation admission and does not remap the slot.
 
 The picker then scans slots zero through five in ascending order. A populated
-slot must pass distance, arc and elevation admission. If the receiver and target
+slot must pass distance, arc and elevation admission, in that order. A failed
+test prevents the later tests for that slot. The fallback reads only existence
+and the distance window. Neither path reads the counter-attack reference.
+If the receiver and target
 face alike, or the target is outside combat stance, a slot replaces the choice
 only when its signed accumulated damage exceeds the retained damage, initially zero,
 and the pacing sum has zero signed remainder by the defence pacing divisor.
 A successful replacement retains that damage. Equal damage totals retain the
 previous choice.
 
-Otherwise, each admitted slot resets the defence counter to `129 - attribute 58`.
+Otherwise, each admitted slot resets the defence counter to `129 - attribute 58`
+before reading its near timing. This branch does not read accumulated damage.
 The picker tracks the lowest near timing strictly below 65536, with the same
 zero-remainder gate, but this branch does not replace the chosen slot. The final
 return is the fallback or the last priority-branch replacement. No qualifying
