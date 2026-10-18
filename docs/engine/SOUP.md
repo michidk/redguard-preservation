@@ -2287,8 +2287,19 @@ the receiver's current group is still not the requested one, the call returns on
 
 **Movement.** The heading is the receiver's local Y angle plus 1024, wrapped to 2047. The distance is
 the step length in whole units times 256. A two-bit step counter in the receiver's motion byte
-(bits 6 and 7) selects a scale for the first three steps; with the translation-suppression marker clear
-the scale is the identity. Unless the animation's translation-suppression marker is set, the distance
+(bits 6 and 7) selects an initial-distance adjustment while below three, then increments.
+The adjustment reads attribute byte 11 independently of animation translation suppression.
+For input distance `d`, it follows this table. Products wrap as signed 32-bit integers,
+right shifts are arithmetic, and division truncates toward zero.
+
+| Attribute 11 | Counter 0 | Counter 1 | Counter 2 |
+|---|---|---|---|
+| 1 | `d >> 2` | `d / 3` | `d >> 1` |
+| 2 | 0 | `(d * 85) >> 8` | `(d * 170) >> 8` |
+| 3 | 0 | 0 | `d >> 1` |
+| Other | `d` | `d` | `d` |
+
+At counter three the distance stays unchanged. Unless the animation's translation-suppression marker is set, the distance
 is multiplied by the frame scale (arithmetic shift right eight) and, when positive, the receiver's X
 and Z move that far along the heading by the heading-based translation rule.
 
