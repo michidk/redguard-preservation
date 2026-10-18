@@ -1832,6 +1832,28 @@ counter-attack index. The subtraction wraps as signed 32-bit arithmetic.
 Both pickers map a winning slot of six, seven or eight to defence kind four.
 If no slot qualifies, they report failure without changing the caller's output.
 
+### Paced defence pick
+
+The initial choice is zero. One random draw in the inclusive range zero through
+32767 produces `draw * 6 / 32767`, with unsigned integer division. That slot
+replaces the initial choice only if it exists and passes the strict distance
+window. The maximum draw therefore probes slot six. This fallback does not
+require arc or elevation admission and does not remap the slot.
+
+The picker then scans slots zero through five in ascending order. A populated
+slot must pass distance, arc and elevation admission. If the receiver and target
+face alike, or the target is outside combat stance, a slot replaces the choice
+only when its signed priority exceeds the retained priority, initially zero,
+and the pacing sum has zero signed remainder by the defence pacing divisor.
+A successful replacement retains that priority. Equal priorities retain the
+previous choice.
+
+Otherwise, each admitted slot resets the defence counter to `129 - attribute 58`.
+The picker tracks the lowest near timing strictly below 65536, with the same
+zero-remainder gate, but this branch does not replace the chosen slot. The final
+return is the fallback or the last priority-branch replacement. No qualifying
+slot leaves the initial choice of zero intact.
+
 ### DisableHook and EnableHook
 
 `DisableHook` sets and `EnableHook` clears mask `0x02` of the receiver's script-control byte
