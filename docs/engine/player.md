@@ -352,6 +352,14 @@ The probe must pass three checks, in order:
 2. The surface check must not reject the probe as a steep surface.
 3. A ground-support query at the probe must succeed.
 
+The body check builds the actor's working sphere shape at the proposed position.
+Each Q8 position component is shifted right by eight before conversion to single
+precision; the collision orientation remains the actor's current orientation.
+Prepared model candidates are visited in their retained order. Queued motion 24
+excludes candidates of type 128. The first blocking model rejects the attempt
+without querying later models. Terrain does not participate in this body check,
+and the actor's stored position is unchanged.
+
 The ground-support query temporarily uses the probe position and then restores
 the actor's position. It considers terrain and nearby model faces. This is not
 a permanent Y clamp and is not equivalent to accepting every horizontal step.
