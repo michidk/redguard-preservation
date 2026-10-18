@@ -236,10 +236,13 @@ The WLD loader does not read or parse this footer; it stops after reading the 4 
 - [RGM](RGM.md) stores scene/object placement for the same levels.
 - [PVO](pvo/format.md) stores octree-style spatial/visibility data for some of the same levels. WLD terrain is not included in PVO visibility culling. The engine's PVO visibility check operates exclusively on placed objects — it searches MLST entries against MPSO records and actor pointers, and is called only from the placed-object render loop. Terrain is rendered through a separate unconditional path (the engine's terrain surface subsystem). Default visibility is 1 (visible) when PVO data is absent.
 - [TEXBSI](TEXBSI.md) supplies textures referenced by `Map 3` indices (Map 3 index range 0–63 is fully covered by `TEXBSI.302`).
+- Other XnGine games use the same container layout. See [Engine lineage](../README.md#engine-lineage).
 
 ## External References
 
 - [UESP: Mod:World Files](https://en.uesp.net/wiki/Mod:World_Files)
 - [UESP: Mod:Redguard File Formats](https://en.uesp.net/wiki/Mod:Redguard_File_Formats)
 - [uesp/redguard-3dfiletest `3DFileTest/Common/`](https://github.com/uesp/redguard-3dfiletest/tree/master/3DFileTest/Common)
+- [UESP: Daggerfall Mod:WOODS.WLD format](https://en.uesp.net/wiki/Daggerfall_Mod:WOODS.WLD_format)
+- [Daggerfall Unity `WoodsFile.cs`](https://github.com/Interkarma/daggerfall-unity/blob/master/Assets/Scripts/API/WoodsFile.cs)
 - [RGUnity/redguard-unity `RGWLDFile.cs`](https://github.com/RGUnity/redguard-unity/blob/master/Assets/Scripts/RGFileImport/RGGFXImport/RGWLDFile.cs)

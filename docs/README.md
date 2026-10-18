@@ -24,6 +24,42 @@ on-screen presentation combine, with links to each subsystem.
 | Reproduce menus and presentation | [Book menu](engine/menu.md), [HUD](engine/hud.md), [subtitles](engine/subtitles.md), and [cinematics](engine/movies.md) |
 | Inspect or convert assets | [CLI usage and library API](https://github.com/michidk/redguard-preservation/blob/main/README.md) |
 
+## Engine lineage
+
+Redguard runs on Bethesda's XnGine, a DOS-based 3D engine. Battlespire used its own build of the engine, and Redguard added 3dfx Glide support.
+
+| Game | Year | SOUP usage | Assessment |
+|---|---|---|---|
+| *The Terminator: Future Shock* | 1995 | Unverified | A community port drives map logic from an action-id handler table |
+| *The Terminator: SkyNET* | 1996 | Unverified | A community port drives map logic from an action-id handler table |
+| *The Elder Scrolls II: Daggerfall* | 1996 | Not established | Quests use a separately documented table-driven format |
+| *XCar: Experimental Racing* | 1997 | Unverified | No evidence identified |
+| *An Elder Scrolls Legend: Battlespire* | 1997 | Unverified | No script format documented; candidate for checking |
+| *Burnout: Championship Drag Racing* | 1998 | Unverified | No evidence identified |
+| *The Elder Scrolls Adventures: Redguard* | 1998 | Confirmed | Uses `SOUP386` |
+| *NIRA Intense Import Drag Racing* | 1999 | Unverified | No evidence identified |
+
+Terminator and Daggerfall files share structure with Redguard's:
+
+| Format | Shared structure |
+|---|---|
+| [WLD terrain](formats/WLD.md) | The Terminator games use the same section layout and the same 128-entry height lookup table. Daggerfall's `WOODS.WLD` uses the same container: width and height at `0x04` and `0x08`, an offset list at `0x90`, and a 22-byte header on each offset's block. It stores 1000×500 cells and a 1000×500 elevation map. |
+| [3D models](formats/models/3d.md) | Terminator and Daggerfall `.3D` files place the vertex block at `0x30` and the face array at `0x3C`. In `v2.6` and `v2.7` files the face texture field splits into an archive number (`value >> 7`) and a record number (`value & 0x7F`) in all three games. |
+| [Software texture banks](formats/TEXTURE.md) | Terminator `TEXTURE.NNN` banks use the same 20-byte directory starting at byte 26. Image width, height, data offset, frame count, and frame delay sit at the same offsets, and animated frames use the same transparent-run and literal-run row encoding. |
+
+Terminator scenes use a cell grid with linked entity lists, not RGM sections.
+
+Related community work:
+
+- [XnGine](https://en.wikipedia.org/wiki/XnGine): game list and engine history.
+- [skynet-godot `wld_terrain.gd`](https://github.com/nemo22/skynet-godot/blob/main/godot_project/scripts/loaders/wld_terrain.gd): Terminator `WLD` layout and height table.
+- [skynet-godot `mesh_3d.gd`](https://github.com/nemo22/skynet-godot/blob/main/godot_project/scripts/loaders/mesh_3d.gd): Terminator `.3D` header offsets and texture ids.
+- [skynet-godot `texture_nnn.gd`](https://github.com/nemo22/skynet-godot/blob/main/godot_project/scripts/loaders/texture_nnn.gd): Terminator `TEXTURE.NNN` layout.
+- [skynet-godot `map_file.gd`](https://github.com/nemo22/skynet-godot/blob/main/godot_project/scripts/loaders/map_file.gd): Terminator `MAP` layout.
+- [UESP: Daggerfall Mod:WOODS.WLD format](https://en.uesp.net/wiki/Daggerfall_Mod:WOODS.WLD_format) and [Daggerfall Unity `WoodsFile.cs`](https://github.com/Interkarma/daggerfall-unity/blob/master/Assets/Scripts/API/WoodsFile.cs): Daggerfall terrain file layout.
+- [Daggerfall Unity `Arch3dFile.cs`](https://github.com/Interkarma/daggerfall-unity/blob/master/Assets/Scripts/API/Arch3dFile.cs): Daggerfall `.3D` header and texture ids.
+- [Daggerfall Unity](https://github.com/Interkarma/daggerfall-unity) and [terminator-unity](https://github.com/SilverNicktail/terminator-unity): a Daggerfall reimplementation, and an effort to extend it to the Terminator games.
+
 ## Installation contents
 
 ### Main Files
