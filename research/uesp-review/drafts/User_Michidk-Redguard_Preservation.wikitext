@@ -1,0 +1,25 @@
+{{notice|This is a draft article about Redguard Preservation, kept in [[User:Michidk|Michidk]]'s user space.}}
+
+'''Redguard Preservation''' is an open-source project that documents the file formats and engine behavior of ''[[Redguard:Redguard|The Elder Scrolls Adventures: Redguard]]''. It also provides tools written in Rust for reading and converting the game's assets.{{ref|name=project|[https://github.com/michidk/redguard-preservation Redguard Preservation project overview]}}
+
+==Documentation==
+The project's references cover models, world data, textures, animations, fonts, audio, scripts, and other game files. Separate engine articles describe systems such as the developer console, hidden cheats, animation, rendering, and sound. Configuration references explain the game's INI settings.{{ref|[https://michidk.github.io/redguard-preservation/ Redguard Preservation documentation]}}
+
+The documentation distinguishes formats and settings used by the software and Glide versions of the game. Related UESP articles include [[Mod:Redguard File Formats]], [[Mod:Redguard Engine]], [[Redguard:Console]], and [[Redguard:Cheats]].
+
+==Tools==
+The project's command-line tool can identify supported files and convert their contents into formats used by modern applications. Examples include exporting models and worlds as GLB files, extracting sound effects and dialogue audio as WAV files, and converting textures and animations into images. It also provides a Rust library and a native plugin interface for other applications.{{ref|name=project}}
+
+The tools operate on game files supplied by the user. They are intended for asset inspection, conversion, and preservation rather than running the original game.
+
+==Related Projects==
+[https://github.com/michidk/cyrus cyrus], a recreation of ''Redguard'' in Rust and Bevy, uses Redguard Preservation's format and engine documentation. Research recovered during cyrus development is also published through Redguard Preservation.{{ref|[https://github.com/michidk/cyrus cyrus project overview]}}
+
+The project draws on earlier community work, including UESP's file-format research and [[Mod:Redguard Unity|Redguard Unity]].{{ref|[https://github.com/michidk/redguard-preservation/blob/main/docs/README.md Redguard Preservation reference index]}}
+
+==External Links==
+*[https://michidk.github.io/redguard-preservation/ Documentation]
+*[https://github.com/michidk/redguard-preservation GitHub repository]
+
+==References==
+<references/>

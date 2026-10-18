@@ -1,0 +1,26 @@
+{{notice|This is a draft article about cyrus, kept in [[User:Michidk|Michidk]]'s user space.}}
+
+'''cyrus''' is an open-source recreation of ''[[Redguard:Redguard|The Elder Scrolls Adventures: Redguard]]'', written in Rust using the Bevy game engine. It aims to reproduce the original game's visuals, sound, controls, and gameplay while running on modern systems. The project is in early development and is not yet playable as a complete game.{{ref|name=project|[https://github.com/michidk/cyrus cyrus project overview]}}
+
+==Goals==
+The project uses the original game as its reference for behavior and presentation. Modern controls, camera options, and graphical changes are intended as optional settings. Its goal is to recreate the original single-player game, with no multiplayer or new content planned.{{ref|name=roadmap|[https://github.com/michidk/cyrus/blob/main/docs/ROADMAP.md cyrus roadmap]}}
+
+cyrus uses file-format and engine research from [https://github.com/michidk/redguard-preservation Redguard Preservation]. Findings recovered during development are also documented through that project. [[Mod:Redguard Unity|Redguard Unity]] inspired cyrus and supplied foundational research. The two projects use different engines. cyrus uses AI-assisted development, with coding agents directed and reviewed by its maintainer.{{ref|name=project}}
+
+==Current Status==
+As of October 2026, cyrus can display the startup presentation and book menu, play movies, and load game worlds for inspection. A separate asset viewer can inspect models, worlds, textures, fonts, animations, scripts, and audio. Native applications and browser builds are available.{{ref|name=project}}
+
+The recreation remains incomplete. Full gameplay, combat, player interactions, save restoration, and a complete playthrough are still under development. Loading a world does not mean its quests and gameplay work as in the original.{{ref|name=roadmap}}
+
+==Requirements and Downloads==
+cyrus requires game data from a GOG installation of ''Redguard''. It includes no original game data. The game installation is read without modification.{{ref|name=project}}
+
+Prebuilt downloads for Windows, macOS, and Linux, together with a browser package, are available on the [https://github.com/michidk/cyrus/releases GitHub releases page]. A [https://michidk.github.io/cyrus/viewer/ browser asset viewer] is also available. See the [https://github.com/michidk/cyrus/blob/main/docs/SETUP.md setup guide] for installation and build instructions.
+
+==External Links==
+*[https://github.com/michidk/cyrus GitHub repository]
+*[https://github.com/michidk/cyrus/releases Downloads]
+*[https://github.com/michidk/cyrus/blob/main/docs/ROADMAP.md Development roadmap]
+
+==References==
+<references/>

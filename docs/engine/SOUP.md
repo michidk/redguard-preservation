@@ -1904,6 +1904,21 @@ typed by source: static placements and the secondary list carry type `0x20`, act
 `0x80`. While the actor's queued-motion byte is `0x18` (24), actor-owned candidates are skipped, so
 only static models can block.
 
+### Nonplayer deep-water and edge probe
+
+The strafing steppers (`MoveLeft`, `MoveRight`) and `MoveForward` call one probe before they move. It
+applies only to receivers whose surface byte is 2 or 4 (the deep-water classes); every other
+receiver passes. The probe point is the receiver's position plus a step of 16384 (units of 1/256
+map unit) along the direction chosen by the motion-direction byte (2 and 6 forward, 3 and 7
+backward, 4 left, 5 right, any other value forward), rotated by the receiver's heading. The point is
+looked up in the terrain material rules of [terrain material blend coverage](player.md#terrain-material-blend-coverage).
+
+The probe fails (blocks the move) only when the resolved surface is 10 with blend coverage 0 and the
+terrain slope class at the point is 2. A point with blend coverage 256, a point with partial coverage
+(surface 3), a point without terrain, and every other surface pass. The slope class is the
+classification of the terrain face normal as for ground support. A failing probe stops the step and
+sets bit 1 of the receiver's script-control-adjacent update flag byte used by the forward stepper.
+
 ### MoveBackward
 
 `MoveBackward(duration)` is a task that steps the receiver backward relative to its heading. Each

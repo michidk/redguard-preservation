@@ -1,0 +1,26 @@
+{{Trail}}
+
+'''cyrus''' is an open-source project written in Rust using the Bevy game engine. It provides an asset viewer for ''[[Redguard:Redguard|The Elder Scrolls Adventures: Redguard]]'' and an early recreation of the game. The viewer is available for use, while the game recreation is not yet playable. Both use [[General:Redguard Preservation|Redguard Preservation]]'s Rust library to parse the original game files.{{ref|name=project|[https://github.com/michidk/cyrus cyrus project overview]}}
+
+The project is named after [[Redguard:Cyrus|Cyrus]], the protagonist of ''Redguard''.
+
+==Asset Viewer==
+The separate '''cyrus asset viewer''' can inspect models, worlds, textures, fonts, animations, scripts, and audio. It provides 3D previews with orbit and free-camera controls, image and animation previews, audio and movie playback, and views of decoded file data. Its rendering is intended for asset inspection rather than reproducing the original game's appearance.{{ref|name=viewer|[https://github.com/michidk/cyrus/blob/main/crates/cyrus-viewer/README.md cyrus asset viewer guide]}}
+
+The viewer is available as a [https://michidk.github.io/cyrus/viewer/ browser application] and as native downloads for Windows, macOS, and Linux from the [https://github.com/michidk/cyrus/releases GitHub releases page]. It requires the user's own GOG installation of ''Redguard'' and reads the installation without modifying it. In the browser, the user selects a local game folder; the selected files stay on their computer. No original game data is included.{{ref|name=viewer}}
+
+==Game Recreation==
+The game recreation aims to reproduce the original game's visuals, sound, controls, and gameplay, with optional modern controls, camera settings, and graphical improvements. As of October 2026, startup presentation, the book menu, movie playback, and world viewing work. Full gameplay and save restoration remain under development.{{ref|name=project}}{{ref|[https://github.com/michidk/cyrus/blob/main/docs/ROADMAP.md cyrus roadmap]}}
+
+==Related Projects==
+cyrus uses Redguard Preservation's file parsers and its format and engine documentation. Findings recovered during development are also published through that project. [[Mod:Redguard Unity|Redguard Unity]] inspired cyrus and supplied foundational research. cyrus uses AI-assisted development, with coding agents directed and reviewed by its maintainer.{{ref|name=project}}
+
+==External Links==
+*[https://michidk.github.io/cyrus/viewer/ Browser asset viewer]
+*[https://github.com/michidk/cyrus/releases Downloads]
+*[https://github.com/michidk/cyrus GitHub repository]
+*[https://github.com/michidk/cyrus/blob/main/crates/cyrus-viewer/README.md Asset viewer guide]
+*[https://github.com/michidk/cyrus/blob/main/docs/ROADMAP.md Development roadmap]
+
+==References==
+<references/>
