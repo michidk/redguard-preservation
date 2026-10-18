@@ -611,7 +611,10 @@ request an ordinary turn group when an animation receiver exists. Without a
 held weapon these are positive 14 or torch 16, and negative 15 or torch 17.
 With a held weapon they are positive 96 and negative 97. Combat mode affects
 rate selection independently of the held-weapon animation branch. Heading
-writes wrap to 2048. Selected-player turning also updates the follow camera.
+writes wrap to 2048. The turn helper returns zero when the desired heading already
+matches or the turn snaps to it. Otherwise it returns the signed heading
+difference before applying the turn step. Selected-player turning also updates
+the follow camera.
 
 The first slide forces its slide group; subsequent slides request it ordinarily.
 Distance is the signed wrapping product `slide_speed * 128 * frame_scale`,
