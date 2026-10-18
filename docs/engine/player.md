@@ -691,10 +691,14 @@ and restores all previous local position coordinates; the result remains handled
 
 ### Ordinary ground prevalidation
 
-Ground prevalidation runs once for each prepared collision candidate list. It
-is bypassed when collision attribute bit 2 is clear, or for the designated
-player while alternate collision mode is active. Bypass clears both the
-position rollback veto and the sliding-surface result.
+Ground prevalidation uses a shared guard reset at ordinary-wrapper entry. The
+first call marks the guard used before checking collision attributes. Later calls
+return without changing the retained position rollback veto or sliding-surface
+result, even when collision candidates or actor attributes have changed.
+
+The first call bypasses geometry queries when collision attribute bit 2 is clear,
+or for the designated player while alternate collision mode is active. This
+bypass clears both retained results.
 
 It queries current and previous effective positions with the post-collision
 height as vertical half-length. Face contacts use the forward steep-surface
