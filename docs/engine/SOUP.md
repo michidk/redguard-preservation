@@ -239,6 +239,22 @@ becomes twice its original value plus the allocation index times the second draw
 scaled by 10 and divided by 32767. Each random scaling division precedes the
 allocation-index multiplication. Range, period and index arithmetic wrap at 32 bits.
 
+When execution reaches the remaining spacing branch, it first runs the
+multiple-attacker spacing helper. If that helper requests no sidestep, it adds
+the receiver's allocation index to the shared tick counter with signed 32-bit
+wrapping. Only a signed remainder of exactly one after division by the effective
+spacing period requests a random movement. The division truncates toward zero;
+a zero period or a quotient outside the signed 32-bit range causes a division
+fault.
+
+The movement choice is an inclusive random draw from 0..32767 multiplied by 20
+and divided by 32767. Values below 16 choose backward movement, values 16 and 17
+choose right movement, and values 18 through 20 choose left movement. Only the
+chosen direction's admission is tested. A result equal to one requests that
+movement with duration one; any other result leaves movement unchanged, without
+trying another direction. A successful multiple-attacker sidestep skips both the
+pacing division and this random draw.
+
 A spacing pass that passes the action-selector and turning gates registers the
 receiver in the deferred map-update list. This registration also occurs when
 movement admission rejects every direction, the required animation group is
