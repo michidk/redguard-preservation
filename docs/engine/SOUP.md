@@ -2009,8 +2009,8 @@ nothing matched for type 6, the request repeats as type 2.
 even after a record has been selected. A
 probed record of the requested type with a nonzero label becomes the choice when no choice exists
 yet, or otherwise replaces it when `(combat value + frame value) mod 2` is zero, where the combat
-value is the combat record's per-actor value and the frame value is the update's value saved when
-the decision stage began. The taunt is then presented only when `(combat value + frame value)` is a
+value is the combat record's action selector and the frame value is the update's value saved when
+the decision stage began. Their sum wraps as a signed 32-bit value. The taunt is then presented only when `(combat value + frame value)` is a
 multiple of the combat record's signed taunt period, initialized to `129 - attribute 87`;
 presenting a type 9 taunt also sets combat flag `0x40`.
 
