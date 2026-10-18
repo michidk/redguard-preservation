@@ -428,7 +428,7 @@ copy of it. Entry 9 is `FONTS\FONTSEL.FNT`. Entries 1 and 2 use the font named b
 | Index | Font | A | B |
 |---|---|---|---|
 | 0 | REDSEL | `[3dfx] font_sel` A | `font_sel` B |
-| 1, 2 | `gui_low_font` | 255 | 255 |
+| 1, 2 | `gui_low_font`; glyph indices select page-palette colours | 255 | 255 |
 | 3 | REDSEL | `font_norm` A | `font_norm` B |
 | 4 | REDSEL | `font_used` A | `font_used` B |
 | 6 | REDSEL | 255 | 180 |
@@ -437,8 +437,10 @@ copy of it. Entry 9 is `FONTS\FONTSEL.FNT`. Entries 1 and 2 use the font named b
 | 9 | FONTSEL; small font `FONTSELS` with `font_sel` A,B | `font_sel` A | `font_sel` B |
 
 Entries without a separate small font draw with the entry itself in the reader, so
-styles 0 to 4, 6 and 8 use the large fonts. Style 7 and 9 text uses the small-font link,
-whose alpha the reader sets to 200 and 255. Index 5 and indices above 9 are not described.
+styles 0, 3, 4, 6 and 8 use the large fonts and styles 1 and 2 the `gui_low_font`. Style 7 and 9 text
+uses the small-font link, whose alpha the reader sets to 200 and 255. Glyph colours are the font
+palette colours multiplied by `A / 255`, except for styles 1 and 2. Index 5 has no initialised entry;
+indices above 9 are not described.
 
 The reader draws text glyph by glyph. A glyph whose right edge would pass x = 640
 moves the pen to the entry's starting x and down by the font's line height first, so
