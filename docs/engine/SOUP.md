@@ -1785,6 +1785,128 @@ against each entry of the engine's retained candidate model list, in order. The 
 not hit, or whose owner is the target, does not block; any other hit makes the result false.
 The result is true when no entry blocks.
 
+### Nonplayer defence selection
+
+The defence selection runs only while the receiver is armed and the global combat
+lockout is clear. With no move selected, the target must lie inside the receiver's
+forward arc and its distance must be strictly below the receiver's far window.
+The defence counter becomes one when the headings differ by less than 256 heading
+units or the target is outside combat stance. Otherwise it becomes `129 - attribute 58`.
+A target is in combat stance when it is armed or its combat flag mask `0x04` is set.
+Heading differences mask both headings to 0 through 2047 and wrap the difference
+into -1024 through 1024.
+
+The pacing sum is the receiver's per-actor combat value plus the shared tick counter,
+with signed 32-bit wrapping addition. When its signed remainder by the defence pacing
+divisor is zero:
+
+- For a target move other than -1 or 9, the target's animation frame must exceed
+  the wrapping sum of its selected move's near and third range values. The receiver
+  gains intent mask `0x01`, then asks the best-usable-defence picker for a kind.
+  A successful pick starts only if its reach test succeeds.
+- For target move 9, the open-defence picker supplies a kind, which starts only
+  if the pick and reach test succeed. This branch does not set the intent mask.
+- For target move -1, neither of these picks runs.
+
+After this branch, independently of its pacing remainder, a zero signed remainder
+of the pacing sum by the defence counter sets intent mask `0x01`, obtains the paced
+pick and starts it if the reach test succeeds. Starts happen synchronously, before
+any later picker reads the combat state.
+
+With a move already selected, the selection uses only the defence counter remainder.
+On zero remainder, defence selector zero requests kind one and selector one requests
+kind two; either request first sets intent mask `0x01`. Other selectors do nothing.
+Intent updates preserve every other combat flag bit.
+
+### Best and open defence picks
+
+Both pickers scan the receiver's nine authored attack slots in ascending slot order.
+These are the attack slots bound from attributes 70 through 78, not the separate
+four defence records. The first motion supplies each slot's distance window,
+near timing and counter-attack reference.
+Absent slots are skipped. A slot is usable only when the signed actor-to-target
+distance is strictly greater than its minimum range and strictly less than its
+maximum range. The best picker chooses the usable slot with the lowest signed
+near timing value, strictly below 65536. Equal values retain the earlier slot.
+
+The open picker applies the same rules, but excludes a slot whose one-based
+counter-attack reference minus one equals the receiver's current move's
+counter-attack index. The subtraction wraps as signed 32-bit arithmetic.
+Both pickers map a winning slot of six, seven or eight to defence kind four.
+If no slot qualifies, they report failure without changing the caller's output.
+
+### Paced defence pick
+
+The initial choice is zero. One random draw in the inclusive range zero through
+32767 produces `draw * 6 / 32767`, with unsigned integer division. That slot
+replaces the initial choice only if it exists and passes the strict distance
+window. The maximum draw therefore probes slot six. This fallback does not
+require arc or elevation admission and does not remap the slot.
+
+The picker then scans slots zero through five in ascending order. A populated
+slot must pass distance, arc and elevation admission. If the receiver and target
+face alike, or the target is outside combat stance, a slot replaces the choice
+only when its signed accumulated damage exceeds the retained damage, initially zero,
+and the pacing sum has zero signed remainder by the defence pacing divisor.
+A successful replacement retains that damage. Equal damage totals retain the
+previous choice.
+
+Otherwise, each admitted slot resets the defence counter to `129 - attribute 58`.
+The picker tracks the lowest near timing strictly below 65536, with the same
+zero-remainder gate, but this branch does not replace the chosen slot. The final
+return is the fallback or the last priority-branch replacement. No qualifying
+slot leaves the initial choice of zero intact.
+
+### Defence elevation and arc admission
+
+Both tests read the first motion of the receiver's selected attack slot.
+Elevation admission uses the receiver and target's bounds-query positions.
+For each coordinate, that query computes the signed 32-bit wrapping expression
+`position - (negative_extent << 8) + (positive_extent << 8)`, then divides by two
+with truncation toward zero. It does not substitute the actor origin.
+
+Let `d` be target bounds-query y minus receiver bounds-query y, with signed
+32-bit wrapping subtraction. Let `w` be the wrapping sum of the receiver's
+positive and negative x extents, each shifted left eight bits, and let `h` be
+`w / 2`, truncating toward zero. The required elevation is:
+
+- One when `-h > d` and `-(w + h) < d`.
+- Otherwise two when `d > h` and `w + h > d`.
+- Otherwise zero.
+
+All additions and negations in those comparisons wrap as signed 32-bit values.
+The motion passes only when its elevation equals the required value. Band edges
+belong to elevation zero; they do not pass either outer band.
+
+Arc admission subtracts receiver position from target position in each coordinate
+with signed 32-bit wrapping subtraction and arithmetic-shifts each difference
+right eight bits. The resulting vector supplies the bearing. Let `a` be the
+absolute wrapped heading difference between the receiver heading and that bearing,
+and let `c` be the motion's arc centre plus 512. The test passes only when
+`c + arc > a` and `c - arc < a`, using signed 32-bit wrapping arithmetic for the
+bounds. It does not halve the configured arc or include either boundary.
+
+### Defence start admission
+
+The starter dispatch admits kinds zero through six and kind eight only when the
+corresponding receiver attack slot is populated. Kind seven and values outside
+zero through eight do nothing. Admission differs by kind:
+
+- Kind zero, three, five and six require no selected move.
+- For a nonplayer receiver, kinds one and two do not require an idle selection.
+  For the selected player, kind one requires selected move zero and kind two
+  requires selected move one.
+- Kinds four and eight require zero combat cooldown, neither drawing nor
+  sheathing, and no selected move.
+
+An admitted start first writes its kind into the defence selector, then selects
+that move, then invokes the defence executor with request zero synchronously.
+The executor can therefore change state before a later picker or starter reads it.
+For selected-player kind four, the movement update precedes those writes and uses
+attribute 16 shifted left eight bits with movement mode one. Its return value does
+not gate the subsequent defence start. The nonplayer kind-four path omits that
+movement update.
+
 ### DisableHook and EnableHook
 
 `DisableHook` sets and `EnableHook` clears mask `0x02` of the receiver's script-control byte
