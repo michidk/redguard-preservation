@@ -2218,6 +2218,9 @@ body-contact test to pass, the step-hazard result to differ from one, then the
 additional destination-admission test to pass, in that order. A failed test
 sets bit `0x80` in the receiver's step-status byte and returns false. Early
 rope refusal and lifecycle acceptance leave that byte unchanged.
+The additional destination-admission test runs the ordinary collision pass with
+the receiver temporarily at the destination. It restores the original position
+afterwards, while retaining other collision writes.
 
 A held weapon or combat flag mask `0x04` selects animation group 31 and attribute
 byte 19 as the step length. Outside combat stance, a burning torch selects group
