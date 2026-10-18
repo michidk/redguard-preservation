@@ -1915,6 +1915,11 @@ zero through eight do nothing. Admission differs by kind:
 An admitted start first writes its kind into the defence selector, then selects
 that move, then invokes the defence executor with request zero synchronously.
 The executor can therefore change state before a later picker or starter reads it.
+It resolves the defence selector through the receiver's nine attack slots and
+uses the move selector to choose that attack's motion. When the actor leaves the
+expected animation group, a following motion of type one admits the next chain
+step, up to the third motion. The type test reads the following motion, not the
+current one. Unfilled motion slots retain their zero-initialized type.
 For selected-player kind four, the movement update precedes those writes and uses
 attribute 16 shifted left eight bits with movement mode one. Its return value does
 not gate the subsequent defence start. The nonplayer kind-four path omits that
