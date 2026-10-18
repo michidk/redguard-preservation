@@ -239,6 +239,38 @@ becomes twice its original value plus the allocation index times the second draw
 scaled by 10 and divided by 32767. Each random scaling division precedes the
 allocation-index multiplication. Range, period and index arithmetic wrap at 32 bits.
 
+A spacing pass that passes the action-selector and turning gates registers the
+receiver in the deferred map-update list. This registration also occurs when
+movement admission rejects every direction, the required animation group is
+absent, or no movement is requested. Repeated registration retains the first
+occurrence of each actor. The deferred pass processes registrations in that
+order, clears the consumed entries and resets the list count.
+
+### Multiple-attacker spacing
+
+The multiple-attacker spacing helper traverses the current target's attacker
+list. Its initial primary neighbor is the first attacker, unless that attacker
+is the receiver. It starts a retained distance at 65535. For each later attacker
+other than the receiver, a horizontal query distance strictly below the retained
+distance replaces the primary neighbor and moves the former primary into the
+secondary slot. Equal distances retain the existing pair. The initial attacker
+is not distance-tested, and the secondary slot is the preceding primary rather
+than a separately selected second-nearest attacker.
+
+For each retained neighbor, the helper computes signed angular separation about
+the target from the actors' local positions. An absent neighbor supplies 1024.
+The threshold is `[misc] non_engaged_spacing` from `COMBAT.INI`, stored without
+scaling. Absolute values use signed wrapping negation. With primary and secondary
+separations `a` and `b`, and threshold `s`:
+
+- If `abs(a) < s`, it requests a sidestep only when `abs(b) > s / 3`, using the sign of `a`.
+- Otherwise, if `abs(b) < s`, it requests a sidestep only when `abs(a) > s / 2`, using the sign of `b`.
+
+Division truncates toward zero. A negative chosen separation requests right;
+zero or positive requests left. Both use duration one. The helper returns one
+after making that request, without using the movement routine's numeric return,
+and zero when it makes no request.
+
 Selected-player maintenance is skipped when its retained entry-inhibition value
 is nonzero. Player initialization clears this value. Player activation replaces
 it with the activation operation's result, so initialization does not make it
