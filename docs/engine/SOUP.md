@@ -1818,6 +1818,20 @@ On zero remainder, defence selector zero requests kind one and selector one requ
 kind two; either request first sets intent mask `0x01`. Other selectors do nothing.
 Intent updates preserve every other combat flag bit.
 
+### Best and open defence picks
+
+Both pickers scan the receiver's nine defence slots in ascending slot order.
+Absent slots are skipped. A slot is usable only when the signed actor-to-target
+distance is strictly greater than its minimum range and strictly less than its
+maximum range. The best picker chooses the usable slot with the lowest signed
+near timing value, strictly below 65536. Equal values retain the earlier slot.
+
+The open picker applies the same rules, but excludes a slot whose one-based
+counter-attack reference minus one equals the receiver's current move's
+counter-attack index. The subtraction wraps as signed 32-bit arithmetic.
+Both pickers map a winning slot of six, seven or eight to defence kind four.
+If no slot qualifies, they report failure without changing the caller's output.
+
 ### DisableHook and EnableHook
 
 `DisableHook` sets and `EnableHook` clears mask `0x02` of the receiver's script-control byte
