@@ -231,6 +231,14 @@ movement for one update. It requests forward movement and faces the target only
 if the target distance minus that amount is at least the third range.
 All these movement requests use duration 1.
 
+When the combat-stance predicate is zero, spacing replaces the near range with
+30000 and triples the far range. It consumes two inclusive 0..32767 random draws.
+The third range becomes three times its original value plus the allocation index
+times the first draw scaled by 100 and divided by 32767. The spacing period
+becomes twice its original value plus the allocation index times the second draw
+scaled by 10 and divided by 32767. Each random scaling division precedes the
+allocation-index multiplication. Range, period and index arithmetic wrap at 32 bits.
+
 Selected-player maintenance is skipped when its retained entry-inhibition value
 is nonzero. Player initialization clears this value. Player activation replaces
 it with the activation operation's result, so initialization does not make it
