@@ -2003,7 +2003,7 @@ whose pending field is set.
 taunt selection rules, including the death fallback to the hurt type here expressed as: when
 nothing matched for type 6, the request repeats as type 2.
 
-**Types 5, 8 and 9.** Up to fifteen probes, each choosing a list index `draw * count / 32767`. A
+**All other types, including 1, 3, 4, 5, 7, 8 and 9,** use up to fifteen probes, each choosing a list index `draw * count / 32767`. A
 probed record of the requested type with a nonzero label becomes the choice when no choice exists
 yet, or otherwise replaces it when `(combat value + frame value) mod 2` is zero, where the combat
 value is the combat record's per-actor value and the frame value is the update's value saved when
