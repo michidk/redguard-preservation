@@ -285,8 +285,14 @@ secondary slot. Equal distances retain the existing pair. The initial attacker
 is not distance-tested, and the secondary slot is the preceding primary rather
 than a separately selected second-nearest attacker.
 
-For each retained neighbor, the helper computes signed angular separation about
-the target from the actors' local positions. An absent neighbor supplies 1024.
+For each retained neighbor, the helper forms receiver-minus-target and
+neighbor-minus-target vectors from local Q8 positions. Each subtraction wraps
+at signed 32 bits, then each component shifts arithmetically right eight before
+vector-to-angle conversion. The separation is the receiver vector's Y angle
+minus the neighbor vector's Y angle: both angles are masked to 2047 and the
+difference wraps into the inclusive range -1024 through 1024. The two exact
+half-turn signs remain distinct. An absent neighbor supplies 1024 without
+converting either vector.
 The threshold is `[misc] non_engaged_spacing` from `COMBAT.INI`, stored without
 scaling. Absolute values use signed wrapping negation. With primary and secondary
 separations `a` and `b`, and threshold `s`:
