@@ -187,9 +187,9 @@ mixed-precision integer-distance calculation.
 A newly constructed combat record has no target, an action selector of -1 and a
 zero cooldown. Combat construction clears the record before assigning its
 attribute-derived counters and attack metadata. First allocation assigns the
-current combat-record allocation counter as the retained maintenance phase, then
+current combat-record allocation counter as its retained allocation index, then
 increments the counter with 32-bit wrapping. Reinitializing an existing record
-preserves its maintenance phase across the clear. Opening a world opens a new
+preserves its allocation index across the clear. Opening a world opens a new
 object-system session, whose combat-record allocation counter starts at zero.
 Closing that session releases its object pool.
 
@@ -2017,7 +2017,7 @@ nothing matched for type 6, the request repeats as type 2.
 even after a record has been selected. A
 probed record of the requested type with a nonzero label becomes the choice when no choice exists
 yet, or otherwise replaces it when `(combat value + frame value) mod 2` is zero, where the combat
-value is the combat record's retained maintenance phase and the frame value is the update's value saved when
+value is the combat record's retained allocation index and the frame value is the update's value saved when
 the decision stage began. Their sum wraps as a signed 32-bit value. The taunt is then presented only when `(combat value + frame value)` is a
 multiple of the combat record's signed taunt period, initialized to `129 - attribute 87`;
 presenting a type 9 taunt also sets combat flag `0x40`.
