@@ -189,7 +189,9 @@ zero cooldown. Combat construction clears the record before assigning its
 attribute-derived counters and attack metadata. First allocation assigns the
 current combat-record allocation counter as the retained maintenance phase, then
 increments the counter with 32-bit wrapping. Reinitializing an existing record
-preserves its maintenance phase across the clear.
+preserves its maintenance phase across the clear. Opening a world opens a new
+object-system session, whose combat-record allocation counter starts at zero.
+Closing that session releases its object pool.
 
 Combat construction copies actor attribute 2 into the record's strength value and attribute 4 into its
 armor value (the values `Strength`, `Armor`, `setStrength` and `setArmor` use). It stores five
