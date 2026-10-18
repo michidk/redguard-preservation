@@ -2301,7 +2301,15 @@ right shifts are arithmetic, and division truncates toward zero.
 | 3 | 0 | 0 | `d >> 1` |
 | Other | `d` | `d` | `d` |
 
-At counter three the distance stays unchanged. Unless the animation's translation-suppression marker is set, the distance
+At counter three the distance stays unchanged. The packed byte holds left, right,
+forward/walk and backward counters in consecutive two-bit fields, from least to
+most significant. Each direction has a shared called flag. At ordinary update
+cleanup, a direction's counter is cleared only if its called flag is zero;
+called directions retain their counters. Collision rollback can separately clear
+the packed byte when restoring the previous position. Entering collision
+processing does not unconditionally clear it.
+
+Unless the animation's translation-suppression marker is set, the distance
 is multiplied by the frame scale (arithmetic shift right eight) and, when positive, the receiver's X
 and Z move that far along the heading by the heading-based translation rule.
 
