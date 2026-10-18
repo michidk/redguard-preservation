@@ -213,8 +213,9 @@ messages. The nonplayer decision stage runs only for death/state selector 6 and
 an actor that is not dead. This stage can select targets and
 consume random values.
 
-Selected-player combat processing uses a phase value separate from the
-cooldown. After message processing, phase zero with a nonzero action selector
+Selected-player combat processing uses the attack/defence executor state as its
+phase value. This state is separate from both the cooldown and the retained
+combat allocation index. After message processing, phase zero with a nonzero action selector
 resets the action selector and both retained action indices to `-1`. An action
 selector of zero leaves all three values unchanged at this step.
 
