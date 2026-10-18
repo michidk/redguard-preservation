@@ -2210,8 +2210,8 @@ call. The walk-forward step check must pass before motion direction 6 is stored.
 
 A held weapon or combat flag mask `0x04` selects animation group 31 and attribute
 byte 19 as the step length. Outside combat stance, a burning torch selects group
-21 and otherwise group 20; both use attribute byte 12. A missing group completes
-without requesting animation or translating. An available group is requested
+21 and otherwise group 20; both use attribute byte 12. A missing group skips
+animation requests and translation, while duration completion is still evaluated. An available group is requested
 with frame zero. With animation enabled, a different current group waits without
 advancing the step counter or translating.
 
