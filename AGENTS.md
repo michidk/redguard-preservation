@@ -32,7 +32,6 @@ Primary outcomes in this repo:
 - CLI handlers: `src/cli/` (`read.rs`, `scan.rs`, `filetype.rs` for auto-detection; convert subcommands in `src/cli/convert/`)
 - Error types: `src/error.rs`
 - Tests: `tests/` (integration tests; sample inputs in `tests/fixtures/`)
-- Examples: `examples/` (developer tools that run against a game install via `REDGUARD_DIR`)
 - Format specifications: `docs/formats/`
 - Engine behavior: `docs/engine/` (index in `docs/engine/README.md`; includes `cheats.md`, `attachment.md`, `SOUP.md`, `SOUPDEF.md`, rendering, sound, menu, and HUD references)
 - Configuration docs: `docs/config/`
@@ -79,7 +78,7 @@ cargo clippy --all-targets --all-features -- -D warnings
 cargo test
 ```
 
-Tests use `tests/fixtures/` and pass without the game. To also run the install-backed tests and examples, set `REDGUARD_DIR` to a Redguard install directory.
+Tests use `tests/fixtures/` and pass without the game. To also run the install-backed tests, set `REDGUARD_DIR` to a Redguard install directory.
 
 When changing anything exported from `src/ffi/`, update `src/ffi/rgpre.h` by hand; it is not generated (see the checklist in `src/ffi/README.md`).
 

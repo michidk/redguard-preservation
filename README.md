@@ -130,13 +130,6 @@ Lookup exports write `indices.png`, preserving each mapping byte as a grayscale 
 
 Rust consumers select the edition with `TextureCache::new_for_edition`, `registry::scan_dir_for_edition`, and `WorldHandle::open_for_edition`. The equivalent C entry point is `rg_open_world_for_edition`. See [CD and GOG differences](docs/README.md#gog-vs-original-cd-differences) for the full comparison.
 
-To check every model frame, texture frame, and lookup table in an art directory (a developer tool, not needed for conversion):
-
-```bash
-cargo run --example check_edition_assets -- /path/to/Redguard/3dart
-cargo run --example check_edition_assets -- /path/to/Redguard/fxart
-```
-
 ## Using the Rust library
 
 The package `redguard-preservation` builds a library named `rgpre` next to the CLI, and the CLI is a thin layer over it. Add the package to your `Cargo.toml` and import from `rgpre`. Parsers live under `rgpre::import`, for example `rgpre::import::pcx::parse_pcx_file`, `lbm::parse_lbm_file`, and `anm::parse_anm_file`. This section covers the APIs that go beyond "parse a file":
@@ -361,7 +354,7 @@ cargo clippy --all-targets --all-features -- -D warnings
 cargo test
 ```
 
-Tests run against the small files in `tests/fixtures/`. Some tests and examples inspect a real install and are skipped unless the `REDGUARD_DIR` environment variable points at the game directory.
+Tests run against the small files in `tests/fixtures/`. Some tests inspect a real install and are skipped unless the `REDGUARD_DIR` environment variable points at the game directory.
 
 ### Repository layout
 
@@ -373,7 +366,6 @@ Tests run against the small files in `tests/fixtures/`. Some tests and examples 
   - `src/error.rs` - shared error types
 - `docs/` - format specifications, engine notes, and configuration references (the mdBook source)
 - `tests/` - integration tests and fixtures
-- `examples/` - developer tools that run against a game install
 
 ## Acknowledgements
 
