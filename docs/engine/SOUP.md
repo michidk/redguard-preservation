@@ -1785,6 +1785,39 @@ against each entry of the engine's retained candidate model list, in order. The 
 not hit, or whose owner is the target, does not block; any other hit makes the result false.
 The result is true when no entry blocks.
 
+### Nonplayer defence selection
+
+The defence selection runs only while the receiver is armed and the global combat
+lockout is clear. With no move selected, the target must lie inside the receiver's
+forward arc and its distance must be strictly below the receiver's far window.
+The defence counter becomes one when the headings differ by less than 256 heading
+units or the target is outside combat stance. Otherwise it becomes `129 - attribute 58`.
+A target is in combat stance when it is armed or its combat flag mask `0x04` is set.
+Heading differences mask both headings to 0 through 2047 and wrap the difference
+into -1024 through 1024.
+
+The pacing sum is the receiver's per-actor combat value plus the shared tick counter,
+with signed 32-bit wrapping addition. When its signed remainder by the defence pacing
+divisor is zero:
+
+- For a target move other than -1 or 9, the target's animation frame must exceed
+  the wrapping sum of its selected move's near and third range values. The receiver
+  gains intent mask `0x01`, then asks the best-usable-defence picker for a kind.
+  A successful pick starts only if its reach test succeeds.
+- For target move 9, the open-defence picker supplies a kind, which starts only
+  if the pick and reach test succeed. This branch does not set the intent mask.
+- For target move -1, neither of these picks runs.
+
+After this branch, independently of its pacing remainder, a zero signed remainder
+of the pacing sum by the defence counter sets intent mask `0x01`, obtains the paced
+pick and starts it if the reach test succeeds. Starts happen synchronously, before
+any later picker reads the combat state.
+
+With a move already selected, the selection uses only the defence counter remainder.
+On zero remainder, defence selector zero requests kind one and selector one requests
+kind two; either request first sets intent mask `0x01`. Other selectors do nothing.
+Intent updates preserve every other combat flag bit.
+
 ### DisableHook and EnableHook
 
 `DisableHook` sets and `EnableHook` clears mask `0x02` of the receiver's script-control byte
