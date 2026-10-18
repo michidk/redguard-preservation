@@ -227,8 +227,8 @@ movement admission in that order, taking the first result equal to 1.
 Above three times the far range it requests forward walking only if animation
 group 31 exists. Otherwise, above the third range plus half the difference
 between the far and third ranges, it requires group 92 and queries forward
-movement for one update. It requests forward movement and faces the target only
-if the target distance minus that amount is at least the third range.
+movement for one update. It requests forward movement only if the target distance minus that amount is
+at least the third range.
 All these movement requests use duration 1.
 
 When the combat-stance predicate is zero, spacing replaces the near range with
