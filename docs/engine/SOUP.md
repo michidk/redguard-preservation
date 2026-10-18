@@ -2208,6 +2208,17 @@ checking its own admission state. For a nonplayer receiver outside deep water,
 a rope attachment, sliding state, falling state or queued motion refuses the
 call. The walk-forward step check must pass before motion direction 6 is stored.
 
+The walk-forward step check refuses a rope attachment. It passes immediately for
+a receiver whose lifecycle selector is 7 and whose attribute 1 has bit zero clear.
+Otherwise it builds a destination from the local offset
+`[0, 0, (attribute12 + positive_z_extent) * 256]`, with signed wrapping arithmetic,
+rotated by the receiver's stored matrix. It adds the rotated X/Z to the receiver's
+position and retains the receiver's Y coordinate. It requires the destination
+body-contact test to pass, the step-hazard result to differ from one, then the
+additional destination-admission test to pass, in that order. A failed test
+sets bit `0x80` in the receiver's step-status byte and returns false. Early
+rope refusal and lifecycle acceptance leave that byte unchanged.
+
 A held weapon or combat flag mask `0x04` selects animation group 31 and attribute
 byte 19 as the step length. Outside combat stance, a burning torch selects group
 21 and otherwise group 20; both use attribute byte 12. A missing group skips
