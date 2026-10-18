@@ -440,6 +440,12 @@ Entries without a separate small font draw with the entry itself in the reader, 
 styles 0 to 4, 6 and 8 use the large fonts. Style 7 and 9 text uses the small-font link,
 whose alpha the reader sets to 200 and 255. Index 5 and indices above 9 are not described.
 
+The reader draws text glyph by glyph. A glyph whose right edge would pass x = 640
+moves the pen to the entry's starting x and down by the font's line height first, so
+long lines of the large styles wrap inside words. A line feed does the same. Drawing
+stops when the pen reaches y = 480. Wrapping by 65 bytes above applies before drawing and
+is independent of this pixel wrap.
+
 ## Toggle notices
 
 Tab (scan code 15) toggles walk mode and F7 (scan code 65) toggles
