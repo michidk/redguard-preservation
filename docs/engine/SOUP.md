@@ -186,7 +186,12 @@ mixed-precision integer-distance calculation.
 
 A newly constructed combat record has no target, an action selector of -1 and a
 zero cooldown. Combat construction clears the record before assigning its
-attribute-derived counters and attack metadata.
+attribute-derived counters and attack metadata. First allocation assigns the
+current combat-record allocation counter as its retained allocation index, then
+increments the counter with 32-bit wrapping. Reinitializing an existing record
+preserves its allocation index across the clear. Opening a world opens a new
+object-system session, whose combat-record allocation counter starts at zero.
+Closing that session releases its object pool.
 
 Combat construction copies actor attribute 2 into the record's strength value and attribute 4 into its
 armor value (the values `Strength`, `Armor`, `setStrength` and `setArmor` use). It stores five
@@ -208,8 +213,9 @@ messages. The nonplayer decision stage runs only for death/state selector 6 and
 an actor that is not dead. This stage can select targets and
 consume random values.
 
-Selected-player combat processing uses a phase value separate from the
-cooldown. After message processing, phase zero with a nonzero action selector
+Selected-player combat processing uses the attack/defence executor state as its
+phase value. This state is separate from both the cooldown and the retained
+combat allocation index. After message processing, phase zero with a nonzero action selector
 resets the action selector and both retained action indices to `-1`. An action
 selector of zero leaves all three values unchanged at this step.
 
@@ -1878,9 +1884,17 @@ All additions and negations in those comparisons wrap as signed 32-bit values.
 The motion passes only when its elevation equals the required value. Band edges
 belong to elevation zero; they do not pass either outer band.
 
-Arc admission subtracts receiver position from target position in each coordinate
+Arc admission reads both actors' ordinary local origins and the receiver's local
+heading, without attached or linked query-position substitution. It subtracts
+receiver position from target position in each coordinate
 with signed 32-bit wrapping subtraction and arithmetic-shifts each difference
-right eight bits. The resulting vector supplies the bearing. Let `a` be the
+right eight bits. The bearing input is ordered `(delta_z, delta_y, delta_x)`
+and normalized to signed Q16 using the [authored-location normalization](#movetolocation-authored-locations).
+The normalized vector uses the signed polar lookup described by
+[camera orientation](#camera-orientation-retention): its positive first axis is
+a quarter turn, its positive third axis is zero, and the lookup result is reduced
+by half a turn and wrapped modulo 2048. A zero horizontal vector yields 1024.
+Let `a` be the
 absolute wrapped heading difference between the receiver heading and that bearing,
 and let `c` be the motion's arc centre plus 512. The test passes only when
 `c + arc > a` and `c - arc < a`, using signed 32-bit wrapping arithmetic for the
@@ -1902,10 +1916,22 @@ zero through eight do nothing. Admission differs by kind:
 An admitted start first writes its kind into the defence selector, then selects
 that move, then invokes the defence executor with request zero synchronously.
 The executor can therefore change state before a later picker or starter reads it.
+It resolves the defence selector through the receiver's nine attack slots and
+uses the move selector to choose that attack's motion. When the actor leaves the
+expected animation group, a following motion of type one admits the next chain
+step, up to the third motion. The type test reads the following motion, not the
+current one. Unfilled motion slots retain their zero-initialized type.
 For selected-player kind four, the movement update precedes those writes and uses
 attribute 16 shifted left eight bits with movement mode one. Its return value does
 not gate the subsequent defence start. The nonplayer kind-four path omits that
 movement update.
+
+When the defence executor starts or advances to a new motion, it requests the
+animation group, then sets the animation record's finite loop countdown to one.
+This is the same countdown used by `PushAnimation` and the animation interpreter.
+It also clears mask
+`0x20` of the receiver's combat flags. This operation leaves every other bit
+unchanged.
 
 ### DisableHook and EnableHook
 
@@ -1993,12 +2019,14 @@ whose pending field is set.
 taunt selection rules, including the death fallback to the hurt type here expressed as: when
 nothing matched for type 6, the request repeats as type 2.
 
-**Types 5, 8 and 9.** Up to fifteen probes, each choosing a list index `draw * count / 32767`. A
+**All other types, including 1, 3, 4, 5, 7, 8 and 9,** consume fifteen draws, each choosing a list index `draw * count / 32767`,
+even after a record has been selected. A
 probed record of the requested type with a nonzero label becomes the choice when no choice exists
 yet, or otherwise replaces it when `(combat value + frame value) mod 2` is zero, where the combat
-value is the combat record's per-actor value and the frame value is the update's value saved when
-the decision stage began. The taunt is then presented only when `(combat value + frame value)` is a
-multiple of the combat record's taunt period; presenting a type 9 taunt also sets combat flag `0x40`.
+value is the combat record's retained allocation index and the frame value is the update's value saved when
+the decision stage began. Their sum wraps as a signed 32-bit value. The taunt is then presented only when `(combat value + frame value)` is a
+multiple of the combat record's signed taunt period, initialized to `129 - attribute 87`;
+presenting a type 9 taunt also sets combat flag `0x40`.
 
 Presenting a taunt replaces the current taunt reference in the combat record.
 

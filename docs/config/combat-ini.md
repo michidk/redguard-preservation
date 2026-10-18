@@ -188,10 +188,18 @@ This runtime rule differs from parsing the INI as a collection of sparse section
 
 A non-combo attack loads one move. A combo reads its referenced moves in the
 order of `attack00`, `attack01`, and `attack02`, using `num_attacks` as the count.
+Each attack reserves three zero-initialized motion slots. Loading fills the
+authored motions and leaves unused slots zeroed.
 Each loaded move adds 97 to its configured `animation` value to obtain the actor
 animation group. A single attack copies its move's minimum and maximum ranges.
 A nonempty combo starts its minimum at 65,535 and maximum at -1, then lowers the
 minimum and raises the maximum for each referenced move.
+
+Each attack also retains a damage total, initialized to zero. A single attack adds
+its move's damage; a combo adds each referenced move's damage in authored order.
+The additions wrap as signed 32-bit values. A combo with no moves retains zero
+damage. Defence pacing reads this accumulated total, rather than only the first
+motion's damage.
 
 ## Actor Move Selection
 
@@ -213,7 +221,9 @@ Each `[tauntNN]` section defines one combat voice line or audio cue. There are 3
 An actor's taunt list begins at its [RAEX](../formats/RGM.md) `taunt_id` and
 contains `attr_num_taunts` consecutive entries. A zero count creates no list.
 The range is selected per actor; it is independent of which taunt sections are
-present elsewhere in the file. Without RAEX, the first index is zero.
+present elsewhere in the file. Without RAEX, the first index is zero. Each actor
+allocates exactly `attr_num_taunts` pointers and fills them from that range in
+order. The per-actor pointer list has no additional sentinel entry.
 
 The loader creates an empty record for each absent section and an additional
 empty sentinel at `max_taunts`. Empty records have a zero label, type, and
