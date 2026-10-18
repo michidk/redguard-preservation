@@ -2294,6 +2294,22 @@ length is attribute byte 10.
 **Movement and result.** The shared step counter, translation-suppression marker, frame scaling and result
 are those of MoveBackward.
 
+### Fight-spacing directional admission
+
+The left, right and backward destination checks used by fight spacing refuse a
+rope attachment before reading geometry. They accept immediately when lifecycle
+selector 7 has attribute 1 bit zero clear. These early results leave the
+receiver's step-status bytes unchanged.
+
+Otherwise, each check builds and rotates its directional local offset, adds the
+rotated X/Z to the local position and preserves the receiver's Y. It requires a
+nonzero destination body-contact result, a step-hazard result other than exactly
+one, then a nonzero additional destination-admission result, in that order.
+A failed stage skips the later stages and returns zero. Failure ORs `0x20` into
+the step-status byte for left, `0x40` for right, or `0x01` into its companion
+byte for backward. Success returns one without clearing retained status bits.
+The checks themselves do not replace the receiver's position.
+
 ### MoveBackward
 
 `MoveBackward(duration)` is a task that steps the receiver backward relative to its heading. Each
