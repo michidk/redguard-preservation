@@ -249,7 +249,9 @@ order, clears the consumed entries and resets the list count.
 ### Multiple-attacker spacing
 
 The multiple-attacker spacing helper traverses the current target's attacker
-list. Its initial primary neighbor is the first attacker, unless that attacker
+list in ordinary actor-list order. First and next queries exclude the target itself
+and require a combat record targeting it, retained attacker-selection state exactly
+one, and a false `IsDead` result. Its initial primary neighbor is the first attacker, unless that attacker
 is the receiver. It starts a retained distance at 65535. For each later attacker
 other than the receiver, a horizontal query distance strictly below the retained
 distance replaces the primary neighbor and moves the former primary into the
