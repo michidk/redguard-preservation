@@ -1857,6 +1857,35 @@ zero-remainder gate, but this branch does not replace the chosen slot. The final
 return is the fallback or the last priority-branch replacement. No qualifying
 slot leaves the initial choice of zero intact.
 
+### Defence elevation and arc admission
+
+Both tests read the first motion of the receiver's selected attack slot.
+Elevation admission uses the receiver and target's bounds-query positions.
+For each coordinate, that query computes the signed 32-bit wrapping expression
+`position - (negative_extent << 8) + (positive_extent << 8)`, then divides by two
+with truncation toward zero. It does not substitute the actor origin.
+
+Let `d` be target bounds-query y minus receiver bounds-query y, with signed
+32-bit wrapping subtraction. Let `w` be the wrapping sum of the receiver's
+positive and negative x extents, each shifted left eight bits, and let `h` be
+`w / 2`, truncating toward zero. The required elevation is:
+
+- One when `-h > d` and `-(w + h) < d`.
+- Otherwise two when `d > h` and `w + h > d`.
+- Otherwise zero.
+
+All additions and negations in those comparisons wrap as signed 32-bit values.
+The motion passes only when its elevation equals the required value. Band edges
+belong to elevation zero; they do not pass either outer band.
+
+Arc admission subtracts receiver position from target position in each coordinate
+with signed 32-bit wrapping subtraction and arithmetic-shifts each difference
+right eight bits. The resulting vector supplies the bearing. Let `a` be the
+absolute wrapped heading difference between the receiver heading and that bearing,
+and let `c` be the motion's arc centre plus 512. The test passes only when
+`c + arc > a` and `c - arc < a`, using signed 32-bit wrapping arithmetic for the
+bounds. It does not halve the configured arc or include either boundary.
+
 ### DisableHook and EnableHook
 
 `DisableHook` sets and `EnableHook` clears mask `0x02` of the receiver's script-control byte
