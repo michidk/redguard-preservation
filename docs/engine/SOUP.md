@@ -1925,6 +1925,33 @@ terrain slope class at the point is 2. A point with blend coverage 256, a point 
 (surface 3), a point without terrain, and every other surface pass. The slope class is the
 classification of the terrain face normal as for ground support. A failing probe returns zero to its caller.
 
+### MoveForward
+
+`MoveForward(duration)` is a task that steps the receiver forward along its heading. It shares
+[MoveBackward](#movebackward)'s result and movement rules except as listed here.
+
+**Admission.** The call completes without moving when the receiver's rope attachment, sliding state,
+falling state or queued-motion byte is nonzero. There is no lifecycle-byte test. While the two-bit step
+counter in the receiver's motion byte (bits 4 and 5) is below three, the forward step check must also
+pass: it passes when the lifecycle byte is 7 and attribute 1 has bit 0 clear; otherwise it fails when the
+receiver's attribute 1 has bit 1 set and the [step hazard](#nonplayer-combat-decision-target-distance-and-engagement)
+at the destination reports a hazard, where the destination is the receiver's position moved forward by
+half of attribute byte 8 (whole units, times the frame scale, arithmetic shift right eight). A failed check
+completes the call. Admission then stores motion direction 2.
+
+**Combat stance** (the receiver holds a weapon or its combat flag `0x04` is set). The call completes
+without moving when the receiver already has a selected combat move. Otherwise the group is 92 and the
+step length is attribute byte 17.
+
+**Outside combat stance.** In deep water (surface 2 or 4) the edge probe must pass, the group is 142 and the
+distance is halved; otherwise the group is 30 while a torch burns and 18 when not, with step length attribute byte 8.
+
+**Animation and movement.** The call completes without moving when the receiver has no entry for the group.
+Otherwise the group is requested as `PlayAnimation(group, 0)` does, and with the animation system enabled and
+the current group not the requested one the call waits like MoveBackward. The movement heading is the receiver's
+local Y angle (no offset) and the distance is the step length in whole units times 256, scaled and translated as
+for MoveBackward.
+
 ### MoveLeft and MoveRight
 
 `MoveLeft(duration)` and `MoveRight(duration)` are tasks that strafe the receiver. They share
