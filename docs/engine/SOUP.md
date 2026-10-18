@@ -231,6 +231,16 @@ movement for one update. It requests forward movement only if the target distanc
 at least the third range.
 All these movement requests use duration 1.
 
+The facing wrapper uses both actors' local X/Z positions. It first runs the
+[facing-arrival test](#alignment-distance-thresholds), using the speed selected
+by the receiver's current animation group. Arrival copies the target's local
+X/Z to the receiver, leaves Y and heading unchanged, registers the receiver
+for a deferred map update and returns zero. Otherwise, the negated quantized
+heading of the local target displacement supplies the desired heading for the
+[ordinary turn helper](player.md#ordinary-slope-response). Its result is zero
+on a snap and otherwise the signed difference from before the turn step;
+spacing applies its strict angle gate to that result.
+
 When the combat-stance predicate is zero, spacing replaces the near range with
 30000 and triples the far range. It consumes two inclusive 0..32767 random draws.
 The third range becomes three times its original value plus the allocation index
