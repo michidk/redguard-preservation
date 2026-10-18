@@ -1925,6 +1925,19 @@ terrain slope class at the point is 2. A point with blend coverage 256, a point 
 (surface 3), a point without terrain, and every other surface pass. The slope class is the
 classification of the terrain face normal as for ground support. A failing probe returns zero to its caller.
 
+### Nonplayer step hazard
+
+The step hazard test answers whether moving a nonplayer receiver to a destination lands on a steep surface. It
+applies only to receivers whose attribute 1 has bit 1 set; others never report a hazard. The surface at a point
+is resolved with a vertical segment of the post-collide height about the point's centre (the point's Y plus the
+receiver's positive Y extent) against the candidate models and the terrain. Among the contacts, only floor
+(class 4) and steep (class 2) surfaces compete, and the one whose rank is nearest 0x4000 wins; the terrain
+replaces that surface when the segment's top is at or below the terrain height and the model surface is farther from the
+destination's centre than the terrain is. A point with no surface counts as class 1, and when neither the
+destination nor the current position has a surface the result is no hazard. The class comes from the contact
+normal's Y (scale 256): at most -161 is 4, at least 161 is 8, at most -42 is 2, otherwise 1. The test reports a
+hazard when the destination's class is 2.
+
 ### MoveForward
 
 `MoveForward(duration)` is a task that steps the receiver forward along its heading. It shares
@@ -1934,7 +1947,7 @@ classification of the terrain face normal as for ground support. A failing probe
 falling state or queued-motion byte is nonzero. There is no lifecycle-byte test. While the two-bit step
 counter in the receiver's motion byte (bits 4 and 5) is below three, the forward step check must also
 pass: it passes when the lifecycle byte is 7 and attribute 1 has bit 0 clear; otherwise it fails when the
-receiver's attribute 1 has bit 1 set and the [step hazard](#nonplayer-combat-decision-target-distance-and-engagement)
+receiver's attribute 1 has bit 1 set and the [step hazard](#nonplayer-step-hazard)
 at the destination reports a hazard, where the destination is the receiver's position moved forward by
 half of attribute byte 8 (whole units, times the frame scale, arithmetic shift right eight). A failed check
 completes the call. Admission then stores motion direction 2.
