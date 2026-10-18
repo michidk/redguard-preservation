@@ -1912,6 +1912,13 @@ counter-attack index. The subtraction wraps as signed 32-bit arithmetic.
 Both pickers map a winning slot of six, seven or eight to defence kind four.
 If no slot qualifies, they report failure without changing the caller's output.
 
+The current-move counter-attack query returns zero when the receiver has no
+combat record or its action selector is -1 or 9. These cases do not read attack
+or motion metadata. Otherwise, it resolves the receiver's retained attack-slot
+selector and current motion selector, reads that motion's authored one-based
+counter-attack reference and subtracts one with signed 32-bit wrapping.
+The action selector gates the query but is not the attack-table index.
+
 ### Paced defence pick
 
 The initial choice is zero. One random draw in the inclusive range zero through
