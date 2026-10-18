@@ -1929,9 +1929,13 @@ movement update.
 When the defence executor starts or advances to a new motion, it requests the
 animation group, then sets the animation record's finite loop countdown to one.
 This is the same countdown used by `PushAnimation` and the animation interpreter.
-It also clears mask
-`0x20` of the receiver's combat flags. This operation leaves every other bit
-unchanged.
+The move selector is written before the animation request. After the request and
+loop-count write, a start clears target mark `0x10`, sets executor state one,
+raises intent bit one, clears mask `0x20` and subtracts ten from aggression, then
+synchronously requests a type-one timed taunt. A chain step clears the target
+mark, raises intent and subtracts ten before clearing mask `0x20`; it does not
+request another type-one taunt. Animation services therefore run before these
+combat-state changes, and the taunt service sees the committed start state.
 
 ### DisableHook and EnableHook
 
