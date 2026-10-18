@@ -417,6 +417,29 @@ Glyph colors come from the font palette's 6-bit components. Index 9 text shifts 
 left by two bits. Index 7 text shifts them left by one bit, so its glyphs are half as
 bright before the alpha blend with the paper.
 
+### Reader style table
+
+The style index selects an entry of the engine's font table. Each entry is a font
+with a value pair `A,B`; `B` is the main alpha. Entries 0, 3, 4 and 6 are copies of
+`FONTS\REDSEL.FNT`, entry 7 is a copy of `FONTS\FONTNORM.FNT` and entry 8 a second
+copy of it. Entry 9 is `FONTS\FONTSEL.FNT`. Entries 1 and 2 use the font named by
+`SYSTEM.INI [system] gui_low_font`.
+
+| Index | Font | A | B |
+|---|---|---|---|
+| 0 | REDSEL | `[3dfx] font_sel` A | `font_sel` B |
+| 1, 2 | `gui_low_font` | 255 | 255 |
+| 3 | REDSEL | `font_norm` A | `font_norm` B |
+| 4 | REDSEL | `font_used` A | `font_used` B |
+| 6 | REDSEL | 255 | 180 |
+| 7 | FONTNORM; small font `FONTNORS` with `font_norm` A,B | `font_norm` A | 140 |
+| 8 | FONTNORM; no separate small font | `font_used` A | 50 |
+| 9 | FONTSEL; small font `FONTSELS` with `font_sel` A,B | `font_sel` A | `font_sel` B |
+
+Entries without a separate small font draw with the entry itself in the reader, so
+styles 0 to 4, 6 and 8 use the large fonts. Style 7 and 9 text uses the small-font link,
+whose alpha the reader sets to 200 and 255. Index 5 and indices above 9 are not described.
+
 ## Toggle notices
 
 Tab (scan code 15) toggles walk mode and F7 (scan code 65) toggles
