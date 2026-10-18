@@ -1878,7 +1878,9 @@ All additions and negations in those comparisons wrap as signed 32-bit values.
 The motion passes only when its elevation equals the required value. Band edges
 belong to elevation zero; they do not pass either outer band.
 
-Arc admission subtracts receiver position from target position in each coordinate
+Arc admission reads both actors' ordinary local origins and the receiver's local
+heading, without attached or linked query-position substitution. It subtracts
+receiver position from target position in each coordinate
 with signed 32-bit wrapping subtraction and arithmetic-shifts each difference
 right eight bits. The bearing input is ordered `(delta_z, delta_y, delta_x)`
 and normalized to signed Q16 using the [authored-location normalization](#movetolocation-authored-locations).
@@ -2003,7 +2005,8 @@ whose pending field is set.
 taunt selection rules, including the death fallback to the hurt type here expressed as: when
 nothing matched for type 6, the request repeats as type 2.
 
-**All other types, including 1, 3, 4, 5, 7, 8 and 9,** use up to fifteen probes, each choosing a list index `draw * count / 32767`. A
+**All other types, including 1, 3, 4, 5, 7, 8 and 9,** consume fifteen draws, each choosing a list index `draw * count / 32767`,
+even after a record has been selected. A
 probed record of the requested type with a nonzero label becomes the choice when no choice exists
 yet, or otherwise replaces it when `(combat value + frame value) mod 2` is zero, where the combat
 value is the combat record's per-actor value and the frame value is the update's value saved when
