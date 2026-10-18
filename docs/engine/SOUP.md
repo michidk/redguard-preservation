@@ -1925,6 +1925,33 @@ terrain slope class at the point is 2. A point with blend coverage 256, a point 
 (surface 3), a point without terrain, and every other surface pass. The slope class is the
 classification of the terrain face normal as for ground support. A failing probe returns zero to its caller.
 
+### MoveLeft and MoveRight
+
+`MoveLeft(duration)` and `MoveRight(duration)` are tasks that strafe the receiver. They share
+[MoveBackward](#movebackward)'s admission, result and movement rules except as listed here. Admission is
+identical. A call stores motion direction 4 (left) or 5 (right) once admitted.
+
+**Combat stance** (the receiver holds a weapon or its combat flag `0x04` is set). The call completes
+without moving when the receiver's current group is already the strafe group (94 for left, 95 for right,
+or either of the two) or when the receiver has no entry for the strafe group. Otherwise it requests the
+group as `PlayAnimation(group, 0)` does, then turns the receiver's heading: the left call subtracts, and the
+right call adds, attribute byte 84 times the frame scale (arithmetic shift right eight), wrapped to 2047.
+The movement heading is that new heading plus 512 (left) or minus 512 (right), wrapped, and the step length is
+attribute byte 83. No safety check applies.
+
+**Outside combat stance.** The call completes without moving when the lateral step check fails (the
+destination of a step of attribute byte 10 plus the receiver's retained step value, to the left or right of
+the heading, fails the model contact test). In deep water (surface 2 or 4) the edge probe must also pass and the
+group is 143; otherwise the group is 25 left or 27 right while a torch burns, else 24 left or 26 right.
+When the animation system is enabled and the receiver's current group is not the requested one the call
+waits like MoveBackward: one while `duration - 1 > elapsed`, zero otherwise, without moving. With the
+lifecycle byte 15 (hanging at an edge) the call instead runs the lateral edge test and requests group 28 left
+or 29 right. The movement heading is the receiver's heading plus 512 (left) or minus 512 (right) and the step
+length is attribute byte 10.
+
+**Movement and result.** The shared step counter, translation-suppression marker, frame scaling and result
+are those of MoveBackward.
+
 ### MoveBackward
 
 `MoveBackward(duration)` is a task that steps the receiver backward relative to its heading. Each
