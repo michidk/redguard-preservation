@@ -2325,8 +2325,17 @@ rope attachment before reading geometry. They accept immediately when lifecycle
 selector 7 has attribute 1 bit zero clear. These early results leave the
 receiver's step-status bytes unchanged.
 
-Otherwise, each check builds and rotates its directional local offset, adds the
-rotated X/Z to the local position and preserves the receiver's Y. It requires a
+Otherwise, each check builds its directional local offset with signed wrapping
+arithmetic:
+
+| Direction | Local offset |
+|---|---|
+| Left | `[-(attribute10 + negative_x_extent) * 256, 0, 0]` |
+| Right | `[(attribute10 + positive_x_extent) * 256, 0, 0]` |
+| Backward | `[0, 0, -(attribute13 + negative_z_extent) * 256]` |
+
+It rotates the offset by the receiver's stored matrix, adds the rotated X/Z to
+the local position and preserves the receiver's Y. It requires a
 nonzero destination body-contact result, a step-hazard result other than exactly
 one, then a nonzero additional destination-admission result, in that order.
 A failed stage skips the later stages and returns zero. Failure ORs `0x20` into
