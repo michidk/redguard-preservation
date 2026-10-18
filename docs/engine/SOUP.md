@@ -1909,6 +1909,10 @@ near timing value, strictly below 65536. Equal values retain the earlier slot.
 The open picker applies the same rules, but excludes a slot whose one-based
 counter-attack reference minus one equals the receiver's current move's
 counter-attack index. The subtraction wraps as signed 32-bit arithmetic.
+Best selection does not read counter-attack references. Open selection reads the
+candidate counter-attack reference, then queries the current move's counter-attack
+index, only after that slot passes its distance window. An excluded slot does not
+read near timing. Each admitted slot repeats the current-move query.
 Both pickers map a winning slot of six, seven or eight to defence kind four.
 If no slot qualifies, they report failure without changing the caller's output.
 
