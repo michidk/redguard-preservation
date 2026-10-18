@@ -219,6 +219,18 @@ The third spacing range is that sum divided by the number of populated slots,
 including slots whose first motion has another kind. If no slot qualifies,
 the near, far and third ranges are 10000, 30000 and 20000 respectively.
 
+Fight spacing runs only when the action selector is -1. With the combat-stance
+predicate set, it uses the constructor's spacing ranges directly. It first
+turns toward the target and continues only when the absolute returned angle is
+strictly below 128. Below the near range it tries backward, right and left
+movement admission in that order, taking the first result equal to 1.
+Above three times the far range it requests forward walking only if animation
+group 31 exists. Otherwise, above the third range plus half the difference
+between the far and third ranges, it requires group 92 and queries forward
+movement for one update. It requests forward movement and faces the target only
+if the target distance minus that amount is at least the third range.
+All these movement requests use duration 1.
+
 Selected-player maintenance is skipped when its retained entry-inhibition value
 is nonzero. Player initialization clears this value. Player activation replaces
 it with the activation operation's result, so initialization does not make it
