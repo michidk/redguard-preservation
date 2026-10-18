@@ -193,6 +193,12 @@ preserves its allocation index across the clear. Opening a world opens a new
 object-system session, whose combat-record allocation counter starts at zero.
 Closing that session releases its object pool.
 
+Fresh map loading initializes type-one placement models in MPOB file order.
+Cell-owned and separately allocated placements share this traversal; spatial
+cell order does not reorder their model construction. These map models initialize
+before the two standalone player models. The initially selected player model is
+constructed before the alternate player model.
+
 Combat construction copies actor attribute 2 into the record's strength value and attribute 4 into its
 armor value (the values `Strength`, `Armor`, `setStrength` and `setArmor` use). It stores five
 counters as 129 minus attribute 58, 62, 63, 87 and 88 respectively, and four more as copies of attributes
