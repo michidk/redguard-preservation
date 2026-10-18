@@ -1913,6 +1913,10 @@ attribute 16 shifted left eight bits with movement mode one. Its return value do
 not gate the subsequent defence start. The nonplayer kind-four path omits that
 movement update.
 
+When the defence executor starts or advances to a new motion, it clears mask
+`0x20` of the receiver's combat flags. This operation leaves every other bit
+unchanged.
+
 ### DisableHook and EnableHook
 
 `DisableHook` sets and `EnableHook` clears mask `0x02` of the receiver's script-control byte
