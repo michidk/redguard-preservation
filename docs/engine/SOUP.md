@@ -2201,6 +2201,30 @@ the current group not the requested one the call waits like MoveBackward. The mo
 local Y angle (no offset) and the distance is the step length in whole units times 256, scaled and translated as
 for MoveBackward.
 
+### WalkForward
+
+`WalkForward(duration)` delegates to `MoveForward(duration)` in deep water before
+checking its own admission state. For a nonplayer receiver outside deep water,
+a rope attachment, sliding state, falling state or queued motion refuses the
+call. The walk-forward step check must pass before motion direction 6 is stored.
+
+A held weapon or combat flag mask `0x04` selects animation group 31 and attribute
+byte 19 as the step length. Outside combat stance, a burning torch selects group
+21 and otherwise group 20; both use attribute byte 12. A missing group completes
+without requesting animation or translating. An available group is requested
+with frame zero. With animation enabled, a different current group waits without
+advancing the step counter or translating.
+
+The initial movement distance is the selected step length multiplied by 256.
+When that length is zero, the initial distance is instead half of attribute byte
+8, without the multiplication by 256. While the two-bit step counter is below
+three, the existing step-distance adjustment runs and the counter increments.
+Animation translation suppression prevents movement after that adjustment.
+Otherwise, signed wrapping multiplication by frame scale followed by arithmetic
+shift right eight gives the distance. Positive distances translate along the
+receiver's local Y heading, masked to 2047. Duration completion follows
+`MoveBackward`.
+
 ### MoveLeft and MoveRight
 
 `MoveLeft(duration)` and `MoveRight(duration)` are tasks that strafe the receiver. They share
