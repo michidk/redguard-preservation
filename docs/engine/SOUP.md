@@ -2229,6 +2229,30 @@ the current group not the requested one the call waits like MoveBackward. The mo
 local Y angle (no offset) and the distance is the step length in whole units times 256, scaled and translated as
 for MoveBackward.
 
+### Forward movement amount query
+
+Fight spacing's forward amount query shares the forward startup counter and
+step-called state with actual movement. It refuses nonzero rope attachment,
+sliding, falling, queued-motion or living-state values. Below startup counter
+three, it requires the forward step check to pass. It then stores motion
+direction 2.
+
+A held weapon or combat flag `0x04` selects group 106 and attribute 16 for action
+selector 4, or group 92 and attribute 17 otherwise. Outside combat stance it
+selects attribute 8 and group 142 in deep water, group 30 with a burning torch,
+or group 18 otherwise. It requests the group with frame zero. When animation is
+enabled and the requested group is not current, it returns the ordinary duration
+continuation result without marking forward called or advancing the counter.
+
+Once animation permits the step, it marks forward called, multiplies the selected
+step byte by 256 and halves that distance in deep water. Below counter three it
+applies the ordinary startup adjustment and increments the shared counter.
+With translation suppression clear, its return value is the signed wrapping
+product of that adjusted amount and frame scale, shifted right eight. With
+suppression set, it instead returns the adjusted amount without frame scaling.
+It does not translate the receiver. A subsequent movement request therefore
+reads the counter and animation state changed by this query.
+
 ### WalkForward
 
 `WalkForward(duration)` delegates to `MoveForward(duration)` in deep water before
