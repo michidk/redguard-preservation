@@ -2303,8 +2303,8 @@ right shifts are arithmetic, and division truncates toward zero.
 
 At counter three the distance stays unchanged. The packed byte holds left, right,
 forward/walk and backward counters in consecutive two-bit fields, from least to
-most significant. Each direction has a shared called flag. At ordinary update
-cleanup, a direction's counter is cleared only if its called flag is zero;
+most significant. Each direction has a shared called flag, reset at ordinary wrapper entry.
+At ordinary update cleanup, a direction's counter is cleared only if its called flag is zero;
 called directions retain their counters. Collision rollback can separately clear
 the packed byte when restoring the previous position. Entering collision
 processing does not unconditionally clear it.
