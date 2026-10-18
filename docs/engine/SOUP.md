@@ -1880,7 +1880,13 @@ belong to elevation zero; they do not pass either outer band.
 
 Arc admission subtracts receiver position from target position in each coordinate
 with signed 32-bit wrapping subtraction and arithmetic-shifts each difference
-right eight bits. The resulting vector supplies the bearing. Let `a` be the
+right eight bits. The bearing input is ordered `(delta_z, delta_y, delta_x)`
+and normalized to signed Q16 using the [authored-location normalization](#movetolocation-authored-locations).
+The normalized vector uses the signed polar lookup described by
+[camera orientation](#camera-orientation-retention): its positive first axis is
+a quarter turn, its positive third axis is zero, and the lookup result is reduced
+by half a turn and wrapped modulo 2048. A zero horizontal vector yields 1024.
+Let `a` be the
 absolute wrapped heading difference between the receiver heading and that bearing,
 and let `c` be the motion's arc centre plus 512. The test passes only when
 `c + arc > a` and `c - arc < a`, using signed 32-bit wrapping arithmetic for the
