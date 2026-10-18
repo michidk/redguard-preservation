@@ -17,6 +17,8 @@ scales to the output size.
   `SYSTEM.INI [3dfx] font_sel` (shipped `255,255`), Cyrus' lines `font_norm`
   (`125,255`). The main copy is drawn
   with alpha `B`, the shadow copy with alpha `A × 200 / 256` (integer).
+  Glide draws each copy with that value as the constant colour's alpha. Values below 254
+  blend over the scene (source alpha, one minus source alpha); 254 and above draw without blending.
 - For NPC lines using `font_sel`, main glyphs are opaque in the font's own
   palette colours. BPAL entries are 6-bit; index 195 `39,3,14` is crimson and
   index 81 `60,59,11` is yellow. The shadow is the glyph shape in black,
