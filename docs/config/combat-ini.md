@@ -193,6 +193,12 @@ animation group. A single attack copies its move's minimum and maximum ranges.
 A nonempty combo starts its minimum at 65,535 and maximum at -1, then lowers the
 minimum and raises the maximum for each referenced move.
 
+Each attack also retains a damage total, initialized to zero. A single attack adds
+its move's damage; a combo adds each referenced move's damage in authored order.
+The additions wrap as signed 32-bit values. A combo with no moves retains zero
+damage. Defence pacing reads this accumulated total, rather than only the first
+motion's damage.
+
 ## Actor Move Selection
 
 Combat initialization binds nine attack slots from actor attribute bytes 70
