@@ -1916,7 +1916,7 @@ looked up in the terrain material rules of [terrain material blend coverage](pla
 The probe fails (blocks the move) only when the resolved surface is 10 with blend coverage 0 and the
 terrain slope class at the point is 2. A point with blend coverage 256, a point with partial coverage
 (surface 3), a point without terrain, and every other surface pass. The slope class is the
-classification of the terrain face normal as for ground support. A failing probe returns zero to its caller, which ends the step.
+classification of the terrain face normal as for ground support. A failing probe returns zero to its caller.
 
 ### MoveBackward
 
