@@ -1119,6 +1119,19 @@ byte of the actor's runtime identifier. It clears the actor's current and next
 indices even when another actor owns the node. An index at or above the node
 count does not address a node during release.
 
+Current-node assignment releases the held next node before the held current
+node. When a next node was held, it first copies that index to the actor's
+previous-next record. Next-node assignment instead releases current before
+next and leaves the previous-next record unchanged. Both operations clear the
+released indices even when another actor owns their nodes.
+
+After releasing, assignment claims the requested node only when its ownership
+byte is zero or matches the low byte of the actor identifier. A successful claim
+writes that low byte and the corresponding current or next index, and returns
+one. A rejected claim returns zero with both held indices cleared. With no map,
+both held indices are cleared and assignment returns zero without changing the
+previous-next record. Neither assignment changes the final destination.
+
 ### Nearest free walk node
 
 Combat perception can search all loaded walk maps for a free node before
