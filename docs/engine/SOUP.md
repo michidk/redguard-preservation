@@ -1329,6 +1329,16 @@ is preserved, and the actor is registered for a deferred map update. Registratio
 deduplicates the actor, including when the enclosing pending path also registers
 it. A missing map reports held-node arrival before reading a node.
 
+Phase two releases held nodes and selects phase zero when no next node is held.
+Otherwise it faces the next node when the animation exit marker is clear,
+ignoring that facing result, then invokes coordinate walking toward the node
+with tolerance zero. A pending walk retains phase two. A completed walk performs
+default-animation admission and the held-node arrival test with tolerance zero.
+A failed arrival selects phase zero without releasing held indices. Successful
+arrival assigns the next node as current and selects phase eight even when the
+claim fails. These pending paths set lifecycle selector seven, leave attribute
+1 at 12 and register one deferred map update.
+
 ### Coordinate walking and rollback
 
 Coordinate walking saves local position, the packed movement byte and retained
@@ -1344,9 +1354,10 @@ destination. Local Y remains the saved Y. Otherwise it retains the movement
 result and returns one.
 
 An initial arrival also snaps local X/Z and retains local Y. After either snap,
-default-animation admission determines the return. Successful admission returns
-zero. Rejected admission sets the animation receiver's movement-completion byte
-to one and returns one. The empty animation-stop call changes no playback state.
+default-animation admission runs and the coordinate walker returns zero.
+Default-animation admission returns one on every ordinary return, whether it
+issues a forced request or skips it. It does not forward the forced request's
+return value. The empty animation-stop call changes no playback state.
 
 ### Walk-node arrival distance
 
