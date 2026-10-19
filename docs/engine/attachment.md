@@ -93,6 +93,13 @@ two subtracts signed 16-bit deltas from the base vertex, using a factor of
 1/256 unless runtime flag `0x10` selects unscaled deltas. Each resulting
 coordinate is stored as single precision.
 
+The animation-vertex query's disable gate is the dummy 3D manager state.
+Initialization reads `[3dmanager] dummy_manager` from SYSTEM.INI, while the
+`dm` command-line option forces that state to one. Static-angle conversion,
+selected by `[debug] convert_static_angles` or the `convert` option, also
+forces dummy-manager state to one when enabled. The query's disable comparison
+accepts exactly one as disabled.
+
 A successful animation-frame vertex lookup supplies floating-point coordinates.
 The animation-vertex wrapper multiplies each coordinate by 256 and stores each
 product as single precision before converting the stored values to integers
