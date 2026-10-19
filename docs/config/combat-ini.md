@@ -223,6 +223,11 @@ leaves the slot empty without advancing the cursor, so all remaining defense
 slots also stay empty. Defense selection therefore uses only the nonzero prefix
 of attribute bytes 79 through 82. A zero selector does not select `defend00`.
 
+Binding a nonzero defense slot marks its shared defense record available and
+stores the actor animation group's signed frame count in that record. An absent
+animation group supplies zero. The four-slot availability query succeeds when
+one bound record has its availability marker equal to one.
+
 ## `[tauntNN]` Sections
 
 Each `[tauntNN]` section defines one combat voice line or audio cue. There are 379 sections with indices spanning 00–599, with large gaps between combatant blocks.
