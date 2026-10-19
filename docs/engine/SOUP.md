@@ -2505,7 +2505,7 @@ by the bound actor's angles. The actor's `attr_camera_move` byte then selects:
 |---|---|---|
 | 0 | rotated argument vector + rotated offset + bound position | set `0x08`, clear `0x04` |
 | 1 | rotated argument vector + rotated offset | set `0x04`, clear `0x08` |
-| 2 | record distance = vector length >> 8; angle offset += angles of the rotated vector, each wrapped to 2047 | clear `0x08` and `0x04` |
+| 2 | record distance = rounded length of the rotated argument vector >> 8; angle offset = angles of that vector (the camera orientation conversion) plus the bound actor's angles, each wrapped to 2047 | clear `0x08` and `0x04` |
 
 Other values write no request. The handler then runs one camera update, clears
 flag `0x01`, and returns one. Later invocations run the scripted-camera release
