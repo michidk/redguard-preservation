@@ -256,8 +256,8 @@ supply speed zero. Admission copies all three target coordinates after shifting
 right and then left by eight, preserving heading, and refreshes spatial/model
 registration. Rejection leaves position unchanged. This helper snaps on arrival;
 it does not move along a path. If neither alignment nor point arrival handles the
-update, the disengaged branch requests one update of forward walking when the
-shared target distance is below 500001, and one update of standing otherwise.
+update, the disengaged branch requests `MoveForward(1)` when the shared target
+distance is below 500001, and `WalkForward(1)` otherwise.
 
 When the combat-stance predicate is zero, spacing replaces the near range with
 30000 and triples the far range. It consumes two inclusive 0..32767 random draws.
