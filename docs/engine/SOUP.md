@@ -541,6 +541,17 @@ emits message `0xd000` from defender to attacker, requests defender taunt catego
 4, clears intent masks `0x01` and `0x02` on the defender followed by the attacker,
 and toggles defender flag `0x08`. It returns one. Other combat flag bits survive.
 
+### Defence contact window
+
+The defence window compares the signed animation command cursor against the
+current motion's defence start and duration. It includes the start and excludes
+the end: `start <= cursor < start + duration`. The end uses signed 32-bit
+wrapping addition. A cursor before the start returns zero without reading the
+duration. Otherwise the query reads start again, then duration, then the cursor
+again before comparing the end. Zero and negative durations have no separate
+admission rule. This query does not read the attack-contact mark or playback
+direction.
+
 ### Motion contact selection
 
 A motion whose `col_sphere_size` is zero uses the range/arc contact path. A
