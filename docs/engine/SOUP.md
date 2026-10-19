@@ -1905,12 +1905,16 @@ lifecycle state 8 and killed, it has a combat record, and its own combat target 
 
 **Target selection.** When the receiver's combat target is not valid, the target becomes
 the selected player, whether or not the player is itself a valid target, and the target's
-current position (twelve bytes) is copied into the receiver's combat record.
+local position is copied into the receiver's retained target position. A valid
+target leaves that position unchanged until engagement succeeds.
 
 **Distance and counter.** The distance from the receiver to its target uses the query
 positions of both actors (attached, linked or local, as for the fighting query) and the
 three-dimensional rounded distance. While that distance is below 25000 a counter in the combat
-record increments each pass; otherwise the counter is zero.
+record increments once per pass with signed 32-bit wrapping; otherwise the
+counter is zero. Combat construction and reinitialization clear this counter
+and the retained target position. After engagement succeeds, the target's local
+position replaces the retained target position before either pursuit helper runs.
 
 **Engagement.** The receiver is engaged when `attr_combat_ignore_in_sight` is nonzero.
 Otherwise, with `attr_combat_long_sight` nonzero, it is engaged when the target is in sight
