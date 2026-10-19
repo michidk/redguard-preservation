@@ -2503,6 +2503,55 @@ zero, or `(value - 127) * 500` otherwise. The signed results replace the selecte
 camera record's target-offset and camera-offset vectors. This conversion does
 not change the actor attributes or the other fields in the camera record.
 
+### Selected record and selected index
+
+The engine keeps the selected camera record and a separate selected-index word.
+Camera record selection sets both. The movement limiter's slot-one test, the
+orientation stage and the distance-height stage read the index word; every other
+stage reads the selected record. A pan leaves the index on the slot being panned
+while the selected record is record two.
+
+### showPlayerPan
+
+`showPlayerPan(duration)` is a task with one argument. It increments the same
+private word as `showPlayer`. A negative duration is a fatal engine error.
+
+On the first invocation (private word one, elapsed zero) it:
+
+1. takes the slot the player camera selector requests, or zero, and makes that
+   record the selected record directly, without the selection guard;
+2. begins a scripted camera;
+3. copies the requested slot's record into record two and sets the selected
+   index to the slot (the selected record stays whichever record the begin step
+   left selected);
+4. binds the selected record to the selected player;
+5. records the camera's current offset from the player,
+   `published position - record position offset - bound position`, as the start
+   vector. The start distance is that vector's rounded length shifted right eight.
+   The start angles are the camera orientation conversion of the vector. The
+   target is the record's angle offset minus the bound angles (not wrapped), and
+   the delta is the target minus the start angles with each component wrapped
+   once into half a turn either side of zero (below -1024 add 2048; above 1024
+   subtract 2048).
+
+Every invocation then runs the scripted-camera release step with `duration`.
+While it reports running and `duration` is greater than one, the selected record's
+flags `0x04` and `0x08` are cleared and, with `span = duration - 1`:
+
+- each angle offset component is the bound angle plus the start angle plus
+  `delta * elapsed / span`;
+- the distance is the start distance plus `(record distance - start distance) * elapsed / span`;
+
+products wrap as signed 32-bit values and division truncates toward zero. The task
+returns one.
+
+Otherwise (the release step finished, or `duration` is one or less) the selected
+record receives the target as its angle offset and its own distance, flags `0x01`
+and `0x20` are cleared, the `showPlayer` step runs (it increments the private word
+again, selects the requested slot through the selection guard and clears flags
+`0x21` on it) and the task returns zero. Only record two is edited, so the slot's
+own record is unchanged afterwards.
+
 ### Location camera request
 
 The first invocation of the location-camera handler (counter one, elapsed zero)
