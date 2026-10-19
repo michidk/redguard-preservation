@@ -85,6 +85,14 @@ At each frame, the engine reads the tracked vertex position through this call ch
 
 ### Actor model-point conversion
 
+The runtime model-frame vertex query reads frame zero directly from its stored
+floating-point base vertices. Later frames with encoding nibble zero convert
+signed 32-bit coordinates to floating point with a factor of 1/256. Encoding
+nibble one subtracts signed byte deltas from the base vertex. Encoding nibble
+two subtracts signed 16-bit deltas from the base vertex, using a factor of
+1/256 unless runtime flag `0x10` selects unscaled deltas. Each resulting
+coordinate is stored as single precision.
+
 A successful animation-frame vertex lookup supplies floating-point coordinates.
 The animation-vertex wrapper multiplies each coordinate by 256 and stores each
 product as single precision before converting the stored values to integers
