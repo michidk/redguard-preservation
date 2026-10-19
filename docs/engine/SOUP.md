@@ -2845,20 +2845,13 @@ orientation matrix is rebuilt. When the receiver's rotation mode (attribute 28)
 is one, an alternate construction builds the matrix. Otherwise the matrix starts
 as the identity and takes rotations of the negated yaw, then pitch, then roll.
 
-### KillMyTasks
-
-`KillMyTasks` takes no arguments, acts on the receiver and returns zero. It zeroes
-the receiver's seven per-slot task arrays, of 24, 24, 6, 6, 12, 24 and 24 bytes
-(six slots each), so every task slot is empty afterwards. It does not change any
-flag byte.
-
 ### XResetCamera
 
 `XResetCamera` takes no arguments, acts on no receiver state and returns zero. In
 order, it:
 
 1. Runs the `LockoutPlayer` routine for the selected player with zero.
-2. Runs the [`KillMyTasks`](#killmytasks) operation on the selected player and
+2. Runs the [`KillMyTasks`](#taskstop-taskpause-and-taskresume) operation on the selected player and
    clears five flag bits (`0x01`, `0x02`, `0x04`, `0x08`, `0x10`) of the actor byte
    that immediately precedes its task arrays.
 3. Rebuilds the selected player's orientation matrix from its current angles and
