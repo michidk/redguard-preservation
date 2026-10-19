@@ -2814,6 +2814,20 @@ scripted-camera active word and its nesting count are zero. Setup then computes
 the first published pose with one pass of the pose stage that omits movement
 limiting, and stores it as both the current and the previous pose.
 
+### ResetRotation
+
+`ResetRotation(x, y, z)` acts on the receiver and returns zero. The actor keeps a
+triple of the pitch, yaw and roll it was created with (the angles it has when it
+is allocated; the player swap copies it between player records and
+[`XResetCamera`](#xresetcamera) sets it to the current angles). For each argument
+that is nonzero, the receiver's pitch (`x`), yaw (`y`) or roll (`z`) is replaced
+by that retained component.
+
+The previous-angle history then becomes the receiver's current angles, and its
+orientation matrix is rebuilt. When the receiver's rotation mode (attribute 28)
+is one, an alternate construction builds the matrix. Otherwise the matrix starts
+as the identity and takes rotations of the negated yaw, then pitch, then roll.
+
 ### KillMyTasks
 
 `KillMyTasks` takes no arguments, acts on the receiver and returns zero. It zeroes
