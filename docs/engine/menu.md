@@ -40,6 +40,16 @@ calls `LockoutPlayer(0)`, clearing the retained lockout and applying its
 (the Introduction), then loads world zero at marker zero. Movie playback
 finishes or follows its configured skip points before map loading begins.
 
+`WonGame` ends the world loop with a won result (see
+[session requests](SOUP.md#session-requests-loadworld-wongame-pushplayer-and-popplayer)).
+The engine then runs the ending instead of showing a menu page: sound effects
+stop, the CD pauses, movie 4 plays under the [movie rules](movies.md) (`WIN.SMK`
+in the installed MENU.INI, with its configured skip point), and the credits
+scroll plays. The credits stop the CD when they end or when Escape is pressed.
+When `CREDITS.TXT` cannot be loaded the credits are skipped and the paused
+world track resumes. F10 in a world plays the same credits scroll without the
+movie.
+
 The menu inherits the current engine lighting and environment state. The default
 book menu has no pointer hover or click selection. Pointer coordinates do not
 determine the selected entry. Mouse buttons and motion have input codes in
