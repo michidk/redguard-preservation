@@ -628,6 +628,24 @@ depend on living state. Otherwise the update clears the high bit of both
 bytes, subtracts the low byte of the shared tick count with byte wrapping, and
 clamps a negative signed-byte result to zero.
 
+### Rope attachment removal
+
+Ropes own doubly linked lists of attachment nodes. Each node retains its actor,
+rope position and motion value. The actor retains the node identity. Owner
+lookup scans the rope list and each attachment list by node identity; an absent
+owner prevents removal.
+
+Removal reconnects both neighboring nodes and replaces the rope's head when the
+removed node is the head. With a retained actor whose attachment is either this
+node or null, removal applies detach motion, clears the actor's attachment and
+pitch, and sets its rope countdown to 24 before releasing the node. If the actor
+instead names another attachment, those actor writes are skipped. The removed
+node is released after the list and eligible actor updates.
+
+For the detach direction branch, the rope's angle flag enables a heading test.
+The signed heading difference wraps over 2048 units. An absolute difference
+strictly greater than 16 flips the rope's direction bit for that detach.
+
 ### Contact death animation dispatch
 
 A null receiver does nothing. Selector zero first checks for animation group 122
