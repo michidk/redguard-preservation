@@ -1134,6 +1134,21 @@ first candidate. An improving candidate below distance 12 returns immediately,
 even if a later node would be closer. The shared winning map is cleared before
 searching. A miss leaves it absent and returns node index -1.
 
+### Point-navigation command state
+
+The point-navigation wrapper copies four retained actor values into shared
+command scratch before the navigation core runs and copies them back afterwards:
+a 32-bit command value, a 16-bit command word, a phase byte and a counter byte.
+The copy-back occurs for either navigation-core return value. Alternating actors
+therefore retains each actor's own four values rather than inheriting the last
+actor's scratch contents.
+
+Common actor initialization sets the command word to 0xFFFF. It leaves the
+32-bit command value, phase and counter unchanged; fresh allocation clears those
+fields before common initialization. A separate shared 32-bit pause delay is
+outside these copies. Loading or saving an actor's command values does not reset
+that delay.
+
 ### Walk-node arrival distance
 
 Node arrival compares horizontal distance from the actor's local position to
