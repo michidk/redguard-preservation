@@ -1072,6 +1072,12 @@ current-node, next-node and final-destination indices to -1. Later actor loading
 or navigation can assign a map and node; raw allocation zeroes do not describe
 these initialized navigation indices.
 
+Map placement loading supplies the authored local position before loading the
+actor. Actor loading then assigns its current node and map through the general
+nearest-node query, using each local coordinate shifted right by eight. This
+initial association does not add the actor's Y extent and does not filter node
+reservations. It is separate from the combat nearest-free-node search.
+
 An actor without a current walk map clears its current-node, next-node and
 final-destination indices to -1. An enabled map remains valid when each of those
 indices is below its node count; the -1 unset sentinel is allowed.
