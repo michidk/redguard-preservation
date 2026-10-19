@@ -132,16 +132,26 @@ Items are loaded from a ROB file keyed as `"ITEMS"` (`INVENTRY.ROB`). The item i
 
 ## Attachment Transform
 
-Two nearly-identical functions compute the held item's world transform. Both:
+The drawn-weapon routine queries the signed RAEX grip vertex pair from the
+actor's current animation handle and frame. It adds the supplied local offsets
+to each vertex with signed 32-bit wrapping, then transforms both points through
+the actor matrix. The transformed points supply the direction calculation.
 
-1. Read two vertex positions from the actor's current animation frame (via the tracked vertex index).
-2. Add world position offsets.
-3. Rotate by the actor's orientation matrix (actor struct `+0x51`).
-4. Compute heading and pitch from the direction between the two points.
-5. Build item rotation from the computed direction + actor roll.
-6. Set item world position = vertex position + (actor radius × scale factor).
+The attachment matrix starts as identity. Its successive rotations use the
+negated direction heading, one quarter-turn minus the direction pitch, and the
+negated actor roll. Each angle is masked to 2047. The actor retains pitch plus
+one quarter-turn, heading, and roll, each masked to the same range.
 
-The two routines differ in scale factor, corresponding to the "in-hand" and "on-hip/scabbard" attachment positions.
+For each attachment-position component, subtract the first transformed vertex
+from the second with signed 32-bit wrapping, shift the difference arithmetically
+right one bit, add the first vertex with wrapping, and shift that result
+arithmetically right eight bits. Add this integer midpoint to the actor's
+floating position and store the sum as single precision. Separately, the actor
+retains the first transformed vertex plus its floating position multiplied by
+256, converted to a signed integer by truncation.
+
+If attachment allocation fails, the routine performs no vertex queries or
+transform publication.
 
 ## Weapon State Machine
 
