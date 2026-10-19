@@ -1156,6 +1156,27 @@ back to the same slot. The point-navigation actor fields and the native task
 continuation are therefore distinct retained owners of values used during the
 same command invocation.
 
+The six-slot resume pass visits slots in order. An empty or paused slot saves the
+current shared scratch into that slot without invoking its native call. An active
+slot loads its retained scratch before invoking the native call. A still-pending
+call saves the resulting scratch. A completed call clears its call pointer and
+blocking flags without saving the resulting scratch back to its slot. Its resulting
+shared scratch remains available to later slots and actors. Each invoked slot
+increments its unsigned 16-bit call count once. The pass sums the blocking flags
+of still-pending calls with byte wrapping.
+
+The ordinary actor main stage performs native-hook and combat maintenance before
+its body/task processing. Task resumption can therefore replace command scratch
+for a later actor even when that later actor has no active task of its own.
+The direct native-call dispatcher does not clear the shared pause delay.
+
+Point navigation validates the actor's map and held-node indices before checking
+the pause delay. A nonzero unsigned 32-bit delay consumes the shared nominal tick
+count with saturation at zero and returns pending for that invocation, including
+when the subtraction reaches zero. Routing resumes on a later invocation. The
+delay is shared across actor invocations, so another actor can consume the
+remaining delay. This delay is distinct from the signed combat lost-sight timer.
+
 ### Walk-node arrival distance
 
 Node arrival compares horizontal distance from the actor's local position to
