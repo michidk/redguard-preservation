@@ -340,6 +340,10 @@ common initialization. The death selector and object-update exclusion therefore
 start at zero, and the combat-state association starts absent. These are
 allocation values, separate from later player-role setup and gameplay changes.
 
+Both standalone player roles use the same cleared object allocator before
+player-specific initialization. Their collision metadata therefore also starts
+at zero.
+
 A fresh ordinary actor's collision metadata byte starts at zero. When its initial
 model uses the static load path, the loader copies the collision byte from the
 matching named ROB segment when that segment exists. The MPOB static-model
