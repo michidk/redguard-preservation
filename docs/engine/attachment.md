@@ -124,7 +124,9 @@ Item definitions come from the `ITEMS` section of the configured item INI. Model
 
 World loading replaces the selected world-map filename's extension with `ROB`
 and loads that archive into the primary model registry before initializing item
-geometry. The inventory-item display loads `INVENTRY.ROB` into the secondary
+geometry. Model filename resolution discards authored directory components and
+uses the configured art directory, whose empty-setting default is `FXART\\`.
+The inventory-item display loads `INVENTRY.ROB` into the secondary
 registry; menu presentation loads `MENU.ROB` into that same secondary registry.
 Loading a registry replaces its previous contents.
 
