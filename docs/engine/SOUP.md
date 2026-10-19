@@ -538,8 +538,8 @@ Mode one returns zero when a face-group bound admits the segment, without
 scanning its faces. Mode two returns zero after model-radius admission, without
 visiting face groups. These modes are separate from the shared polygon-sidedness
 flag. Its initial stored value is enabled, and initialization also enables it.
-The temporary query scopes which disable it restore it to enabled before returning. The weapon contact caller does not
-assign the flag. With sidedness enabled, the face query rejects a segment whose
+The temporary query scopes which disable it restore it to enabled before
+returning. The weapon contact caller does not assign the flag. With sidedness enabled, the face query rejects a segment whose
 start lies more than four map units behind the authored face plane.
 
 A model without an actor owner uses installed `[misc] sword_clank_1`, with volume
@@ -548,6 +548,21 @@ Candidate type exactly one repeats the impact sound with a separate random draw.
 Other candidate types request one sound. The scan continues to later candidates
 and leaves attack intent set. Models with actor owners use the actor-response
 path separately from this unowned-model response.
+
+### Actor-owned face contact
+
+An actor-owned face candidate still receives the model segment query, but the
+result does not gate its actor contact test. A successful actor contact must also
+pass the target rejection check. For attackers with attribute 97 equal to zero,
+this admits the impact response directly. Other attackers require either the
+attacker-kind predicate or combat flag four.
+
+The response requests the attacker's attribute-86 effect at volume zero and
+pitch offset `rnd(128) * 16 - 1024` Hz, then flushes the sound request. A target
+with nonzero health receives negative attack damage, followed by a health read.
+A result below one dispatches its death response with selector zero. Zero health
+skips damage and death dispatch. Processing continues to later face candidates
+and retains attack intent, including after a successful response.
 
 ### Hit-defence response
 
