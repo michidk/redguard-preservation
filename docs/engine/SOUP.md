@@ -604,6 +604,24 @@ flag. The receiver is admitted when either test succeeds; otherwise it is left
 unchanged. An admitted selected receiver forwards to the corresponding selected
 health service with no source actor.
 
+### Retained health source context
+
+The ordinary entry/task/main interpreter entry establishes its executing actor
+as the shared native-command source before entry continuation or the existing-task
+gate. It establishes this source even when an unpaused task prevents the main body.
+The separate task-actor update uses the same interpreter entry.
+
+The alternate entry/main path selected by script-control mask `0x04` does not
+replace that source actor. It retains the source from the previous assigning
+entry while bypassing the existing-task pass. Both entry paths capture the
+current shell-execution context before interpreting entry work.
+
+`AdjustHealth` reads this retained source independently of the receiving actor.
+For a selected-player receiver, identity equality converts the source to null;
+a different retained actor remains the source. The source is therefore not
+recomputed from an object-targeted health receiver or from the actor entering
+the alternate main path.
+
 ### Selected-player additive health
 
 Selected-player initialization clears hit inhibition, sets session maximum health
