@@ -642,8 +642,8 @@ inhibition to 16. This byte is separate from hit rejection and combat-decision
 inhibition.
 
 The state-17 transition requests group 56 and clears living state when the
-receiver is the selected player, attribute 105 is not one, the weapon-drawn flag
-is clear, and neither current group 149 nor 150 blocks it. Those groups block
+receiver is the selected player, attribute 105 is not one, the torch-burning
+counter is zero, and neither current group 149 nor 150 blocks it. Those groups block
 only while animation is enabled and shell context is clear. The animation
 request precedes the living-state clear. Other combinations retain state 17.
 
