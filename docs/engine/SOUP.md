@@ -1067,6 +1067,9 @@ marker argument is an unscaled signed index, distinct from the distance units.
 
 ### Navigation map validation
 
+Walk-map construction clears its runtime disabled byte, so newly loaded maps
+are enabled. This byte is separate from installed node reservation bytes.
+
 Common actor initialization clears the current walk map and sets the held
 current-node, next-node and final-destination indices to -1. Later actor loading
 or navigation can assign a map and node; raw allocation zeroes do not describe
