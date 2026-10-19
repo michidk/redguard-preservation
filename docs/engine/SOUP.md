@@ -1187,6 +1187,14 @@ The copy-back occurs for either navigation-core return value. Alternating actors
 therefore retain each actor's own four values rather than inheriting the last
 actor's scratch contents.
 
+After copying command state back, the wrapper measures rounded horizontal
+Q8 distance between the local position and the retained previous local position.
+It compares that distance with the frame scale shifted left by 13 with 32-bit
+wrapping, interpreted as signed and arithmetically shifted right by eight.
+A strictly greater distance restores all three local coordinates from the
+previous position. Equality retains the new position. This rollback does not
+undo command-state copy-back or change the navigation core's return value.
+
 Common actor initialization sets the command word to 0xFFFF. It leaves the
 32-bit command value, phase and counter unchanged; fresh allocation clears those
 fields before common initialization. A separate shared 32-bit pause delay is
