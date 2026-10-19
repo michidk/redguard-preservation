@@ -220,9 +220,9 @@ including slots whose first motion has another kind. If no slot qualifies,
 the near, far and third ranges are 10000, 30000 and 20000 respectively.
 
 Fight spacing runs only when the action selector is -1. With the combat-stance
-predicate set, it uses the constructor's spacing ranges directly. It first
-turns toward the target and continues only when the absolute returned angle is
-strictly below 128. Below the near range it tries backward, right and left
+predicate set, it uses the constructor's spacing ranges directly. Both stance
+paths turn toward the target after preparing their ranges and period, and continue
+only when the absolute returned angle is strictly below 128. Below the near range it tries backward, right and left
 movement admission in that order, taking the first result equal to 1.
 Above three times the far range it requests forward walking only if animation
 group 31 exists. Otherwise, above the third range plus half the difference
@@ -235,9 +235,12 @@ The facing wrapper uses both actors' local X/Z positions. It first runs the
 [facing-arrival test](#alignment-distance-thresholds), using the speed selected
 by the receiver's current animation group. Arrival copies the target's local
 X/Z to the receiver, leaves Y and heading unchanged, registers the receiver
-for a deferred map update and returns zero. Otherwise, the negated quantized
-heading of the local target displacement supplies the desired heading for the
-[ordinary turn helper](player.md#ordinary-slope-response). Its result is zero
+for a deferred map update and returns zero. Otherwise, the [quantized actor heading](player.md#direction-recovered-from-displacement)
+of the local target displacement supplies the desired heading for the
+[ordinary turn helper](player.md#ordinary-slope-response). Positive X selects
+1536, negative X selects 512, positive Z selects zero and negative Z selects 1024.
+The lower-level bearing result has the opposite sign; that result is negated
+once to obtain the actor heading. Its result is zero
 on a snap and otherwise the signed difference from before the turn step;
 spacing applies its strict angle gate to that result.
 
