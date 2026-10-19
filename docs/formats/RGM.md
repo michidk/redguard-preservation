@@ -234,6 +234,11 @@ node ownership bytes regardless of owner.
 
 ### Runtime node selection
 
+WDNM maps load in file order and each new map is prepended to the runtime map
+list. Runtime traversal therefore visits maps in reverse file order. Nodes
+within each map retain their file index order. Map identifiers are assigned in
+load order independently of runtime list position.
+
 The nearest-node query traverses the loaded map list and each map's nodes in
 index order. It compares the sum of absolute X, Y and Z differences, using
 unsigned X/Z and signed Y from the node record. The query uses unscaled node
