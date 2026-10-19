@@ -2418,6 +2418,12 @@ The result is true when no entry blocks.
 The defence selection runs only while the receiver is armed and the global combat
 lockout is clear. With no move selected, the target must lie inside the receiver's
 forward arc and its distance must be strictly below the receiver's far window.
+The forward-arc query subtracts the receiver's local position from the target's
+local position with signed 32-bit wrapping arithmetic, then arithmetic-shifts each
+coordinate right by eight. It obtains the normalized vector's orientation and
+compares the receiver's local yaw with `(1024 - vector_yaw) & 2047`. The absolute
+wrapped difference must be strictly below 256 heading units. Composed query poses
+are not substituted for these local positions.
 The defence counter becomes one when the headings differ by less than 256 heading
 units or the target is outside combat stance. Otherwise it becomes `129 - attribute 58`.
 A target is in combat stance when it is armed or its combat flag mask `0x04` is set.
