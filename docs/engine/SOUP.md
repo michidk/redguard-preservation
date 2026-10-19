@@ -2578,6 +2578,25 @@ single precision, then stores their summed squared distance at single precision.
 It also stores the model radius plus added radius at single precision before
 squaring that combined radius for comparison. Equality admits the model.
 
+### Camera collision candidate eligibility
+
+Candidate collection scans two linked object lists in order and appends model
+references to one candidate array. A model equal to the caller's excluded model
+is skipped in both lists.
+
+Entries of the first list carry a model and a bounds record. An entry is a
+candidate when its model and bounds are present, the bounds radius is strictly
+greater than the obstacle cutoff, and the segment bounds test accepts the model.
+
+Entries of the second list are actors. An actor is a candidate when it has a
+model bounds record, is not excluded from ordinary object updates, and then
+passes the same model, radius and bounds tests. The bounds-record flag is set
+when the actor's script and model load establishes its bounds; the exclusion is
+the flag the ordinary object-update loop tests.
+
+The candidate array holds 64 entries. Appending a sixty-fifth is a fatal engine
+error.
+
 ### Camera collision result selection
 
 The query arithmetic-shifts each fixed-point endpoint component right by eight
