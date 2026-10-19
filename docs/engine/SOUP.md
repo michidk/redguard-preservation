@@ -1349,6 +1349,21 @@ arrival assigns the next node as current and selects phase eight even when the
 claim fails. These pending paths set lifecycle selector seven, leave attribute
 1 at 12 and register one deferred map update.
 
+### Point direct visibility
+
+Point direct visibility reads the receiver's query position and compares the
+rounded three-dimensional Q8 distance to the destination with an inclusive
+limit of 131072. A larger distance rejects before model tests. The segment
+endpoints are each shifted right by eight to integer map coordinates.
+
+The query visits the prepared mixed-model candidates in order. A type-16
+candidate is skipped before geometry when its actor is the receiver or selected
+player, or its model is the receiver's own model instance. Other candidate types
+do not receive that early exclusion. Model segment tests use the two-sided
+query. A zero or failure result does not block. A successful model result blocks
+unless the candidate actor is the receiver; that receiver exception occurs
+after the geometry call. The first blocking result rejects immediately.
+
 ### Phase-eight route monitoring
 
 An unset current node releases held nodes and selects phase zero. Otherwise
