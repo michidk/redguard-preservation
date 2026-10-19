@@ -564,6 +564,19 @@ A result below one dispatches its death response with selector zero. Zero health
 skips damage and death dispatch. Processing continues to later face candidates
 and retains attack intent, including after a successful response.
 
+### Contact damage and nonplayer health
+
+Contact damage reads the receiver's retained attack slot and motion selector.
+A negative attack slot returns zero; otherwise the selected motion's signed
+`damage` value is returned without additional arithmetic.
+
+The nonplayer additive health routine first rejects a nonzero attribute 120.
+If attribute 97 is nonzero, it also requires either the actor-kind predicate or
+combat flag four. These checks precede the health write. An admitted change adds
+the signed change to the unsigned health byte with signed 32-bit wrapping, then
+clamps the result to zero through 255. This additive routine does not dispatch
+death itself; the contact caller reads health and owns that dispatch.
+
 ### Hit-defence response
 
 The candidate's hit-defence query requires the attacker to have combat state and
