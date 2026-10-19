@@ -300,6 +300,12 @@ square root. The root multiplied by 1/65536 is stored as a single-precision
 divisor. A zero divisor produces a zero vector. Otherwise each component divided
 by that divisor is stored as single precision, then converted to a signed integer
 with nearest-even rounding. The angle conversion consumes this normalized vector.
+Its Y angle is the negative of the [quantized actor heading](player.md#direction-recovered-from-displacement)
+from normalized X/Z, minus 1024, wrapped modulo 2048. Normalized Y influences
+this result through the shared three-dimensional normalization, even though the
+heading query itself uses only X/Z. The zero vector produces Y angle 1024.
+Normalization can round a small horizontal component to zero, so taking the
+heading directly from the unnormalized displacement is not equivalent.
 
 The threshold is `[misc] non_engaged_spacing` from `COMBAT.INI`, stored without
 scaling. Absolute values use signed wrapping negation. With primary and secondary
