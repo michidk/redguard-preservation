@@ -1914,7 +1914,9 @@ three-dimensional rounded distance. While that distance is below 25000 a counter
 record increments once per pass with signed 32-bit wrapping; otherwise the
 counter is zero. Combat construction and reinitialization clear this counter
 and the retained target position. After engagement succeeds, the target's local
-position replaces the retained target position before either pursuit helper runs.
+position replaces the retained target position before the defence and attack
+executors run, in that order, each with request -1. An active result from either
+executor ends this decision pass before spacing and further selections.
 
 **Engagement.** The receiver is engaged when `attr_combat_ignore_in_sight` is nonzero.
 Otherwise, with `attr_combat_long_sight` nonzero, it is engaged when the target is in sight
