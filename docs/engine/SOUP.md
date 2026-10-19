@@ -1390,6 +1390,31 @@ held nodes, changes lifecycle seven to zero, sets attribute 1 to 13 and returns
 zero before pending registration. Completion retains the phase-eight command
 phase and previous-next history.
 
+### Direct-route phases 11, 21 and 22
+
+Phases 11 and 22 bypass the point entry's immediate destination-arrival test.
+Phase 21 admits the default animation and completes with result byte zero on
+its ordinary return.
+
+Phase 22 releases held nodes first. Nonzero attribute 95 selects phase 21.
+Otherwise it faces the original destination's X/Z coordinates. A completed turn
+selects phase 11; a pending turn retains phase 22. The pending tail sets lifecycle
+seven and registers movement, with attribute 1 remaining at 12.
+
+Phase 11 also releases held nodes first. Nonzero attribute 95 selects phase 21.
+Otherwise a failed direct-visibility check selects phase zero. An admitted check
+writes attribute 1 to 13, then invokes coordinate walking toward the original
+destination with the caller's tolerance. Nonzero sliding state selects phase
+zero before that call but does not skip walking. Completed walking completes
+the point call with result byte zero.
+
+Pending direct walking faces the original destination when the animation exit
+marker is clear, ignoring the facing return, then registers a map update and
+rechecks direct visibility. A failed recheck selects phase zero. The common
+pending tail sets lifecycle seven and repeats deduplicating registration;
+attribute 1 remains 13 on this path. The initial visibility rejection and the
+attribute-95 transition retain attribute 1 at 12 instead.
+
 ### Coordinate walking and rollback
 
 Coordinate walking saves local position, the packed movement byte and retained
