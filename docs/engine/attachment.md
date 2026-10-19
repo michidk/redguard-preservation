@@ -137,6 +137,14 @@ actor's current animation handle and frame. It adds the supplied local offsets
 to each vertex with signed 32-bit wrapping, then transforms both points through
 the actor matrix. The transformed points supply the direction calculation.
 
+The two-point direction subtracts the second point from the first with signed
+32-bit wrapping. It computes horizontal distance from the X/Z difference using
+the integer distance query. With the signed bearing convention whose positive
+X axis is 512 and positive Z axis is zero, direction pitch is the bearing of
+`(horizontal_distance, delta_y)` minus 512. Direction heading is 1024 minus the
+bearing of `(delta_x, delta_z)`. Both results are masked to 2047; direction roll
+is zero. Coincident points produce pitch 1536 and heading 1024.
+
 The attachment matrix starts as identity. Its successive rotations use the
 negated direction heading, one quarter-turn minus the direction pitch, and the
 negated actor roll. Each angle is masked to 2047. The actor retains pitch plus
