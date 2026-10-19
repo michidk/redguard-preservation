@@ -1134,6 +1134,9 @@ one. A rejected claim returns zero with both held indices cleared. With no map,
 both held indices are cleared and assignment returns zero without changing the
 previous-next record. Neither assignment changes the final destination.
 
+Validation and held-node release preserve the previous-next record, including
+when they invalidate or remove the map.
+
 ### Nearest free walk node
 
 Combat perception can search all loaded walk maps for a free node before
@@ -1283,6 +1286,23 @@ with modifier zero through the forced animation-request path only when
 SYSTEM.INI animation processing is enabled, animation state exists, the actor is
 not excluded from object updates, and its current group differs from its default
 group. It does not change the actor's default group.
+
+After immediate destination arrival is rejected and collision response is
+resolved, point phases 1 and 27 process the held next node. With no next node,
+they release held reservations, select phase zero and remain pending. On arrival
+at the held next node, default-animation admission runs before current-node
+assignment. The phase then becomes eight regardless of whether the claim
+succeeds. These pending paths set lifecycle selector seven and register the
+actor once for a deferred map update. Attribute 1 remains 12.
+
+Held-node arrival validates the actor's navigation and tests local horizontal Q8
+distance against `((speed + 1) * 256 * frame_scale) >> 8`. Equality is accepted;
+products wrap at 32 bits and the shift is signed. Speed is the current animation
+group's movement speed without the immediate-destination fallback. On success,
+local X/Z snap to the node's unsigned X/Z coordinates scaled by 256, local Y
+is preserved, and the actor is registered for a deferred map update. Registration
+deduplicates the actor, including when the enclosing pending path also registers
+it. A missing map reports held-node arrival before reading a node.
 
 ### Walk-node arrival distance
 
