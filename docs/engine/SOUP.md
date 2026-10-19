@@ -524,6 +524,17 @@ wrapping. The three differences feed the distance query. Contact succeeds only
 when its signed result is strictly less than the current motion's
 `col_sphere_size`. Equality rejects contact.
 
+### Contact orientation
+
+Contact orientation subtracts receiver local position from the supplied point
+with signed 32-bit wrapping, then shifts each component arithmetically right
+eight bits. The normalized vector's Y angle is converted to heading by
+`(1024 - angle) & 2047`. The absolute wrapped difference from receiver yaw must
+be strictly less than the current attack motion's `arc + arc_center`, with
+signed 32-bit wrapping in the sum. The current retained attack slot and motion
+selector supply both fields. Equality rejects orientation. This threshold differs
+from the first-motion defence-selection arc interval.
+
 ### Range/arc motion contact
 
 For a candidate with no combat record or a zero combat radius, the range/arc
