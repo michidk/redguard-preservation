@@ -278,14 +278,14 @@ The actor's weapon attribute selects an item of weapon type. Without combat
 state, this pass clears the drawn flag before processing motion state.
 
 For motion state 20, the pass requests group 91 with modifier zero. While
-that group is current, its displayed-frame ordinal is compared with attribute
+that group is current, its wrapping frame-progress byte is compared with attribute
 byte 35, `attr_draw_frame`. Before the threshold, the sheathed model is drawn.
 At or beyond the threshold, the held model is drawn, the weapon-drawn flag is
 set and motion state becomes zero. If group 91 is not current, the sheathed
 model is drawn and the transition remains pending.
 
 For motion state 21, current group 129 uses attribute byte 34,
-`attr_sheath_frame`, as its displayed-frame threshold. Before the threshold,
+`attr_sheath_frame`, as its frame-progress threshold. Before the threshold,
 the held model is drawn. At or beyond it, the sheathed model is drawn, the
 drawn flag clears and motion state becomes zero. A pending group 129 is
 cancelled when that transition completes. If group 129 is not current, the
