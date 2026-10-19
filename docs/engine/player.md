@@ -1080,6 +1080,12 @@ For an ordinary actor, a nonzero `attr_weight` supplies mobility
 `256 - attr_weight`; weight zero supplies mobility zero. Actor overlap
 response excludes actors with nonzero attribute 26.
 
+Grounded weapon drawing and sheathing, living states 20 and 21, use the same
+weighted actor and static-placement overlap response as ordinary standing.
+They do not bypass overlap queries. For grounded living states 27 through 32,
+an actor-pair response skips the updating actor's current support owner after
+the small-contact check; other actor pairs still use weighted separation.
+
 An actor-to-actor separation below three map units marks contact on both
 actors and ends the overlap pass without displacement. For larger separation,
 when both mobilities are zero the updating actor returns to its previous
