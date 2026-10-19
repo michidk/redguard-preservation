@@ -2814,6 +2814,23 @@ scripted-camera active word and its nesting count are zero. Setup then computes
 the first published pose with one pass of the pose stage that omits movement
 limiting, and stores it as both the current and the previous pose.
 
+### XResetCamera
+
+`XResetCamera` takes no arguments, acts on no receiver state and returns zero. In
+order, it:
+
+1. Runs the `LockoutPlayer` routine for the selected player with zero.
+2. Clears the selected player's retained input state: the low five bits
+   (`0x01`, `0x02`, `0x04`, `0x08`, `0x10`) of its input flag byte and its seven
+   input blocks of 24, 24, 6, 6, 12, 24 and 24 bytes.
+3. Rebuilds the selected player's orientation matrix from its current angles and
+   stores those angles in both of its retained angle-history triples.
+4. Sets the scripted-camera active word and its nesting count to zero.
+5. Clears the same retained input state on the camera actor.
+6. Reloads record zero's [player-type defaults](#camera-initial-state-and-player-type-settings),
+   selects record zero, resets its flags to `0x40` and recomputes the first
+   published pose as setup does.
+
 ### Camera record installed settings
 
 Camera setup reads `SYSTEM.INI` `[camera]` integers and stores them without
