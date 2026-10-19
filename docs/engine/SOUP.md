@@ -767,6 +767,22 @@ requires that cursor and progress byte differ. This compares command progress
 with frame progress, not the displayed model frame or finite loop countdown.
 Completion returns world-loop outcome 5000.
 
+### Selected death effect admission
+
+Death-controller environmental effects read progress after its nominal-tick
+increment. Mode one always emits its first effect. It then makes two independent
+bounded random requests, each with bound `progress / 6 + 1`; a zero result emits
+the corresponding additional effect. These random requests remain ordered and
+independent. A final effect is emitted only when signed progress exceeds 12.
+
+Mode two consumes one raw engine random value. It emits only when the bitwise
+AND of that value and wrapping `progress + 1` is zero. An admitted emission uses
+one effect variant before signed progress 12 and another from 12 onward. It
+then requests actor sound 71 before 12 or sound 70 from 12 onward, after a
+bounded random request of 64 whose result is reduced by 32 for the sound's
+signed variation argument. No effect or sound request occurs when the initial
+bitwise test rejects the call.
+
 ### Contact death animation dispatch
 
 A null receiver does nothing. Selector zero first checks for animation group 122
