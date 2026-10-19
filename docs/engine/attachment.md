@@ -130,6 +130,12 @@ Items are loaded from a ROB file keyed as `"ITEMS"` (`INVENTRY.ROB`). The item i
 | `+0x7b` | ROB handle (type 1 only) | **Hilt model** — the 3D model shown when weapon is sheathed |
 | `+0x7f` | ROB segment data | **Length/offset** — read from the ROB segment's internal metadata. Used to offset the weapon collision sphere along the item axis. |
 
+For weapon items, `hand_object_file` selects the hand model and
+`hilt_object_file` selects the stowed model. The hand model's ROB segment
+`bbox_extent_y` supplies weapon length. The runtime reads that word as a signed
+32-bit value before preparing the weapon's collision spheres. The X and Z
+extents do not supply this length.
+
 ## Attachment Transform
 
 The drawn-weapon routine queries the signed RAEX grip vertex pair from the
