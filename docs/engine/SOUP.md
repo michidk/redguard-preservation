@@ -1438,6 +1438,44 @@ zero, or `(value - 127) * 500` otherwise. The signed results replace the selecte
 camera record's target-offset and camera-offset vectors. This conversion does
 not change the actor attributes or the other fields in the camera record.
 
+### Location camera request
+
+The first invocation of the location-camera handler (counter one, elapsed zero)
+sets flag `0x01` on the selected camera record and begins a scripted camera
+(see below), binds the record to the target actor, applies the
+[actor camera offsets](#actor-camera-offsets), and then writes the record's
+request from the three task arguments.
+
+The binding selects one of two position and angle vector pairs on the actor,
+chosen by attribute byte 26 (zero or nonzero).
+
+The arguments are shifted left eight bits. That vector and the record's
+position offset (as just replaced from the actor attributes) are each rotated
+by the bound actor's angles. The actor's `attr_camera_move` byte then selects:
+
+| `attr_camera_move` | Request | Flags |
+|---|---|---|
+| 0 | rotated argument vector + rotated offset + bound position | set `0x08`, clear `0x04` |
+| 1 | rotated argument vector + rotated offset | set `0x04`, clear `0x08` |
+| 2 | record distance = vector length >> 8; angle offset += angles of the rotated vector, each wrapped to 2047 | clear `0x08` and `0x04` |
+
+Other values write no request. The handler then runs one camera update, clears
+flag `0x01`, and returns one. Later invocations run the scripted-camera release
+step with argument zero and return zero.
+
+### Scripted camera begin and release
+
+Beginning a scripted camera sets the scripted-camera active word to one,
+requests slot two (the selection guard applies), clears the first twelve bytes
+of the selected record twice, increments the nesting count, resets the record's
+flags to `0x40` and sets flag `0x20`.
+
+The release step takes a duration argument. It selects slot two's record,
+raising a shared reselection mark when the selected record changed. While
+`duration - 1` exceeds the task's elapsed input it returns one. Otherwise it
+decrements the nesting count, clears the active word when the count reaches
+zero, and returns zero.
+
 ### Ordinary camera selection inhibition
 
 On the ordinary camera-update path, a nonzero scripted-camera active word or
