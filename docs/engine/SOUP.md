@@ -2795,7 +2795,7 @@ The result is true when no entry blocks.
 
 ### Nonplayer defence selection
 
-The defence selection runs only while the receiver is armed and the selected-player
+The defence selection runs only while the receiver is armed and the
 selected-player hit-inhibition flag is clear. Standalone-player initialization clears
 this flag; selected-player health death sets it. With no move selected, the target must lie inside the receiver's
 forward arc and its distance must be strictly below the receiver's far window.
