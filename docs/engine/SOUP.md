@@ -2415,8 +2415,9 @@ The result is true when no entry blocks.
 
 ### Nonplayer defence selection
 
-The defence selection runs only while the receiver is armed and the global combat
-lockout is clear. With no move selected, the target must lie inside the receiver's
+The defence selection runs only while the receiver is armed and the selected-player
+health-death/controller override is clear. Standalone-player initialization clears
+this shared override; selected-player health death sets it. With no move selected, the target must lie inside the receiver's
 forward arc and its distance must be strictly below the receiver's far window.
 The forward-arc query subtracts the receiver's local position from the target's
 local position with signed 32-bit wrapping arithmetic, then arithmetic-shifts each
