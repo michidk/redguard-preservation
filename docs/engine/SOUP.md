@@ -501,6 +501,18 @@ the extended window instead. If either window admits the attack, processing
 sets combat flag `0x20` before traversing either collision-candidate list.
 Empty candidate lists leave that flag set.
 
+The active collision window uses the signed animation command cursor and the
+current motion's `first_collide_frame` and `collide_duration`. It includes the
+start and excludes the end: `start <= cursor < start + duration`. The end uses
+signed 32-bit wrapping addition. A cursor before the start rejects the window
+without querying duration.
+
+The extended window first requires a nonzero duration. It then requires
+`cursor >= start + duration`, using the same wrapping end calculation, and
+combat flag `0x20` clear. It reads that flag only after the cursor comparison
+succeeds. Negative durations receive no separate rejection. Both windows use
+the command cursor, not the displayed model frame or frame-progress byte.
+
 ### Combat candidate dispatch
 
 Attack processing scans its ordered actor candidates, skipping empty entries.
