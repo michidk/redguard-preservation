@@ -92,9 +92,12 @@ advancement increments it when the frame countdown expires, and each skipped
 `ShowFrame` increments it again. The byte wraps from 255 to zero. A zero-tick
 update or a countdown decrement that retains the same frame leaves it unchanged.
 
-Command processing has a separate cursor. `BreakPoint` and `DelayCounter`
+Command processing has a separate signed sixteen-bit cursor. It indexes the
+packed command table and remains on the command displaying the current frame.
+Selecting a new group resets it to zero. `BreakPoint` and `DelayCounter`
 advance that cursor without incrementing `anim.real_frame`; a `GoToPrevious`
-backward jump does not reset the counter.
+backward jump assigns its command target without resetting the counter.
+Combat timing queries read this signed cursor, rather than `anim.real_frame`.
 
 Current and pending group values are signed sixteen-bit values compared with
 the full script integer argument. The frame threshold also remains a full
