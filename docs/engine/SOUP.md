@@ -579,6 +579,9 @@ death itself; the contact caller reads health and owns that dispatch.
 
 ### Selected-player additive health
 
+Selected-player initialization sets session maximum health to 100 and copies the
+actor's current health byte into retained displayed health.
+
 The selected-player additive routine returns immediately when hit inhibition is
 active. Otherwise it sets a feedback timer below 50 to 25, adds the signed change
 to current health with signed 32-bit wrapping, and clamps the result to zero
