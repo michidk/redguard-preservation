@@ -85,6 +85,15 @@ At each frame, the engine reads the tracked vertex position through this call ch
 
 ### Actor model-point conversion
 
+A successful animation-frame vertex lookup supplies floating-point coordinates.
+The animation-vertex wrapper multiplies each coordinate by 256 and stores each
+product as single precision before converting the stored values to integers
+using the active floating-point rounding mode. With nearest-even rounding,
+half-integer ties select the even integer. It forwards the selected frame and
+vertex index to the model lookup. A nonpositive animation handle or an animation
+query-disable value equal to one returns the zero integer vector without model
+lookup.
+
 The actor model-point query reads an integer vertex from the selected animation
 frame or the actor's static model. It converts each coordinate to single
 precision before applying the actor matrix. For each transformed coordinate,
