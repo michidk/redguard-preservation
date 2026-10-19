@@ -526,6 +526,21 @@ On the first nonzero contact result, it clears the attacker's combat flag masks
 and requests the attacker's combat taunt category 3, in that order. It then
 returns without scanning later actor or static candidates.
 
+### Hit-defence response
+
+The candidate's hit-defence query requires the attacker to have combat state and
+an action other than `-1` or nine. The defender's retained defence selector must
+match the attacker's current-motion defence selector. The attacker's defence
+window must admit processing, and the defender must have combat flag `0x02` set.
+Only then does the query test contact from attacker to defender.
+
+An admitted contact miss clears defender flag `0x08` and returns zero. Earlier
+admission failures leave this flag unchanged. A contact hit sets the attacker's
+reverse-playback byte to one before playing the defender's impact sound. It then
+emits message `0xd000` from defender to attacker, requests defender taunt category
+4, clears intent masks `0x01` and `0x02` on the defender followed by the attacker,
+and toggles defender flag `0x08`. It returns one. Other combat flag bits survive.
+
 ### Motion contact selection
 
 A motion whose `col_sphere_size` is zero uses the range/arc contact path. A
