@@ -67,6 +67,12 @@ track 2 pauses for the movie and resumes when it ends; world 0's
 and track 7 starts only after the world is loaded. No CD audio plays during the
 load.
 
+The credits scroll (the ending after `WonGame`, and F10 in a world) stops the
+sound effects, plays track 2 at `redbook_volume`, and stops the CD when the
+scroll ends or Escape is pressed. The last requested track stays 2, so after
+in-world credits the [repetition](#repetition) check replays track 2, not the
+world's track, until a world change to a different track.
+
 ## Repetition
 
 Periodically from the main loop, the engine compares the CD's current track

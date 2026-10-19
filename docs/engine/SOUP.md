@@ -2419,6 +2419,23 @@ that record and returns zero. Other bits in the record's flag byte are retained.
 The private word belongs to the task continuation and is distinct from the
 shared camera selection.
 
+A nonzero task result keeps the task slot active and zero completes it. The
+initial invocation therefore leaves `showPlayer` active with bit `0x01` set, and
+the next task pass completes it after clearing bits `0x01` and `0x20`.
+
+### Player camera slot selection
+
+The slot requested for the selected player is the first that applies:
+
+| Condition | Slot |
+|---|---|
+| The selected player holds a weapon (`IsHoldingWeapon`) | 3 |
+| The shared debug word is nonzero (zero at program start) | 8 |
+| The selected player's living state is 15 | 4 |
+| The selected player has a rope association | 5 |
+
+When none applies, no slot is requested.
+
 A request for a different camera slot changes the selection only when the
 shared transition word is zero or the current record has flag `0x01`. Otherwise
 the current slot remains selected. Requesting the current slot leaves selection
@@ -2434,6 +2451,44 @@ attributes as unsigned bytes. Each byte independently becomes zero when it is
 zero, or `(value - 127) * 500` otherwise. The signed results replace the selected
 camera record's target-offset and camera-offset vectors. This conversion does
 not change the actor attributes or the other fields in the camera record.
+
+### Location camera request
+
+The first invocation of the location-camera handler (counter one, elapsed zero)
+sets flag `0x01` on the selected camera record and begins a scripted camera
+(see below), binds the record to the target actor, applies the
+[actor camera offsets](#actor-camera-offsets), and then writes the record's
+request from the three task arguments.
+
+The binding selects one of two position and angle vector pairs on the actor,
+chosen by attribute byte 26 (zero or nonzero).
+
+The arguments are shifted left eight bits. That vector and the record's
+position offset (as just replaced from the actor attributes) are each rotated
+by the bound actor's angles. The actor's `attr_camera_move` byte then selects:
+
+| `attr_camera_move` | Request | Flags |
+|---|---|---|
+| 0 | rotated argument vector + rotated offset + bound position | set `0x08`, clear `0x04` |
+| 1 | rotated argument vector + rotated offset | set `0x04`, clear `0x08` |
+| 2 | record distance = vector length >> 8; angle offset += angles of the rotated vector, each wrapped to 2047 | clear `0x08` and `0x04` |
+
+Other values write no request. The handler then runs one camera update, clears
+flag `0x01`, and returns one. Later invocations run the scripted-camera release
+step with argument zero and return zero.
+
+### Scripted camera begin and release
+
+Beginning a scripted camera sets the scripted-camera active word to one,
+requests slot two (the selection guard applies), clears the first twelve bytes
+of the selected record twice, increments the nesting count, resets the record's
+flags to `0x40` and sets flag `0x20`.
+
+The release step takes a duration argument. It selects slot two's record,
+raising a shared reselection mark when the selected record changed. While
+`duration - 1` exceeds the task's elapsed input it returns one. Otherwise it
+decrements the nesting count, clears the active word when the count reaches
+zero, and returns zero.
 
 ### Ordinary camera selection inhibition
 
@@ -2672,7 +2727,8 @@ other nonzero values also remain unchanged without correction.
 After position correction, the pose stage moves the previously published camera
 position and angles into their respective history vectors. It then publishes the
 new position to shared camera state and to both the camera actor and alternate
-camera actor. Orientation processing follows position publication, and its
+camera actor. Camera setup stores the CAMERA instance as both, so the two writes
+address the same actor. Orientation processing follows position publication, and its
 result replaces the shared published angles.
 
 Position history therefore contains the preceding published pose, not the new
@@ -2691,6 +2747,13 @@ The ordinary target-offset configuration is assigned to record zero after the
 copies. It therefore does not initialize the other records' target offsets.
 Combat target offsets are assigned separately to slot three. The remaining
 slots retain their cleared target-offset vectors at this initialization stage.
+
+### Camera initial state
+
+Camera setup selects record zero. The shared transition word, the
+scripted-camera active word and its nesting count are zero. Setup then computes
+the first published pose with one pass of the pose stage that omits movement
+limiting, and stores it as both the current and the previous pose.
 
 ### Camera record installed settings
 
@@ -2730,7 +2793,7 @@ The debug slot's three angle-offset reads all store to the first angle-offset fi
 Slot three gains flag `0x40` (already present from the copy). Slots six and seven
 additionally load aim vectors from `camera_rope_above_aim_x/y/z` and
 `camera_rope_below_aim_x/y/z`, bind the record's aim reference to them, and set
-their flags to exactly `0x40`. Slots four, five and eight keep the copied flags.
+their flags to exactly `0x40`. Slots four and eight keep the copied flags. Slot five gains flag `0x80` in addition to `0x40`, giving `0xc0`.
 Slots one, two and four through eight keep their cleared target-offset vectors.
 
 `obstacle_size` and `fudge_factor` are shifted left eight bits and `max_y_vel` is
