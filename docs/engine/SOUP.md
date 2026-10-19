@@ -2750,6 +2750,52 @@ raising a shared reselection mark when the selected record changed. While
 decrements the nesting count, clears the active word when the count reaches
 zero, and returns zero.
 
+### Camera marks and the render camera step
+
+Besides the published (logical) pose the camera keeps a render pose: three floats holding
+the position in whole map units and three angles. Four marks decide each frame whether the
+render pose glides towards the published pose or cuts to it.
+
+| Mark | Set by | Meaning |
+|---|---|---|
+| snap | camera setup; the first `showPlayer` call; the first `showObj`, `showObjLoc` and `showObjWorld` call; loading and pause paths | a cut is pending |
+| hold | later `showPlayer` calls (so the `showPlayer` that ends a `showPlayerPan` too); the first `showObjLoc` call | forces a cut |
+| forced glide | `showObjPan` and `showObjPanLoc`, on entry before the negative-duration test | forces a glide, and skips the pose update's obstacle segment check for the frame |
+| in frame | the main loop, at the start of each frame | the frame is a normal one |
+
+Camera setup clears hold and forced glide and cuts the render pose to the first published
+pose (position shifted right eight bits, truncating toward zero; the angles unchanged).
+`lookObj` and `showObjRot` set no mark.
+
+The render step runs once per frame after the pose update. First it clamps the render
+position's x and z floats into `[0, 65535]`. Then it glides when the following chain
+reports a glide, the snap mark is clear and the frame mark is set:
+
+1. hold set: cut;
+2. forced glide set: glide;
+3. the selected player holds a weapon, or is associated with a rope: glide;
+4. the scripted-camera active word is nonzero: cut;
+5. snap clear: glide;
+6. the selected record has flag `0x20`: cut;
+7. selected index zero, three or four: glide; otherwise cut.
+
+A glide uses the installed `[camera]` factors `glide_x`, `glide_y`, `glide_z`
+(0.9, 0.2, 0.9) and `glide_angle_x`, `glide_angle_y`, `glide_angle_z` (0.7, 0.1, 0.7).
+With `p` the published position shifted right eight bits as a single float and `r` the
+render position float, each axis becomes `r + (p - r) * factor` evaluated in extended
+precision and stored as a single. The result times 256, truncated toward zero, goes through
+the camera terrain correction, is divided by 256 truncating toward zero, and becomes the new
+render float. Each published angle is replaced by
+`(previous + trunc((published - previous) * factor)) & 2047`, where `previous` is the
+render angle, the difference is wrapped once into half a turn either side of zero, the
+single-precision product is truncated toward zero, and the factor for the first (pitch) angle
+is `glide_angle_y` and for the second (yaw) angle `glide_angle_x`; the third uses
+`glide_angle_z`. The published angles are therefore smoothed in place.
+
+A cut sets the render position to the published position shifted right eight bits (truncating
+toward zero) and clears snap and hold. Every pass clears forced glide, and the final published
+angles become the render angles for the next frame.
+
 ### Ordinary camera selection inhibition
 
 On the ordinary camera-update path, a nonzero scripted-camera active word or
