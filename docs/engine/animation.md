@@ -289,7 +289,9 @@ For motion state 21, current group 129 uses attribute byte 34,
 the held model is drawn. At or beyond it, the sheathed model is drawn, the
 drawn flag clears and motion state becomes zero. A pending group 129 is
 cancelled when that transition completes. If group 129 is not current, the
-pass requests it with modifier zero and draws the held model.
+pass requests it with modifier zero and draws the held model. That invocation
+does not test the sheath threshold again, even if the request immediately makes
+group 129 current. Threshold processing resumes on a later drawing pass.
 
 These transitions do not clear the companion motion byte. Outside these two
 motion states, a set drawn flag selects the held model. A clear flag selects
