@@ -516,6 +516,24 @@ interpolate vertex positions between model frames. These rules describe a
 forward current group; reverse playback, pending-group eligibility, delays,
 and event dispatch have additional state.
 
+## Reverse frame countdown
+
+A reverse-playback byte equal to one changes the ordinary command step to minus
+one. Frame-countdown expiration decrements the signed command cursor and the
+wrapping frame-progress byte. Skipped `ShowFrame` commands decrement both again.
+A nonzero countdown only decrements once per nonzero-tick update, as in forward
+playback; zero ticks leave the countdown and cursor unchanged.
+
+Before each reverse command is decoded, a cursor less than one ends the current
+group. Command zero is therefore not displayed by reverse traversal. Playback
+clears the current group, stops its remembered sound if present, and invokes
+ordinary advancement again with the same tick input. With no pending group,
+that advancement requests the default group.
+
+Delay processing still precedes reverse advancement. An unexpired or indefinite
+delay yields without decrementing the command cursor. An expired delay clears
+and lets reverse advancement use the call's complete tick input.
+
 ## Forward type-one transitions
 
 A forward type-one group uses the ordinary frame countdown and control commands.
