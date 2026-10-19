@@ -606,6 +606,12 @@ directional state bytes afterward. Other receivers and living states leave this
 state unchanged. The motion follow-up calls its destruction service only when
 the receiver has a rope attachment. Without that attachment it does nothing.
 
+The state-17 transition requests group 56 and clears living state when the
+receiver is the selected player, attribute 105 is not one, the weapon-drawn flag
+is clear, and neither current group 149 nor 150 blocks it. Those groups block
+only while animation is enabled and shell context is clear. The animation
+request precedes the living-state clear. Other combinations retain state 17.
+
 ### Contact death animation dispatch
 
 A null receiver does nothing. Selector zero first checks for animation group 122
