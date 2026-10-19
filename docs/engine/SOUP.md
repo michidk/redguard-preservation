@@ -706,6 +706,14 @@ existing controller animation override is preserved. If no override is set, a
 nonnull source actor's nonzero attribute 109 supplies it before ordinary death
 animation selection.
 
+When neither an existing override nor the source supplies a group, underwater
+state two or four sets the retained death mode to two. Attribute 105 equal to
+one skips the remaining animation choice. Otherwise, a nonzero `fall_flag` or
+current group 114, 116, 130 or 131 sets the override to group 74. With none of
+those conditions, an unarmed receiver force-starts group 134. A receiver holding
+a weapon starts group 122 when present, otherwise group 121, then stores death
+default 124 or 123 respectively and releases its held walk nodes, in that order.
+
 The nonfatal or death-suppressed path instead clears the override, hit inhibition
 and pending action state. A negative change then requests taunt category two and
 the damage reaction after health publication. These service orders differ from
