@@ -1329,6 +1329,25 @@ is preserved, and the actor is registered for a deferred map update. Registratio
 deduplicates the actor, including when the enclosing pending path also registers
 it. A missing map reports held-node arrival before reading a node.
 
+### Coordinate walking and rollback
+
+Coordinate walking saves local position, the packed movement byte and retained
+animation group/frame words before testing destination arrival. When arrival
+fails, it also saves the animation receiver, performs the movement path selected
+by attribute 93, then reads destination bearing from the position-query owner.
+That owner can supply alternate or linked coordinates rather than local position.
+
+If the masked difference between bearing and local heading lies from 256 through
+1792 inclusive, walking restores the saved local position, movement byte,
+animation receiver and retained group/frame words, then snaps local X/Z to the
+destination. Local Y remains the saved Y. Otherwise it retains the movement
+result and returns one.
+
+An initial arrival also snaps local X/Z and retains local Y. After either snap,
+default-animation admission determines the return. Successful admission returns
+zero. Rejected admission sets the animation receiver's movement-completion byte
+to one and returns one. The empty animation-stop call changes no playback state.
+
 ### Walk-node arrival distance
 
 Node arrival compares horizontal distance from the actor's local position to
