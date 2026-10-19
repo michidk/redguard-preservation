@@ -759,6 +759,14 @@ mode two, the world loop exits with outcome 5000 only when signed death progress
 is strictly greater than 12. Progress 12 does not exit. This branch bypasses the
 ordinary retained-group animation-completion comparison.
 
+Otherwise, inhibited selected-player death completes only while the current
+animation group equals the retained override. For override groups 13 and 74,
+the signed command cursor must be less than or equal to the unsigned wrapping
+frame-progress byte, `anim.real_frame`. For other override groups, completion
+requires that cursor and progress byte differ. This compares command progress
+with frame progress, not the displayed model frame or finite loop countdown.
+Completion returns world-loop outcome 5000.
+
 ### Contact death animation dispatch
 
 A null receiver does nothing. Selector zero first checks for animation group 122
