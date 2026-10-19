@@ -711,8 +711,9 @@ strictly greater than 16 flips the rope's direction bit for that detach.
 ### Selected-player death-owning health mode
 
 The death-owning health service is separate from selected additive health. Hit
-inhibition rejects it before any service. For a negative change, action reset and
-rope detach run before the actor health write. The service then clamps the
+inhibition rejects it before any service. Otherwise, a health-feedback timer below
+50 is set to 25 before action cleanup or the health write. For a negative change,
+action reset and rope detach run before the actor health write. The service then clamps the
 wrapping sum to the session maximum and zero, and publishes actor and retained
 displayed health before later notification.
 
