@@ -161,6 +161,15 @@ retains the first transformed vertex plus its floating position multiplied by
 If attachment allocation fails, the routine performs no vertex queries or
 transform publication.
 
+The stowed-weapon routine uses the signed RAEX scabbard vertex pair with the same
+local-offset, actor-matrix and direction calculation. It builds the same matrix
+and retains the same angle fields. Its attachment position uses the first
+transformed vertex rather than the pair's midpoint. Add that vertex to the
+actor's floating position multiplied by 256 and truncate to a signed integer.
+Shift this integer arithmetically right eight bits and store it as single
+precision. An out-of-range integer conversion produces the signed minimum
+value before the shift.
+
 ## Weapon State Machine
 
 The weapon state machine selects which attachment routine and which model (hand vs hilt) to use based on the actor's weapon state:
