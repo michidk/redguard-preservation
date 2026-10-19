@@ -577,6 +577,18 @@ the signed change to the unsigned health byte with signed 32-bit wrapping, then
 clamps the result to zero through 255. This additive routine does not dispatch
 death itself; the contact caller reads health and owns that dispatch.
 
+### Contact death animation dispatch
+
+A null receiver does nothing. Selector zero first checks for animation group 122
+and starts it when available. Otherwise the dispatcher checks group 121 and
+starts it when available. A nonzero selector goes directly to the group-121
+check. Missing groups do not prevent the final death-selector assignment.
+
+After a group starts, a receiver with combat state requests walk-node release
+and stores its death default as 124 for group 122 or 123 for group 121.
+Receivers without combat state skip those writes. Every nonnull receiver then
+receives death selector eight.
+
 ### Hit-defence response
 
 The candidate's hit-defence query requires the attacker to have combat state and
