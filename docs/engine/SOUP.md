@@ -612,6 +612,14 @@ is clear, and neither current group 149 nor 150 blocks it. Those groups block
 only while animation is enabled and shell context is clear. The animation
 request precedes the living-state clear. Other combinations retain state 17.
 
+The admitted state-17 transition sets the retained action-transition counter to
+six. Ordinary actor updates leave a zero counter unchanged. For a nonzero
+counter, if either of the first two directional bytes is zero and the signed
+counter is less than three, the counter clears immediately. This test does not
+depend on living state. Otherwise the update clears the high bit of both
+bytes, subtracts the low byte of the shared tick count with byte wrapping, and
+clamps a negative signed-byte result to zero.
+
 ### Contact death animation dispatch
 
 A null receiver does nothing. Selector zero first checks for animation group 122
