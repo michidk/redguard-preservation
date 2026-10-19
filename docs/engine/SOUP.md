@@ -526,6 +526,13 @@ between the minimum and maximum ranges of the retained attack slot's first
 motion, and strictly less than the candidate's combat radius. Equality at any
 of these boundaries rejects contact.
 
+For a candidate with nonzero combat radius and attribute 126 nonzero, the
+range/arc contact path resolves its retained model vertex, then calls the
+sphere/segment query. The point coordinates and candidate radius shift
+arithmetically right eight bits for this query. Both segment endpoints use the
+same retained combat point of the receiver. The contact path returns the query's
+result without converting it to a boolean.
+
 Combat messages use 256 queues selected by attribute 125. Queue initialization
 clears each queue; startup and combat reset both allocate eight entries per
 queue. New Game and save restoration reset these queues. Actors retain separate
