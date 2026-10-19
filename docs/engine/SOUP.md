@@ -603,8 +603,8 @@ The action follow-up runs only for the selected player in living state 15
 with its inhibition flag clear. Before its transition service, it sets living
 state 17. If the transition leaves living state nonzero, it clears the three
 directional state bytes afterward. Other receivers and living states leave this
-state unchanged. The motion follow-up
-calls its destruction service only when a motion-owner record is present.
+state unchanged. The motion follow-up calls its destruction service only when
+the receiver has a rope attachment. Without that attachment it does nothing.
 
 ### Contact death animation dispatch
 
