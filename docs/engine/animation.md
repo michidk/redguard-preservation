@@ -534,6 +534,29 @@ Delay processing still precedes reverse advancement. An unexpired or indefinite
 delay yields without decrementing the command cursor. An expired delay clears
 and lets reverse advancement use the call's complete tick input.
 
+## Reverse control commands
+
+With no finite loop countdown, reverse `GoToPrevious` and `GoToFuture` decrement
+the command cursor rather than taking their targets. A nonzero finite countdown
+changes this behavior. `GoToPrevious` decrements it; reaching zero advances the
+cursor by one, while a remaining count takes the authored target. `GoToFuture`
+with a nonzero finite countdown advances the cursor by one without changing the
+countdown.
+
+Each reverse command iteration clears the exit marker, movement-suppression
+marker, and retained translation and rotation deltas before testing the cursor
+boundary. `BreakPoint` sets movement suppression and steps backward, so the next
+iteration clears that marker again. Translation, rotation, group-change,
+loop-marker and native commands step backward without applying their forward
+operations. Loop-marker commands leave their retained loop counter unchanged.
+
+Reverse `DelayCounter` stores the narrowed byte delay and decrements the cursor.
+A nonzero delay yields immediately; zero continues command processing.
+`EndAnimation` still ends the group and invokes ordinary advancement.
+`PlaySound` dispatches the ordinary animation sound services and retains the
+returned sound slot before decrementing the cursor. `StopSound` still invokes
+its sound service with the authored operand and decrements the cursor.
+
 ## Forward type-one transitions
 
 A forward type-one group uses the ordinary frame countdown and control commands.
