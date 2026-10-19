@@ -501,6 +501,19 @@ the extended window instead. If either window admits the attack, processing
 sets combat flag `0x20` before traversing either collision-candidate list.
 Empty candidate lists leave that flag set.
 
+### Combat candidate dispatch
+
+Attack processing scans its ordered actor candidates, skipping empty entries.
+For a candidate with a combat record, it first runs that candidate's defence
+query against the attacker. A nonzero defence result skips the contact query.
+Otherwise it queries contact from the attacker to the candidate. A zero contact
+result continues the scan.
+
+On the first nonzero contact result, it clears the attacker's combat flag masks
+`0x01` and `0x02`, emits message `0xd001` from the attacker to the candidate,
+and requests the attacker's combat taunt category 3, in that order. It then
+returns without scanning later actor or static candidates.
+
 ### Motion contact selection
 
 A motion whose `col_sphere_size` is zero uses the range/arc contact path. A
