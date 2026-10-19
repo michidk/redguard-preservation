@@ -497,6 +497,16 @@ the extended window instead. If either window admits the attack, processing
 sets combat flag `0x20` before traversing either collision-candidate list.
 Empty candidate lists leave that flag set.
 
+### Motion contact selection
+
+A motion whose `col_sphere_size` is zero uses the range/arc contact path. A
+nonzero value selects sphere contact. Sphere contact resolves the current
+motion's `col_vertex` through the actor's model-point query, then subtracts the
+candidate actor's local position component by component with signed 32-bit
+wrapping. The three differences feed the distance query. Contact succeeds only
+when its signed result is strictly less than the current motion's
+`col_sphere_size`. Equality rejects contact.
+
 Combat messages use 256 queues selected by attribute 125. Queue initialization
 clears each queue; startup and combat reset both allocate eight entries per
 queue. New Game and save restoration reset these queues. Actors retain separate
