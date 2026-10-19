@@ -244,6 +244,21 @@ once to obtain the actor heading. Its result is zero
 on a snap and otherwise the signed difference from before the turn step;
 spacing applies its strict angle gate to that result.
 
+The disengaged decision branch aligns toward the retained target point rather
+than reading the target's current position. If alignment returns zero, it tries
+a separate three-dimensional point-arrival test. That test shifts each target
+and local coordinate right by eight before subtraction. Its Y difference is the
+target Y minus the sum of local Y and the actor's positive Y bounds extent, all
+in integer map units. It uses the same current-group movement attribute as facing,
+but admits only when rounded distance is strictly less than `(speed * 384) >> 8`;
+frame scale does not multiply this threshold. Missing animation or attributes
+supply speed zero. Admission copies all three target coordinates after shifting
+right and then left by eight, preserving heading, and refreshes spatial/model
+registration. Rejection leaves position unchanged. This helper snaps on arrival;
+it does not move along a path. If neither alignment nor point arrival handles the
+update, the disengaged branch requests one update of forward walking when the
+shared target distance is below 500001, and one update of standing otherwise.
+
 When the combat-stance predicate is zero, spacing replaces the near range with
 30000 and triples the far range. It consumes two inclusive 0..32767 random draws.
 The third range becomes three times its original value plus the allocation index
