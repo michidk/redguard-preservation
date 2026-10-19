@@ -447,6 +447,29 @@ messages. The nonplayer decision stage runs only for death/state selector 6 and
 an actor that is not dead. This stage can select targets and
 consume random values.
 
+After walk-map or free-node admission, the nonplayer perception prepass samples
+visibility at twice the combat far range. The combat record retains a signed
+lost-sight timer and a lost-sight routing flag, both cleared by combat construction.
+The delay is `[misc] node_timer` from `COMBAT.INI`, stored without scaling.
+
+When visibility is absent, the timer is compared with the delay before any
+increment. Only a timer strictly greater than the delay enters routed pursuit.
+At or below the delay, the timer adds the shared nominal tick count with 32-bit
+wrapping and the prepass returns false. Crossing the delay during that addition
+therefore takes effect on a later pass.
+
+Above the delay, a zero lost-sight flag permits a coordination-peer lookup. A
+successful lookup sends message 0xD002 to that peer and sets the actor's
+coordination selection state to zero. The lost-sight flag is then set to one,
+point navigation is requested toward the target's current query position with
+zero tolerance, and the prepass returns true. This path does not increment or
+clear the timer. A nonzero flag skips the peer lookup on later pursuit passes.
+
+Visible targets reset the timer to zero. If the lost-sight flag is nonzero,
+reacquisition restores lifecycle selector six, clears the flag, releases held
+next/current nodes, sets coordination selection state to one, and clears all
+walk-node reservation bytes, in that order. The prepass then returns false.
+
 Selected-player combat processing uses the attack/defence executor state as its
 phase value. This state is separate from both the cooldown and the retained
 combat allocation index. After message processing, phase zero with a nonzero action selector
