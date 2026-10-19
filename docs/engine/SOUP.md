@@ -313,6 +313,19 @@ Without engagement, state one runs the active-state lookup and sends `0xd002`
 when a candidate exists, then assigns state zero. Other states remain unchanged.
 The retained-target movement helper follows in either case.
 
+### Counter-attack timing
+
+Counter selection subtracts the target's current signed animation command
+cursor from its current attack motion's `first_collide_frame` and
+`first_defend_frame`, producing two signed wrapping gaps. It does not use the
+frame-wait progress byte or the displayed model frame. The target's retained
+attack-slot selector and current motion selector choose the motion.
+
+The target motion's one-based `defense` reference, minus one with signed
+wrapping, selects one of the receiver's four defense slots. That record's
+`first_collide_frame` and `collide_duration` supply the counter's timing start
+and duration. These values are distinct from spatial `min_range` and `max_range`.
+
 ### Attack executor
 
 The attack executor resolves its pending move through the four defense slots
