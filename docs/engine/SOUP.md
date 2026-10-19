@@ -3210,6 +3210,22 @@ The main loop then loads the world: the world index must be 0 through 99 and nam
 (the second argument) supplies the player's starting position triple, and the third argument, masked to 0
 through 2047, supplies the starting heading. The three words are cleared when the load begins.
 `WonGame`, `PushPlayer` and `PopPlayer` each set one request flag for the main loop, which consumes them.
+`WonGame` ends the world loop and starts the [ending](menu.md#selection-and-actions).
+
+`PushPlayer` and `PopPlayer` are consumed at the end of a world-loop iteration that does not leave the loop:
+push first, then pop. Each clears its own flag when consumed, whether or not it acts. The engine keeps the
+CYRUS and GREMLIN player records and one swap state, clear in a fresh world. While the swap state is clear
+CYRUS is the selected player and GREMLIN is excluded from ordinary object updates; while it is set GREMLIN is
+selected and CYRUS is excluded. The world loop re-asserts that selection and exclusion every iteration.
+
+- `PushPlayer` acts only while the swap state is clear. GREMLIN becomes the selected player, the swap state is
+  set, and GREMLIN takes CYRUS's position, heading and retained movement state. GREMLIN stops being excluded
+  from ordinary updates and CYRUS becomes excluded.
+- `PopPlayer` acts only while the swap state is set. CYRUS becomes the selected player again, the swap state is
+  cleared, and CYRUS takes GREMLIN's position, heading and retained movement state with the same exclusion
+  exchange reversed. CYRUS then receives an [ordinary animation group request](animation.md) for group 0, issued twice.
+
+A second `PushPlayer` while swapped, or a `PopPlayer` while not swapped, only clears its flag.
 
 ### Nonplayer deep-water and edge probe
 
