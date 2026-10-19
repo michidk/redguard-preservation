@@ -1097,6 +1097,8 @@ Common actor initialization clears the current walk map and sets the held
 current-node, next-node and final-destination indices to -1. Later actor loading
 or navigation can assign a map and node; raw allocation zeroes do not describe
 these initialized navigation indices.
+The previous-next record starts at allocation zero; common initialization does
+not overwrite it.
 
 Map placement loading supplies the authored local position before loading the
 actor. Actor loading then assigns its current node and map through the general
