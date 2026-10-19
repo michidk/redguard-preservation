@@ -507,6 +507,21 @@ wrapping. The three differences feed the distance query. Contact succeeds only
 when its signed result is strictly less than the current motion's
 `col_sphere_size`. Equality rejects contact.
 
+### Range/arc motion contact
+
+For a candidate with no combat record or a zero combat radius, the range/arc
+contact path checks orientation, then range, then elevation. A failed check skips
+the later checks. Orientation and range accept a nonzero result; elevation must
+return exactly one. Range and elevation use the receiver's retained attack-slot
+selector.
+
+For a candidate with nonzero combat radius and attribute 126 equal to zero, the
+path first resolves the candidate's retained model vertex. It tests orientation
+against that point before querying actor distance. The distance must be strictly
+between the minimum and maximum ranges of the retained attack slot's first
+motion, and strictly less than the candidate's combat radius. Equality at any
+of these boundaries rejects contact.
+
 Combat messages use 256 queues selected by attribute 125. Queue initialization
 clears each queue; startup and combat reset both allocate eight entries per
 queue. New Game and save restoration reset these queues. Actors retain separate
