@@ -2597,6 +2597,52 @@ The handler then runs one camera pose update with the bound record selected,
 clears flag `0x01` on the selected record, and returns one. Later invocations run
 the scripted-camera release step with argument zero and return zero.
 
+### Object pans
+
+`showObjPan` and `showObjPanLoc` take a target actor, three vector arguments and a
+duration, and move the camera from where it is towards a request over `duration`
+ticks. The vector arguments are shifted left eight bits. A negative duration writes
+a diagnostic line and the task returns zero before touching the private word or any
+camera state. Both share the first invocation's setup with the
+[location camera](#location-camera-request): begin a scripted camera, bind the
+selected record (record two) to the target actor, apply the
+[actor camera offsets](#actor-camera-offsets), and rotate the record's position
+offset by the bound actor's angles. They differ in two ways:
+
+| | `showObjPan` | `showObjPanLoc` |
+|---|---|---|
+| Vector | used as given | rotated by the bound actor's angles |
+| Absolute request (`attr_camera_move` 0) | vector + bound position | vector + rotated offset + bound position |
+| Flag `0x40` | set on the record selected at entry (before the negative-duration check) and on the selected record at completion | not touched |
+
+The first invocation (private word one, elapsed zero) records the start state: the
+published camera position minus the bound position, as the start position; that
+position minus the rotated offset, whose rounded length shifted right eight is the
+start distance and whose camera orientation conversion is the start angles; the
+vector's rounded length shifted right eight as the final distance; and the delta
+from the start angles to the vector's angles, each component wrapped once into half a
+turn either side of zero. No flag `0x01` is set and no pose update runs; the normal
+camera update publishes the result.
+
+Every invocation runs the scripted-camera release step with `duration`. While it
+reports running and `duration` is greater than one, with `span = duration - 1`, the
+actor's `attr_camera_pan_type` selects the interpolation:
+
+- one: the selected record's request is the start position plus
+  `(vector + rotated offset - start position) * elapsed / span` per component, with
+  flag `0x04` set and `0x08` cleared;
+- any other value: flags `0x04` and `0x08` are cleared, each angle offset component is
+  the bound angle plus the start angle plus `delta * elapsed / span`, and the distance
+  is the start distance plus `(final distance - start distance) * elapsed / span`.
+
+Products wrap as signed 32-bit values and division truncates toward zero. The task
+returns one.
+
+Otherwise the request `attr_camera_move` selects is written exactly as the location
+camera writes it (with the absolute request of the table above, the relative request
+being vector + rotated offset, and the orbit using the vector alone), flag `0x01` is
+cleared on the selected record, and the task returns zero.
+
 ### Scripted camera begin and release
 
 Beginning a scripted camera sets the scripted-camera active word to one,
