@@ -1140,7 +1140,7 @@ The point-navigation wrapper copies four retained actor values into shared
 command scratch before the navigation core runs and copies them back afterwards:
 a 32-bit command value, a 16-bit command word, a phase byte and a counter byte.
 The copy-back occurs for either navigation-core return value. Alternating actors
-therefore retains each actor's own four values rather than inheriting the last
+therefore retain each actor's own four values rather than inheriting the last
 actor's scratch contents.
 
 Common actor initialization sets the command word to 0xFFFF. It leaves the
@@ -1148,6 +1148,13 @@ Common actor initialization sets the command word to 0xFFFF. It leaves the
 fields before common initialization. A separate shared 32-bit pause delay is
 outside these copies. Loading or saving an actor's command values does not reset
 that delay.
+
+Native task resumption separately loads command scratch from the actor's six
+native task slots. Each slot retains four 32-bit values, including the pause
+delay and packed command word/phase/counter. Saving a task copies those values
+back to the same slot. The point-navigation actor fields and the native task
+continuation are therefore distinct retained owners of values used during the
+same command invocation.
 
 ### Walk-node arrival distance
 
