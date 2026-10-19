@@ -293,6 +293,14 @@ minus the neighbor vector's Y angle: both angles are masked to 2047 and the
 difference wraps into the inclusive range -1024 through 1024. The two exact
 half-turn signs remain distinct. An absent neighbor supplies 1024 without
 converting either vector.
+Vector-to-angle conversion first normalizes all three vector components to
+length 65536. Each signed component is stored as single precision. Their sum of
+squares passes through a double-precision store before an extended-precision
+square root. The root multiplied by 1/65536 is stored as a single-precision
+divisor. A zero divisor produces a zero vector. Otherwise each component divided
+by that divisor is stored as single precision, then converted to a signed integer
+with nearest-even rounding. The angle conversion consumes this normalized vector.
+
 The threshold is `[misc] non_engaged_spacing` from `COMBAT.INI`, stored without
 scaling. Absolute values use signed wrapping negation. With primary and secondary
 separations `a` and `b`, and threshold `s`:
