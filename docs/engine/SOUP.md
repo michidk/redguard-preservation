@@ -2814,19 +2814,26 @@ scripted-camera active word and its nesting count are zero. Setup then computes
 the first published pose with one pass of the pose stage that omits movement
 limiting, and stores it as both the current and the previous pose.
 
+### KillMyTasks
+
+`KillMyTasks` takes no arguments, acts on the receiver and returns zero. It zeroes
+the receiver's seven per-slot task arrays, of 24, 24, 6, 6, 12, 24 and 24 bytes
+(six slots each), so every task slot is empty afterwards. It does not change any
+flag byte.
+
 ### XResetCamera
 
 `XResetCamera` takes no arguments, acts on no receiver state and returns zero. In
 order, it:
 
 1. Runs the `LockoutPlayer` routine for the selected player with zero.
-2. Clears the selected player's retained input state: the low five bits
-   (`0x01`, `0x02`, `0x04`, `0x08`, `0x10`) of its input flag byte and its seven
-   input blocks of 24, 24, 6, 6, 12, 24 and 24 bytes.
+2. Runs the [`KillMyTasks`](#killmytasks) operation on the selected player and
+   clears five flag bits (`0x01`, `0x02`, `0x04`, `0x08`, `0x10`) of the actor byte
+   that immediately precedes its task arrays.
 3. Rebuilds the selected player's orientation matrix from its current angles and
    stores those angles in both of its retained angle-history triples.
 4. Sets the scripted-camera active word and its nesting count to zero.
-5. Clears the same retained input state on the camera actor.
+5. Applies step 2 to the camera actor.
 6. Reloads record zero's [player-type defaults](#camera-initial-state-and-player-type-settings),
    selects record zero, resets its flags to `0x40` and recomputes the first
    published pose as setup does.
