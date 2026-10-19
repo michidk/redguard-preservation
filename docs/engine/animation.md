@@ -554,8 +554,8 @@ Reverse `DelayCounter` stores the narrowed byte delay and decrements the cursor.
 A nonzero delay yields immediately; zero continues command processing.
 `EndAnimation` still ends the group and invokes ordinary advancement.
 `PlaySound` dispatches the ordinary animation sound services and retains the
-returned sound slot before decrementing the cursor. `StopSound` still invokes
-its sound service with the authored operand and decrements the cursor.
+returned sound slot before decrementing the cursor. Opcode eleven still invokes
+the actor-event service with the authored operand and decrements the cursor.
 
 ## Forward type-one transitions
 
