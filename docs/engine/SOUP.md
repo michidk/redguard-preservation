@@ -1295,6 +1295,14 @@ assignment. The phase then becomes eight regardless of whether the claim
 succeeds. These pending paths set lifecycle selector seven and register the
 actor once for a deferred map update. Attribute 1 remains 12.
 
+When the held next node has not been reached, phases 1 and 27 face that node.
+A nonzero facing result retains the phase. A zero result selects phase two.
+Only after that zero result, nonzero attribute 90 calls `Rnd(attribute90)`.
+A zero random result selects phase nine and stores `(draw & 127) + 16` in the
+point-command word using another shared random draw. Other outcomes preserve
+the command word. These paths retain held nodes and history, set lifecycle
+selector seven and register one deferred map update.
+
 Held-node arrival validates the actor's navigation and tests local horizontal Q8
 distance against `((speed + 1) * 256 * frame_scale) >> 8`. Equality is accepted;
 products wrap at 32 bits and the shift is signed. Speed is the current animation
