@@ -413,10 +413,10 @@ All fields little-endian.
 
 | Offset | Size | Type | Name | Description |
 |---|---|---|---|---|
-| 0x00 | 2 | `i16` | grip0 | Named from console. Used as animation frame offset during weapon transitions (consumed by the combat animation subsystem, not the attachment vertex system). |
-| 0x02 | 2 | `i16` | grip1 | Same subsystem as grip0. |
-| 0x04 | 2 | `i16` | scabbard0 | Named from console. Same subsystem as grip0. |
-| 0x06 | 2 | `i16` | scabbard1 | Same subsystem as scabbard0. |
+| 0x00 | 2 | `i16` | grip0 | First source-model vertex for the drawn-weapon attachment. |
+| 0x02 | 2 | `i16` | grip1 | Second source-model vertex for the drawn-weapon attachment. |
+| 0x04 | 2 | `i16` | scabbard0 | First source-model vertex for the stowed-weapon attachment. |
+| 0x06 | 2 | `i16` | scabbard1 | Second source-model vertex for the stowed-weapon attachment. |
 | 0x08 | 2 | `i16` | anim_frame_ref | Matches RAHD `anim_frame_data` at 0x85. Set on mobile actors only. |
 | 0x0A | 2 | `u16` | texture_id | Actor texture set (TEXBSI number) for skin variants; zero selects the models' own textures. See [actor texture sets](#actor-texture-sets). |
 | 0x0C | 2 | `i16` | v_vertex | Model vertex used by combat contact queries. |

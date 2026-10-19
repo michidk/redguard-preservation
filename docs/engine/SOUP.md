@@ -569,6 +569,11 @@ zero because the segment has zero length. Radius sign is not separately rejected
 
 ### Equipped-weapon combat endpoints
 
+Drawn-weapon attachment requests use the signed RAEX `grip0` and `grip1` source
+vertex indices. Stowed-weapon attachment requests use `scabbard0` and `scabbard1`.
+Both requests use the actor's current animation handle and frame. The loader
+copies these four signed words into the actor before attachment queries.
+
 After selecting an equipped-weapon attachment, an actor with combat state retains
 two endpoints and the attachment record. The base endpoint is the attachment's
 floating position truncated component by component to signed integers. For the
