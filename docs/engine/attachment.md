@@ -83,6 +83,17 @@ At each frame, the engine reads the tracked vertex position through this call ch
 3. **Frame builder** — reads the requested vertices from the selected model frame. Frame encoding is described in [3DC](../formats/models/3dc.md).
 4. Result is scaled by a global constant and rounded to integer world coordinates.
 
+### Actor model-point conversion
+
+The actor model-point query reads an integer vertex from the selected animation
+frame or the actor's static model. It converts each coordinate to single
+precision before applying the actor matrix. For each transformed coordinate,
+it adds the actor's local integer position before storing the sum as single
+precision. The integer position is not rounded to single precision separately
+before addition. The stored sums then convert to integer coordinates using the
+active floating-point rounding mode. With nearest-even rounding, half-integer
+ties select the even integer.
+
 ## Item Data (from INVENTRY.ROB)
 
 Items are loaded from a ROB file keyed as `"ITEMS"` (`INVENTRY.ROB`). The item initialization function iterates all items and populates per-item runtime fields:
