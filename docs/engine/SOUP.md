@@ -275,6 +275,10 @@ absent, or no movement is requested. Repeated registration retains the first
 occurrence of each actor. The deferred pass processes registrations in that
 order, clears the consumed entries and resets the list count.
 
+The combat coordination selector starts at zero, separately from the consecutive
+close-distance counter. Assigning the coordination selector first clears that
+counter, then stores the requested selector value.
+
 ### Attack executor
 
 The attack executor resolves its pending move through the four defense slots
