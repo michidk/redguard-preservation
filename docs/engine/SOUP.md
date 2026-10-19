@@ -2568,18 +2568,22 @@ own record is unchanged afterwards.
 
 ### Location camera request
 
-The first invocation of the location-camera handler (counter one, elapsed zero)
-sets flag `0x01` on the selected camera record and begins a scripted camera
-(see below), binds the record to the target actor, applies the
-[actor camera offsets](#actor-camera-offsets), and then writes the record's
-request from the three task arguments.
+The first invocation of the location-camera handler (private word one, elapsed
+zero) sets flag `0x01` on the record that is selected at that moment, begins a
+scripted camera (see below), binds the record that step selected (record two) to
+the target actor, applies the [actor camera offsets](#actor-camera-offsets) to
+it, and then writes its request from the three task arguments. The flag set on
+the first record stays set: after the handler, record zero (when it was the
+selected record) keeps flag `0x01`.
 
 The binding selects one of two position and angle vector pairs on the actor,
-chosen by attribute byte 26 (zero or nonzero).
+chosen by attribute byte 26 (zero or nonzero). The camera therefore orbits the
+target actor, not the player.
 
 The arguments are shifted left eight bits. That vector and the record's
 position offset (as just replaced from the actor attributes) are each rotated
-by the bound actor's angles. The actor's `attr_camera_move` byte then selects:
+by the bound actor's angles. Flag `0x01` is set on the bound record again, and
+the actor's `attr_camera_move` byte then selects:
 
 | `attr_camera_move` | Request | Flags |
 |---|---|---|
@@ -2587,9 +2591,10 @@ by the bound actor's angles. The actor's `attr_camera_move` byte then selects:
 | 1 | rotated argument vector + rotated offset | set `0x04`, clear `0x08` |
 | 2 | record distance = rounded length of the rotated argument vector >> 8; angle offset = angles of that vector (the camera orientation conversion) plus the bound actor's angles, each wrapped to 2047 | clear `0x08` and `0x04` |
 
-Other values write no request. The handler then runs one camera update, clears
-flag `0x01`, and returns one. Later invocations run the scripted-camera release
-step with argument zero and return zero.
+Other values write no request and leave the flags as the begin step set them.
+The handler then runs one camera pose update with the bound record selected,
+clears flag `0x01` on the selected record, and returns one. Later invocations run
+the scripted-camera release step with argument zero and return zero.
 
 ### Scripted camera begin and release
 
