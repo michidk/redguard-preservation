@@ -244,6 +244,19 @@ retained record loads the label, once, and creates an ordinary record owned by t
 invocations query the retained record's activity without reloading. A full record table retains -1, which reads
 as inactive. A failed lookup retains record zero, so the task then waits on the player's line.
 
+`rtxAnim(label, a, b, c)` runs the `RTX` steps and also cycles three animation groups on the scripted actor.
+The cycle visits the operands in the order `b`, `c`, `a`. The invocation that creates the line requests the first
+group (an ordinary request with speed modifier zero) and sets the animation's loop countdown to one. On every
+invocation, including that one, when the actor's current group differs from the group last requested and the line
+is active, it requests the next group in the cycle, wrapping after the third, and again sets the loop countdown to
+one. The task keeps running while the line is active or the actor's current group equals the group last requested,
+and otherwise completes. While it keeps running it clears the topic-menu pending flag, and when it completes it
+clears the topic-menu delay counter.
+
+`RTXpAnim(label, a, b, c)` follows the same steps with the selected player as the animated actor and the speaker.
+Its record is an ordinary record owned by the player rather than the reserved player record, its distance gate
+measures the player's own position, and it does not change the topic-menu state.
+
 Dialogue lifetime is initialized from the loaded audio duration when a sample
 handle is remembered. Duration uses integer units of 1/256 second:
 `(PCM_byte_count << 8) / (channels * sample_rate * bytes_per_sample)`.
