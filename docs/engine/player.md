@@ -214,7 +214,8 @@ and special living states have separate dispatch branches.
 
 Creating the standalone `CYRUS` and `GREMLIN` actors runs the same player
 initializer for each actor, then restores `CYRUS` as the selected player. Each
-initializer clears the retained controller override, pending action flag,
+initializer clears selected hit inhibition, the death-animation override group,
+the pending action flag,
 three preliminary countdowns and sound-maintenance inhibition.
 These resets precede actor model/script setup and the initial animation request.
 
@@ -229,7 +230,7 @@ which advances earlier in the ordinary actor update.
 The conditional countdown is processed before the pending action flag. A
 pending action with sliding state zero selects action 74 and invokes its action
 helper. The two unconditional countdowns are processed afterward, before the
-controller override test. A nonzero override invokes the override controller
+selected hit-inhibition test. Nonzero hit inhibition invokes the death controller
 and returns before idle-counter reset, lockout and ordinary keyboard dispatch.
 
 ### Idle animation requests

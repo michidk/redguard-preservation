@@ -699,7 +699,7 @@ wrapping sum to the session maximum and zero, and publishes actor and retained
 displayed health before later notification.
 
 When health becomes zero and the session death-suppression flag is clear, it
-requests taunt category six, enables hit inhibition, clears pending action state,
+requests taunt category six, enables hit inhibition, clears the retained death-progress word,
 captures the selected actor's local position and sends death notification, which
 sets its death selector to eight without changing other actor state. An
 existing controller animation override is preserved. If no override is set, a
@@ -715,9 +715,18 @@ a weapon starts group 122 when present, otherwise group 121, then stores death
 default 124 or 123 respectively and releases its held walk nodes, in that order.
 
 The nonfatal or death-suppressed path instead clears the override, hit inhibition
-and pending action state. A negative change then requests taunt category two and
+and the retained death-progress word. This word is separate from the controller's
+pending action flag. A negative change then requests taunt category two and
 the damage reaction after health publication. These service orders differ from
 selected additive health and are not interchangeable.
+
+### Selected-player death admission state
+
+`IsDead` returns true for a selected player with nonzero hit inhibition, or for
+any receiver whose death selector is eight. The retained death-animation group
+does not participate in this predicate. The same hit-inhibition flag gates
+selected-controller death execution, ordinary defence sampling and dead-receiver
+taunt rejection. It is separate from the retained death-animation group.
 
 ### Selected-player death animation override
 
@@ -2787,8 +2796,8 @@ The result is true when no entry blocks.
 ### Nonplayer defence selection
 
 The defence selection runs only while the receiver is armed and the selected-player
-health-death/controller override is clear. Standalone-player initialization clears
-this shared override; selected-player health death sets it. With no move selected, the target must lie inside the receiver's
+selected-player hit-inhibition flag is clear. Standalone-player initialization clears
+this flag; selected-player health death sets it. With no move selected, the target must lie inside the receiver's
 forward arc and its distance must be strictly below the receiver's far window.
 The forward-arc query subtracts the receiver's local position from the target's
 local position with signed 32-bit wrapping arithmetic, then arithmetic-shifts each
