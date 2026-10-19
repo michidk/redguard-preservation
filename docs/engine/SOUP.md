@@ -1317,6 +1317,9 @@ It requests animation group one plus that value with modifier zero. Other
 animation groups consume no idle draws. These paths retain navigation indices,
 set lifecycle selector seven and register the actor for a deferred map update.
 
+Animation-stop calls in point navigation return without changing playback,
+actor motion or navigation state.
+
 Held-node arrival validates the actor's navigation and tests local horizontal Q8
 distance against `((speed + 1) * 256 * frame_scale) >> 8`. Equality is accepted;
 products wrap at 32 bits and the shift is signed. Speed is the current animation
