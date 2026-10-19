@@ -1036,6 +1036,11 @@ Candidate construction visits prepared static placements first, ordinary live
 actors second, and transient models last. The face-model and actor-style lists
 each retain their separate limit of 64 entries across these phases.
 
+The ordinary actor exclusion test rejects the unselected member of the two
+player roles. It admits the selected player and actors outside those roles.
+Selection zero chooses the first role; every nonzero selection chooses the
+second. The remaining candidate gates still apply to the selected player.
+
 A live actor is admitted only when its ordinary actor exclusion test passes,
 its runtime animation-update exclusion is zero, its loaded model exists and
 differs from the querying actor's model, attribute 55 is zero, and the model
