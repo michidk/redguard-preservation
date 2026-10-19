@@ -2620,6 +2620,14 @@ The handler then runs one camera pose update with the bound record selected,
 clears flag `0x01` on the selected record, and returns one. Later invocations run
 the scripted-camera release step with argument zero and return zero.
 
+`showObj` is the same handler with the argument vector used as given instead of
+rotated by the bound actor's angles (only the record's position offset is
+rotated); its requests are therefore vector + rotated offset + bound position
+(`attr_camera_move` 0), vector + rotated offset (1) and the orbit of the unrotated
+vector (2). The `showCyrus` wrappers of both handlers return zero without touching
+the camera while the selected player is holding a weapon, and otherwise run the
+handler with the selected player as the target actor.
+
 ### Object pans
 
 `showObjPan` and `showObjPanLoc` take a target actor, three vector arguments and a
@@ -2665,6 +2673,10 @@ Otherwise the request `attr_camera_move` selects is written exactly as the locat
 camera writes it (with the absolute request of the table above, the relative request
 being vector + rotated offset, and the orbit using the vector alone), flag `0x01` is
 cleared on the selected record, and the task returns zero.
+
+The `showCyrusPan` and `showCyrusPanLoc` wrappers apply the same holding-weapon
+guard as the [location wrappers](#location-camera-request) and then run the handler
+with the selected player as the target actor.
 
 ### Scripted camera begin and release
 
