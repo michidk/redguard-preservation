@@ -193,8 +193,9 @@ The weapon state machine selects which attachment routine and which model (hand 
 | `0x14` (drawing sword) | Frame < draw threshold | Position hilt model at scabbard |
 | `0x14` (drawing sword) | Frame ≥ draw threshold | Position hand model at hand; set drawn flag |
 | `0x15` (sheathing sword) | Frame < sheath threshold | Position hand model at hand |
-| `0x15` (sheathing sword) | Frame ≥ sheath threshold | Position hilt model at scabbard; clear drawn flag |
-| `0x00` (idle, sheathed) | — | Position hilt model at scabbard |
+| `0x15` (sheathing sword) | Frame ≥ sheath threshold | Position hilt model using grip geometry; clear drawn flag |
+| `0x00` (idle, sheathed) | Current animation group is 129 | Position hilt model using grip geometry |
+| `0x00` (idle, sheathed) | Other animation group | Position hilt model at scabbard |
 | `0x00` (idle, drawn) | — | Position hand model at hand |
 
 The draw/sheath frame thresholds are read from the actor's attribute data (offsets `+0x22` and `+0x23` from an attribute block pointer at actor `+0x272`).
