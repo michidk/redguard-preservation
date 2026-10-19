@@ -785,6 +785,19 @@ requires that cursor and progress byte differ. This compares command progress
 with frame progress, not the displayed model frame or finite loop countdown.
 Completion returns world-loop outcome 5000.
 
+### Death completion dispatch
+
+After world-loop outcome 5000, the main dispatcher checks the retained last-save
+slot. An absent slot opens the book menu with entry context three. An available
+slot presents a Yes/No request to load the last game, with the retained save
+description appended to the prompt. No opens the same book-menu context. Yes
+copies that slot into the pending load selection and selects saved-game loading
+for the next dispatcher pass.
+
+The dispatcher clears selected-player hit inhibition after the confirmation or
+book-menu call returns. The saved-game loading pass receives the retained slot,
+then clears the pending selection and returns the dispatcher to world execution.
+
 ### Selected death effect admission
 
 Death-controller environmental effects read progress after its nominal-tick
