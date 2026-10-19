@@ -460,6 +460,18 @@ advances and wraps it, then clears the next message code. A zero code does not
 send a message. The combat message stage consumes at most one addressed message
 per invocation.
 
+Coordination message `0xd002` uses the receiver's current combat target; `0xd003`
+uses the sender's current combat target. Starting at the ordinary list head,
+they clear coordination state for each living actor whose target equals that
+target and whose coordination state is exactly one, excluding the target itself.
+Traversal continues from each matched actor's successor without wrapping. A null
+target skips this scan. Clearing or assigning coordination state also resets the
+actor's consecutive close-distance counter. After the scan, `0xd002` assigns the
+receiver coordination state one and aggression 50; `0xd003` assigns those values
+to the sender. These assignments still occur with a null target. Neither message
+changes the selected actor's combat target. Unrecognized nonzero message codes
+are consumed without combat effects.
+
 Ordinary entry processing is suppressed by an unpaused blocking slot whose call operand address is at or before the saved entry cursor. This test is separate from the later main-body blocking test and from direct interrupt invocation.
 
 ### Value Modes
