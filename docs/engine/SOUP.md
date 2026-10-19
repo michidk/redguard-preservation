@@ -754,6 +754,11 @@ Death mode zero performs no further effect updates in this controller call.
 The player initializer clears both death mode and progress to zero. These words
 are separate from the controller pending-action flag and preliminary countdowns.
 
+For a selected player with hit inhibition, attribute 105 equal to one and death
+mode two, the world loop exits with outcome 5000 only when signed death progress
+is strictly greater than 12. Progress 12 does not exit. This branch bypasses the
+ordinary retained-group animation-completion comparison.
+
 ### Contact death animation dispatch
 
 A null receiver does nothing. Selector zero first checks for animation group 122
