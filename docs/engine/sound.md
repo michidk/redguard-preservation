@@ -234,6 +234,16 @@ its first zero-elapsed invocation loads the label once and replaces record zero
 when lookup succeeds. Later invocations query that record's activity without
 reloading the label. The handler has no speaker-distance gate.
 
+The `RTX` task completes when the shared sample-reset flag is set. Otherwise it measures the scripted actor's
+distance to the selected player: the rounded single-precision Euclidean length of the position difference, using
+the same receiver position as `PlayerDistance`, shifted right eight bits. `neversaydie` does not replace this
+distance. A distance greater than `dialog_max_distance` completes the task. When the task already created a
+line, that line's remembered sample is first stopped and the active ordinary records using that sample slot are
+cleared; the reserved player record is untouched. Within range, only an invocation with zero elapsed input and no
+retained record loads the label, once, and creates an ordinary record owned by the scripted actor. Later
+invocations query the retained record's activity without reloading. A full record table retains -1, which reads
+as inactive. A failed lookup retains record zero, so the task then waits on the player's line.
+
 Dialogue lifetime is initialized from the loaded audio duration when a sample
 handle is remembered. Duration uses integer units of 1/256 second:
 `(PCM_byte_count << 8) / (channels * sample_rate * bytes_per_sample)`.
