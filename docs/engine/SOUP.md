@@ -1359,8 +1359,8 @@ endpoints are each shifted right by eight to integer map coordinates.
 The query visits the prepared mixed-model candidates in order. A type-16
 candidate is skipped before geometry when its actor is the receiver or selected
 player, or its model is the receiver's own model instance. Other candidate types
-do not receive that early exclusion. Model segment tests use the two-sided
-query. A zero or failure result does not block. A successful model result blocks
+do not receive that early exclusion. Model segment tests disable early return
+after subobject admission; that argument does not set polygon sidedness. A zero or failure result does not block. A successful model result blocks
 unless the candidate actor is the receiver; that receiver exception occurs
 after the geometry call. The first blocking result rejects immediately.
 
