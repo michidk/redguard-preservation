@@ -597,6 +597,13 @@ services apply their attribute gates before forwarding selected receivers or
 changing nonplayer health. The early native feedback update remains visible
 when a later admission rejects the health change.
 
+Both generic services reject nonzero attribute 120 before any weapon or combat
+query. With nonzero attribute 97, they first test weapon holding. Only when that
+is false do they read combat flag four. A missing combat record supplies a clear
+flag. The receiver is admitted when either test succeeds; otherwise it is left
+unchanged. An admitted selected receiver forwards to the corresponding selected
+health service with no source actor.
+
 ### Selected-player additive health
 
 Selected-player initialization clears hit inhibition, sets session maximum health
@@ -693,7 +700,8 @@ displayed health before later notification.
 
 When health becomes zero and the session death-suppression flag is clear, it
 requests taunt category six, enables hit inhibition, clears pending action state,
-captures the selected actor's local position and sends death notification. An
+captures the selected actor's local position and sends death notification, which
+sets its death selector to eight without changing other actor state. An
 existing controller animation override is preserved. If no override is set, a
 nonnull source actor's nonzero attribute 109 supplies it before ordinary death
 animation selection.
