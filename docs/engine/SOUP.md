@@ -494,8 +494,8 @@ actions 0 through 6 enter attack processing. Other action values reset to -1.
 ### Attack-processing admission
 
 Attack processing requires a combat record and an action other than `-1` or nine.
-The animation admission query must return zero, and combat flag `0x01` must be
-set. Only then does processing query the current attack's active collision
+The animation admission query reads the animation state's unsigned reverse-playback
+byte. It must return zero, and combat flag `0x01` must be set. Only then does processing query the current attack's active collision
 window. A true result skips the extended-window query. A false result consults
 the extended window instead. If either window admits the attack, processing
 sets combat flag `0x20` before traversing either collision-candidate list.
