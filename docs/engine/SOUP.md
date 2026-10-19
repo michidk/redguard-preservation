@@ -1030,7 +1030,19 @@ In PARAMETER mode, NumericAlt consumes four bytes but returns the unsigned low 1
 
 Native parameters use numeric, global flag, local variable, string, or object-property operands. Native calls are value expressions outside PARAMETER mode; PARAMETER dispatch does not evaluate nested native calls.
 
-Object-targeted native calls evaluate local-variable and property operands against the receiving actor. Ordinary entry, task, and main processing establishes the executing actor as the native string-parameter context. A routed initial call preserves that stage actor's string table. A later ordinary task pass on the receiving actor reevaluates those string indices against the receiving actor's table. The stored task operand location remains in the calling actor's bytecode.
+Object-targeted native calls evaluate local-variable and property operands against
+the receiving actor. Native string parameters instead use the retained
+native-command source described under [Retained health source context](#retained-health-source-context).
+Normal interpreter entry establishes that source before entry continuation and
+existing-task admission. The script-control mask `0x04` alternate path retains the
+previous source, including its string table. A string parameter therefore need
+not use either the native receiver's table or the alternate path's executing
+actor's table.
+
+A routed initial call preserves the retained source's string table. A later
+normal interpreter entry on the receiving actor establishes that receiver as the
+source before reevaluating its active task's string indices. The stored task
+operand location remains in the calling actor's bytecode.
 
 ### Object Name Encoding
 
