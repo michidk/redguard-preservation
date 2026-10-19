@@ -1134,6 +1134,48 @@ first candidate. An improving candidate below distance 12 returns immediately,
 even if a later node would be closer. The shared winning map is cleared before
 searching. A miss leaves it absent and returns node index -1.
 
+### Walk-route search and next-hop selection
+
+Walk-map loading sizes the shared route queue and visited array to the largest
+loaded map's node count plus eight. Search starts with the current node at depth
+one. An unset current node returns -1; an equal current and destination node
+returns that node before testing map availability. Other searches reject an
+absent or disabled map.
+
+The forward search processes its queue in order and visits each node's links
+in authored order. A link qualifies when its unsigned cost is at most 2048, its
+target passes node admission and has not been visited, and the expanded node's
+reservation byte is either zero or equal to the requesting identifier. The
+reservation test belongs to the expanded node, not the linked destination.
+Qualifying targets are marked visited and queued with the parent's depth plus
+one. Finding the destination starts backtracking immediately. Exhausting the
+queue or its capacity returns -1. Costs filter forward traversal; they are not
+accumulated as a shortest-path distance.
+
+Backtracking does not retain the parent that discovered a node. For each node,
+it scans earlier queue entries in reverse order for depth one lower. It looks
+up the first authored link from each candidate to the current node. Zero cost
+is not a predecessor. Among nonzero links, the smallest low fourteen cost bits
+wins; equal costs retain the first reverse-scan candidate. Backtracking repeats
+until reaching the initial queue entry and returns the next node after it.
+Failure to find a predecessor returns -1. The forward admission filters are not
+reapplied during this predecessor scan. Duplicate links can therefore affect
+backtracking through their first authored cost even when another duplicate
+caused forward admission.
+
+Each predecessor scan clears two shared link-result flags. An improving link
+sets the first flag when cost bit 14 is set and the second when bit 15 is set.
+These flags are not cleared by a later improving link within that same scan.
+The final scan's flags accompany the selected next hop.
+
+When the shared player-proximity exclusion switch is zero, node admission
+returns true without reading the player. When enabled, a valid node in a
+present map is rejected only when its rounded three-dimensional distance is
+strictly below the shared signed threshold. Node X/Z are unsigned and node Y
+is signed. The player coordinates are the local actor position shifted right
+by eight. An absent map or an index outside its node range returns true without
+a distance calculation.
+
 ### Point-navigation command state
 
 The point-navigation wrapper copies four retained actor values into shared
