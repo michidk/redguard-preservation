@@ -1167,6 +1167,8 @@ Each predecessor scan clears two shared link-result flags. An improving link
 sets the first flag when cost bit 14 is set and the second when bit 15 is set.
 These flags are not cleared by a later improving link within that same scan.
 The final scan's flags accompany the selected next hop.
+A shared backtracking-inhibition word equal to one returns -1 and clears both
+flags before scanning. Other values allow backtracking.
 
 When the shared player-proximity exclusion switch is zero, node admission
 returns true without reading the player. When enabled, a valid node in a
