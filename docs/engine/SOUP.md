@@ -2514,7 +2514,8 @@ while the selected record is record two.
 ### showPlayerPan
 
 `showPlayerPan(duration)` is a task with one argument. It increments the same
-private word as `showPlayer`. A negative duration is a fatal engine error.
+private word as `showPlayer`. A negative duration writes a diagnostic line and
+the task returns zero before touching the private word or any camera state.
 
 On the first invocation (private word one, elapsed zero) it:
 
@@ -2660,8 +2661,9 @@ passes the same model, radius and bounds tests. The bounds-record flag is set
 when the actor's script and model load establishes its bounds; the exclusion is
 the flag the ordinary object-update loop tests.
 
-The candidate array holds 64 entries. Appending a sixty-fifth is a fatal engine
-error.
+The candidate array holds 64 entries. When it already holds 64, the engine writes a
+diagnostic line instead of appending and stops scanning the current list; the
+remaining entries of that list are dropped.
 
 ### Camera collision result selection
 
