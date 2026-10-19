@@ -540,12 +540,13 @@ from the first-motion defence-selection arc interval.
 For a candidate with no combat record or a zero combat radius, the range/arc
 contact path checks orientation, then range, then elevation. A failed check skips
 the later checks. Orientation and range accept a nonzero result; elevation must
-return exactly one. Range and elevation use the receiver's retained attack-slot
-selector.
+return exactly one. Range uses three-dimensional query-position distance.
+Range and elevation use the receiver's retained attack-slot selector.
 
 For a candidate with nonzero combat radius and attribute 126 equal to zero, the
 path first resolves the candidate's retained model vertex. It tests orientation
-against that point before querying actor distance. The distance must be strictly
+against that point before querying horizontal query-position distance. The
+distance must be strictly
 between the minimum and maximum ranges of the retained attack slot's first
 motion, and strictly less than the candidate's combat radius. Equality at any
 of these boundaries rejects contact.
