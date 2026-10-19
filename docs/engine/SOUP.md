@@ -1250,6 +1250,11 @@ byte wrapping when the collision-response auxiliary byte has bit 7 set, a map is
 present, and a next node is held. A resulting counter greater than eight selects
 phase 24. Otherwise the counter resets to zero.
 
+The shared player-exclusion switch starts disabled during player setup. Point
+movement consults this switch before falling/queued-motion handling. It is the
+same switch used by walk-node admission; held-target admission has its own
+position quantization and angular checks.
+
 A falling actor or one with queued motion assigns attribute 1 to 13, selects
 phase one when a next node is held or phase zero otherwise, sets lifecycle
 selector seven, and returns pending. This path precedes immediate arrival and
