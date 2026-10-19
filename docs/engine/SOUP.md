@@ -2678,6 +2678,32 @@ The `showCyrusPan` and `showCyrusPanLoc` wrappers apply the same holding-weapon
 guard as the [location wrappers](#location-camera-request) and then run the handler
 with the selected player as the target actor.
 
+### World-position camera requests
+
+`showObjWorld(x, y, z)` is a location camera whose arguments are a world position. Its
+vector is `(argument - P) << 8` per component, where `P` is the position offset of the
+record that is selected when the task starts (the arguments are not shifted before the
+subtraction). The first invocation sets flags `0x20` and `0x01` on that record, begins a
+scripted camera, binds record two to the target actor, applies the
+[actor camera offsets](#actor-camera-offsets), sets flag `0x01` again and writes the request
+`attr_camera_move` selects. Nothing is rotated and the offsets are not added:
+
+| `attr_camera_move` | Request | Flags |
+|---|---|---|
+| 0 | the vector | set `0x08`, clear `0x04` |
+| 1 | vector - bound position | set `0x04`, clear `0x08` |
+| 2 | orbit of vector - the actor's own position (not the bound pose, which differs for actors with attribute byte 26 set), as for the [location camera](#location-camera-request) | clear `0x08` and `0x04`, set `0x01` |
+
+It then runs one camera pose update, clears flag `0x01` on the selected record and returns
+one; later invocations run the release step with argument zero and return zero.
+
+`showObjWorldPan(x, y, z, duration)` returns zero for a negative duration without touching
+the camera. Otherwise it runs `showObjPan` with the arguments `(argument << 8) - B` per
+component, where `B` is the bound position of the record selected at the call, and
+`showObjPan` shifts them left eight bits again.
+
+`showObjRot` does nothing and returns zero.
+
 ### lookObj
 
 `lookObj(duration)` turns the camera in place to face the target actor. A negative
