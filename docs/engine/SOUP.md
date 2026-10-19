@@ -544,8 +544,8 @@ and toggles defender flag `0x08`. It returns one. Other combat flag bits survive
 ### Defence contact window
 
 The defence window compares the signed animation command cursor against the
-current motion's defence start and duration. It includes the start and excludes
-the end: `start <= cursor < start + duration`. The end uses signed 32-bit
+current motion's `first_defend_frame` and `defend_duration`. It includes the
+start and excludes the end: `start <= cursor < start + duration`. The end uses signed 32-bit
 wrapping addition. A cursor before the start returns zero without reading the
 duration. Otherwise the query reads start again, then duration, then the cursor
 again before comparing the end. Zero and negative durations have no separate
