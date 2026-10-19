@@ -1311,6 +1311,29 @@ saved position. `Endint` resets that entry continuation to the script base.
 
 An actor has six task slots shared by its entry and main invocations. Existing-task processing traverses those slots in allocation order, skips paused slots, reevaluates encoded operands, and removes a slot when its handler reports completion. Unpaused blocking slots suppress the subsequent main-body invocation; multitask slots do not. Reissuing a call whose operand address is already in a slot does not execute its handler again. Task labels resolve against the receiving actor's script base and match the byte immediately after the labelled dispatch opcode. Self task calls store the operand address immediately after their Task or Multitask opcode. Object task calls store the operand address immediately after the embedded dispatch byte following the two-byte object selector. Routing retains that encoded operand location; it does not rebase foreign bytecode into the receiver's script. `TaskStop` removes every matching slot and clears its blocking and pause state. `TaskPause` and `TaskResume` set and clear the matching slots' pause state.
 
+### Group synchronization channels
+
+Actor data byte 29 names the actor's group channel (1 through 255; zero means none), byte 30 its user
+channel, and a nonzero byte 43 excludes the actor from its group channel's rendezvous. Actors join their
+channel's member list when they are created. World initialization enables the system and clears every
+channel's released value; with the system disabled, or for an actor without a channel or member entry,
+`SyncWithGroup` completes immediately.
+
+Each member holds a posted value, initially zero. `SyncWithGroup(group)` is a task. Each invocation stores
+`group | 0x80` (the group's low eight bits with the posted mark) as the actor's posted value, then compares the
+channel's released value with that stored byte. When they are equal it clears the mark, keeping the group, and
+completes; otherwise it keeps waiting. `ResetGroupSync` and the `End` operation set the actor's posted value to
+zero.
+
+Once per world-loop iteration, after the family system update, every channel is updated. The channel carries the
+mark when every non-excluded member's posted value has its mark. The channel then releases a group: it scans
+cyclically over 0 through 127 for a value that some non-excluded member holds (its posted value without the
+mark; a member that has not posted holds zero, so zero counts), starting at the previous released byte itself.
+Because a marked released byte is at least 0x80, a marked release starts the scan just after its group, while an
+unmarked release starts at its own group. The first value found, combined with the mark, becomes the released
+byte; when none is found the released byte is just the mark. A member that completed keeps its group but loses
+its mark, so the channel advances to the next posted group unmarked until that member posts again or ends.
+
 The `KillMyTasks` function takes no arguments and returns zero. It clears all six of the receiver's task slots at
 once, whatever their operand addresses, including their blocking and pause state and retained handler scratch,
 without invoking any handler. It acts immediately, so a task started by a later statement of the same invocation
