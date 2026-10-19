@@ -642,6 +642,11 @@ pitch, and sets its rope countdown to 24 before releasing the node. If the actor
 instead names another attachment, those actor writes are skipped. The removed
 node is released after the list and eligible actor updates.
 
+Destroying an entire rope uses a separate path. It unlinks the rope from the
+rope list, walks and releases its attachment nodes, and clears each retained
+actor's attachment link. It does not invoke attachment detach motion. It then
+releases the rope's optional auxiliary records and the rope itself.
+
 For the detach direction branch, the rope's angle flag enables a heading test.
 The signed heading difference wraps over 2048 units. An absolute difference
 strictly greater than 16 flips the rope's direction bit for that detach.
