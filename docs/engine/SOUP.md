@@ -2328,6 +2328,16 @@ typed by source: static placements and the secondary list carry type `0x20`, act
 `0x80`. While the actor's queued-motion byte is `0x18` (24), actor-owned candidates are skipped, so
 only static models can block.
 
+### Session requests: LoadWorld, WonGame, PushPlayer and PopPlayer
+
+`LoadWorld(world, marker, heading)`, `WonGame`, `PushPlayer` and `PopPlayer` return zero and only record a
+request; the main loop acts on it after the current script step. `LoadWorld` retains its three integers.
+The main loop then loads the world: the world index must be 0 through 99 and name a WORLD.INI entry
+(otherwise loading ends with an error), the current-world index becomes that value, the selected start marker
+(the second argument) supplies the player's starting position triple, and the third argument, masked to 0
+through 2047, supplies the starting heading. The three words are cleared when the load begins.
+`WonGame`, `PushPlayer` and `PopPlayer` each set one request flag for the main loop, which consumes them.
+
 ### Nonplayer deep-water and edge probe
 
 The strafing steppers (`MoveLeft`, `MoveRight`) and `MoveForward` call one probe before they move. It
