@@ -769,7 +769,8 @@ otherwise. A nonzero retained group bypasses the weapon query.
 Every admitted call force-requests the retained group with modifier zero before
 adding the nominal-tick increment to the retained death-progress word. The
 addition wraps at 32 bits; the starter observes the previous progress value.
-Death mode zero performs no further effect updates in this controller call.
+Only death modes one and two perform environmental effect updates. Zero and
+other mode values return after progress accumulation.
 The player initializer clears both death mode and progress to zero. These words
 are separate from the controller pending-action flag and preliminary countdowns.
 
