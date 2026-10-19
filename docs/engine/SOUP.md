@@ -285,6 +285,16 @@ secondary slot. Equal distances retain the existing pair. The initial attacker
 is not distance-tested, and the secondary slot is the preceding primary rather
 than a separately selected second-nearest attacker.
 
+The neighbor-distance query uses horizontal Euclidean distance in runtime Q8
+units. For each actor, a nonzero `attr_slave` selects attached position; otherwise
+a valid linked positioned record supplies position, with ordinary local position
+as the fallback. It subtracts the receiver's X/Z from the candidate's X/Z with
+signed 32-bit wrapping and supplies zero for the Y difference. Each difference is
+stored as single precision. The sum of squares passes through a double-precision
+store before an extended-precision square root; the stored single-precision root
+converts to an integer with nearest-even rounding. This position selection differs
+from the local-position vectors used by the separation query below.
+
 For each retained neighbor, the helper forms receiver-minus-target and
 neighbor-minus-target vectors from local Q8 positions. Each subtraction wraps
 at signed 32 bits, then each component shifts arithmetically right eight before
