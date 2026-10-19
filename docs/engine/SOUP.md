@@ -1343,12 +1343,15 @@ claim fails. These pending paths set lifecycle selector seven, leave attribute
 
 Coordinate walking saves local position, the packed movement byte and retained
 animation group/frame words before testing destination arrival. When arrival
-fails, it also saves the animation receiver, performs the movement path selected
-by attribute 93, then reads destination bearing from the position-query owner.
-That owner can supply alternate or linked coordinates rather than local position.
+fails, it also saves the animation receiver. Attribute 93 equal to zero selects
+`WalkForward`; a nonzero value selects `MoveForward`, with duration one in both
+cases. The position-query owner is selected before movement and its coordinates
+are read after movement for destination bearing. That owner can supply alternate
+or linked coordinates rather than local position.
 
 If the masked difference between bearing and local heading lies from 256 through
-1792 inclusive, walking restores the saved local position, movement byte,
+1792 inclusive, walking clears the shared forward-movement-called flag and
+restores the saved local position, movement byte,
 animation receiver and retained group/frame words, then snaps local X/Z to the
 destination. Local Y remains the saved Y. Otherwise it retains the movement
 result and returns one.
