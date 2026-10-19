@@ -326,6 +326,25 @@ wrapping, selects one of the receiver's four defense slots. That record's
 `first_collide_frame` and `collide_duration` supply the counter's timing start
 and duration. These values are distinct from spatial `min_range` and `max_range`.
 
+Counter selection first requires a held weapon, distance strictly inside the
+target's spacing window, and an absolute wrapped heading difference greater than
+768. The target action must be neither minus one nor nine, the receiver action
+must be minus one, at least one bound defense must be available, and the target's
+attacked flag `0x10` must be clear. Timing and counter-reference queries follow
+these gates.
+
+An accepted counter preserves the low two intent bits while setting bit `0x02`,
+stores the pending counter index, invokes the synchronous attack starter, then
+sets the target's attacked flag. The target mark follows the starter's return.
+A deterministic timing miss steps right for an even pacing sum or left for an
+odd sum when the target's retained attack selector is three or four; otherwise
+it steps backward. These movements use duration one and call the movement
+primitive directly, without the spacing helper's additional obstacle admission.
+
+The attack starter first rejects drawing or sheathing, then requires action minus
+one. For a nonplayer it retains the pending index, assigns action nine and invokes
+the attack executor. The selected player's pending-index selection is separate.
+
 ### Attack executor
 
 The attack executor resolves its pending move through the four defense slots
