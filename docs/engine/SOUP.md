@@ -2620,6 +2620,12 @@ timing conversion. The selected-player special-state branch also retains the
 candidate's horizontal components during distance limiting while still applying
 the vertical component and reporting limiting.
 
+The shared budget increment is `SYSTEM.INI` `[camera] max_acc`. The vertical
+parameter is `[camera] max_y_vel` negated before storage, so it is the negative
+lower bound described above. Both are stored without scaling. Setup stores them
+with the other shared camera values, and the same values are reloaded when the
+selected player's camera defaults are reloaded.
+
 ### Camera orientation retention
 
 Camera record flag `0x02` makes the orientation stage copy the previously
