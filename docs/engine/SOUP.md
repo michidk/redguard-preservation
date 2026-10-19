@@ -533,6 +533,15 @@ candidate order. Each model receives the retained weapon tip followed by the
 base as segment endpoints, with query option zero. Results zero and minus one
 are misses; every other result admits the unowned-model impact response.
 
+Query mode zero scans authored faces after model and face-group admission.
+Mode one returns zero when a face-group bound admits the segment, without
+scanning its faces. Mode two returns zero after model-radius admission, without
+visiting face groups. These modes are separate from the shared polygon-sidedness
+flag. Initialization enables that flag; the temporary query scopes which disable
+it restore it to enabled before returning. The weapon contact caller does not
+assign the flag. With sidedness enabled, the face query rejects a segment whose
+start lies more than four map units behind the authored face plane.
+
 A model without an actor owner uses installed `[misc] sword_clank_1`, with volume
 zero and pitch offset `rnd(128) * 16 - 1024` Hz, positioned on the attacker.
 Candidate type exactly one repeats the impact sound with a separate random draw.
