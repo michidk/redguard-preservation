@@ -103,11 +103,26 @@ pub enum Place {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum Value {
-    Integer { value: i32 },
-    String { index: u32 },
-    Read { place: Place },
-    Update { place: Place, delta: i32 },
-    Call { call: Box<Call> },
+    Integer {
+        value: i32,
+    },
+    String {
+        index: u32,
+    },
+    Read {
+        place: Place,
+    },
+    Update {
+        place: Place,
+        delta: i32,
+    },
+    Call {
+        call: Box<Call>,
+    },
+    /// Object-targeted expression encoding, including an explicit Me target.
+    ObjectCall {
+        call: Box<Call>,
+    },
 }
 
 /// Formula operators retain their byte values; evaluation is owned by the consumer.
@@ -300,7 +315,7 @@ impl Decoder<'_> {
             },
             25 | 26 => {
                 let target = self.object()?;
-                Value::Call {
+                Value::ObjectCall {
                     call: Box::new(self.call(target, CallKind::Function)?),
                 }
             }

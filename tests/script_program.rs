@@ -246,3 +246,33 @@ fn property_reads_preserve_the_high_reference_byte() {
         assert_eq!(step.next, 9);
     }
 }
+
+#[test]
+fn object_function_values_keep_encoding_even_when_target_is_me() {
+    let direct = decode_script_step(&[6, 0, 0, 2, 2, 0, 0, 0], 0, &definition()).unwrap();
+    let object = decode_script_step(&[6, 0, 0, 26, 0, 0, 2, 0, 0, 0], 0, &definition()).unwrap();
+    let Operation::Assign {
+        formula: direct, ..
+    } = direct.operation
+    else {
+        panic!("assignment expected")
+    };
+    let Operation::Assign {
+        formula: object, ..
+    } = object.operation
+    else {
+        panic!("assignment expected")
+    };
+    let Value::Call { call: direct } = direct.first else {
+        panic!("direct value expected")
+    };
+    let Value::ObjectCall { call: object } = object.first else {
+        panic!("object value expected")
+    };
+    assert_eq!(object.target, Object::Me);
+    assert_eq!(object, direct);
+    assert_eq!(
+        serde_json::to_value(Value::ObjectCall { call: object }).unwrap()["type"],
+        "object_call"
+    );
+}

@@ -1156,6 +1156,14 @@ back to the same slot. The point-navigation actor fields and the native task
 continuation are therefore distinct retained owners of values used during the
 same command invocation.
 
+Before evaluating native operands, a statement call clears all four retained
+scratch words. A direct function expression also clears all four. An
+object-targeted function expression clears the first two words and the packed
+word/phase/counter, while retaining the point command's 32-bit value. This
+encoding distinction applies even when the explicit object target is Me.
+The direct native-hook dispatcher performs neither setup reset. A newly allocated
+task slot saves the scratch resulting from its first native invocation.
+
 The six-slot resume pass visits slots in order. An empty or paused slot saves the
 current shared scratch into that slot without invoking its native call. An active
 slot loads its retained scratch before invoking the native call. A still-pending
