@@ -1405,6 +1405,23 @@ that record and returns zero. Other bits in the record's flag byte are retained.
 The private word belongs to the task continuation and is distinct from the
 shared camera selection.
 
+A nonzero task result keeps the task slot active and zero completes it. The
+initial invocation therefore leaves `showPlayer` active with bit `0x01` set, and
+the next task pass completes it after clearing bits `0x01` and `0x20`.
+
+### Player camera slot selection
+
+The slot requested for the selected player is the first that applies:
+
+| Condition | Slot |
+|---|---|
+| The selected player holds a weapon (`IsHoldingWeapon`) | 3 |
+| The shared debug word is nonzero (zero at program start) | 8 |
+| The selected player's living state is 15 | 4 |
+| The selected player has a rope association | 5 |
+
+When none applies, no slot is requested.
+
 A request for a different camera slot changes the selection only when the
 shared transition word is zero or the current record has flag `0x01`. Otherwise
 the current slot remains selected. Requesting the current slot leaves selection
@@ -1658,7 +1675,8 @@ other nonzero values also remain unchanged without correction.
 After position correction, the pose stage moves the previously published camera
 position and angles into their respective history vectors. It then publishes the
 new position to shared camera state and to both the camera actor and alternate
-camera actor. Orientation processing follows position publication, and its
+camera actor. Camera setup stores the CAMERA instance as both, so the two writes
+address the same actor. Orientation processing follows position publication, and its
 result replaces the shared published angles.
 
 Position history therefore contains the preceding published pose, not the new
@@ -1677,6 +1695,13 @@ The ordinary target-offset configuration is assigned to record zero after the
 copies. It therefore does not initialize the other records' target offsets.
 Combat target offsets are assigned separately to slot three. The remaining
 slots retain their cleared target-offset vectors at this initialization stage.
+
+### Camera initial state
+
+Camera setup selects record zero. The shared transition word, the
+scripted-camera active word and its nesting count are zero. Setup then computes
+the first published pose with one pass of the pose stage that omits movement
+limiting, and stores it as both the current and the previous pose.
 
 ### Camera record installed settings
 
@@ -1716,7 +1741,7 @@ The debug slot's three angle-offset reads all store to the first angle-offset fi
 Slot three gains flag `0x40` (already present from the copy). Slots six and seven
 additionally load aim vectors from `camera_rope_above_aim_x/y/z` and
 `camera_rope_below_aim_x/y/z`, bind the record's aim reference to them, and set
-their flags to exactly `0x40`. Slots four, five and eight keep the copied flags.
+their flags to exactly `0x40`. Slots four and eight keep the copied flags. Slot five gains flag `0x80` in addition to `0x40`, giving `0xc0`.
 Slots one, two and four through eight keep their cleared target-offset vectors.
 
 `obstacle_size` and `fudge_factor` are shifted left eight bits and `max_y_vel` is
