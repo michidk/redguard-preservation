@@ -740,6 +740,20 @@ the current frame or resetting its command cursor. Otherwise it force-starts
 the override group. This branch bypasses
 ordinary default-animation selection.
 
+### Selected-player death controller
+
+Hit inhibition admits the selected death controller after the ordinary
+preliminary controller countdowns. If the retained animation override is zero,
+the controller assigns group 122 while the actor holds a weapon, or group 134
+otherwise. A nonzero retained group bypasses the weapon query.
+
+Every admitted call force-requests the retained group with modifier zero before
+adding the nominal-tick increment to the retained death-progress word. The
+addition wraps at 32 bits; the starter observes the previous progress value.
+Death mode zero performs no further effect updates in this controller call.
+The player initializer clears both death mode and progress to zero. These words
+are separate from the controller pending-action flag and preliminary countdowns.
+
 ### Contact death animation dispatch
 
 A null receiver does nothing. Selector zero first checks for animation group 122
