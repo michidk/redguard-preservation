@@ -663,6 +663,15 @@ For the detach direction branch, the rope's angle flag enables a heading test.
 The signed heading difference wraps over 2048 units. An absolute difference
 strictly greater than 16 flips the rope's direction bit for that detach.
 
+### Selected-player death animation override
+
+The selected player's retained controller override stores an animation group
+identity, not only an active flag. When that override and selected hit inhibition
+are both nonzero, default-animation selection copies the override group into the
+actor's default animation. If the current group already matches, it cancels the
+pending group. Otherwise it force-starts the override group. This branch bypasses
+ordinary default-animation selection.
+
 ### Contact death animation dispatch
 
 A null receiver does nothing. Selector zero first checks for animation group 122
