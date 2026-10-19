@@ -636,7 +636,8 @@ lookup scans the rope list and each attachment list by node identity; an absent
 owner prevents removal.
 
 Removal reconnects both neighboring nodes and replaces the rope's head when the
-removed node is the head. With a retained actor whose attachment is either this
+removed node is the head. Removing the only attachment leaves the owner with an
+empty attachment list. With a retained actor whose attachment is either this
 node or null, removal applies detach motion, clears the actor's attachment and
 pitch, and sets its rope countdown to 24 before releasing the node. If the actor
 instead names another attachment, those actor writes are skipped. The removed
@@ -644,8 +645,10 @@ node is released after the list and eligible actor updates.
 
 Destroying an entire rope uses a separate path. It unlinks the rope from the
 rope list, walks and releases its attachment nodes, and clears each retained
-actor's attachment link. It does not invoke attachment detach motion. It then
-releases the rope's optional auxiliary records and the rope itself.
+actor's attachment link, even when that link names a different attachment. It
+does not invoke attachment detach motion or change actor pitch and rope countdown.
+Attachment nodes are released in list order, followed by the optional auxiliary
+record, optional end-model record and the rope itself. A null rope does nothing.
 
 For the detach direction branch, the rope's angle flag enables a heading test.
 The signed heading difference wraps over 2048 units. An absolute difference
