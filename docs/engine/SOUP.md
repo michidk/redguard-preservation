@@ -2670,9 +2670,11 @@ nothing matched for type 6, the request repeats as type 2.
 **All other types, including 1, 3, 4, 5, 7, 8 and 9,** consume fifteen draws, each choosing a list index `draw * count / 32767`,
 even after a record has been selected. A
 probed record of the requested type with a nonzero label becomes the choice when no choice exists
-yet, or otherwise replaces it when `(combat value + frame value) mod 2` is zero, where the combat
-value is the combat record's retained allocation index and the frame value is the update's value saved when
-the decision stage began. Their sum wraps as a signed 32-bit value. The taunt is then presented only when `(combat value + frame value)` is a
+yet, or otherwise replaces it when `(combat value + clock sample) mod 2` is zero. The combat
+value is the combat record's retained allocation index. The decision stage caches the current
+32-bit clock sample. In normal clock mode this is the raw BIOS-clock sample, interpreted as a
+signed value, rather than a nominal-tick increment or accumulated nominal ticks. Their sum wraps
+as a signed 32-bit value. The taunt is then presented only when `(combat value + clock sample)` is a
 multiple of the combat record's signed taunt period, initialized to `129 - attribute 87`;
 presenting a type 9 taunt also sets combat flag `0x40`.
 
