@@ -593,6 +593,13 @@ the actor-kind predicate. With that predicate false, even parity selects group
 117. The selected animation starts before the reaction's action and motion
 follow-up services.
 
+The action follow-up runs only for the selected player in direction state 15
+with its inhibition flag clear. Before its transition service, it sets direction
+state 17 and clears the retained action value. If the transition leaves direction
+state nonzero, it clears the three directional state bytes afterward. Other
+receivers and direction states leave this state unchanged. The motion follow-up
+calls its destruction service only when a motion-owner record is present.
+
 ### Contact death animation dispatch
 
 A null receiver does nothing. Selector zero first checks for animation group 122
