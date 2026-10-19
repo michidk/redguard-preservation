@@ -1152,6 +1152,16 @@ first candidate. An improving candidate below distance 12 returns immediately,
 even if a later node would be closer. The shared winning map is cleared before
 searching. A miss leaves it absent and returns node index -1.
 
+### Nearest node within one walk map
+
+Point navigation can search its current walk map for the destination node. The
+search takes map-unit coordinates, ignores reservation bytes, and rejects an
+absent or disabled map. It minimizes Manhattan distance with an initial exclusive
+bound of 4096. Equal distances retain the first node, and an improving candidate
+below distance 12 returns immediately. The shared selected map is cleared first.
+A hit sets it to the supplied map; a miss leaves it absent and returns -1.
+This search does not select a different map.
+
 ### Walk-route search and next-hop selection
 
 Walk-map loading sizes the shared route queue and visited array to the largest
@@ -1338,6 +1348,29 @@ A failed arrival selects phase zero without releasing held indices. Successful
 arrival assigns the next node as current and selects phase eight even when the
 claim fails. These pending paths set lifecycle selector seven, leave attribute
 1 at 12 and register one deferred map update.
+
+### Phase-eight route monitoring
+
+An unset current node releases held nodes and selects phase zero. Otherwise
+phase eight searches the current map for the destination's XYZ coordinates,
+each shifted right by eight. A missing destination completes point navigation
+with result byte two. When the destination equals the current node, held nodes
+are released. Nonzero attribute 95 selects phase 21. With attribute 95 zero,
+a failed direct-visibility check completes with result byte four; an admitted
+check selects phase 22.
+
+For a different destination, route search receives the current node, destination
+node and low identifier byte, followed by attributes 92 and 91. A missing next
+hop completes with result byte three. A next-node claim uses the ordinary
+ordered release and reservation owner. A rejected claim completes with result
+byte seven. An accepted claim selects phase one when the shared first-link
+`0x4000` flag is zero, or phase 12 when it is nonzero.
+
+The pending tail sets lifecycle selector seven, leaves attribute 1 at 12 and
+registers a deferred map update. Completion stores its result byte, releases
+held nodes, changes lifecycle seven to zero, sets attribute 1 to 13 and returns
+zero before pending registration. Completion retains the phase-eight command
+phase and previous-next history.
 
 ### Coordinate walking and rollback
 
