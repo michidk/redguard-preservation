@@ -1303,6 +1303,20 @@ point-command word using another shared random draw. Other outcomes preserve
 the command word. These paths retain held nodes and history, set lifecycle
 selector seven and register one deferred map update.
 
+Phase nine updates the point-command word using nominal ticks. It sign-extends
+the 16-bit word to 32 bits, compares that value as unsigned with the tick count,
+and clears the word when it is smaller. Otherwise subtraction wraps into the
+16-bit word. A zero result selects phase two. A held weapon also selects phase
+two, preserving the updated word.
+
+An unarmed actor with a nonzero remaining word stays in phase nine. If its
+current animation group equals its retained default group, it consumes one
+shared draw. When the low five bits are all set, it draws again and masks to
+two bits, rejecting three until a value from zero through two is obtained.
+It requests animation group one plus that value with modifier zero. Other
+animation groups consume no idle draws. These paths retain navigation indices,
+set lifecycle selector seven and register the actor for a deferred map update.
+
 Held-node arrival validates the actor's navigation and tests local horizontal Q8
 distance against `((speed + 1) * 256 * frame_scale) >> 8`. Equality is accepted;
 products wrap at 32 bits and the shift is signed. Speed is the current animation
