@@ -279,6 +279,40 @@ The combat coordination selector starts at zero, separately from the consecutive
 close-distance counter. Assigning the coordination selector first clears that
 counter, then stores the requested selector value.
 
+### Combat coordination
+
+The coordination selector is also the attacker-selection state used by attacker
+iteration. Exactly one admits an attacker. The waiting-state lookup scans the
+ordinary actor list from its head, excludes the supplied target actor, and chooses
+the first actor with a combat record, a nonnull combat target, lifecycle selector
+other than eight and coordination state one. It does not require that actor's
+target to equal the supplied target.
+
+The active-state lookup starts after the receiver in ordinary list order and
+wraps at the list end, stopping before the receiver. It chooses the first other
+combat actor with the same combat target, lifecycle selector other than eight,
+and either a held weapon or combat flag mask `0x04`. The selected player is
+excluded.
+
+After successful engagement and both cleanup executors reporting inactive,
+coordination state one selects the active branch. With negative aggression and
+an active-state candidate, the candidate's three-dimensional distance to the
+selected player must be strictly below three times its far spacing range to
+send addressed message `0xd002`. The range multiplication wraps at 32 bits.
+That send precedes a kind-nine timed taunt request, then assignment of coordination
+state zero. Spacing, counter-attack and defense selection still follow this
+originally selected active branch.
+
+Other coordination values select the waiting branch. An absent waiting-state
+candidate assigns state one. With a candidate and more than ten consecutive
+close-distance passes, the receiver sends `0xd003`, then requests a kind-eight
+timed taunt. Spacing follows the waiting branch without counter-attack or defense
+selection on that pass.
+
+Without engagement, state one runs the active-state lookup and sends `0xd002`
+when a candidate exists, then assigns state zero. Other states remain unchanged.
+The retained-target movement helper follows in either case.
+
 ### Attack executor
 
 The attack executor resolves its pending move through the four defense slots
