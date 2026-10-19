@@ -608,6 +608,12 @@ directional state bytes afterward. Other receivers and living states leave this
 state unchanged. The motion follow-up calls its destruction service only when
 the receiver has a rope attachment. Without that attachment it does nothing.
 
+Player initialization clears the separate action-inhibition byte. Ledge entry
+from living state zero requests state 19 and runs the transition. If a nonzero
+living state remains, it clears the three directional bytes and sets action
+inhibition to 16. This byte is separate from hit rejection and combat-decision
+inhibition.
+
 The state-17 transition requests group 56 and clears living state when the
 receiver is the selected player, attribute 105 is not one, the weapon-drawn flag
 is clear, and neither current group 149 nor 150 blocks it. Those groups block
