@@ -118,9 +118,9 @@ before addition. The stored sums then convert to integer coordinates using the
 active floating-point rounding mode. With nearest-even rounding, half-integer
 ties select the even integer.
 
-## Item Data (from INVENTRY.ROB)
+## Item model data
 
-Items are loaded from a ROB file keyed as `"ITEMS"` (`INVENTRY.ROB`). The item initialization function iterates all items and populates per-item runtime fields:
+Item definitions come from the `ITEMS` section of the configured item INI. Model names resolve against the loaded model registries, searching the primary registry before the secondary registry and selecting the first case-insensitive name match. The item initialization function iterates all items and populates per-item runtime fields:
 
 | Item Struct Offset | Source | Description |
 |---|---|---|
