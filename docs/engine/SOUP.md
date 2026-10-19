@@ -567,6 +567,22 @@ square and its subtraction of that integer both wrap at 32 bits. A nonnegative
 signed residual returns one, including equality. A negative residual returns
 zero because the segment has zero length. Radius sign is not separately rejected.
 
+### Equipped-weapon combat endpoints
+
+After selecting an equipped-weapon attachment, an actor with combat state retains
+two endpoints and the attachment record. The base endpoint is the attachment's
+floating position truncated component by component to signed integers. For the
+tip, the local vector `(0, -(weapon_length << 8), 0)` uses signed 32-bit wrapping
+and transforms through the attachment matrix. Each transformed integer component
+shifts arithmetically right eight bits. That integer adds to the corresponding
+floating attachment position in extended precision, then truncates to a signed
+integer without an intermediate single-precision sum store.
+
+An absent attachment clears the retained attachment record and leaves both
+previous endpoints unchanged. An actor without combat state receives none of
+these writes. The attribute-126 contact path uses the retained tip for both of
+its segment endpoints.
+
 Combat messages use 256 queues selected by attribute 125. Queue initialization
 clears each queue; startup and combat reset both allocate eight entries per
 queue. New Game and save restoration reset these queues. Actors retain separate
