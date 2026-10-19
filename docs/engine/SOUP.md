@@ -558,6 +558,15 @@ arithmetically right eight bits for this query. Both segment endpoints use the
 same retained combat point of the receiver. The contact path returns the query's
 result without converting it to a boolean.
 
+With identical segment endpoints, the sphere/segment query tests the endpoint
+against the sphere. Each endpoint-minus-center coordinate wraps at signed 32 bits
+and stores as single precision. The squared components add in extended precision,
+then their sum stores as single precision and truncates to a signed 32-bit integer.
+An invalid integer conversion produces the signed minimum value. The radius
+square and its subtraction of that integer both wrap at 32 bits. A nonnegative
+signed residual returns one, including equality. A negative residual returns
+zero because the segment has zero length. Radius sign is not separately rejected.
+
 Combat messages use 256 queues selected by attribute 125. Queue initialization
 clears each queue; startup and combat reset both allocate eight entries per
 queue. New Game and save restoration reset these queues. Actors retain separate
