@@ -689,7 +689,10 @@ The selected player's retained controller override stores an animation group
 identity, not only an active flag. When that override and selected hit inhibition
 are both nonzero, default-animation selection copies the override group into the
 actor's default animation. If the current group already matches, it cancels the
-pending group. Otherwise it force-starts the override group. This branch bypasses
+pending group, clears the current playback exit marker, and sets its finite loop
+countdown to 32. This replaces any previous loop countdown without restarting
+the current frame or resetting its command cursor. Otherwise it force-starts
+the override group. This branch bypasses
 ordinary default-animation selection.
 
 ### Contact death animation dispatch
