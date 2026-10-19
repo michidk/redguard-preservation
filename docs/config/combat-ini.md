@@ -201,6 +201,15 @@ The additions wrap as signed 32-bit values. A combo with no moves retains zero
 damage. Defence pacing reads this accumulated total, rather than only the first
 motion's damage.
 
+## Runtime Defense Loading
+
+Defense loading scans `defend00`, `defend01`, and subsequent numbered sections
+in order. A section is admitted when its numeric `max_range` is nonzero. The
+first zero value ends the table; later sections are not loaded. Each admitted
+record loads its minimum and maximum ranges, first collision frame, collision
+duration, arc and animation. The configured animation value is increased by 97
+to obtain the actor animation group.
+
 ## Actor Move Selection
 
 Combat initialization binds nine attack slots from actor attribute bytes 70

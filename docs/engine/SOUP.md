@@ -275,6 +275,23 @@ absent, or no movement is requested. Repeated registration retains the first
 occurrence of each actor. The deferred pass processes registrations in that
 order, clears the consumed entries and resets the list count.
 
+### Attack executor
+
+The attack executor resolves its pending move through the four defense slots
+bound from attributes 79 through 82, rather than the nine attack slots.
+An idle cleanup request does not inspect move metadata. An idle non-cleanup
+request compares the current animation group with the pending move's group.
+If they differ, it makes a forced animation request with modifier zero, sets
+the finite loop countdown to one and clears the animation's pending group.
+Only then does it set combat attack state to two and subtract ten from the
+aggression budget with signed 32-bit wrapping. An already-current group leaves
+the record unchanged.
+
+With nonzero attack state and a pending move, leaving that move's animation
+group clears attack state and the pending move. The action selector also clears
+when it is nine. The executor reports active exactly when attack state is
+nonzero and a move remains pending.
+
 ### Multiple-attacker spacing
 
 The multiple-attacker spacing helper traverses the current target's attacker
