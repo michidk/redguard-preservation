@@ -628,6 +628,15 @@ depend on living state. Otherwise the update clears the high bit of both
 bytes, subtracts the low byte of the shared tick count with byte wrapping, and
 clamps a negative signed-byte result to zero.
 
+### Replenishing health
+
+`ReplenishHealth` takes no arguments. If the receiver's health byte is at least
+100, it returns zero without changing health or feedback. Otherwise it sets the
+health byte to 100 and returns one. For the selected player, the change first
+raises the shared HUD health-feedback timer to 25 when it is at most 25; larger
+timers remain unchanged. This command does not write retained displayed health
+or invoke additive-health inhibition, hurt reactions or death services.
+
 ### Rope attachment removal
 
 Ropes own doubly linked lists of attachment nodes. Each node retains its actor,
