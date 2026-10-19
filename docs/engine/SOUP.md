@@ -585,10 +585,12 @@ to 100 and copies the actor's current health byte into retained displayed health
 The selected-player additive routine returns immediately when hit inhibition is
 active. Otherwise it sets a feedback timer below 50 to 25, adds the signed change
 to current health with signed 32-bit wrapping, and clamps the result to zero
-through the session maximum health. It writes the health byte first. A negative change requests timed taunt category
+through the session maximum health. It writes the health byte first. A negative change requests ordered taunt category
 two followed by the damage-reaction service, even when the resulting health is
 zero. Retained displayed health is written after these services return; both
 services observe the previous displayed-health value.
+Category two uses the in-order taunt scan and bypasses target-distance and
+clock-period gates.
 
 The reaction service suppresses its work when either current or pending animation
 is group 73, 74, 117, 118, 132 or 133. Otherwise it draws random parity and tests
