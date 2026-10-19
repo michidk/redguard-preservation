@@ -663,6 +663,26 @@ For the detach direction branch, the rope's angle flag enables a heading test.
 The signed heading difference wraps over 2048 units. An absolute difference
 strictly greater than 16 flips the rope's direction bit for that detach.
 
+### Selected-player death-owning health mode
+
+The death-owning health service is separate from selected additive health. Hit
+inhibition rejects it before any service. For a negative change, action reset and
+rope detach run before the actor health write. The service then clamps the
+wrapping sum to the session maximum and zero, and publishes actor and retained
+displayed health before later notification.
+
+When health becomes zero and the session death-suppression flag is clear, it
+requests taunt category six, enables hit inhibition, clears pending action state,
+captures the selected actor's local position and sends death notification. An
+existing controller animation override is preserved. If no override is set, a
+nonnull source actor's nonzero attribute 109 supplies it before ordinary death
+animation selection.
+
+The nonfatal or death-suppressed path instead clears the override, hit inhibition
+and pending action state. A negative change then requests taunt category two and
+the damage reaction after health publication. These service orders differ from
+selected additive health and are not interchangeable.
+
 ### Selected-player death animation override
 
 The selected player's retained controller override stores an animation group
