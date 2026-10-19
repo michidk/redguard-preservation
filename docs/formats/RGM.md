@@ -419,8 +419,8 @@ All fields little-endian.
 | 0x06 | 2 | `i16` | scabbard1 | Same subsystem as scabbard0. |
 | 0x08 | 2 | `i16` | anim_frame_ref | Matches RAHD `anim_frame_data` at 0x85. Set on mobile actors only. |
 | 0x0A | 2 | `u16` | texture_id | Actor texture set (TEXBSI number) for skin variants; zero selects the models' own textures. See [actor texture sets](#actor-texture-sets). |
-| 0x0C | 2 | `i16` | v_vertex | Vertex-related field. |
-| 0x0E | 2 | `i16` | v_size | Size-related field. |
+| 0x0C | 2 | `i16` | v_vertex | Model vertex used by combat contact queries. |
+| 0x0E | 2 | `i16` | v_size | Combat contact radius in model units; copied to runtime Q8 units. |
 | 0x10 | 2 | `i16` | taunt_id | First taunt animation id; additional taunts count up from this value. |
 | 0x12 | 2 | `i16` | collision_sphere_scale | Eight-fractional-bit radius scale for actor collision spheres; nonpositive values select 256. |
 | 0x14 | 2 | `i16` | field_14 | Source value for RAHD `raex_stat` at 0x97. Set on combat actors. |

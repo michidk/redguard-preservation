@@ -206,6 +206,10 @@ counters as 129 minus attribute 58, 62, 63, 87 and 88 respectively, and four mor
 of its tick-based pacing tests. The action, pending-move and defence selectors start at -1, the aggression
 budget at 50, the attack state at 0, and combat flag mask 0x08 is cleared.
 
+Combat construction copies RAEX `v_vertex` as a signed model-vertex index and
+converts signed `v_size` to runtime Q8 contact radius by shifting left eight bits.
+An absent actor-extra record supplies zero for both values.
+
 Combat construction derives three spacing ranges from the nine attack slots.
 Every populated slot contributes to the divisor. Only slots whose first motion
 has kind 1 contribute range values. The near range is the smallest attack minimum.
