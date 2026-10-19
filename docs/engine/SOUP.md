@@ -1082,6 +1082,21 @@ byte of the actor's runtime identifier. It clears the actor's current and next
 indices even when another actor owns the node. An index at or above the node
 count does not address a node during release.
 
+### Nearest free walk node
+
+Combat perception can search all loaded walk maps for a free node before
+navigation begins. This differs from the general node-selection query because
+only nodes with a zero reservation byte qualify. The search reads the actor's
+query position, shifts each coordinate right by eight, and adds the actor's
+positive Y extent to the shifted Y coordinate. Node X/Z are unsigned 16-bit
+coordinates and node Y is signed 16-bit.
+
+Maps and nodes retain their loaded order. The search minimizes Manhattan
+distance with an initial exclusive bound of 4096. Equal distances retain the
+first candidate. An improving candidate below distance 12 returns immediately,
+even if a later node would be closer. The shared winning map is cleared before
+searching. A miss leaves it absent and returns node index -1.
+
 ### Walk-node arrival distance
 
 Node arrival compares horizontal distance from the actor's local position to
