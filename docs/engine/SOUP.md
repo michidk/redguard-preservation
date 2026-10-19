@@ -1245,6 +1245,25 @@ unchanged, assigns attribute 1 to 13, and returns zero. This completion helper
 leaves the actor's four retained point-command fields and shared command words
 unchanged; the enclosing wrapper still performs its command copy-back.
 
+Before ordinary point movement, the blocked-route counter increments with unsigned
+byte wrapping when the collision-response auxiliary byte has bit 7 set, a map is
+present, and a next node is held. A resulting counter greater than eight selects
+phase 24. Otherwise the counter resets to zero.
+
+A falling actor or one with queued motion assigns attribute 1 to 13, selects
+phase one when a next node is held or phase zero otherwise, sets lifecycle
+selector seven, and returns pending. This path precedes immediate arrival and
+default-animation admission.
+
+Phases 11 and 22 skip the immediate-arrival test. For other phases, a successful
+immediate-arrival test copies the destination's local X and Z to the actor while
+preserving local Y, admits the default animation, and completes with result zero.
+Default-animation admission always succeeds. It requests the signed default group
+with modifier zero through the forced animation-request path only when
+SYSTEM.INI animation processing is enabled, animation state exists, the actor is
+not excluded from object updates, and its current group differs from its default
+group. It does not change the actor's default group.
+
 ### Walk-node arrival distance
 
 Node arrival compares horizontal distance from the actor's local position to
