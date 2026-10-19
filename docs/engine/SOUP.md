@@ -2428,6 +2428,7 @@ are not substituted for these local positions.
 The defence counter becomes one when the headings differ by less than 256 heading
 units or the target is outside combat stance. Otherwise it becomes `129 - attribute 58`.
 A target is in combat stance when it is armed or its combat flag mask `0x04` is set.
+The flag query returns false without a combat record; the action query returns -1.
 Heading differences mask both headings to 0 through 2047 and wrap the difference
 into -1024 through 1024.
 
