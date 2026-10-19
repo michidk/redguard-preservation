@@ -2613,7 +2613,7 @@ the actor's `attr_camera_move` byte then selects:
 |---|---|---|
 | 0 | rotated argument vector + rotated offset + bound position | set `0x08`, clear `0x04` |
 | 1 | rotated argument vector + rotated offset | set `0x04`, clear `0x08` |
-| 2 | record distance = rounded length of the rotated argument vector >> 8; angle offset = angles of that vector (the camera orientation conversion) plus the bound actor's angles, each wrapped to 2047 | clear `0x08` and `0x04` |
+| 2 | record distance = rounded length of the rotated argument vector >> 8; angle offset = angles of that vector (the camera orientation conversion) plus the bound actor's angles, each wrapped to 2047 | clear `0x08` and `0x04`, set `0x01` |
 
 Other values write no request and leave the flags as the begin step set them.
 The handler then runs one camera pose update with the bound record selected,
@@ -2677,6 +2677,38 @@ cleared on the selected record, and the task returns zero.
 The `showCyrusPan` and `showCyrusPanLoc` wrappers apply the same holding-weapon
 guard as the [location wrappers](#location-camera-request) and then run the handler
 with the selected player as the target actor.
+
+### lookObj
+
+`lookObj(duration)` turns the camera in place to face the target actor. A negative
+duration writes a diagnostic line and the task returns zero before touching the
+private word or any camera state.
+
+The first invocation (private word one, elapsed zero) begins a scripted camera, binds
+the selected record (record two) to the target actor and applies the
+[actor camera offsets](#actor-camera-offsets). It keeps the published camera angles as
+the start angles and runs the camera's orientation stage at the published position,
+with the record's target offset, to get the angles that face the target; the delta is
+the difference from the start angles with each component wrapped once into half a turn
+either side of zero. It then sets flags `0x08` and `0x02` (fixed orientation) on the
+record, writes the published position as the record's request, and returns one. The
+release step does not run on this invocation.
+
+Every later invocation runs the scripted-camera release step with `duration`. While it
+reports running and `duration` is greater than one, the published camera angles are
+written directly: start angle plus `delta * elapsed / (duration - 1)` per component
+(products wrap as signed 32-bit values, division truncates toward zero), and the task
+returns one. Otherwise flag `0x02` is cleared and the actor's `attr_camera_move`
+selects the request, using the published position `P`, the bound position `B` and the
+record's position offset `O`:
+
+| `attr_camera_move` | Request | Flags |
+|---|---|---|
+| 0 | `P` | set `0x08`, clear `0x04` |
+| 1 | `P - B - O` | set `0x04`, clear `0x08` |
+| 2 | orbit of `P - B - O`, as for the [location camera](#location-camera-request) | clear `0x08` and `0x04`, set `0x01` |
+
+Other values write no request. The task then returns zero.
 
 ### Scripted camera begin and release
 
