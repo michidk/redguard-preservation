@@ -555,7 +555,7 @@ An actor-owned face candidate still receives the model segment query, but the
 result does not gate its actor contact test. A successful actor contact must also
 pass the target rejection check. For attackers with attribute 97 equal to zero,
 this admits the impact response directly. Other attackers require either the
-attacker-kind predicate or combat flag four.
+weapon-holding predicate or combat flag four.
 
 The response requests the attacker's attribute-86 effect at volume zero and
 pitch offset `rnd(128) * 16 - 1024` Hz, then flushes the sound request. A target
@@ -571,7 +571,7 @@ A negative attack slot returns zero; otherwise the selected motion's signed
 `damage` value is returned without additional arithmetic.
 
 The nonplayer additive health routine first rejects a nonzero attribute 120.
-If attribute 97 is nonzero, it also requires either the actor-kind predicate or
+If attribute 97 is nonzero, it also requires either the weapon-holding predicate or
 combat flag four. These checks precede the health write. An admitted change adds
 the signed change to the unsigned health byte with signed 32-bit wrapping, then
 clamps the result to zero through 255. This additive routine does not dispatch
@@ -588,16 +588,16 @@ by the damage-reaction service, even when the resulting health is zero.
 
 The reaction service suppresses its work when either current or pending animation
 is group 73, 74, 117, 118, 132 or 133. Otherwise it draws random parity and tests
-the actor-kind predicate. With that predicate false, even parity selects group
+the weapon-holding predicate. With that predicate false, even parity selects group
 133 and odd parity selects 132. With it true, even selects 118 and odd selects
 117. The selected animation starts before the reaction's action and motion
 follow-up services.
 
-The action follow-up runs only for the selected player in direction state 15
-with its inhibition flag clear. Before its transition service, it sets direction
-state 17 and clears the retained action value. If the transition leaves direction
-state nonzero, it clears the three directional state bytes afterward. Other
-receivers and direction states leave this state unchanged. The motion follow-up
+The action follow-up runs only for the selected player in living state 15
+with its inhibition flag clear. Before its transition service, it sets living
+state 17. If the transition leaves living state nonzero, it clears the three
+directional state bytes afterward. Other receivers and living states leave this
+state unchanged. The motion follow-up
 calls its destruction service only when a motion-owner record is present.
 
 ### Contact death animation dispatch
