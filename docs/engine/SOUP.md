@@ -526,6 +526,20 @@ On the first nonzero contact result, it clears the attacker's combat flag masks
 and requests the attacker's combat taunt category 3, in that order. It then
 returns without scanning later actor or static candidates.
 
+### Unowned static weapon contact
+
+After actor candidates, attack processing visits retained face-query models in
+candidate order. Each model receives the retained weapon tip followed by the
+base as segment endpoints, with query option zero. Results zero and minus one
+are misses; every other result admits the unowned-model impact response.
+
+A model without an actor owner uses installed `[misc] sword_clank_1`, with volume
+zero and pitch offset `rnd(128) * 16 - 1024` Hz, positioned on the attacker.
+Candidate type exactly one repeats the impact sound with a separate random draw.
+Other candidate types request one sound. The scan continues to later candidates
+and leaves attack intent set. Models with actor owners use the actor-response
+path separately from this unowned-model response.
+
 ### Hit-defence response
 
 The candidate's hit-defence query requires the attacker to have combat state and
