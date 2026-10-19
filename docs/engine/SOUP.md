@@ -2384,6 +2384,15 @@ that has a combat record.
 
 The nonplayer decision stage (death and state selector 6, actor not dead) begins as follows.
 
+The decision entry caches the current 32-bit clock sample for combat pacing and timed
+taunts. In normal clock mode this is the raw BIOS-clock sample, interpreted as signed.
+It is distinct from nominal-tick increments and from the world-loop frame counter.
+The world-loop counter resets to zero on loop entry and increments once at the beginning
+of each iteration. In the waiting branch, after spacing, one random draw admits a
+chance taunt when `draw * 100 / 32767 < 2`. The taunt type is 5 when the wrapping sum
+of the receiver's allocation index and world-loop counter is even, and 8 when odd.
+Timed selection of that requested type still uses the cached clock sample.
+
 **Valid target.** An actor is a valid combat target when it exists, it is not both in
 lifecycle state 8 and killed, it has a combat record, and its own combat target is not itself.
 
