@@ -122,6 +122,12 @@ ties select the even integer.
 
 Item definitions come from the `ITEMS` section of the configured item INI. Model names resolve against the loaded model registries, searching the primary registry before the secondary registry and selecting the first case-insensitive name match. The item initialization function iterates all items and populates per-item runtime fields:
 
+World loading replaces the selected world-map filename's extension with `ROB`
+and loads that archive into the primary model registry before initializing item
+geometry. The inventory-item display loads `INVENTRY.ROB` into the secondary
+registry; menu presentation loads `MENU.ROB` into that same secondary registry.
+Loading a registry replaces its previous contents.
+
 | Item Struct Offset | Source | Description |
 |---|---|---|
 | `+0x10` | Item type | Type discriminator: `1` = weapon/hand-object, `3` = general item |
