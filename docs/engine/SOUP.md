@@ -3233,6 +3233,19 @@ selected and CYRUS is excluded. The world loop re-asserts that selection and exc
 
 A second `PushPlayer` while swapped, or a `PopPlayer` while not swapped, only clears its flag.
 
+### KillMe and Resurrect
+
+`KillMe` and `Resurrect` take no arguments, act on the receiver and return zero. Both first release the
+receiver's two held walk-node reservations: a reserved node is cleared only when its recorded owner is the
+receiver, and both reservation slots then hold no node.
+
+`KillMe` then releases the receiver's two retained per-actor buffers, sets its killed flag and its death
+selector to 8, and stops every active sound owned by the receiver.
+
+`Resurrect` acts only while the killed flag is set or the death selector is 8; otherwise nothing further
+happens. It clears the killed flag. When the receiver has combat state it then re-initializes that state from the
+receiver's attributes.
+
 ### Nonplayer deep-water and edge probe
 
 The strafing steppers (`MoveLeft`, `MoveRight`) and `MoveForward` call one probe before they move. It
