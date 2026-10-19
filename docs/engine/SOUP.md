@@ -2428,8 +2428,11 @@ The pacing sum is the receiver's per-actor combat value plus the shared tick cou
 with signed 32-bit wrapping addition. When its signed remainder by the defence pacing
 divisor is zero:
 
-- For a target move other than -1 or 9, the target's animation frame must exceed
-  the wrapping sum of its selected move's near and third range values. The receiver
+- For a target move other than -1 or 9, the target's signed animation command
+  cursor must exceed the wrapping sum of its current motion's `first_collide_frame`
+  and `collide_duration`. The current attack slot and motion selector choose that
+  motion. This uses neither the displayed model frame nor the wrapping frame-progress
+  byte. The receiver
   gains intent mask `0x01`, then asks the best-usable-defence picker for a kind.
   A successful pick starts only if its reach test succeeds.
 - For target move 9, the open-defence picker supplies a kind, which starts only
