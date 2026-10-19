@@ -588,8 +588,8 @@ health-with-death admission service, including for the selected player.
 feedback update. For the selected player, mode zero directly invokes additive
 health; every nonzero mode directly invokes death-owning health. These direct
 selected-player calls bypass generic attribute admission. Their source actor is
-the current native-command receiver, except that a source equal to the health
-receiver is passed as absent.
+the retained native-command source described below, except that a source equal
+to the health receiver is passed as absent.
 
 For other receivers, only mode one selects generic health-with-death admission;
 all other mode values select generic additive-health admission. These generic
