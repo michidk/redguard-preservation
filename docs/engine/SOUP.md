@@ -1367,6 +1367,20 @@ to enabled before returning. A zero or failure result does not block. A successf
 unless the candidate actor is the receiver; that receiver exception occurs
 after the geometry call. The first blocking result rejects immediately.
 
+### Point route initialization
+
+Phase zero releases held nodes and admits the default animation before trying
+to initialize a new route. Initialization releases held nodes, performs the
+ordinary nearest-free-node search and copies the shared selected map into the
+receiver, including an absent map on a miss. A missing map or node returns zero.
+Otherwise it assigns the found node as next and returns one after the assignment;
+the assignment's claim result does not change that return value.
+
+A nonzero initialization result selects phase one. A zero result retains phase
+zero. The pending tail sets lifecycle seven and attribute 1 to 12 and registers
+a deferred map update. Ordered release and assignment preserve previous-next
+history.
+
 ### Phase-eight route monitoring
 
 An unset current node releases held nodes and selects phase zero. Otherwise
