@@ -1237,6 +1237,14 @@ when the subtraction reaches zero. Routing resumes on a later invocation. The
 delay is shared across actor invocations, so another actor can consume the
 remaining delay. This delay is distinct from the signed combat lost-sight timer.
 
+Point-navigation completion stores the low byte of its result code in the
+shared navigation result byte and releases the actor's held current and next
+walk-node reservations. The map and final destination remain retained. It
+changes lifecycle selector seven to zero, leaves other lifecycle selectors
+unchanged, assigns attribute 1 to 13, and returns zero. This completion helper
+leaves the actor's four retained point-command fields and shared command words
+unchanged; the enclosing wrapper still performs its command copy-back.
+
 ### Walk-node arrival distance
 
 Node arrival compares horizontal distance from the actor's local position to
