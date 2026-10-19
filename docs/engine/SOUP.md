@@ -1067,6 +1067,11 @@ marker argument is an unscaled signed index, distinct from the distance units.
 
 ### Navigation map validation
 
+Common actor initialization clears the current walk map and sets the held
+current-node, next-node and final-destination indices to -1. Later actor loading
+or navigation can assign a map and node; raw allocation zeroes do not describe
+these initialized navigation indices.
+
 An actor without a current walk map clears its current-node, next-node and
 final-destination indices to -1. An enabled map remains valid when each of those
 indices is below its node count; the -1 unset sentinel is allowed.
