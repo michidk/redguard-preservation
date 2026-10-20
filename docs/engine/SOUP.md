@@ -2769,8 +2769,14 @@ A retained model resource and an actor's current model presentation record are
 distinct. For an actor admitted to the ordinary presentation traversal, the
 current record is cleared before hidden and update-excluded state are checked.
 Either exclusion therefore leaves that actor without a current model record.
+Stored floating-point model coordinates have a separate lifetime. Actor default
+initialization clears them to zero. Clearing the current record, hidden or
+update exclusion, and PVO rejection preserve those coordinates until model-position
+processing runs again. An absent animation frame or unavailable selected resource
+also preserves the previous coordinates when position processing is skipped.
 A static-model actor that passes those checks restores its retained resource
-and refreshes its model position and orientation. Drawing exclusion suppresses
+and refreshes its model position and orientation, even when the retained resource
+is null. Drawing exclusion suppresses
 submission without clearing the restored record.
 
 For an animation-table actor, an unavailable selected model or an absent frame
@@ -2830,6 +2836,15 @@ toward zero before taking its integer absolute value. A magnitude strictly
 greater than 16 requests environmental effect descriptor `0x2500`; equality
 does not. Surface 1 and the inhibited selected-player path skip this check.
 
+This environmental effect starts from the actor's current logical Q8 position.
+Its horizontal point is displaced 2048 Q8 units toward the camera using the
+[camera-relative effect-point rules](#selected-death-effect-admission). Its vertical point
+is logical Y plus the actor's positive vertical extent times 256 plus 1536,
+with signed 32-bit wrapping arithmetic. The effect constructor applies texture-height
+centering and publishes map-unit coordinates, descriptor flags, the texture's
+last frame as the target frame, and speed one. This path consumes no random
+numbers. Disabled effects or refused allocation produce no effect.
+
 The selected player's surface-5 path sets retained death mode one after
 publishing model Y. Surface 11 leaves that mode unchanged. Both paths then test
 queued motion and the low two bits of each directional-state byte. A nonzero
@@ -2859,7 +2874,10 @@ retained support owner. A
 static-placement support must occur in the selected MPSO IDs. Support from an
 actor with `attr_non_moving` set must occur in the selected secondary object
 IDs. Other support cases pass this admission check. Rejected animation-model
-admission clears the selected resource and current model record.
+admission still runs model-position processing when a frame is selected, then
+clears the selected resource and current model record. An absent frame skips
+position processing. Thus rejected support can still produce model-position
+health changes and environmental effects without publishing geometry.
 
 When loading a world with a PVO file, the secondary object table is built
 from the complete map actor traversal. Map cells are scanned in increasing Z,
