@@ -3929,8 +3929,8 @@ The checks themselves do not replace the receiver's position.
 invocation returns zero (complete) or one (continue); it reads the task's elapsed input.
 
 **Admission.** The call does nothing, completing immediately, when the receiver's rope attachment,
-sliding state, falling state or queued-motion byte is nonzero, or its lifecycle byte is neither 0 nor
-15. Otherwise it sets the receiver's motion-direction byte to 7.
+sliding state, falling state or queued-motion byte is nonzero, or its lifecycle byte is not 0 (byte 15
+is refused too, unlike the strafes). Otherwise it sets the receiver's motion-direction byte to 7.
 
 **Animation.** The receiver is in the combat stance when it is holding a weapon or its combat flag
 `0x04` is set. In combat stance the [blocked-ahead probe](#nonplayer-blocked-ahead-probe) runs with
