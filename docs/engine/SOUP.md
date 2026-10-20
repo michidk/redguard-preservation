@@ -984,6 +984,11 @@ environmental effect pool. Accepted effect packets append to the same queue in
 retained pool order and participate in its shared
 [alpha partition](model-lighting.md#flat-submission-order).
 
+For centered billboard geometry, drawing flag `0x20` negates the local X half
+extent and flag `0x40` negates the local Y half extent before corner generation.
+These flags reverse the corresponding geometry axis while retaining the same
+source-image bound. Drawing flag `0x100` becomes queued packet flag `0x10`.
+
 Billboard drawing flag `0x200` becomes queued packet flag `0x20`, which disables
 depth writes. Packets without that flag enable depth writes. The alternate
 effect path therefore tests depth without updating the depth buffer. Its depth
