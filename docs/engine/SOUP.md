@@ -882,6 +882,11 @@ publication then arithmetic-shifts each signed coordinate right by eight bits.
 This places the effect half its texture height above the supplied point in
 the engine's downward-positive Y convention.
 
+The world loop updates the environmental effect pool after the object and code-object
+systems, before the rain-drop update and scene rendering. Newly created effects
+therefore participate in that same loop's effect update before drawing. Expired
+effects are released during the pool update.
+
 The type-one environmental effect updater rejects a disabled effect pool, a
 null effect, a different effect type or a zero texture descriptor. Otherwise
 it leaves the current frame unchanged when that frame is `-1` or the retained
