@@ -3971,3 +3971,24 @@ is multiplied by the frame scale (arithmetic shift right eight) and, when positi
 and Z move that far along the heading by the heading-based translation rule.
 
 **Result.** One while `duration - 1 > elapsed`, otherwise zero.
+
+### WalkBackward
+
+`WalkBackward(duration)` is a task. In deep water (surface value 2 or 4) it runs
+[MoveBackward](#movebackward) unchanged. Otherwise it follows MoveBackward's animation, movement and
+result rules with these differences.
+
+**Admission.** The call completes immediately when the receiver's rope attachment, sliding, falling or
+queued-motion byte is nonzero or its lifecycle byte is not 0. For the selected player it also completes
+immediately while a retained player-mode word equals one and the queued-motion and falling bytes are
+both zero. It then runs the backward form of the ordinary directional step check, which uses attribute
+byte 13, and completes when that check refuses. Only then does it set the motion-direction byte to 7.
+
+**Animation.** In combat stance the group is 93 and the step length is attribute byte 20. Otherwise the
+group is 23 while a torch burns and 22 otherwise, with step length attribute byte 13. There is no
+blocked-ahead probe.
+
+**Movement.** When the step length is zero, the initial distance is attribute byte 9 shifted right by
+one, not multiplied by 256; the step-counter adjustment and frame scaling then apply as for
+MoveBackward.
+
