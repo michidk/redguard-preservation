@@ -26,7 +26,7 @@ synthetic `NullFunction`; authored entries start at index 1. See
 | `RotateByAxis`, `sRotateByAxis` | [Relative rotation](#relative-axis-rotation), [elapsed rotation](#elapsed-relative-axis-rotation) |
 | `RotateToAxis`, `sRotateToAxis` | [Absolute rotation](#absolute-axis-rotation), [elapsed rotation](#elapsed-axis-rotation) |
 | `MoveObjectAxis` | [Move along the actor's orientation](#actor-local-axis-movement) |
-| `MoveByAxis`, `sMoveByAxis` | [Relative movement](#relative-axis-movement) |
+| `MoveByAxis`, `sMoveByAxis`, `MoveAlongAxis` | [Relative movement](#relative-axis-movement) |
 | `Rnd`, `QuickRnd` | [Draw from the shared random stream](#random-functions) |
 | `HideMe`, `ShowMe` | [Change model visibility](#object-visibility) |
 | `PlayerStand`, `Fighting` | [Standing query](#playerstand-query), [combat query](#fighting-query) |
@@ -2419,6 +2419,19 @@ right shift and low-32-bit intermediate results. When signed elapsed is at
 least `duration - 1`, it instead writes `origin + delta` and completes. Other
 axis values still perform arithmetic and completion testing but do not write
 position. This handler has no zero-duration shortcut.
+
+`MoveAlongAxis(axis, delta, duration)` is a task that moves along an axis of the
+receiver's own orientation. A zero delta or zero duration completes without
+change. The slot retains the delta and a running sum, both reset when the signed
+elapsed input is zero. Each invocation computes the step as for `MoveByAxis`
+(signed `delta / duration`, arithmetic shift right eight, times the frame scale,
+low 32 bits) and adds it to the running sum. A negative step completes when the sum
+is at or below the delta, and a positive step when it is at or above it; that
+invocation does not move the actor. Otherwise the step becomes a vector on the
+selected axis (zero X, one Y, any other value Z), is rotated by the receiver's
+orientation and added to the local position, and the actor registers a map update.
+The task then completes when `duration - 1` is not greater than the elapsed input.
+It never snaps to a target position.
 
 Both tasks reevaluate their arguments on subsequent invocations and retain
 slot state under their respective initialization conditions. Neither handler
