@@ -47,7 +47,7 @@ Each world is identified by an integer index `N`. Keys follow the pattern `key_n
 |---|---|---|
 | `world_sun[N]` | x, y, z, intensity | Sun direction vector and intensity. The three components are large fixed-point integers defining the light direction; intensity is a scalar. |
 | `world_ambient[N]` | integer | Global ambient light level. |
-| `world_ambientfx[N]` | integer | Ambient effect intensity (affects dynamic lighting). |
+| `world_ambientfx[N]` | integer | Scene ambient brightness used by explicit-frame environmental effects. Stored in sixteen bits; stored zero becomes 128, then world entry sign-extends the value. |
 | `world_ambientrgb[N]` | r, g, b | Ambient light color as three 0..255 components. |
 | `world_sunangle[N]` | integer | Sun angle (fixed-point). Controls the horizontal rotation of the sun direction. |
 | `world_sunskew[N]` | integer | Sun skew (fixed-point). Controls the vertical tilt of the sun direction. |

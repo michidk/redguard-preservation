@@ -938,6 +938,12 @@ metadata byte one is ORed into drawing flags initially set to one. The alternate
 path submits geometry scale one half, constant alpha 140 and drawing flags
 `0x201`.
 
+The alternate path takes face brightness from the current world's
+`world_ambientfx` value in `WORLD.INI`. World preparation stores that integer in
+sixteen bits and replaces a stored zero with 128. World entry publishes it as a
+signed sixteen-bit value before effect drawing. This scalar is separate from
+`world_ambientrgb` and the ordinary effect path's fixed brightness 255.
+
 The ordinary metadata lookup uses the current map's
 [`FLAT` texture attributes](../formats/RGM.md#flat), shared with placed flats.
 It splits the texture identity into the archive and seven-bit image IDs and
