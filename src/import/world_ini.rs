@@ -116,6 +116,38 @@ pub fn terrain_height_offset(content: &str, world: u32) -> crate::Result<i16> {
     Ok(0)
 }
 
+/// Face brightness for explicit-frame environmental effects, separate from RGB lighting.
+/// Retains the low signed word of `world_ambientfx[N]`, replacing zero with 128.
+/// Missing/empty entries are zero before replacement. Section/key matching ignores
+/// case and the first value wins. See `docs/engine/SOUP.md` effect frame submission.
+pub fn effect_brightness(content: &str, world: u32) -> crate::Result<i16> {
+    let key = format!("world_ambientfx[{world}]");
+    let mut in_world = false;
+    for (line_number, line) in content.lines().enumerate() {
+        let line = line.split(';').next().unwrap_or_default().trim();
+        if line.starts_with('[') && line.ends_with(']') {
+            in_world = line[1..line.len() - 1].eq_ignore_ascii_case("world");
+        } else if in_world
+            && let Some((name, value)) = line.split_once('=')
+            && name.trim().eq_ignore_ascii_case(&key)
+        {
+            let value = value.trim();
+            let value = if value.is_empty() {
+                0
+            } else {
+                value.parse::<i32>().map_err(|error| {
+                    crate::error::Error::Parse(format!(
+                        "WORLD.INI [world] {key}, line {}: {error}",
+                        line_number + 1
+                    ))
+                })?
+            } as i16;
+            return Ok(if value == 0 { 128 } else { value });
+        }
+    }
+    Ok(128)
+}
+
 /// Extract the filename (last path component) from a WORLD.INI path value,
 /// normalizing backslash separators.
 #[must_use]
@@ -464,5 +496,47 @@ mod terrain_offset_tests {
             .unwrap_err()
             .to_string();
         assert!(error.contains("world_scapeshift[2]") && error.contains("line 2"));
+    }
+}
+
+#[cfg(test)]
+mod effect_brightness_tests {
+    use super::effect_brightness;
+
+    #[test]
+    fn effect_brightness_preserves_signed_word_and_zero_default() {
+        for (value, expected) in [
+            ("", 128),
+            ("0", 128),
+            ("65536", 128),
+            ("-65536", 128),
+            ("64", 64),
+            ("32767", 32767),
+            ("32768", -32768),
+            ("65535", -1),
+            ("-32769", 32767),
+            ("2147483647", -1),
+            ("-2147483648", 128),
+        ] {
+            assert_eq!(
+                effect_brightness(&format!("[world]\nworld_ambientfx[7]={value}"), 7).unwrap(),
+                expected
+            );
+        }
+        for text in [
+            "",
+            "[world]",
+            "[other]\nworld_ambientfx[7]=19",
+            "[world]\norld_ambientfx[7]=19",
+        ] {
+            assert_eq!(effect_brightness(text, 7).unwrap(), 128);
+        }
+        let text = "[WORLD]\nWORLD_AMBIENTFX[7]=64 ; retained\nworld_ambientfx[7]=90\nworld_ambientfx[8]=12\nworld_ambientrgb[7]=1,2,3";
+        assert_eq!(effect_brightness(text, 7).unwrap(), 64);
+        assert_eq!(effect_brightness(text, 8).unwrap(), 12);
+        let error = effect_brightness("[world]\nworld_ambientfx[7]=bad\nworld_ambientfx[7]=64", 7)
+            .unwrap_err()
+            .to_string();
+        assert!(error.contains("world_ambientfx[7]") && error.contains("line 2"));
     }
 }
