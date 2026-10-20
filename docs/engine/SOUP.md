@@ -1150,6 +1150,12 @@ Message `0xd000` clears intent bits `0x01` and `0x02` on the receiver,
 then on the sender. It next displaces the sender horizontally relative to the
 receiver with a movement amount of 3000. This operation writes position, not
 actor heading. A null actor skips the displacement.
+The bearing uses the moving actor's local X/Z minus the other actor's local
+X/Z, with signed 32-bit wrapping. Negate the query bearing and mask it to
+2047 for the translation heading. The translation uses the original sine and
+cosine tables, stores the old coordinate and the final sum as single precision,
+and truncates the final sum toward zero. Y, actor angles and transform matrices
+are unchanged; this helper does not register a deferred map update.
 
 After displacement, handoff runs only when the receiver's coordination state
 is zero, the receiver is not the selected player, and the receiver's death
