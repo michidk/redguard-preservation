@@ -964,7 +964,10 @@ unchanged.
 Both paths use a centered camera-facing quad. Its half extents are the source
 image width and height multiplied by half the texture scale and geometry scale.
 Texture-coordinate scale is one. Alpha, face brightness and frame selection
-remain separate inputs to the shared billboard submission.
+remain separate inputs to the shared billboard submission. The source bound uses
+the same [quantized source-image diagonal](model-lighting.md#flat-image-dimensions)
+as centered ordinary flats, multiplied by half the texture scale and geometry
+scale. Reduced texture allocation dimensions do not determine the bound.
 
 Shared billboard submission transforms the retained center into camera space and
 tests its source bound before requesting a texture frame. A rejected bound
