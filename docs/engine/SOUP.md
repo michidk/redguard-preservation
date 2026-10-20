@@ -577,6 +577,31 @@ the signed change to the unsigned health byte with signed 32-bit wrapping, then
 clamps the result to zero through 255. This additive routine does not dispatch
 death itself; the contact caller reads health and owns that dispatch.
 
+### Combat hit-reaction admission and animation
+
+A nonplayer hit receiver requires either attribute 102 equal to zero or its
+value equal to the sender's attribute 23. A mismatch skips displacement,
+animation and damage. The selected player bypasses this outer admission test.
+
+An admitted reaction displaces the receiver relative to the sender using the
+same 3000-unit horizontal translation as the block-message response. It leaves
+the sender's position unchanged. For the selected player, a nonzero retained
+death-animation override then returns before weapon queries, animation or damage.
+
+A nonplayer reaction starts animation group 117 without querying weapon state.
+The selected player first tests weapon holding, then combat stance only when
+not holding a weapon. Either predicate selects group 117 on an even world-loop
+counter or 118 on an odd counter. Otherwise it queries availability of group
+119. When available, the receiver-to-sender forward-orientation check selects
+119 for a hit in front or 120 otherwise. When unavailable, world-loop parity
+selects group 132 or 133 instead. All these starters receive loop argument zero.
+
+After animation, damage still requires attribute 102 to be zero or to match
+the sender's attribute 23, including for the selected player. A selected-player
+reaction admitted only by identity therefore animates without applying this
+damage response. After admitted damage returns, sender attribute 23 equal to 75
+requests the sender's ordinary weapon-restoration service.
+
 ### Combat hit-response damage scaling
 
 The admitted combat hit response reads the attacker's retained strength and
