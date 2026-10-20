@@ -885,6 +885,18 @@ selects the alternate drawing path, which submits that retained frame explicitly
 instead. Both paths submit the retained integer position converted to single
 precision. The alternate path bypasses the ordinary effect metadata lookup.
 
+The ordinary path submits face brightness 255 and geometry scale equal to the
+draw caller's integer scale divided by 256. Its default constant alpha is 255.
+When texture metadata exists, metadata byte two plus one supplies alpha, and
+metadata byte one is ORed into drawing flags initially set to one. The alternate
+path submits geometry scale one half, constant alpha 140 and drawing flags
+`0x201`.
+
+Both paths use a centered camera-facing quad. Its half extents are the source
+image width and height multiplied by half the texture scale and geometry scale.
+Texture-coordinate scale is one. Alpha, face brightness and frame selection
+remain separate inputs to the shared billboard submission.
+
 ### Contact death animation dispatch
 
 A null receiver does nothing. Selector zero first checks for animation group 122
