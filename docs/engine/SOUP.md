@@ -577,6 +577,23 @@ the signed change to the unsigned health byte with signed 32-bit wrapping, then
 clamps the result to zero through 255. This additive routine does not dispatch
 death itself; the contact caller reads health and owns that dispatch.
 
+### Combat hit-response damage scaling
+
+The admitted combat hit response reads the attacker's retained strength and
+current-motion damage, then the receiver's retained armor. Compute the product
+`(strength + 100) * damage`, then divide it by 100 using signed truncation
+toward zero. Call that quotient `scaled`. The health change is
+`-(scaled - (scaled * armor) / 100)`, with the armor division also truncating
+toward zero. Integer additions, multiplications, subtractions and negation wrap
+at 32 bits. No separate strength, damage or armor clamp occurs here.
+
+The response passes this signed change to generic additive health with mode
+zero, then reads the receiver's health. Health below one requests receiver taunt
+category six, followed by attacker taunt category seven. It then reads the
+attacker's current motion kind and invokes the receiver's contact death response
+with selector zero for kind zero, or selector one for any nonzero kind.
+Nonfatal health skips these taunts, the motion-kind read and death dispatch.
+
 ### Health native routing
 
 `SetHealth(receiver, value)` first raises the selected player's shared HUD
