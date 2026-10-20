@@ -3363,6 +3363,14 @@ cleared, bit `0x04` of the combat flags is cleared, and the combat cooldown beco
 For the selected player it additionally sets the HUD health-display timer to 25 and selects
 camera slot zero.
 
+### endCombat
+
+`endCombat` takes no arguments and returns zero. It first does what [SheathSword](#sheathsword) does for
+the receiver, including its eligibility tests. It then unconditionally sets the lifecycle selector
+(`MyAIType`) to 1 and the AI mode (`MyAIMode`) to 0, re-enables the receiver's native hook as
+`EnableHook` does, clears combat flag `0x04`, and zeroes the combat record's close-distance pass counter and
+coordination selection state. A receiver without a combat record faults in the original.
+
 ### FacePlayer
 
 `FacePlayer(duration)` is a task that turns the receiver's local Y angle toward the
