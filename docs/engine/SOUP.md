@@ -1145,6 +1145,11 @@ to the sender. These assignments still occur with a null target. Neither message
 changes the selected actor's combat target. Unrecognized nonzero message codes
 are consumed without combat effects.
 
+
+The remaining combat messages have these ordered effects. Message `0xd000` clears the receiver and sender intent masks, turns the receiver toward the sender, then searches the ordinary actor list for the first eligible living coordinator. If one is found, the receiver sends it `0xd003`; otherwise the receiver enters coordination state one. Message `0xd001` clears both intent masks, performs the receiver-to-sender combat response, and then applies the same coordinator handoff. Message `0xd005` performs the receiver-to-sender damage response, then applies the same coordinator handoff. When the receiver is the selected player in story state three and the sender passes the player-response check, `0xd005` sets the session combat-response flag and skips the ordinary damage response.
+
+The `0xd000` response does not alter the selected actor's target. The `0xd001` and `0xd005` responses consume one message before any response work; writes made before a later sound, movement, or damage failure remain applied.
+
 Ordinary entry processing is suppressed by an unpaused blocking slot whose call operand address is at or before the saved entry cursor. This test is separate from the later main-body blocking test and from direct interrupt invocation.
 
 ### Value Modes
