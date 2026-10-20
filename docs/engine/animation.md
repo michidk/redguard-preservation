@@ -587,6 +587,22 @@ the point the landing effect uses, with the camera-relative displacement of the
 Bit `0x10` then adds one [screen-shake impulse](SOUP.md#frame-view-angles-and-screen-shake).
 No other bit has an effect.
 
+## Transition command
+
+Opcode fifteen carries a trigger mask, a start frame and a target group. Reverse
+playback only moves the cursor one command back. Forward playback asks a
+decision routine, keyed on the mask, whether to take the transition:
+
+| Mask | Condition for taking the transition |
+|---|---|
+| 1 and 2 | The actor's jump-request word has a bit set. No shipped engine code sets it, so these masks continue with the next command. |
+| 4 | A byte of the actor's combat record is nonzero. |
+| 8 | The actor is the selected player and a global combat input flag is set. |
+| any other | Never taken. |
+
+A command that is not taken advances the cursor by one. A missing actor or
+animation record is never taken either.
+
 ## Forward type-one transitions
 
 A forward type-one group uses the ordinary frame countdown and control commands.
