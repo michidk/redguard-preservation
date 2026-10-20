@@ -1460,7 +1460,7 @@ follow it, then calls its stepper with duration 1: `MoveRight`, `MoveLeft`,
 passes, otherwise it restores everything it saved, clears that direction's shared
 called flag, sets the player's X/Z to the target and reports failure, which sets
 the retained fallback flag. With `b'` the bearing measured again after the step,
-the keep tests are: right, `b'` from 258 through 767; left, `b'` from 1282
+the keep tests are: right, `b'` from 257 through 767; left, `b'` from 1281
 through 1791; forward, `b'` above 1792 or below 256; backward, the horizontal
 distance to the target no greater than before the step. After the step, a nonzero
 collision-response word masked by `0x01e2` also sets the fallback flag. Close
