@@ -131,9 +131,9 @@ lockout, dialogue and topic-menu returns and before forward and backward
 dispatch, so movement in the same update uses the turned heading. The controller
 also returns before turning while the current animation group is 129 or 91 and
 the item system is ready and not paused. The rules below cover a sheathed,
-non-swimming player with no retained item-use selector; an item-use selector of
-51 switches the accumulators to the fight-turn attributes and suppresses the
-ordinary turn animation.
+non-swimming player that holds no item. While the player holds item 51 the
+accumulators use the fight-turn attributes, the ordinary turn animation is
+suppressed and the keyboard movement dispatch after turning is skipped.
 
 Without the walk key held, turning applies when the living state is 0 or 27 and
 both directional state bytes are zero. The heading becomes the previous heading
@@ -151,8 +151,14 @@ right amounts request nothing.
 
 With the walk key held, turning applies only while forward or backward is held,
 the directional state bytes are zero and the living state is outside 10 through
-19. It requests no animation and does not bank. The walk key held with only left
-or right sidesteps instead.
+19. It requests no animation and does not bank.
+
+After turning and before forward and backward dispatch, a sidestep block runs
+when the walk key is held or the living state is 15. With neither forward nor
+backward held, left alone calls `MoveLeft` and right alone calls `MoveRight`
+with duration 1, using the same stepper as the
+[script natives](SOUP.md#moveleft-and-moveright); the controller ignores their
+result. Holding forward or backward skips the sidestep.
 
 The third actor angle is a roll that banks while running. It changes only in
 these rules, all modulo 2048:
