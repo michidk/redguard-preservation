@@ -90,6 +90,26 @@ its map definition and receives its own copy of the initial local variables.
 When the initial script cursor is absent or equals the script base, no separate
 entry cursor is stored. New shell records are prepended to the shell list.
 
+The map-specific shell script is the script named after the world's map file
+(`START` for `START.RGM`); a name with no installed script creates no record.
+`SYSTEM.INI` `[debug] final_version` set to a nonzero value skips `DEBUG`.
+
+### Shell script execution
+
+Every world-loop iteration, before the ordinary actor update, each shell record
+runs in list order, so the newest record runs first. A record runs as an actor
+without a map object: its attributes and control state are zeroed for the run,
+while its locals, continuation and task slots persist between runs. Execution is
+in shell context, in which the weapon, item and activation predicates report no
+ordinary animation state. `KillMe` marks the record finished and the engine
+frees it after that run; a script that never calls it runs every iteration for
+the rest of the world.
+
+`OpenShell(name)` and item use create a record from the installed script of that
+name, copying its initial local variables; names compare without case. A world
+without the script reports an error. A record created during an iteration first
+runs in the next one.
+
 ### Ordinary update gates
 
 `SYSTEM.INI`'s `[system] task_system` enables the ordinary entry, task, and main

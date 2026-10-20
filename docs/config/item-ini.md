@@ -56,6 +56,20 @@ Paths, script names, and RTX labels retain their spelling and capitalization.
 | `use_script[x]` | AI script file to execute when the item is used through the shell system. |
 | `script_instances[x]` | Maximum concurrent instances of the use script. `1` prevents a new instance from starting if one is already running. Zero or a negative value means unlimited instances. |
 
+### Using an item
+
+`UseItem(id)` does nothing while the player is locked out (`LockoutPlayer` value
+1) or in an edge state (10 through 19), after another use attempt in the same
+world-loop iteration, in shell context, with the inventory closed, in deep water,
+while holding a weapon, or while lighting or dousing a torch. An unknown or unowned
+item is an error, and so is a receiver other than the selected player. Item zero
+toggles the compass. Weapon items (type 1) set the weapon attribute and draw the
+sword, and torch items (code 3) light or put out the torch. A general item starts
+its `use_script` as a shell when `script_instances` is zero or negative or fewer
+than that many shells of the script are running. It then drops one unit of each
+`drop_use_item_list` entry. When that changed the item's own count and flag bit
+`2` is set, one unit of the item is dropped; flag bit `4` then empties the item.
+
 #### Objects and bitmaps
 
 | Field | Description |
