@@ -153,6 +153,10 @@ With the walk key held, turning applies only while forward or backward is held,
 the directional state bytes are zero and the living state is outside 10 through
 19. It requests no animation and does not bank.
 
+These rules hold with the installed `[cyrus] mouse_turn=0`. A nonzero value adds a
+mouse-driven turn block that plays the same four turn groups from the sign of
+the horizontal mouse movement.
+
 After turning and before forward and backward dispatch, a sidestep block runs
 when the walk key is held or the living state is 15. With neither forward nor
 backward held, left alone calls `MoveLeft` and right alone calls `MoveRight`
