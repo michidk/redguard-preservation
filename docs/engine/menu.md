@@ -125,6 +125,13 @@ below y = 160, and the second five line heights below it, independently of the
 number of prompt lines. The options use the selected or normal copy according
 to the current choice. Text centering truncates the half-width toward zero.
 
+The last-game prompt starts with `Load Last Game?` and a newline, followed by
+a formatted copy of the retained save description. Formatting starts at
+zero-based character offset 13. A space becomes a newline, then scanning resumes
+14 characters after that replacement. The final character is never replaced.
+Long runs without spaces remain intact; this is character-offset formatting,
+not font-width wrapping.
+
 The last-game confirmation presents `Yes` first and `No` second, initially
 selecting `Yes`. The configured `KEY_UP` action selects `Yes`; `KEY_DOWN`
 selects `No`. If both directions are active, Up takes priority. Enter or the
