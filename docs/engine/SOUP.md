@@ -851,6 +851,11 @@ point and leaves the supplied point unchanged.
 
 ### Environmental effect animation
 
+World initialization tears down the previous environmental effect pool before
+creating a pool with `[system] max_effects` from `SYSTEM.INI`. Negative configured
+capacity is clamped to zero. A zero capacity or a nonzero `disable_effects`
+setting leaves the pool disabled. An enabled pool starts with every slot free.
+
 The type-one effect constructor returns no effect when the pool is disabled or
 allocation fails. It separates the supplied packed descriptor into upper-16-bit
 flags and a lower-16-bit texture identity. The resolved texture supplies the
