@@ -3283,7 +3283,8 @@ tilt would be selected by a mode word that nothing writes (zero), so no tilt is 
 screen-shake level (0 to 32) wobbles the first angle: on even frames of the main loop's
 frame counter the level is subtracted from the angle and then halved, on odd frames it is added
 and kept; each angle is then wrapped to 2047. One shake impulse raises the level by 32, capped
-at 32. Impulses come from the reaction-flag handler (bit `0x10`) and a debug key.
+at 32. Impulses come from the [actor-event service](animation.md#actor-events) (operand
+bit `0x10`) and a debug key.
 
 ### Ordinary camera selection inhibition
 

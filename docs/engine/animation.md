@@ -561,6 +561,32 @@ A nonzero delay yields immediately; zero continues command processing.
 returned sound slot before decrementing the cursor. Opcode eleven still invokes
 the actor-event service with the authored operand and decrements the cursor.
 
+## Actor events
+
+Opcode eleven dispatches its operand to the actor-event service at the command,
+in forward and reverse playback alike, and then moves the cursor one step in the
+playback direction. The service runs synchronously, in command order with sound
+commands, and never selects a frame.
+
+The operand is a bit set. The service tests its bits in this order against the
+actor's stored [sound surface](sound.md#surfaceini-remap):
+
+| Bit | Required surface | Effect descriptor |
+|---|---|---|
+| `0x01` | lava (5) | `0x2580` |
+| `0x02` | water (1) | `0x2500` |
+| `0x04` | water (1) | `0x2500` |
+| `0x08` | sand (6) | `0x2700` |
+
+A set bit whose surface does not match does nothing, and bits `0x02` and `0x04`
+together request two effects. Each effect starts at the actor's current logical
+Q8 position, displaced 2048 Q8 units toward the camera, with the vertical point
+logical Y plus the actor's positive vertical extent times 256 plus 1536. This is
+the point the landing effect uses, with the camera-relative displacement of the
+[selected death effect admission](SOUP.md#selected-death-effect-admission) rules.
+Bit `0x10` then adds one [screen-shake impulse](SOUP.md#frame-view-angles-and-screen-shake).
+No other bit has an effect.
+
 ## Forward type-one transitions
 
 A forward type-one group uses the ordinary frame countdown and control commands.
