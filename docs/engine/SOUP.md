@@ -1437,6 +1437,17 @@ alignment's fallback instead turns to the final heading derived from its
 retained reference, requests the default animation, and sets that byte to 6.
 Both completion branches clear the player's alignment flag.
 
+Approach mode's movement step runs after the player has finished facing the
+destination and the movement-distance check permits movement. It is one call of
+the player's `WalkForward` helper with duration 1, preceded by a saved copy of the
+player's position, step counter and animation state. If the bearing from the
+new position to the destination, relative to the player's heading, then lies from
+256 through 1792 (the destination is no longer ahead), the step is undone, the
+player's X/Z are set to the destination and the retained fallback flag is set.
+After the movement, a nonzero collision-response word masked by `0x01e2` together
+with a collision counter above 8 also sets the fallback flag. Approach mode
+returns one on every call that does not complete.
+
 ### Alignment distance thresholds
 
 Alignment position tests use local Q8 X/Z and the shared integer distance
