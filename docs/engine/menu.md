@@ -108,6 +108,18 @@ The description display wraps a copy of the edited text. It scans for spaces sta
 
 The delete confirmation presents `Yes` first and `No` second, with `Yes` initially selected. Enter confirms the current selection before simultaneous directional selection is applied.
 
+The last-game confirmation presents `Yes` first and `No` second, initially
+selecting `Yes`. The configured `KEY_UP` action selects `Yes`; `KEY_DOWN`
+selects `No`. If both directions are active, Up takes priority. Enter or the
+configured `KEY_D` action confirms the current selection before a simultaneous
+direction can change it. The dialog waits until both confirmation inputs are
+released before returning. Escape has no separate cancellation path.
+
+If the retained book entry context is three, the confirmation's first display
+waits 72 BIOS timer ticks, then drains held `KEY_D` and Enter input before
+accepting a choice. Later redraws in that dialog do not repeat this delay.
+Other retained contexts skip this entry delay.
+
 Centered dialog text starts at `x + trunc((available_width - text_width) / 2)`, where `trunc` rounds toward zero. A zero available width centers the measured text around `x`.
 
 The reserved quick-save slot is zero, with description `Quick Save Game`.
