@@ -187,7 +187,7 @@ Gameplay physics thresholds, fall damage, and interaction radii.
 | `rope_attach_angle` | `512` | Angle threshold for rope attachment (engine angle units). |
 | `slide_speed` | `36` | Player slide speed in engine units per frame. |
 | `rtx_pickup_override_time` | `24` | Ticks for which holding the previous/next item key suppresses an [activation prompt](../engine/hud.md#activation-prompt) and shows the item icon. |
-| `swim_depth` | `40` | Depth threshold for switching to swim mode. |
+| `swim_depth` | `40` | Model Y offset in map units for animation groups 141 through 143 on the non-inhibited surface-2/3/4 [model-position path](../engine/SOUP.md#current-model-presentation). Zero is replaced with 40. |
 | `player_dead_time` | `3` | Time (seconds) before respawn after death. |
 | `player_fall_dead_time` | `12` | Falling-death timeout input. Clamped to at least 3, then multiplied by 12 nominal ticks; the [world loop](../engine/SOUP.md#world-loop-death-exit-ordering) exits only after the elapsed value exceeds that limit. |
 | `old_combat` | `off` | Use legacy combat system. |

@@ -2805,6 +2805,31 @@ logical Y plus 64. For the selected player, the retained death-progress word is
 also added. These integer additions wrap at 32 bits before conversion to the
 floating-point model position; the logical position is unchanged.
 
+Stored surface class 1 places model Y at the arithmetic-shifted logical Y
+plus 64. Surface classes 2, 3 and 4 first check the selected player's retained
+hit inhibition. An inhibited selected player uses shifted logical Y plus 64
+plus retained death progress, then returns without coverage sampling or the
+height-change effect check.
+
+Otherwise, surface 2 uses coverage 256. Surfaces 3 and 4 sample
+[terrain material blend coverage](player.md#terrain-material-blend-coverage)
+at the stored model X and Z, each truncated toward zero to integer map units.
+Coverage zero and 256 remain unchanged. Other coverage values are doubled and
+capped at 256. Model Y becomes shifted logical Y plus one quarter of that
+coverage, using an arithmetic right shift by two.
+
+Animation groups 141 through 143 then add `[game] swim_depth` to the stored
+model Y. This setting replaces zero with 40 during initialization; other values
+are retained. The shifted-position result is stored as a float before the
+swim-depth addition, whose result is also stored as a float. Group 140 does
+not receive that offset.
+
+For the non-inhibited surface-2/3/4 path, the prior stored model Y is truncated
+toward zero. The new stored Y is subtracted, and the difference is truncated
+toward zero before taking its integer absolute value. A magnitude strictly
+greater than 16 requests environmental effect descriptor `0x2500`; equality
+does not. Surface 1 and the inhibited selected-player path skip this check.
+
 The selected player's surface-5 path sets retained death mode one after
 publishing model Y. Surface 11 leaves that mode unchanged. Both paths then test
 queued motion and the low two bits of each directional-state byte. A nonzero
