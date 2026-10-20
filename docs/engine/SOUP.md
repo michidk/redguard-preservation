@@ -1502,6 +1502,26 @@ Alignment turning uses the [support-response turn rules](player.md#ordinary-slop
 including selected-player camera updates. Returning to the default animation
 reports success on every normal return; it does not wait for playback to finish.
 
+### PlayerFaceObj
+
+`PlayerFaceObj` is a task that turns the selected player to face its receiving actor. It
+reports one while the player is still turning and zero when done, and each invocation sets or
+clears the player's alignment flag accordingly.
+
+An invocation first checks the player's packed collision-response word (the body-response
+byte, the transition byte and the two auxiliary bytes). When the word is nonzero and the
+collision-response age is above 8, it sets the native return-state byte to 6, clears the
+alignment flag and reports zero without turning.
+
+Otherwise it applies the alignment roll leveling, then the facing step. Using the player's
+[alignment speed](#alignment-distance-thresholds), a horizontal distance (Y zero, local Q8 X/Z)
+to the receiver at or below the facing arrival threshold snaps the player's X/Z to the
+receiver's, registers a map update and reports zero. Farther away, the target heading is the
+negated bearing of the receiver relative to the player, wrapped to 2048, and the player turns to
+it by the [support-response turn rules](player.md#ordinary-slope-response): zero when the
+heading already matches or the turn snaps to it, otherwise nonzero. A zero result clears the
+alignment flag and a nonzero one sets it, and the task reports that result.
+
 <a id="attribute-reads-and-writes"></a>
 
 ### GetAttribute, SetAttribute, GetMyAttr, and SetMyAttr
