@@ -189,7 +189,7 @@ Gameplay physics thresholds, fall damage, and interaction radii.
 | `rtx_pickup_override_time` | `24` | Ticks for which holding the previous/next item key suppresses an [activation prompt](../engine/hud.md#activation-prompt) and shows the item icon. |
 | `swim_depth` | `40` | Depth threshold for switching to swim mode. |
 | `player_dead_time` | `3` | Time (seconds) before respawn after death. |
-| `player_fall_dead_time` | `12` | Time (frames) before death is registered after a fatal fall. |
+| `player_fall_dead_time` | `12` | Falling-death timeout input. Clamped to at least 3, then multiplied by 12 nominal ticks; the [world loop](../engine/SOUP.md#world-loop-death-exit-ordering) exits only after the elapsed value exceeds that limit. |
 | `old_combat` | `off` | Use legacy combat system. |
 | `lineup_distance` | `128` | Distance at which enemies line up for combat. |
 | `dialog_radius` | `512` | Radius within which NPCs can initiate dialog. |

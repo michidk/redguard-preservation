@@ -787,6 +787,26 @@ requires that cursor and progress byte differ. This compares command progress
 with frame progress, not the displayed model frame or finite loop countdown.
 Completion returns world-loop outcome 5000.
 
+### World-loop death exit ordering
+
+The world loop checks death exits after map and separate-object updates,
+effects, scene and HUD presentation, and fade handling. A pending world
+transition returns its destination before the falling timeout or selected
+inhibition checks. The win request is checked after those death exits.
+
+A selected player whose falling byte is zero clears the retained falling
+elapsed counter. A nonzero falling byte adds the shared nominal-tick increment
+to that counter, wrapping at 32 bits. When the resulting signed value is
+strictly greater than the configured falling-death limit, the loop returns
+outcome 5000. Equality does not exit. This check precedes, and does not require,
+selected-player hit inhibition. The player initializer clears this counter
+independently of selected death mode and progress.
+
+The limit is `max(player_fall_dead_time, 3) * 12`, using signed configuration
+comparison and 32-bit multiplication. It is measured in nominal ticks, not
+rendered frames. A pending world transition bypasses the counter update as well
+as the death checks.
+
 ### Death completion dispatch
 
 After world-loop outcome 5000, the main dispatcher checks the retained last-save
