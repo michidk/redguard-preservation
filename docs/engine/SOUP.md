@@ -836,6 +836,19 @@ bounded random request of 64 whose result is reduced by 32 for the sound's
 signed variation argument. No effect or sound request occurs when the initial
 bitwise test rejects the call.
 
+The effect-position helper copies the supplied integer point and preserves its
+Y coordinate. It subtracts the published current camera X/Z coordinates from
+the point using signed wrapping 32-bit subtraction, then computes the shared
+quantized horizontal bearing in 2048 units per turn. Camera height does not
+participate. With `index = (bearing - 1024) & 2047`, it adds
+`offset * sine[index]` to X and `offset * sine[index + 512]` to Z. The death
+controller supplies offset 2048.
+
+Each original X/Z coordinate is converted to single precision before the
+displacement is added. Each sum is stored in single precision, then converted
+to an integer by truncating toward zero. The helper returns a shared scratch
+point and leaves the supplied point unchanged.
+
 ### Contact death animation dispatch
 
 A null receiver does nothing. Selector zero first checks for animation group 122
