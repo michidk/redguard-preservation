@@ -1533,6 +1533,39 @@ distance to the target no greater than before the step. After the step, a nonzer
 collision-response word masked by `0x01e2` also sets the fallback flag. Close
 alignment returns one on every call that does not complete.
 
+### PlayerPickupLineUp and PlayerParallelLineUp
+
+`PlayerPickupLineUp(angle, x_offset, z_offset)` and `PlayerParallelLineUp(angle, x_offset, z_offset)` are
+tasks that move the selected player relative to the receiving actor; `ObjectPickupLineUp` and
+`ObjectParallelLineUp` run the same two movers on another actor. They do not store the shared
+player-lineup result. Each invocation first pushes a collision query frame for the player (position, a
+radius from the player's model record scaled by a constant, or 200 when it has none, and the player's
+height word) and pops it afterwards. Unlike `PlayerLineUp` the offsets are added to the receiver's local X/Z
+unrotated: the target is the receiver's position plus the offsets (Y from the receiver), and the target
+heading is the receiver's heading plus `angle`, wrapped to 2048.
+
+The pickup mover returns zero when done and one while continuing. On its first invocation (elapsed time zero)
+a blocked straight path to the target (a segment of at most `0x20000` units, tested against objects but not
+the receiver or the player) selects the parallel mover for the rest of the task; the choice is retained in
+the task's native state. Otherwise each invocation, in order:
+
+1. A nonzero packed collision-response word with an age above 8 clears nothing but abandons the task: return
+   state 6, return zero.
+2. The player's roll is leveled and the player faces the target; while still turning it returns one.
+3. The facing arrival test snaps onto the target: all four called flags are cleared, the default animation is
+   requested and the task returns zero.
+4. When the movement-distance check permits movement, one forward close step toward the target runs (as in
+   close alignment); a failed step also clears the called flags and completes as in 3.
+5. Otherwise a stale collision response abandons the task as in 1, clearing the player's alignment flag, and
+   the task returns one.
+
+The parallel mover works from the final heading `angle + 1024` (wrapped): when the player's heading is more than
+768 from it the player turns to face `angle + 2048`, backs toward the target with a backward close step while the
+movement-distance check permits it, and completes once the backward step fails and the turn to the final heading
+has finished (called flags set); otherwise it turns to the final heading (returning one while turning), snaps on
+arrival (called flags set, default animation requested, return zero) and otherwise takes the close step that the
+relative bearing selects, as in close alignment, returning one unless the collision response is stale.
+
 ### Alignment distance thresholds
 
 Alignment position tests use local Q8 X/Z and the shared integer distance
