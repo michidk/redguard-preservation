@@ -1208,6 +1208,24 @@ message `0xd003` from the receiver. Without a match, the receiver's coordination
 state becomes one, resetting its consecutive close-distance counter. This
 fallback does not assign aggression 50.
 
+Message `0xd001` clears receiver intent bits before sender intent bits. If
+receiver attribute 97 is nonzero, it tests weapon holding, then combat stance
+only when not holding a weapon. When both tests are false, response processing
+returns after the intent clears.
+
+An admitted response draws a random value with bound 128 and requests the
+receiver's attribute-86 positional effect with volume zero and pitch
+`draw * 16 - 1024`. It flushes sound requests, requests receiver taunt category
+two, and reads the sender's combat action. Sender action eight requests receiver
+weapon cleanup before the hit-reaction service runs with receiver then sender.
+
+After the reaction returns, receiver action other than minus one or nine resets
+the sender's action to minus one. The receiver's coordination state is then
+read. State zero, nonselected identity and a zero death query admit the same
+ordered coordinator search and fallback as the block response. The search
+excludes the sender. A match receives `0xd003` from the receiver; without a match,
+the receiver receives coordination state one without assigning aggression 50.
+
 Messages `0xd000`, `0xd001` and `0xd005` consume their addressed message before
 performing response work. Message `0xd001` also clears the receiver's intent
 bits before the sender's. Message `0xd005` does not perform those intent clears.
