@@ -1448,6 +1448,24 @@ After the movement, a nonzero collision-response word masked by `0x01e2` togethe
 with a collision counter above 8 also sets the fallback flag. Approach mode
 returns one on every call that does not complete.
 
+Close alignment's movement step runs when the player has finished turning to the
+final heading and the movement-distance check permits movement. Let `b` be the
+bearing from the player's position to the target, relative to the player's
+heading, wrapped to 2048 (the same quantity approach mode tests). The helper is
+chosen by `b`: right for 257 through 768, backward for 769 through 1280, left for
+1281 through 1792, forward otherwise. Each helper first saves the player's
+position, packed step counter, animation state and the two animation words that
+follow it, then calls its stepper with duration 1: `MoveRight`, `MoveLeft`,
+`WalkForward` or the walking backward step. It keeps the step when its test
+passes, otherwise it restores everything it saved, clears that direction's shared
+called flag, sets the player's X/Z to the target and reports failure, which sets
+the retained fallback flag. With `b'` the bearing measured again after the step,
+the keep tests are: right, `b'` from 258 through 767; left, `b'` from 1282
+through 1791; forward, `b'` above 1792 or below 256; backward, the horizontal
+distance to the target no greater than before the step. After the step, a nonzero
+collision-response word masked by `0x01e2` also sets the fallback flag. Close
+alignment returns one on every call that does not complete.
+
 ### Alignment distance thresholds
 
 Alignment position tests use local Q8 X/Z and the shared integer distance
