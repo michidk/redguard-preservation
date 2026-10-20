@@ -892,6 +892,12 @@ metadata byte one is ORed into drawing flags initially set to one. The alternate
 path submits geometry scale one half, constant alpha 140 and drawing flags
 `0x201`.
 
+The ordinary metadata lookup uses the current map's
+[`FLAT` texture attributes](../formats/RGM.md#flat), shared with placed flats.
+It splits the texture identity into the archive and seven-bit image IDs and
+uses the first matching attribute record. Missing records leave the defaults
+unchanged.
+
 Both paths use a centered camera-facing quad. Its half extents are the source
 image width and height multiplied by half the texture scale and geometry scale.
 Texture-coordinate scale is one. Alpha, face brightness and frame selection
