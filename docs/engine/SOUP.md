@@ -602,6 +602,27 @@ reaction admitted only by identity therefore animates without applying this
 damage response. After admitted damage returns, sender attribute 23 equal to 75
 requests the sender's ordinary weapon-restoration service.
 
+### Combat direct-damage response
+
+The `0xd005` response helper first displaces the receiver relative to the sender
+using the 3000-unit horizontal translation. For the selected player, a nonzero
+retained death-animation override then returns before weapon queries, animation
+or damage.
+
+A nonplayer receiver starts animation group 117. The selected player tests
+weapon holding, then combat stance only when not holding a weapon. Either
+predicate selects group 117 on even world-loop parity or 118 on odd parity;
+otherwise parity selects group 132 or 133. All starters receive loop argument
+zero. This response does not query group 119 or forward orientation.
+
+After animation, an enabled selected-player damage-suppression flag skips the
+health response for the selected player. Other receivers continue regardless
+of that flag. The response negates the sender's unsigned attribute 96 and passes
+that signed change to generic additive health with mode zero, then reads the
+receiver's health. Health below one requests receiver taunt category six only
+for a nonplayer receiver, then invokes contact death with selector zero for
+either identity. Nonfatal health skips taunt and death dispatch.
+
 ### Combat hit-response damage scaling
 
 The admitted combat hit response reads the attacker's retained strength and
