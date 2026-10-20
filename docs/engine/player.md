@@ -124,6 +124,51 @@ The arithmetic alone is insufficient to implement the player state machine.
 Combat can select `attr_fight_turn_speed` and `attr_fight_turn_accel` instead of
 the ordinary turn settings.
 
+## Ground-turn eligibility and animation
+
+Keyboard turning runs inside the selected player's controller, after the view,
+lockout, dialogue and topic-menu returns and before forward and backward
+dispatch, so movement in the same update uses the turned heading. The controller
+also returns before turning while the current animation group is 129 or 91 and
+the item system is ready and not paused. The rules below cover a sheathed,
+non-swimming player with no retained item-use selector; an item-use selector of
+51 switches the accumulators to the fight-turn attributes and suppresses the
+ordinary turn animation.
+
+Without the walk key held, turning applies when the living state is 0 or 27 and
+both directional state bytes are zero. The heading becomes the previous heading
+minus the scaled right amount plus the scaled left amount, modulo 2048. A
+nonzero net amount then makes an ordinary animation request with modifier zero:
+
+| Net turn | Torch not burning | Torch burning |
+|---|---|---|
+| Left | Group 14 | Group 16 |
+| Right | Group 15 | Group 17 |
+
+No request is made while the actor is a swimmer (attribute 110 nonzero), holds a
+drawn weapon with a combat record, or stands on surface 2 or 4. Equal left and
+right amounts request nothing.
+
+With the walk key held, turning applies only while forward or backward is held,
+the directional state bytes are zero and the living state is outside 10 through
+19. It requests no animation and does not bank. The walk key held with only left
+or right sidesteps instead.
+
+The third actor angle is a roll that banks while running. It changes only in
+these rules, all modulo 2048:
+
+- When the current group is 18 or 30 and turning applies without the walk key, a
+  left turn adds 4 (8 while roll exceeds 1024) when roll is below 32 or above
+  1024; a right turn subtracts 4 (8 while roll is below 1024) when roll is above
+  2016 or below 1024. Other rolls are unchanged. With no net turn the roll
+  relaxes.
+- When the current group is neither 18 nor 30, the roll relaxes once per update
+  whether or not the actor turned.
+- Relaxing: above 1024 the roll becomes 0 when it exceeds 2040 and otherwise
+  gains 8; from 1 through 1024 it becomes 0 below 8 and otherwise loses 8; zero
+  stays zero.
+- Any other update in groups 18 and 30 leaves the roll unchanged.
+
 ## Movement data and timing
 
 Forward running and walking use the actor's `attr_forward_speed` and
