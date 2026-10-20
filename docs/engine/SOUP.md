@@ -905,7 +905,8 @@ This places the effect half its texture height above the supplied point in
 the engine's downward-positive Y convention.
 
 The world loop submits environmental effect billboards while building map draw
-lists, before the object and code-object systems run. It updates effect lifetimes
+lists, after actor model-position processing and before the object and
+code-object systems run. It updates effect lifetimes
 after those systems, before the rain-drop update and rendering the queued scene.
 Effects created by those later object updates miss the current loop's billboard
 submission but participate in its lifetime update. Surviving effects can submit
