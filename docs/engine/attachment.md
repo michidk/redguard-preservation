@@ -35,7 +35,7 @@ Names follow UESP where available.
 | **8** | SetPositionXYZ | 6 + 6 + 6 | pos_x, pos_y, pos_z | Set 3-axis position offset (each param × 8). |
 | **9** | SetPositionAxis | 2 + 18 | axis (0=X, 1=Y, 2=Z), value | Set position offset on a single axis. |
 | **10** | ChangeAnimGroup | 10 + 10 | target_group, target_frame | Jump to a different animation group and frame. Same bit layout as opcode 0, but writes to anim control fields, not attachment. |
-| **11** | Rumble/SFX | 20-bit | effect_bitmask | 5-bit mask combining sounds + screen shake. Bit 0 → SFX 0x2580 if actor state=5; bit 1/2 → SFX 0x2500 if state=1; bit 3 → SFX 0x2700 if state=6; **bit 4 → screen shake** (camera pitch oscillation with exponential decay, ±0x20 units). Cyrus has param=0 (placeholder, no effect). Golem in DRINT has param=16 (bit 4 only = screen shake on attack). |
+| **11** | ActorEvent (exported as Rumble) | 20-bit | event_bitmask | Bit set passed to the [actor-event service](animation.md#actor-events): bits 0 to 3 request the environmental effects `0x2580`, `0x2500`, `0x2500` and `0x2700` when the actor's stored sound surface is lava, water, water and sand, and bit 4 adds a screen-shake impulse. Cyrus's commands use 0; the Golem's two stomp groups in DRINT use 16. |
 | **12** | DelayCounter | 20-bit | counter_value | Set frame delay counter; pause animation until counter expires. |
 | **13** | ConditionalDelay | 20-bit | counter_value | Set conditional delay; direction-dependent counter. |
 | **14** | LoopControl | 20-bit | target_frame | Decrement loop counter; jump to target frame if counter > 0. |
@@ -54,7 +54,7 @@ of the 27 shipped RGM files.
 | 3 (GoToFuture) | 7,121 | 27 | 276 | Conditional jumps |
 | 4 (PlaySound) | 6,913 | 27 | 98 | Combat actors |
 | 5 (BreakPoint) | 13,167 | 27 | 105 | Combat actors |
-| 11 (ActorSound) | 164 | 27 | 2 | Cyrus + Golem only |
+| 11 (ActorEvent) | 164 | 27 | 2 | Cyrus + Golem only |
 | 15 (Transition) | 461 | 27 | 22 | Guards only |
 | 6–10, 12–14 | 0 | 0 | 0 | Dead code in shipped game |
 
