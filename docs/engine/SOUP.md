@@ -3118,6 +3118,17 @@ A cut sets the render position to the published position shifted right eight bit
 toward zero) and clears snap and hold. Every pass clears forced glide, and the final published
 angles become the render angles for the next frame.
 
+### Follow camera observation
+
+The debug overlay's `World (x, y, z)-(pitch, yaw, roll)` line is the published camera pose
+and its `Player (x, y, z)-(pitch, yaw, roll)` line the selected player's, in whole map units
+and 2048-unit angles. With the installed defaults (record zero position offset `(0, -14000, 0)`,
+distance 250, target offset `(-6000, -14000, 0)`), a player at `(32464, -275, 33892)` with
+angles `(0, 22, 0)` gave the camera `(32481, -330, 33642)` with angles `(0, 2027, 0)`: the
+camera sits 250 units behind the player along the player's heading, 55 units above, and looks
+at the player's height. The angle triple's orientation matrix carries local +Z along the look
+direction with the X axis mirrored.
+
 ### Frame view angles and screen shake
 
 After the render step the frame builds its view orientation from the published angles. A roll
