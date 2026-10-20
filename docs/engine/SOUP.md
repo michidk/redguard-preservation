@@ -3733,6 +3733,18 @@ then becomes the receiver's current local position.
 When the receiver is the selected player, the shared view origin moves by the
 change the reset made on each axis. The receiver's transform is then rebuilt.
 
+### MovePlayerAboveMe
+
+`MovePlayerAboveMe(x, y, z, angle)` returns zero and asks for the selected player to be placed relative to the receiver. The offset
+`(x, y, z)` is rotated by the receiver's orientation matrix and added to the receiver's position (the world position of
+an attached actor, otherwise its local position, taken through the parent when it has one). The requested player Y is that
+sum minus the selected player's positive Y extent shifted left eight bits, minus the `[system]` `standing_height` value from `SYSTEM.INI`
+shifted left eight bits; X and Z are the sum itself. The call stores this position and `angle` as one pending placement; a later call in the same frame replaces it.
+
+The main loop applies the pending placement once per frame and then clears it. The selected player's
+local position and its previous-position history both take the requested position, its yaw becomes `angle & 0x7ff`,
+and the camera is marked to cut instead of glide. The call has no other effect on the receiver.
+
 ### XResetCamera
 
 `XResetCamera` takes no arguments, acts on no receiver state and returns zero. In
