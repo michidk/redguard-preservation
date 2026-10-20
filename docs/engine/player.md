@@ -173,8 +173,8 @@ these rules, all modulo 2048:
   1024; a right turn subtracts 4 (8 while roll is below 1024) when roll is above
   2016 or below 1024. Other rolls are unchanged. With no net turn the roll
   relaxes.
-- When the current group is neither 18 nor 30, the roll relaxes once per update
-  whether or not the actor turned.
+- When the current group is neither 18 nor 30, the roll relaxes once per update,
+  and twice when turning applies without the walk key and the net turn is zero.
 - Relaxing: above 1024 the roll becomes 0 when it exceeds 2040 and otherwise
   gains 8; from 1 through 1024 it becomes 0 below 8 and otherwise loses 8; zero
   stays zero.
