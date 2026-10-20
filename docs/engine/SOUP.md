@@ -836,6 +836,20 @@ bounded random request of 64 whose result is reduced by 32 for the sound's
 signed variation argument. No effect or sound request occurs when the initial
 bitwise test rejects the call.
 
+The packed descriptors passed to effect construction are:
+
+| Emission | Descriptor |
+|---|---|
+| Mode one, unconditional first effect | `0xb081` |
+| Mode one, first bounded-random effect | `0x22480` |
+| Mode one, second bounded-random effect | `0x2580` |
+| Mode one, final effect after progress 12 | `0x32480` |
+| Mode two, before progress 12 | `0x2500` |
+| Mode two, from progress 12 onward | `0x12500` |
+
+The low sixteen bits identify the texture; the upper sixteen bits are effect
+flags. Every selected-death construction supplies zero spread and speed one.
+
 The effect-position helper copies the supplied integer point and preserves its
 Y coordinate. It subtracts the published current camera X/Z coordinates from
 the point using signed wrapping 32-bit subtraction, then computes the shared
