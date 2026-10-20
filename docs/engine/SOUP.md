@@ -2100,6 +2100,18 @@ multiplication and signed shifts. Displacements are added to the actor's local
 position with wrapping arithmetic. The operation queues a map update and returns
 one, including when all three displacements are zero.
 
+`WanderToLocation(location, duration)` selects its target and source as
+`MoveToLocation` does and normalizes the direction the same way. Its first
+invocation in a task slot sets a retained speed to the signed integer division of
+the rounded source-to-target distance by `duration`, truncating toward zero; the
+slot keeps that speed and ignores the elapsed input afterwards. Each invocation
+computes the step as the speed times `frame_scale` shifted arithmetically right by
+eight. It queues the actor's map update. When the distance, measured again before
+moving, is greater than the step, each displacement component is
+`((normalized_component >> 8) * step) >> 8`, added to the local position, and the
+task returns one. Otherwise the local position is assigned the target and the task
+returns zero.
+
 ### Actor families and attached transforms
 
 `attr_master` and `attr_slave` are byte-sized group identities. A nonzero slave
