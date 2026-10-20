@@ -261,6 +261,11 @@ Forward input takes priority over backward input when both are held. With no
 forward input, backward input takes its separate dispatch branch.
 The view key returns before this ordinary non-combat movement dispatch.
 
+The run helper is the script native `MoveForward` and the walk helper is
+`WalkForward`, each called with duration 1 and an ignored result. Both use the
+shared step counter, animation request and translation-suppression rules of
+[`MoveForward`](SOUP.md#moveforward) and [`WalkForward`](SOUP.md#walkforward).
+
 The helper selection does not bypass the helper's motion, support, animation,
 or movement-marker tests. Water states, drawn weapons, rope motion, jumping,
 and special living states have separate dispatch branches.
