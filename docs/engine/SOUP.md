@@ -924,6 +924,17 @@ reference, rather than the current frame, chooses the direction.
 
 ### Environmental effect frame submission
 
+The enabled pool's draw traversal runs only when at least one slot is active and
+walks the retained list in order. Before checking a record's type or texture,
+packed flag `0x20000` subtracts `nominal_ticks + 2` from its retained whole-map Y
+coordinate with wrapping 32-bit arithmetic. This changes retained state even
+when that record does not submit a draw. Disabled or entirely free pools skip
+the traversal and this position change.
+
+For type-one records, a positive signed texture descriptor admits the draw
+wrapper. Packed flag `0x10000` selects caller scale 90; otherwise the caller
+scale is 256. The alternate drawing path retains its own fixed geometry scale.
+
 Ordinary type-one effect drawing submits the resolved texture with automatic
 frame selection, independently of the effect's retained animation frame. The
 retained frame still controls effect lifetime. Packed effect flag `0x20000`
