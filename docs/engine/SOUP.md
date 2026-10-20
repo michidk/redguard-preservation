@@ -1450,8 +1450,8 @@ returns one on every call that does not complete.
 
 Close alignment's movement step runs when the player has finished turning to the
 final heading and the movement-distance check permits movement. Let `b` be the
-bearing from the player's position to the target, relative to the player's
-heading, wrapped to 2048 (the same quantity approach mode tests). The helper is
+player's heading minus the heading of the displacement to the target (the heading
+the facing step turns to), wrapped to 2048 (the same quantity approach mode tests). The helper is
 chosen by `b`: right for 257 through 768, backward for 769 through 1280, left for
 1281 through 1792, forward otherwise. Each helper first saves the player's
 position, packed step counter, animation state and the two animation words that
@@ -1527,7 +1527,8 @@ Otherwise it applies the alignment roll leveling, then the facing step. Using th
 [alignment speed](#alignment-distance-thresholds), a horizontal distance (Y zero, local Q8 X/Z)
 to the receiver at or below the facing arrival threshold snaps the player's X/Z to the
 receiver's, registers a map update and reports zero. Farther away, the target heading is the
-negated bearing of the receiver relative to the player, wrapped to 2048, and the player turns to
+negated arctangent angle of the horizontal displacement from the player to the receiver
+(the heading the `PlayerLooking` bearing reports), wrapped to 2048, and the player turns to
 it by the [support-response turn rules](player.md#ordinary-slope-response): zero when the
 heading already matches or the turn snaps to it, otherwise nonzero. A zero result clears the
 alignment flag and a nonzero one sets it, and the task reports that result.
