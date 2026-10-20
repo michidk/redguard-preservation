@@ -16,7 +16,7 @@ The model scene uses these placements in original engine coordinates, with posit
 | MB_PG02 | 384 | 28 | 392 |
 | MB_PG03 | 384 | 28 | 394 |
 
-All four book/page models have nine uncompressed frames. The settled main menu uses frame zero. The in-game entry context moves the cover from the last frame to zero; the page models remain at zero. In that context the camera begins at `(408, 0, 0)`, moves to `(172, 204, -152)` with a pitch change of -116 angle units, holds that position, then moves to the origin with a +116 pitch change. A revolution is 2048 angle units. The startup entry context keeps frame zero and moves the camera from `(-4, -100, 240)` to the origin instead.
+All four book/page models have nine uncompressed frames. The settled main menu uses frame zero. Entry context `1` moves the cover from its last authored frame to zero, with a one-update turn delay; the page models remain at zero. Its camera begins at `(408, 0, 0)`, moves to `(172, 204, -152)` with a pitch change of -116 angle units, holds that position, then moves to the origin with a +116 pitch change. All three requests use fractional step `0.15`. A revolution is 2048 angle units. Other main-page entry contexts, including death context `3`, keep frame zero and move the camera from `(-4, -100, 240)` to the origin with fractional step `0.15`. Contexts `5` through `9` instead enter Save, Load, Display, Sound and Controls respectively through their page handlers.
 
 The Glide viewport has horizontal half-field tangent `0.788`. At 640 by 480, screen coordinates for camera-space `(x, y, z)` are `(320 + 320*x/(0.788*z), 240 + 320*y/(0.788*z))`. Texture UVs follow the model format's cumulative 1/16-texel coordinates. `REDGUARD.COL` is the initial palette; game/save context can replace the image on the main page with a gameplay snapshot. That snapshot is runtime content, not static book artwork.
 
@@ -201,7 +201,7 @@ Book motion dispatches these zero-based `MAIN.SFX` effect indices:
 | MB_PG02 | Nonzero turn delay counts down to zero and selects the initial frame | 67 |
 | MB_PG03 | Nonzero turn delay counts down to zero and selects the initial frame | 68 |
 
-Page cues occur in either direction, once at delayed start, before later frame stepping. A turn without a nonzero delay does not dispatch that page cue. MB_TABLE has no turn cue. The startup camera entry leaves the cover at frame zero and does not dispatch a cover cue. Display and Sound camera moves do not turn a page.
+Page cues occur in either direction, once at delayed start, before later frame stepping. A turn without a nonzero delay does not dispatch that page cue. MB_TABLE has no turn cue. The short main-page camera entry, including death context `3`, leaves the cover at frame zero and does not dispatch a cover cue. Context `1` requests the delayed cover turn. Display and Sound camera moves do not turn a page.
 
 These are [FlatSound](sound.md#soup-functions) requests: centered pan 64, zero volume offset, zero rate offset, and no owner or positional attenuation. Playback uses the effect header's base volume and sample rate with the saved master volume.
 
