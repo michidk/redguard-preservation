@@ -932,7 +932,9 @@ when that record does not submit a draw. Disabled or entirely free pools skip
 the traversal and this position change.
 
 For type-one records, a positive signed texture descriptor admits the draw
-wrapper. Packed flag `0x10000` selects caller scale 90; otherwise the caller
+wrapper. Construction zero-extends the lower sixteen-bit texture identity, so
+identities with bit fifteen set remain positive. Identity zero skips the wrapper;
+identity 65535 reaches the wrapper but submits no billboard. Packed flag `0x10000` selects caller scale 90; otherwise the caller
 scale is 256. The alternate drawing path retains its own fixed geometry scale.
 
 Ordinary type-one effect drawing submits the resolved texture with automatic
