@@ -876,6 +876,15 @@ expires only below the target. Multiplication and frame arithmetic wrap at
 32 bits; reference, target and expiration comparisons are signed. The retained
 reference, rather than the current frame, chooses the direction.
 
+### Environmental effect frame submission
+
+Ordinary type-one effect drawing submits the resolved texture with automatic
+frame selection, independently of the effect's retained animation frame. The
+retained frame still controls effect lifetime. Packed effect flag `0x20000`
+selects the alternate drawing path, which submits that retained frame explicitly
+instead. Both paths submit the retained integer position converted to single
+precision. The alternate path bypasses the ordinary effect metadata lookup.
+
 ### Contact death animation dispatch
 
 A null receiver does nothing. Selector zero first checks for animation group 122
