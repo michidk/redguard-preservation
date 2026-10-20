@@ -851,6 +851,18 @@ point and leaves the supplied point unchanged.
 
 ### Environmental effect animation
 
+The type-one effect constructor returns no effect when the pool is disabled or
+allocation fails. It separates the supplied packed descriptor into upper-16-bit
+flags and a lower-16-bit texture identity. The resolved texture supplies the
+target frame as its runtime frame count minus one. Current and reference frames
+start at zero, and the constructor retains the supplied animation speed.
+
+For zero spread, the constructor subtracts `texture_height * 128` from the
+supplied fixed-point Y coordinate with wrapping 32-bit arithmetic. Position
+publication then arithmetic-shifts each signed coordinate right by eight bits.
+This places the effect half its texture height above the supplied point in
+the engine's downward-positive Y convention.
+
 The type-one environmental effect updater rejects a disabled effect pool, a
 null effect, a different effect type or a zero texture descriptor. Otherwise
 it leaves the current frame unchanged when that frame is `-1` or the retained
