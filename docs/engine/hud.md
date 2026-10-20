@@ -468,3 +468,34 @@ After the 3D scene, later entries over earlier ones:
 6. Activation prompt, or item icon then count (or item name)
 7. Two additional bitmaps
 8. [Subtitles](subtitles.md), the dialogue topic menu and later layers
+
+## Torches
+
+`LightTorch` begins lighting and `UnlightTorch` begins dousing; both do nothing
+without the item system, an animation state with the transition's group, or outside
+the ordinary execution context. Lighting also requires that the actor is not in
+water (surface 1 through 4), is not in motion state 27 through 32, 15 or 10 through
+19, is not already lighting or dousing, has no burning torch, holds no weapon and is
+not drawing or sheathing one, and has no falling or queued motion; dousing refuses
+only in motion state 27 through 32, while lighting or dousing, and while drawing or
+sheathing. Lighting requests group 149 and sets motion state 33; dousing requests
+group 150 and sets motion state 34.
+
+While the held-item byte is set, each update finishes the transition. A held item
+in deep water (surface 2 or 4) or with a weapon held is dropped. Motion state 33
+requests group 149 and, once that group is current and its frame-progress byte
+reaches attribute byte 103, sets the burning counter from the saved counter (or,
+when that is zero, from the start value), clears the motion state and leaves the
+held item set. Motion state 34 requests group 150 and, at attribute byte 104,
+saves the burning counter, clears it and the motion state and the held item, and
+drops one unit of the held item when the counter had reached zero. The start value
+is `torch_time` from `ITEM.INI` times one and a half, rounded to even, at least
+`torch_time` one and at most 255.
+
+Every eighth world-loop iteration, an actor whose counter is nonzero and that is
+not dousing is updated: in deep water the counter is cleared; in shallow water the
+torch is doused; otherwise the counter loses the nominal ticks (not below zero) and
+dousing begins when it reaches zero. The always-burning cheat sets the selected
+player's counter to 100 instead. Using any item while a torch burns puts the
+torch out; using the torch item lights it and holds it.
+
