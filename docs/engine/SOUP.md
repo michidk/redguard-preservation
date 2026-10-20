@@ -2797,7 +2797,25 @@ collision attribute by itself therefore does not establish water displacement.
 
 The normal world loop enables water-position processing before its frame loop
 and clears that enable when it leaves the loop. A nonzero attribute 26 bypasses
-this model-position path before water processing.
+this model-position path before water processing; [family refresh](#family-refresh)
+owns the attached actor's model coordinates.
+
+For other actors, a linked-position record with a nonzero owner reference selects
+a separate model-position calculation before water processing. Copy the record's
+local offset, convert its components to single precision, and transform it by
+the owner's stored orientation matrix. Each resulting component is converted to
+an integer using the active floating-point rounding mode. The default mode rounds
+to nearest, with ties to even.
+
+Select the owner's [effective position](#player-distance-and-facing), add the
+transformed offset and the actor's own local logical position, then shift each
+signed component arithmetically right by eight and store it as a float. Both
+integer additions wrap at 32 bits before the shift. The actor's logical position
+is unchanged. This linked calculation returns before water displacement, health
+prepasses or environmental effects. A missing linked record or zero owner
+reference instead falls through to ordinary model positioning. The linked
+record's cached position used by effective-position queries is a separate value
+from this calculated model position.
 
 For the selected player with attribute 105 equal to one, enabled water-position
 processing and collision attribute mask `0x04` run an earlier surface prepass.
