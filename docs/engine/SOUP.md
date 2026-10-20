@@ -2446,8 +2446,14 @@ elapsed input is zero. Each invocation computes the step as for `MoveByAxis`
 low 32 bits) and adds it to the running sum. A negative step completes when the sum
 is at or below the delta, and a positive step when it is at or above it; that
 invocation does not move the actor. Otherwise the step becomes a vector on the
-selected axis (zero X, one Y, any other value Z), is rotated by the receiver's
-orientation and added to the local position, and the actor registers a map update.
+selected axis (zero X, one Y, any other value Z), is rotated and added to the local
+position, and the actor registers a map update. With attribute 36 nonzero, or while
+the receiver's per-update matrix-use byte is zero (it is cleared at the start of
+every ordinary update), the rotation is built from the receiver's current pitch,
+yaw and roll; that sense is the inverse of the stored matrix's transform, so a
+quarter turn of heading sends a positive X step onto negative Z. Only with
+attribute 36 zero and the matrix-use byte set does the stored matrix rotate the
+vector in the stored matrix's own sense.
 The task then completes when `duration - 1` is not greater than the elapsed input.
 It never snaps to a target position.
 
