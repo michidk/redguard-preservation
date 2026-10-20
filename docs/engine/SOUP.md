@@ -1146,9 +1146,23 @@ changes the selected actor's combat target. Unrecognized nonzero message codes
 are consumed without combat effects.
 
 
-The remaining combat messages have these ordered effects. Message `0xd000` clears the receiver and sender intent masks, turns the receiver toward the sender, then searches the ordinary actor list for the first eligible living coordinator. If one is found, the receiver sends it `0xd003`; otherwise the receiver enters coordination state one. Message `0xd001` clears both intent masks, performs the receiver-to-sender combat response, and then applies the same coordinator handoff. Message `0xd005` performs the receiver-to-sender damage response, then applies the same coordinator handoff. When the receiver is the selected player in story state three and the sender passes the player-response check, `0xd005` sets the session combat-response flag and skips the ordinary damage response.
+Message `0xd000` clears intent bits `0x01` and `0x02` on the receiver,
+then on the sender. It next displaces the sender horizontally relative to the
+receiver with a movement amount of 3000. This operation writes position, not
+actor heading. A null actor skips the displacement.
 
-The `0xd000` response does not alter the selected actor's target. The `0xd001` and `0xd005` responses consume one message before any response work; writes made before a later sound, movement, or damage failure remain applied.
+After displacement, handoff runs only when the receiver's coordination state
+is zero, the receiver is not the selected player, and the receiver's death
+query returns zero. It searches from the ordinary list head for the first
+actor other than the sender that has combat state, a nonnull target, death
+selector other than eight and coordination state exactly one. A match receives
+message `0xd003` from the receiver. Without a match, the receiver's coordination
+state becomes one, resetting its consecutive close-distance counter. This
+fallback does not assign aggression 50.
+
+Messages `0xd000`, `0xd001` and `0xd005` consume their addressed message before
+performing response work. Message `0xd001` also clears the receiver's intent
+bits before the sender's. Message `0xd005` does not perform those intent clears.
 
 Ordinary entry processing is suppressed by an unpaused blocking slot whose call operand address is at or before the saved entry cursor. This test is separate from the later main-body blocking test and from direct interrupt invocation.
 
