@@ -1502,6 +1502,16 @@ Alignment turning uses the [support-response turn rules](player.md#ordinary-slop
 including selected-player camera updates. Returning to the default animation
 reports success on every normal return; it does not wait for playback to finish.
 
+### PlayerStatus
+
+`PlayerStatus()` classifies the selected player and returns the class of the first matching rule, or
+zero. The rules test, in order: the queued-motion byte (1 gives 1, 2 gives 2, 8 gives 3, 3 gives 4),
+the falling byte (2 gives 5, 8 gives 6, 3 gives 7), a nonzero sliding byte (8), the living-state
+byte (10 gives 9, 11 gives 10, 20 gives 11, 21 gives 12), the current animation group (18 or 30 gives
+15, 19 or 23 gives 16, 24 or 25 gives 17, 26 or 27 gives 18, 20 or 21 gives 19, 22 gives 20), and last
+whether the player's local position differs from its position saved at the update's entry (21).
+Classes 13 and 14 repeat the living-state tests of 9 and 10 and are never returned.
+
 ### PlayerFaceObj
 
 `PlayerFaceObj` is a task that turns the selected player to face its receiving actor. It
