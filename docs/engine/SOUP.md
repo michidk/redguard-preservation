@@ -2767,8 +2767,9 @@ Player selection also uses this flag to hide the unselected player model.
 
 A retained model resource and an actor's current model presentation record are
 distinct. For an actor admitted to the ordinary presentation traversal, the
-current record is cleared before hidden and update-excluded state are checked.
-Either exclusion therefore leaves that actor without a current model record.
+current record is cleared before hidden state, update exclusion and the PVO
+actor predicate are checked. Any of these exclusions therefore leaves that actor
+without a current model record.
 Stored floating-point model coordinates have a separate lifetime. Actor default
 initialization clears them to zero. Clearing the current record, hidden or
 update exclusion, and PVO rejection preserve those coordinates until model-position
