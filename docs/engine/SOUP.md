@@ -1539,7 +1539,7 @@ alignment returns one on every call that does not complete.
 tasks that move the selected player relative to the receiving actor; `ObjectPickupLineUp` and
 `ObjectParallelLineUp` run the same two movers on another actor. They do not store the shared
 player-lineup result. Each invocation first pushes a collision query frame for the player (position, a
-radius from the player's model record scaled by a constant, or 200 when it has none, and the player's
+radius from the player's model record scaled by a constant, or 200 when it has none,
 height word) and pops it afterwards. Unlike `PlayerLineUp` the offsets are added to the receiver's local X/Z
 unrotated: the target is the receiver's position plus the offsets (Y from the receiver), and the target
 heading is the receiver's heading plus `angle`, wrapped to 2048.
