@@ -136,7 +136,8 @@ accumulators use the fight-turn attributes, the ordinary turn animation is
 suppressed and the keyboard movement dispatch after turning is skipped.
 
 Without the walk key held, turning applies when the living state is 0 or 27 and
-both directional state bytes are zero. The heading becomes the previous heading
+the actor's motion bytes at `+0x1b2` and `+0x1b3` (two of the sliding, falling
+and queued-motion bytes) are both zero. The heading becomes the previous heading
 minus the scaled right amount plus the scaled left amount, modulo 2048. A
 nonzero net amount then makes an ordinary animation request with modifier zero:
 
@@ -150,7 +151,7 @@ drawn weapon with a combat record, or stands on surface 2 or 4. Equal left and
 right amounts request nothing.
 
 With the walk key held, turning applies only while forward or backward is held,
-the directional state bytes are zero and the living state is outside 10 through
+the motion bytes at `+0x1b2` and `+0x1b3` are zero and the living state is outside 10 through
 19. It requests no animation and does not bank.
 
 These rules hold with the installed `[cyrus] mouse_turn=0`. A nonzero value adds a
