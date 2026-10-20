@@ -870,6 +870,12 @@ creating a pool with `[system] max_effects` from `SYSTEM.INI`. Negative configur
 capacity is clamped to zero. A zero capacity or a nonzero `disable_effects`
 setting leaves the pool disabled. An enabled pool starts with every slot free.
 
+Allocation scans the retained pool list from its head and takes the first free
+slot. It marks that slot active and decrements the free count without moving the
+slot in the list. Release marks an active slot free and restores the free count,
+without exceeding capacity. Releasing an already free slot has no effect. Update
+and drawing traverse the same retained list order.
+
 The type-one effect constructor returns no effect when the pool is disabled or
 allocation fails. It separates the supplied packed descriptor into upper-16-bit
 flags and a lower-16-bit texture identity. The resolved texture supplies the
