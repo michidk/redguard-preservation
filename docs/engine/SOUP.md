@@ -1236,7 +1236,7 @@ returns after the intent clears.
 
 An admitted response draws a random value with bound 128 and requests the
 receiver's attribute-86 positional effect with volume zero and pitch
-`draw * 16 - 1024`. It flushes sound requests, requests receiver taunt category
+`draw * 16 - 1024`. It completes the positional sound request, requests receiver taunt category
 two, and reads the sender's combat action. Sender action eight requests receiver
 weapon cleanup before the hit-reaction service runs with receiver then sender.
 
@@ -1248,7 +1248,7 @@ excludes the sender. A match receives `0xd003` from the receiver; without a matc
 the receiver receives coordination state one without assigning aggression 50.
 
 The ordinary `0xd005` response draws with bound 128, requests the attribute-86 positional effect
-with volume zero and pitch `draw * 16 - 1024`, flushes sound requests, requests
+with volume zero and pitch `draw * 16 - 1024`, completes the positional sound request, requests
 receiver taunt category two, then invokes the direct-damage response with
 receiver followed by sender. After that returns, coordination state zero and
 nonselected identity admit the ordinary coordinator search excluding the sender.
