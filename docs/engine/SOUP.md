@@ -849,6 +849,21 @@ displacement is added. Each sum is stored in single precision, then converted
 to an integer by truncating toward zero. The helper returns a shared scratch
 point and leaves the supplied point unchanged.
 
+### Environmental effect animation
+
+The type-one environmental effect updater rejects a disabled effect pool, a
+null effect, a different effect type or a zero texture descriptor. Otherwise
+it leaves the current frame unchanged when that frame is `-1` or the retained
+reference frame equals the target frame.
+
+When the reference frame is below the target, the updater adds nominal ticks
+multiplied by animation speed to the current frame. It keeps the effect alive
+through equality with the target and expires it only above the target. When
+the reference frame is above the target, it subtracts the same product and
+expires only below the target. Multiplication and frame arithmetic wrap at
+32 bits; reference, target and expiration comparisons are signed. The retained
+reference, rather than the current frame, chooses the direction.
+
 ### Contact death animation dispatch
 
 A null receiver does nothing. Selector zero first checks for animation group 122
