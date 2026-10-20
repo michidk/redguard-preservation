@@ -2787,6 +2787,18 @@ water processing can adjust model Y for stored surface classes 1 through 5
 and 11. Other stored surface classes retain the shifted logical Y. A nonzero
 collision attribute by itself therefore does not establish water displacement.
 
+The normal world loop enables water-position processing before its frame loop
+and clears that enable when it leaves the loop. A nonzero attribute 26 bypasses
+this model-position path before water processing.
+
+For the selected player with attribute 105 equal to one, enabled water-position
+processing and collision attribute mask `0x04` run an earlier surface prepass.
+Stored surface classes 2 and 4 clear both directional-state words before a
+health change of -255 through the selected death-owning health service, with no
+source actor. Classes 1 and 3 clear those words without that health call. Other
+surface classes do neither in this prepass. The later surface-position processing
+still follows; this prepass does not replace the surface-5 and surface-11 route.
+
 With water-position processing enabled and collision attribute mask `0x04`
 set, stored surface classes 5 and 11 place the model Y at the arithmetic-shifted
 logical Y plus 64. For the selected player, the retained death-progress word is
