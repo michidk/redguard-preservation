@@ -1521,6 +1521,12 @@ through 27 attribute 10. Other groups, and a player without animation state or a
 `DistanceToLocation(location)` returns the rounded Euclidean length, in Q8 units, from the receiver's
 position (its linked position when it has one) to the location, selected as in `MoveToLocation`.
 
+### PlayerOnScape
+
+`PlayerOnScape()` returns 1 when the selected player's last ground-response record is a terrain contact and
+0 otherwise. The ground update clears the record's kind byte, sets it to `0x40` for a terrain contact and to
+`0x20` for a model or actor face, and retains the record for the selected player after its update.
+
 ### PlayerStatus
 
 `PlayerStatus()` classifies the selected player and returns the class of the first matching rule, or
