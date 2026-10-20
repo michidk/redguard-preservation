@@ -3552,6 +3552,15 @@ and return zero.
 `GetFramePassed` takes no arguments and returns the shared whole nominal-tick increment of
 the current update (the same value the elapsed-time tasks consume).
 
+### ShowItem and ShowItemNoRtx
+
+`ShowItem(item, text, first, second)` and `ShowItemNoRtx(item, first, second)`
+return zero and only leave a request for the main loop's item viewer. Each stores
+the item identifier and the two trailing words and marks a request pending. `ShowItem`
+ignores its second argument and leaves the viewer's no-text flag as it was;
+`ShowItemNoRtx` sets that flag. The flag stays set until the viewer consumes the
+request. The handlers perform no display and read no inventory state.
+
 ### DropAllItems
 
 `DropAllItems` takes no arguments and returns zero. When the task system is enabled it
