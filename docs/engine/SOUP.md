@@ -904,10 +904,13 @@ publication then arithmetic-shifts each signed coordinate right by eight bits.
 This places the effect half its texture height above the supplied point in
 the engine's downward-positive Y convention.
 
-The world loop updates the environmental effect pool after the object and code-object
-systems, before the rain-drop update and scene rendering. Newly created effects
-therefore participate in that same loop's effect update before drawing. Expired
-effects are released during the pool update.
+The world loop submits environmental effect billboards while building map draw
+lists, before the object and code-object systems run. It updates effect lifetimes
+after those systems, before the rain-drop update and rendering the queued scene.
+Effects created by those later object updates miss the current loop's billboard
+submission but participate in its lifetime update. Surviving effects can submit
+on the next loop. An effect already submitted can expire during the subsequent
+lifetime update; releasing its slot does not remove the submitted billboard.
 
 The type-one environmental effect updater rejects a disabled effect pool, a
 null effect, a different effect type or a zero texture descriptor. Otherwise
