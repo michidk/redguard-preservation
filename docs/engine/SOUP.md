@@ -974,6 +974,17 @@ and appends the packet in submission order. This image request precedes later
 polygon processing; it does not require raster coverage or the placed-flat
 spatial-cell selection.
 
+Billboard drawing flag `0x200` becomes queued packet flag `0x20`, which disables
+depth writes. Packets without that flag enable depth writes. The alternate
+effect path therefore tests depth without updating the depth buffer. Its depth
+comparison remains less-than, as on the ordinary path. Packet flag `0x10`
+selects an always-pass depth comparison instead.
+
+Both effect paths select point texture filtering and constant alpha. Alpha
+values at least 254 select source-one/destination-zero blending; lower values
+select source-alpha/one-minus-source-alpha blending. The constant-color alpha
+channel retains the low byte of the converted alpha value.
+
 ### Contact death animation dispatch
 
 A null receiver does nothing. Selector zero first checks for animation group 122
