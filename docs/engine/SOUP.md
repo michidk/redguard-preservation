@@ -1611,6 +1611,11 @@ rejects. The query requires a selected player and uses the same effective receiv
 position selection described above. It does not perform a visibility or line-of-sight
 query.
 
+`PrintSingleParm(value)` formats the receiving script's name (or `Unknown script`
+when the actor has none) and the signed integer as `<name> <value>` and writes the
+text to the first free of the console's 66 text lines. It drops the text when no
+line is free and returns zero.
+
 `PlayerInSight()` is true when the selected player is within 262144 units of the
 receiver and nothing blocks the line between them. The distance is the rounded
 Euclidean length of the difference between the two actors' local positions, with
