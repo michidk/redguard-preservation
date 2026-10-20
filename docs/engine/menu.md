@@ -108,6 +108,23 @@ The description display wraps a copy of the edited text. It scans for spaces sta
 
 The delete confirmation presents `Yes` first and `No` second, with `Yes` initially selected. Enter confirms the current selection before simultaneous directional selection is applied.
 
+Mini-menu confirmations load `SYSTEM/MINIMENU.GXA` and capture the current
+background. Each redraw restores that capture, draws the backing panel, then
+the image and text. At the canonical 640-by-480 viewport, the image starts at
+`(175, 140)`. The backing panel uses RGB `(10, 10, 10)` and alpha 120, blended
+with source alpha and one minus source alpha. Its right and bottom coordinates
+include the image width and height respectively; rectangle rasterization
+includes those boundary pixels.
+
+Confirmation text uses `FONTS/REDSEL.FNT`. The selected copy uses `[3dfx]
+font_sel`; the normal copy uses `font_norm`. The prompt uses the selected copy.
+Both use a `(2, 2)` glyph-shadow offset and the shared font colour/alpha rules.
+The last-game prompt is centered at `(320, 160)`, with subsequent prompt lines
+one font line height apart. The first option is centered four line heights
+below y = 160, and the second five line heights below it, independently of the
+number of prompt lines. The options use the selected or normal copy according
+to the current choice. Text centering truncates the half-width toward zero.
+
 The last-game confirmation presents `Yes` first and `No` second, initially
 selecting `Yes`. The configured `KEY_UP` action selects `Yes`; `KEY_DOWN`
 selects `No`. If both directions are active, Up takes priority. Enter or the
