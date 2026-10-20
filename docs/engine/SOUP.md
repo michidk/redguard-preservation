@@ -2786,6 +2786,21 @@ water processing can adjust model Y for stored surface classes 1 through 5
 and 11. Other stored surface classes retain the shifted logical Y. A nonzero
 collision attribute by itself therefore does not establish water displacement.
 
+With water-position processing enabled and collision attribute mask `0x04`
+set, stored surface classes 5 and 11 place the model Y at the arithmetic-shifted
+logical Y plus 64. For the selected player, the retained death-progress word is
+also added. These integer additions wrap at 32 bits before conversion to the
+floating-point model position; the logical position is unchanged.
+
+The selected player's surface-5 path sets retained death mode one after
+publishing model Y. Surface 11 leaves that mode unchanged. Both paths then test
+queued motion and the low two bits of each directional-state byte. A nonzero
+queued-motion state or either nonzero bit pair suppresses the health call;
+it does not undo the model position or death-mode write. Otherwise the receiver
+gets a health change of -255 through the death-owning health route. The selected
+player's mode write therefore precedes any death initialization performed by
+that health service.
+
 ### Model admission and support ownership
 
 The current map's PVO file supplies a camera-centered selected-object list.
