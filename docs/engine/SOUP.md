@@ -16,7 +16,7 @@ synthetic `NullFunction`; authored entries start at index 1. See
 | `TaskStop`, `TaskPause`, `TaskResume` | [Control task slots](#actor-task-controls-and-return-state) |
 | `Wait`, `WaitOnTasks`, `WaitNonMulti` | [Wait for time or other tasks](#wait-waitontasks-and-waitnonmulti) |
 | `Anchor`, `Yield`, `ScriptRV` | [Control continuation and return state](#anchor-yield-and-scriptrv) |
-| `PushAnimation`, `TaskStop` | [Animation ownership and stopping](#animation-task-ownership-and-stopping) |
+| `PushAnimation`, `PushControlAnimation`, `TaskStop` | [Animation ownership and stopping](#animation-task-ownership-and-stopping) |
 | `GetAttribute`, `SetAttribute`, `GetMyAttr`, `SetMyAttr` | [Read and write actor attributes](#attribute-reads-and-writes) |
 | `SetAttribute`, `SetMyAttr` | [Default-group side effects](#attribute-default-group-side-effects) |
 | `PlayerDistance`, `PlayerFacing` | [Query distance and relative facing](#player-distance-and-facing) |
@@ -1388,6 +1388,17 @@ not copied into the task slot.
 It does not invoke the native handler or restore earlier animation state.
 Stopping a `PushAnimation` task therefore leaves its animation request and
 current playback state in place.
+
+`PushControlAnimation(group, count)` is a task with the same two phases as
+`PushAnimation`. Not started, it requests the group through the ordinary
+request unless the receiver's current group already equals it; in that case it
+sets the loop count and becomes started. Both outcomes keep the task pending.
+Started, it completes when the current group no longer equals the group.
+Otherwise it turns the receiver and stays pending: the heading becomes the
+heading minus the scaled right turn amount plus the scaled left turn amount,
+modulo 2048, using the [ground-turn accumulators](player.md#ground-turn-arithmetic)
+and frame scale. The accumulators update every input update, whether or not
+the player controller runs.
 
 ### Player alignment ownership and targets
 
