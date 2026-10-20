@@ -2804,10 +2804,18 @@ that health service.
 
 ### Model admission and support ownership
 
+Both standalone player roles are allocated into the persistent actor list. The
+initially selected player is allocated first and the alternate second; insertion
+at the front leaves the alternate before the selected player in that list.
+Model-list assembly appends this persistent list after the collected cell actors,
+so standalone players participate without an MPOB placement. Player setup hides
+the alternate. It remains linked but hidden-state exclusion prevents its model
+position processing.
+
 The current map's PVO file supplies a camera-centered selected-object list.
 An empty selected list leaves ordinary model admission unrestricted. With a
 nonempty list, the ordinary presentation traversal excludes actors with
-`attr_non_moving` set.
+`attr_non_moving` set. This predicate also applies to standalone players.
 
 With a nonempty selected list, animation-model admission also reads the actor's
 retained support owner. A
