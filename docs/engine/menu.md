@@ -129,6 +129,28 @@ Before preparing a slot, the save writer requires at least 10 MiB of available
 disk space. Below that threshold it displays the failure message and returns
 without preparing the slot or writing `SAVEGAME.SAV`. Equality passes the check.
 
+### Retained last-save selection
+
+The retained last-save selection starts absent. Admitting the startup autosave
+selects slot one and copies its `Redguard AutoSave` description. Admission requires
+final-version mode, `ignore_autosave` equal to zero, an existing file and an accepted
+save header. Rejecting admission leaves the previous last-save selection and its
+description unchanged.
+
+After the disk-space check passes, the save wrapper prepares the destination path,
+removes the previous save file, then retains the requested slot and a copy of its
+description before calling the save writer. The selection does not depend on the
+writer's return value. The insufficient-space path leaves the previous selection
+unchanged.
+
+Selecting an existing Load row retains its slot and a copy of its description,
+then publishes the pending load selection before the menu's exit presentation.
+The selected list index is the row's ordered index minus one plus the current
+list-page offset. A missing list record leaves both retained and pending selections
+unchanged. The retained selection supplies the
+[death completion prompt](SOUP.md#death-completion-dispatch); consuming a pending
+load clears that pending selection independently.
+
 The main page and the second surface of each save/load page receive runtime gameplay snapshots. The image begins at texel row 33, spans the 256-texel surface width and is 192 rows high. Save's new-save row shows the current gameplay snapshot; existing rows show their stored snapshot. Load previews the selected save, and selecting it also replaces the main-page snapshot before leaving the menu.
 
 ## Options and settings pages
