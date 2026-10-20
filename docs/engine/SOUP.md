@@ -3198,6 +3198,14 @@ orientation matrix is rebuilt. When the receiver's rotation mode (attribute 28)
 is one, an alternate construction builds the matrix. Otherwise the matrix starts
 as the identity and takes rotations of the negated yaw, then pitch, then roll.
 
+### ReloadRotation
+
+`ReloadRotation()` takes no arguments, acts on the receiver and returns zero. It
+performs the second half of [`ResetRotation`](#resetrotation) without restoring
+any angle: the orientation matrix is rebuilt from the receiver's current angles
+(by the rotation mode's construction, as above) and the previous-angle history
+becomes the current angles.
+
 ### XResetCamera
 
 `XResetCamera` takes no arguments, acts on no receiver state and returns zero. In
