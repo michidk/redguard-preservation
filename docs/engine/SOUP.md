@@ -1611,6 +1611,16 @@ rejects. The query requires a selected player and uses the same effective receiv
 position selection described above. It does not perform a visibility or line-of-sight
 query.
 
+`PlayerInSight()` is true when the selected player is within 262144 units of the
+receiver and nothing blocks the line between them. The distance is the rounded
+Euclidean length of the difference between the two actors' local positions, with
+no effective or attached position substitution; a longer distance is false and
+exactly 262144 passes. The segment between the two local positions, in whole map
+units, is then tested against each entry of the retained candidate model list, in
+order, exactly as the combat "In sight" test described under the combat decision rules does. An entry that is not
+hit, or whose owner is the selected player, does not block; any other hit makes
+the result false.
+
 <a id="node-marker-distance"></a>
 
 ### AtNodeMarker: node-marker distance
