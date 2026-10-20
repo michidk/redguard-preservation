@@ -496,6 +496,6 @@ Every eighth world-loop iteration, an actor whose counter is nonzero and that is
 not dousing is updated: in deep water the counter is cleared; in shallow water the
 torch is doused; otherwise the counter loses the nominal ticks (not below zero) and
 dousing begins when it reaches zero. When a global torch flag is set, the selected
-player's counter is set to 100 instead (the flag's source is not identified). Using any item while a torch burns puts the
+player's counter is set to 100 instead. Using any item while a torch burns puts the
 torch out; using the torch item lights it and holds it.
 
