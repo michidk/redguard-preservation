@@ -1535,7 +1535,9 @@ Classes 13 and 14 repeat the living-state tests of 9 and 10 and are never return
 
 `PlayerFaceObj` is a task that turns the selected player to face its receiving actor. It
 reports one while the player is still turning and zero when done, and each invocation sets or
-clears the player's alignment flag accordingly.
+clears the player's alignment flag accordingly. The alignment flag is the hook-disabled bit that
+`DisableHook` sets, so the player's native hook (its controller) does not run while the player is
+being aligned.
 
 An invocation first checks the player's packed collision-response word (the body-response
 byte, the transition byte and the two auxiliary bytes). When the word is nonzero and the
