@@ -3692,6 +3692,14 @@ scripted-camera active word and its nesting count are zero. Setup then computes
 the first published pose with one pass of the pose stage that omits movement
 limiting, and stores it as both the current and the previous pose.
 
+### Camera update
+
+The CAMERA actor's script body ends immediately. Its native hook,
+`cameraController`, takes no arguments and is the camera update itself: the pose
+update for the selected record's bound actor that the location camera natives
+also run. The hook runs once per ordinary update, at the camera actor's position
+in the ordinary actor traversal.
+
 ### ResetRotation
 
 `ResetRotation(x, y, z)` acts on the receiver and returns zero. The actor keeps a
