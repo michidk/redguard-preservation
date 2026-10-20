@@ -3722,6 +3722,17 @@ any angle: the orientation matrix is rebuilt from the receiver's current angles
 (by the rotation mode's construction, as above) and the previous-angle history
 becomes the current angles.
 
+### ResetPosition
+
+`ResetPosition(x, y, z)` acts on the receiver and returns zero. The actor keeps
+the world position it was created at. For each argument that is nonzero, the
+receiver's local position on that axis (`x`, `y`, `z`) is replaced by the
+retained component, even for an attached actor. The previous-position history
+then becomes the receiver's current local position.
+
+When the receiver is the selected player, the shared view origin moves by the
+change the reset made on each axis. The receiver's transform is then rebuilt.
+
 ### XResetCamera
 
 `XResetCamera` takes no arguments, acts on no receiver state and returns zero. In
