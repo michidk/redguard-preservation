@@ -850,6 +850,21 @@ The packed descriptors passed to effect construction are:
 The low sixteen bits identify the texture; the upper sixteen bits are effect
 flags. Every selected-death construction supplies zero spread and speed one.
 
+Each emission first computes the camera-relative point described below, then
+consumes two bounded random requests in X-then-Z order. The unconditional mode-one
+image uses bound 32 and adds `draw * 256 - 4096` to each horizontal coordinate.
+Every other selected-death image uses bound eight and adds `draw * 256 - 1024`.
+Y is the transformed point's Y plus the receiver's retained positive Y bounds
+extent multiplied by 256, plus 1536. These coordinate operations wrap at 32 bits.
+The extent is the stored bounds record's positive Y extent, not the actor's
+current origin, animation image height or effect texture height. These point and
+random operations still run when effect construction later finds a disabled or
+full pool.
+
+The mode-two sound is positioned from the receiver's ordinary sound query and
+uses zero volume offset. Its signed variation is passed directly as the
+playback-rate offset in Hz.
+
 The effect-position helper copies the supplied integer point and preserves its
 Y coordinate. It subtracts the published current camera X/Z coordinates from
 the point using signed wrapping 32-bit subtraction, then computes the shared
