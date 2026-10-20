@@ -3354,6 +3354,14 @@ is the negation (modulo 2048) of the bearing the `PlayerLooking` query reports, 
 After a turn the task completes when `elapsed >= duration - 1`, and remains active
 otherwise.
 
+### FacePlayerInertia
+
+`FacePlayerInertia(duration)` follows [FacePlayer](#faceplayer) except for the step. After the gap is
+reduced as FacePlayer does (a gap above 1024 becomes `(-gap - 1024) & 1023` and subtracts), the step is
+`(((gap << 8) / duration) - elapsed) >> 8` with signed division and an arithmetic shift; a duration of
+zero is a division fault. A zero step, including a negative one that shifts to zero, completes the task
+without a change. The turn, the wrap and the completion test are the same.
+
 ### Potion counters and combat strength and armor
 
 `SetPotion(index, value)` stores the full 32-bit `value` in a global counter table and
