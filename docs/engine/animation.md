@@ -595,7 +595,7 @@ decision routine, keyed on the mask, whether to take the transition:
 
 | Mask | Condition for taking the transition |
 |---|---|
-| 1 and 2 | The actor's jump-request word has a bit set. No shipped engine code sets it, so these masks continue with the next command. |
+| 1 and 2 | Either of the two low bits of the actor's pending action word, the word `SetAction` fills, is set. Taking mask 1 clears bit 1 of the pending and accepted action words, and taking mask 2 clears bit 0 of both; the accepted word then gains the pending word's remaining bits. |
 | 4 | A byte of the actor's combat record is nonzero. |
 | 8 | The actor is the selected player and a global combat input flag is set. |
 | any other | Never taken. |
