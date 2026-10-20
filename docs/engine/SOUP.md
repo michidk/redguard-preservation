@@ -1247,6 +1247,15 @@ ordered coordinator search and fallback as the block response. The search
 excludes the sender. A match receives `0xd003` from the receiver; without a match,
 the receiver receives coordination state one without assigning aggression 50.
 
+The ordinary `0xd005` response draws with bound 128, requests the attribute-86 positional effect
+with volume zero and pitch `draw * 16 - 1024`, flushes sound requests, requests
+receiver taunt category two, then invokes the direct-damage response with
+receiver followed by sender. After that returns, coordination state zero and
+nonselected identity admit the ordinary coordinator search excluding the sender.
+Unlike block and hit messages, this tail does not query death. A match receives
+`0xd003` from the receiver; no match assigns receiver coordination one without
+assigning aggression 50. This message does not clear either actor's intent bits.
+
 Messages `0xd000`, `0xd001` and `0xd005` consume their addressed message before
 performing response work. Message `0xd001` also clears the receiver's intent
 bits before the sender's. Message `0xd005` does not perform those intent clears.
