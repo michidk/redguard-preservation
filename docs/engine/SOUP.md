@@ -824,7 +824,8 @@ then clears the pending selection and returns the dispatcher to world execution.
 
 Death-controller environmental effects read progress after its nominal-tick
 increment. Mode one always emits its first effect. It then makes two independent
-bounded random requests, each with bound `progress / 6 + 1`; a zero result emits
+bounded random requests, each with bound `progress / 6 + 1` using signed
+progress and division truncating toward zero; a zero result emits
 the corresponding additional effect. These random requests remain ordered and
 independent. A final effect is emitted only when signed progress exceeds 12.
 
