@@ -966,6 +966,14 @@ image width and height multiplied by half the texture scale and geometry scale.
 Texture-coordinate scale is one. Alpha, face brightness and frame selection
 remain separate inputs to the shared billboard submission.
 
+Shared billboard submission transforms the retained center into camera space and
+tests its source bound before requesting a texture frame. A rejected bound
+neither requests the image nor appends a draw packet. An accepted bound requests
+the automatic or explicit frame, binds that frame's face and vertex sources,
+and appends the packet in submission order. This image request precedes later
+polygon processing; it does not require raster coverage or the placed-flat
+spatial-cell selection.
+
 ### Contact death animation dispatch
 
 A null receiver does nothing. Selector zero first checks for animation group 122
