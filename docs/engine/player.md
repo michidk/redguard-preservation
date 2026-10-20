@@ -267,6 +267,11 @@ The run helper is the script native `MoveForward` and the walk helper is
 shared step counter, animation request and translation-suppression rules of
 [`MoveForward`](SOUP.md#moveforward) and [`WalkForward`](SOUP.md#walkforward).
 
+With no forward input and backward input held, the same walk rule selects `WalkBackward` or
+`MoveBackward`, each called with duration 1: the walk helper when the walk mode and the held
+walk/run key differ and the run helper otherwise. In a lifecycle state of 0x14, 0x15, 0x21 or 0x22
+forward and backward dispatch is unchanged, while left and right turning does not run.
+
 The helper selection does not bypass the helper's motion, support, animation,
 or movement-marker tests. Water states, drawn weapons, rope motion, jumping,
 and special living states have separate dispatch branches.
