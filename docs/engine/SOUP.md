@@ -3340,10 +3340,11 @@ camera slot zero.
 
 `FacePlayer(duration)` is a task that turns the receiver's local Y angle toward the
 selected player. Each invocation computes the bearing from the receiver's local position to
-the selected player's local position with the signed-coordinate bearing used by
-the `PlayerLooking` query, then:
+the selected player's local position as the arctangent angle of the displacement, which
+is the negation (modulo 2048) of the bearing the `PlayerLooking` query reports, then:
 
-1. `gap = (-heading - bearing) & 2047`. A zero gap completes the task without a change.
+1. `gap = (-heading - angle) & 2047`, which is the `PlayerLooking` bearing minus the heading.
+   A zero gap completes the task without a change.
 2. `remaining = |elapsed - duration|`, treated as 1 when zero.
 3. If `gap` is above 1024, `gap = (-gap - 1024) & 1023` and the step is subtracted from
    the heading; otherwise the step is added.
