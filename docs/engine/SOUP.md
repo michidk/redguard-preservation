@@ -1588,6 +1588,12 @@ Effective receiver position follows the same selection used by
 selects attached position; otherwise a valid linked positioned record supplies
 position, with the receiver's ordinary position as the final fallback.
 
+`AcuratePlayerDistance()` is `PlayerDistance` with the rounded Euclidean length of
+the same three-axis difference instead of the sum of absolute differences. It
+uses the same positions, the same fallback position without a selected player,
+and the same fixed `9999999` result under the `neversaydie` override. The length
+follows the [node-marker distance arithmetic](#node-marker-distance).
+
 `PlayerFacing(offset, tolerance)` compares orientations. It adds `offset` to
 the receiver's effective yaw, wraps the sum modulo 2048, and compares it with
 the selected player's current yaw. The signed difference is wrapped into
