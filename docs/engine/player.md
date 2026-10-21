@@ -1747,7 +1747,8 @@ position or facing changes from earlier contacts do not recompute it.
 ### Horizontal body-contact response
 
 Body contacts are processed after the movement and ground-support response.
-For an ordinary grounded actor, the response uses the displacement from the
+The ordinary update runs this response only for living states 0, 15 and 27
+through 32; other living states skip primary body response. The response uses the displacement from the
 previous position to the attempted position, including its vertical component.
 It normalizes that displacement to length 65536. The length divided by 65536 is
 stored at single precision before dividing the displacement components. Each
@@ -1763,11 +1764,44 @@ projected component is shifted arithmetically right by four and added to the
 previous X or Z position. Otherwise, an actor outside the sliding state restores
 its previous X and Z. This step leaves Y unchanged.
 
+### Body-contact motion states
+
+Before the dot product, each contact that passes facing admission first checks
+the enabled auto-grab path. When the `[cyrus] auto_grab` switch equals 1 and the
+selected-player grabbing path handles the contact, the whole primary body
+response ends at once: later contacts, residual separation and the rest of the
+response are skipped. Otherwise the contact runs the
+[motion transition](#forward-obstacle-wrapper-and-motion-transition) and then
+the dot-product test. The transition runs once per admitted facing contact,
+whether that contact then projects or rolls back:
+
+- A falling actor keeps falling as `(falling & 0x80) | 1` and receives the
+  `0x20` mark.
+- Queued motion becomes falling, with the `0x10` mark, fall origin, timer 30
+  and forced animation group of that transition.
+- Living states 27 through 32, and queued motion 24, first become queued motion
+  1 with living state 0, then start falling the same way.
+- Living state 15 is unchanged.
+
+The response never changes Y, the fall origin or the fall timer itself. The
+heading-adjustment branch tests the motion bytes after this transition.
+
+While the sliding byte is nonzero, contacts whose candidate type is 64 are
+skipped before classification and facing admission. A sliding actor still
+projects a contact above `slide_range`, but a contact at or below it leaves the
+position unchanged and sets no body-result bit.
+
+The response counts the retained contacts minus the type-64 contacts it skipped
+while sliding. After the response stage, the ordinary update clears a nonzero
+sliding byte when that count is nonzero. The update performs this test even
+when the response did not run for this actor; the count then remains from the
+most recent primary body response.
+
 ### Grounded wall-facing adjustment
 
-After a projected wall response, an ordinary grounded actor whose current
-position differs from its previous position adjusts its heading. This branch
-requires no active sliding, airborne, or special movement state. The starting
+After a projected wall response, an actor adjusts its heading only when its
+queued, falling, living-state and sliding bytes are all zero and its current
+X, Y or Z position differs from its previous position. The starting
 heading for this calculation is the attempted displacement's quantized heading,
 not the actor's current facing. Convert the contact normal to the opposing
 actor-facing heading by adding half a turn to its negated quantized heading
@@ -1789,6 +1823,8 @@ projected wall contact sets bit 1 when the ordinary heading-adjustment branch
 runs; otherwise it sets bit 2. Horizontal rollback also sets bit 2. Each mark
 preserves the other result bits. Ordinary state 15 still projects or rolls back
 horizontal movement, but does not enter the state-zero heading adjustment.
+A falling actor, or one that the motion transition has just made falling,
+also sets bit 2 for a projected contact and never adjusts its heading.
 
 ### Residual face-contact separation
 
