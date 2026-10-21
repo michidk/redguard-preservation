@@ -1583,6 +1583,8 @@ SOUP386 distinguishes three call types, encoded in the opcode byte:
 
 Self-calls use opcodes `0x00`/`0x01`/`0x02`. Object-targeted calls use `0x19`/`0x1A` with an additional dispatch-type byte (`0x00` = task, `0x01` = multitask, `0x02` = function) when used as a top-level statement. In non-MAIN modes, the dispatch-type byte is absent and the call is always treated as a function.
 
+The runtime function table keeps only each function's handler; the `task`, `function` or `multitask` keyword in `SOUP386.DEF` is parsed and discarded. A call therefore runs the handler of whatever function it names, whichever call type the script uses, and a handler that returns zero completes a task or multitask call at once. Shipped scripts use this for `FlatAnimate` and `FlatSound` (both return zero) in multitask form.
+
 Object-targeted task dispatch differs from a self task statement. The receiver owns the task slot, and the calling body continues immediately. The self task statement checks the active result and yields when blocking. Both encodings must remain distinguishable even when the explicit object selector resolves to the current actor.
 
 ### Call Encoding
