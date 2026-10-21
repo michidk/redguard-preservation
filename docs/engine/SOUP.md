@@ -4277,6 +4277,32 @@ selector to 8, and stops every active sound owned by the receiver.
 happens. It clears the killed flag. When the receiver has combat state it then re-initializes that state from the
 receiver's attributes.
 
+### GolemSteam and DragonBreath
+
+`GolemSteam` takes no arguments and returns zero. A receiver excluded from object updates does nothing. Otherwise
+one `Rnd(4)` draw that is not zero ends the call. On zero a second `Rnd(4)` draw selects one of the receiver's four RAEX
+attachment vertices in the order `grip0`, `scabbard1`, `grip1`, `scabbard0`. The vertex, rotated by the receiver's
+orientation and added to its position, becomes the point of a steam effect: descriptor `0x32480` when the world-loop
+frame counter is odd and `0x22480` when it is even, with speed one.
+
+`DragonBreath` takes no arguments and is also the update of the multitask `DragonBreathTask`, which completes when the
+update returns zero. It acts on the receiver, a dragon with combat state:
+
+1. A receiver whose death selector is 8 returns zero. First, when the player holds item `0x4b` with a nonzero count, one
+   unit of item 1 is added, the player's held-item attribute (23) becomes 1, item `0x4b` is emptied and item 1 becomes
+   the selected item.
+2. One `Rnd(4096 / frame scale)` draw of zero, while a dialogue line owned by the receiver is active, spawns the smoke
+   effect `0x32480` at an attachment vertex: `scabbard0` when a following draw masked with one is nonzero, else
+   `scabbard1` (rotated and offset as for `GolemSteam`).
+3. A nonzero fireball cooldown, a process-wide counter that starts at zero, is reduced by the nominal ticks of the
+   frame (to zero at the least) and the update returns one.
+4. Without combat flag `0x04` or without a combat target the update returns one. A target whose rounded 3-D distance is
+   less than `0x19000` (Q8) also returns one.
+5. Otherwise the fireball is created: an object of the installed script `DRAGBALL` whose parent is the receiver, at the
+   rotated `grip0` vertex plus the receiver's position. Its orientation is the aim from `grip0` to `grip1`: yaw is the
+   bearing of the horizontal difference plus 1024; the pitch is the elevation of the difference minus 512, then
+   `120 - pitch`, all masked to 2047; roll is zero. The cooldown becomes `Rnd(32) + 12` and the update returns one.
+
 ### Nonplayer deep-water and edge probe
 
 The strafing steppers (`MoveLeft`, `MoveRight`) and `MoveForward` call one probe before they move. It
