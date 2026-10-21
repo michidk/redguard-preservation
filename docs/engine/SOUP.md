@@ -4300,6 +4300,37 @@ selector to 8, and stops every active sound owned by the receiver.
 happens. It clears the killed flag. When the receiver has combat state it then re-initializes that state from the
 receiver's attributes.
 
+<a id="projectile-ai"></a>
+
+### projectileAI
+
+`projectileAI` is a task without arguments; its update runs on the receiver, a created object whose parent is its
+creator. The update returns one to keep flying and zero to end the task:
+
+1. The speed is the receiver's attribute 8 shifted left by eight, multiplied by the frame scale and shifted right by
+   eight (signed). The previous local position is saved, then the offset `(0, 0, speed)` rotated by the receiver's
+   pitch, yaw `& 0x7ff` and roll is added to its local position.
+2. A horizontal distance from the parent of `0xbb800` (Q8) or more ends the task. The distance is the single-precision
+   magnitude of the X/Z difference rounded to nearest-even; it is zero without a parent.
+3. When the world has terrain and the receiver's Y is strictly greater than the terrain height at its integer X/Z
+   (the [terrain support sample](player.md#terrain-support-sampling), times 256 and rounded), the previous position is
+   restored and the task ends.
+4. Candidates are gathered around the receiver's position with the radius attribute 8 (map units), excluding the
+   receiver's own model, by the [live and transient candidate rules](player.md#live-and-transient-collision-candidates)
+   (static placements, ordinary actors, transient models). The segment runs from the previous to the new position,
+   both shifted right by eight.
+5. Every face-model candidate not owned by the parent is queried with that segment, without polygon sidedness. Over
+   all contacts, the one with the smallest rank (strictly less than `0x7fff` and every earlier rank) is kept. When any
+   contact exists, the receiver moves to that contact's integer point shifted left by eight and the task ends.
+6. Otherwise every actor-style candidate except the parent is tested in candidate order with the actor's collision
+   spheres. A sphere is hit when either segment endpoint lies within its radius (squared integer distance computed in
+   single precision and rounded, compared with the squared radius). The spheres are the actor's RAVC records (flag 2
+   always, flag 4 only while the actor's current animation group pair matches the record), followed, unless
+   attribute 56 is nonzero, by the actor's [ordinary collision shape](player.md#ordinary-actor-collision-shape-initialization)
+   spheres; each center is rotated by the actor's orientation and added to its position. At most 128 spheres take part.
+7. On the first hit, an actor with combat state is sent combat message `0xd005` from the parent; with or without
+   combat state, the previous position is restored and the task ends. Without a hit the task continues.
+
 ### GolemSteam and DragonBreath
 
 `GolemSteam` takes no arguments and returns zero. A receiver excluded from object updates does nothing. Otherwise
