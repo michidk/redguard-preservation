@@ -454,7 +454,7 @@ collision state.
 The forward steep-surface check uses `post_collide_height` as the half-length
 of its vertical segment, centered on integer actor Y plus the positive Y extent.
 It is bypassed when collision attribute bit 2 is clear, or when the designated
-player's alternate collision mode is active.
+player's [support-history counter](#selected-player-fallback-support) is nonzero.
 
 For the proposed position, face-model contacts of classification 2 or 4 compete
 by `abs(16384 - segment_rank)`. Strictly smaller values replace the current
@@ -800,8 +800,9 @@ return without changing the retained position rollback veto or sliding-surface
 result, even when collision candidates or actor attributes have changed.
 
 The first call bypasses geometry queries when collision attribute bit 2 is clear,
-or for the designated player while alternate collision mode is active. This
-bypass clears both retained results.
+or for the designated player while its
+[support-history counter](#selected-player-fallback-support) is nonzero. This
+bypass clears both retained results. Other actors are not excluded by the counter.
 
 It queries current and previous effective positions with the post-collision
 height as vertical half-length. Face contacts use the forward steep-surface
@@ -822,6 +823,13 @@ clear both results.
 The wrapper applies rollback by restoring all three previous local position
 coordinates, clearing the retained movement flags, and running the ordinary
 obstacle transition before the main support query.
+
+The ground response reads the sliding-surface result after it has assigned the
+support height to the actor's Y. A set result with a zero native return-state
+byte clears the falling byte, runs the [ordinary slope response](#ordinary-slope-response)
+and ends the ground response without its remaining handling. With a nonzero
+native return-state byte the result is ignored. The rollback result is read only
+by the wrapper.
 
 ### Forward ground-support admission
 
@@ -1768,7 +1776,9 @@ The selected player's update clears two contact lists at its start. Its body
 contact pass (run for motion states 0, 15 and 27 through 32) appends each object
 whose collision model the body touches to both lists once: the first list accepts
 an append while it holds at most sixteen entries and the second while it holds at
-most thirty-two. `PlayerCollide` is true when the selected player is supported by
+most thirty-two. The selected player's primary ground-support query also appends
+to the first list each model that becomes its best support candidate, under the
+same rule, and the last such model is recorded as the support owner. `PlayerCollide` is true when the selected player is supported by
 the receiver or the receiver is in the first list; `PlayerCollideStatic` is true
 when the receiver is in the second list. Hazard objects such as the swinging
 swords and hooks of the Drinal dungeon poll `PlayerCollideStatic` and damage the
