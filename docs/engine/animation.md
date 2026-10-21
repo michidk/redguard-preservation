@@ -599,11 +599,18 @@ decision routine, keyed on the mask, whether to take the transition:
 |---|---|
 | 1 and 2 | Either of the two low bits of the actor's pending action word, the word `SetAction` fills, is set. Taking mask 1 clears bit 1 of the pending and accepted action words, and taking mask 2 clears bit 0 of both; the accepted word then gains the pending word's remaining bits. |
 | 4 | The actor's falling byte (the motion byte at `+0x1b2`, which every actor has and the [ground turn](player.md#ground-turn-eligibility-and-animation) rules read) is nonzero. |
-| 8 | The actor is the selected player and a global combat input flag is set. |
+| 8 | The actor is the selected player and the shared combat input flag is nonzero. The flag is refreshed once per input sample as the logical OR of the pressed states of two consecutive control bindings (the pair of keys the player controller reads for combat actions). |
 | any other | Never taken. |
 
 A command that is not taken advances the cursor by one. A missing actor or
 animation record is never taken either.
+
+Taking mask 8 sets byte `+0x0a` of the animation record to one, then makes a group
+request on the actor through the shared group-force routine: group 31 for a selected
+player holding a weapon, otherwise group 30 with a burning torch or group 18 without
+one. Each path sets bits `0x30` of the actor's combat-state byte `+0x1cc` and runs one
+further update routine for the actor before the decision reports success. Masks 1 and 2
+report a distinct success value from mask 8 and mask 4.
 
 Taking mask 4 jumps the cursor to the command's third operand (`target_group`, a
 command index below 128) and continues interpreting there, exactly as a taken
