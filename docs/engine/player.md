@@ -1736,3 +1736,16 @@ A world reload can restore temporary per-world saved state after player
 initialization. The restored player record replaces position and animation state;
 passing through marker initialization does not establish that the final loaded
 player is a fresh spawn. Temporary world snapshots use the map's `.TSG` file.
+
+## Player contact lists
+
+The selected player's update clears two contact lists at its start. Its body
+contact pass (run for motion states 0, 15 and 27 through 32) appends each object
+whose collision model the body touches to both lists once: the first list accepts
+an append while it holds at most sixteen entries and the second while it holds at
+most thirty-two. `PlayerCollide` is true when the selected player is supported by
+the receiver or the receiver is in the first list; `PlayerCollideStatic` is true
+when the receiver is in the second list. Hazard objects such as the swinging
+swords and hooks of the Drinal dungeon poll `PlayerCollideStatic` and damage the
+player on contact; the Mages Guild doors poll `PlayerCollide` to open.
+
