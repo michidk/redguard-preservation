@@ -599,7 +599,7 @@ decision routine, keyed on the mask, whether to take the transition:
 |---|---|
 | 1 and 2 | Either of the two low bits of the actor's pending action word, the word `SetAction` fills, is set. Taking mask 1 clears bit 1 of the pending and accepted action words, and taking mask 2 clears bit 0 of both; the accepted word then gains the pending word's remaining bits. |
 | 4 | The actor's falling byte (the motion byte at `+0x1b2`, which every actor has and the [ground turn](player.md#ground-turn-eligibility-and-animation) rules read) is nonzero. |
-| 8 | The actor is the selected player and the shared combat input flag is nonzero. The flag is refreshed once per input sample as the logical OR of the pressed states of two consecutive control bindings (the pair of keys the player controller reads for combat actions). |
+| 8 | The actor is the selected player and the shared combat input flag is nonzero. The flag is refreshed once per input sample as the logical OR of the pressed states of two consecutive control bindings. |
 | any other | Never taken. |
 
 A command that is not taken advances the cursor by one. A missing actor or
