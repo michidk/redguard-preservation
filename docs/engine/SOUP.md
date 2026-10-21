@@ -4300,6 +4300,15 @@ selector to 8, and stops every active sound owned by the receiver.
 happens. It clears the killed flag. When the receiver has combat state it then re-initializes that state from the
 receiver's attributes.
 
+<a id="killed-object-removal"></a>
+
+### Removal of killed created objects
+
+Each world-loop iteration, before the family update, removes every object that was created after the world loaded
+(it has no map object) and whose killed flag is set: it leaves its map-cell list and the actor table, its `KillMe`
+cleanup runs again and its record is freed. A killed map actor stays allocated; the ordinary actor update skips
+killed actors.
+
 <a id="projectile-ai"></a>
 
 ### projectileAI
