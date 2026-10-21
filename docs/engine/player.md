@@ -317,6 +317,38 @@ accepted value. Either request first sets the idle counter to -1.
 These requests precede the dialogue and topic-menu checks. They use the normal
 animation request operation and do not replace the actor's default group.
 
+### Controller under queued, falling and sliding motion
+
+The selected player's controller reads the queued, falling and sliding bytes in
+only the places below; all other branches ignore them. The rows assume living state
+0, no rope attachment and a sheathed sword. Rope attachment, living states other
+than 0 and a held weapon take separate branches.
+
+| Controller part | Queued or falling nonzero | Sliding nonzero, queued and falling zero |
+|---|---|---|
+| Preliminary resets, countdowns, hit inhibition, lockout, dialogue and topic-menu returns | Run as without motion; the conditional countdown stays frozen | Run |
+| Queued value exactly 3 | Cleared when the current group equals the actor's default group, before the lockout test | Not applicable |
+| Pending action 74 | Runs when sliding is zero | Skipped |
+| Idle requests, view-key return, drawing and sheathing returns | Unchanged | Unchanged |
+| Falling nonzero with the jump key held | Clears the companion motion byte unless either retained rope-release flag is nonzero; queued motion alone does not | Not applicable |
+| Mouse turning, keyboard turning with or without the walk key | Skipped: heading, turn animation request and banking do not run | Run |
+| Roll relaxation after the turning block | Runs once, unless the current group is 18 or 30 | Same |
+| Sidestep, forward and backward dispatch | Selected by the same key tests; each helper refuses, so no animation request, motion write or translation | Same refusal |
+| Forward-with-jump and backward-with-jump dispatch | The jump entry refuses | Refuses |
+| [Jump-key arbitration](#jump-key-arbitration) | Clears the low directional-state bits | Reaches the ordinary jump entry, which refuses |
+| Forward steering while queued | See below | Not applicable |
+| Action key and prompt activation | No queued, falling or sliding test in the controller | Same |
+
+Living state 0 is not required for the preliminary rows. Banking is not touched when
+the turning block is skipped, but the single post-block roll relaxation still runs.
+
+With the forward key held, a queued byte whose low seven bits equal 1 and a current
+group of 32 or 33 becomes exactly 2, clearing its high bit. This runs after
+movement dispatch in the same update, also when the player holds item 51, and has no weapon
+or walk-key test. Queued state 2 then selects the arbitration animations of
+[queued motion arbitration](#queued-motion-arbitration). Other directional input
+does not alter queued or falling motion in the controller.
+
 ## Forward-walking startup
 
 Before startup acceleration, an ordinary forward walk requests its selected
@@ -974,6 +1006,27 @@ otherwise queued 8 and request 34. Current group 30 similarly requests 37 or
 35. Other current groups select queued 1 and request 32 without a burning torch,
 or 33 with a burning torch. A nonzero runtime jump selector instead selects
 queued 24 and forces group 85. Set motion direction to 2 after the request.
+
+### Jump-key arbitration
+
+While the jump key is held, every ordinary controller update after movement
+dispatch runs one arbitration with mask 1; the rope branch has its own jump-off
+service. The arbitration does nothing when either directional-state byte already has
+the mask bit set. Otherwise:
+
+- A current group from 65 through 74, a nonzero queued byte or a nonzero falling
+  byte clears the low two bits of both directional-state bytes and ends the
+  arbitration. The sliding byte is not tested here.
+- Otherwise a step-hold condition is true when attribute 11 is zero or the motion
+  byte's step field (bits 4 and 5) equals 3. With the step-hold condition true and
+  either current group 18 or 30, a clear exit marker sets the low two bits of both
+  directional-state bytes and clears the byte at `+0x1be`. Any other state calls
+  the ordinary jump entry.
+
+This is the only writer that sets the directional-state low bits. The ordinary jump
+entry also refuses the selected player while the conditional preliminary countdown
+is nonzero, so a nonzero queued or falling byte, or a nonzero sliding byte, ends the
+call without effect.
 
 ### Queued motion arbitration
 
