@@ -539,6 +539,26 @@ For an initial ordinary animated fall, current groups 41, 42 and 43 apply
 this displacement using the retained motion direction and Q8 distance 4096
 before selecting their initial fall animation.
 
+### Pre-script queued and falling stage
+
+Every actor update runs one stage between the ordinary animation stages and the
+script stage. Its only content is directional displacement. It has no test for
+actor kind, selected player, living state or collision attribute mask, so the
+selected player and every nonplayer take it alike. After the
+[action-transition counter](SOUP.md#selected-player-additive-health)
+bookkeeping, a nonzero queued byte supplies the motion value; otherwise a nonzero
+falling byte does. Neither nonzero skips the stage. The sliding byte never selects
+it. Directional displacement returns without effect while the actor is attached to
+a rope.
+
+Queued arbitration, the queued and falling vertical writers, the edge service,
+landing and fall start are not part of this stage. They run only inside the
+[ground response](#ground-stage-by-model-kind), which an animated actor reaches
+only when its collision attribute mask has bit 4 set. An actor whose ground
+response does not run therefore still receives this displacement every update
+while its queued or falling byte is nonzero, and never advances vertically,
+lands or starts a fall.
+
 ### Ground stage by model kind
 
 A static-model actor runs its ground stage only when attribute 108 is nonzero
