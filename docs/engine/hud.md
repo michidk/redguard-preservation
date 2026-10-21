@@ -209,6 +209,80 @@ Evaluated each frame in this order:
 
 Lockout values other than 1 do not hide the icon.
 
+## Inventory screen
+
+KEYS.INI `inventory_key` opens a modal screen over the last world frame. The
+world update latches the key and opens the screen on its next update. The
+screen waits until the key is released, pauses the game clock, and resumes it
+on exit. Each screen update waits for the next 18.2 Hz BIOS tick.
+
+### Item list
+
+The list holds every item with `hide[x] = 0` and a nonzero count, in ID
+order. It is empty while the selected player's `attr_player_type` (attribute
+105) is 1. The cursor starts on the selected item. When the selected item is
+not in the list, the cursor keeps its value from the previous opening (zero at
+the first opening). An empty list sets the cursor to −1.
+
+### Navigation
+
+The list is a grid of four columns. Right adds 1 to the cursor, left
+subtracts 1, down adds 4 and up subtracts 4. The result is clamped to the list
+without wrapping. Left, right, up and down are the KEYS.INI turn and move
+bindings. A move that changes the cursor plays sound effect 13, and further
+moves are ignored for the next three ticks while any direction is held.
+Releasing every direction ends the delay.
+
+Three rows are visible. The first visible row moves up when the cursor is
+above it and down until the cursor is within the three visible rows. The
+first visible row is retained between openings.
+
+### Exit
+
+The screen closes when `inventory_key`, Activate (`key_d`), the walk/run
+modifier (`key_a`), Escape or Enter is held. Activate and Enter select the
+item under the cursor, making it the HUD [active item](#active-item). The
+other keys close without changing the selection. The screen then waits until
+the inventory key, Escape, the walk/run modifier, Activate and Enter are all
+released.
+
+View (`key_c`) opens the cursor item's examine view with its
+`inventory_object_file` model. When that view returns a nonzero result, the
+inventory screen closes without changing the selection.
+
+A cursor item without `bitmap[x]` draws no artwork.
+
+### Layout
+
+Coordinates are in the 640 × 480 screen. The screen draws, in order:
+
+1. `SYSTEM\INVBORDR.GXA` frame 0 at (90, 49).
+2. `SYSTEM\INVARROW.GXA` frame 0 at (313, 54) when the first visible row is
+   not the first row.
+3. For each visible item, column `c` and visible row `r`, with
+   `x = 100 + 105c` and `y = 87 + 102r`:
+   - the cursor item draws frame `bitmap[x]` of `bitmap_selected_file` at
+     `(x − 2, y − 2)`; other items draw frame `bitmap[x]` of `bitmap_file` at
+     `(x, y)`;
+   - a count greater than 1 draws the count in decimal, centred on
+     `x + 84`, with its top at `y + 10`.
+4. `SYSTEM\INVARROW.GXA` frame 1 at (313, 419) when rows follow the visible
+   rows.
+
+Text uses the REDSEL font with a (2, 2) shadow. The cursor item's `name[x]`
+RTX text is split into lines like the
+[logbook](#logbook-reading-layout-and-navigation) wrap with a 13-byte step,
+replacing a space with a line break. Line `n` is centred on
+`x + w / 2`, where `w` is the selected frame's width (integer half), with its
+top at `y + 92 − b + trunc(0.9 × n × line_height)`. `b` is the
+bottom of the font's `a` glyph (top offset plus height). An item without name
+text, or whose text starts with byte 0x9E, draws `INDEX <id>` centred on
+`x + 52` at `y + 92 − b`.
+
+The candle is drawn with its timer at 50 while the screen is open and the timer
+is 0 after it closes. `SYSTEM\INVMASK.GXA` is loaded with the screen artwork
+but not drawn.
+
 ## Prompt text
 
 A single text line is drawn left-aligned from `x = pickup_xco` with its top at

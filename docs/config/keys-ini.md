@@ -14,7 +14,7 @@ Action-to-scancode bindings. Two binding slots exist per directional/action key 
 |---|---|---|
 | `next_key` | `52` (period) | Next item in inventory. |
 | `prev_key` | `51` (comma) | Previous item in inventory. |
-| `inventory_key` | `23` (I) | Open inventory screen. |
+| `inventory_key` | `23` (I) | Open the [inventory screen](../engine/hud.md#inventory-screen). |
 | `log_key` | `38` (L) | Open logbook. |
 | `quick_sword_key` | `16` (Q) | Quick-draw sword. |
 | `quick_health_key` | `35` (H) | Quick-use health potion. |
