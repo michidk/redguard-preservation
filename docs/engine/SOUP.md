@@ -4119,6 +4119,19 @@ ignores its second argument and leaves the viewer's no-text flag as it was;
 `ShowItemNoRtx` sets that flag. The flag stays set until the viewer consumes the
 request. The handlers perform no display and read no inventory state.
 
+### ViewGXA
+
+`ViewGXA(name, frame, count)` is a task that shows one installed GXA image over the world
+frame. `name` is a file name relative to the game directory (the shipped scripts name
+`system\stmap01.gxa` through `stmap17.gxa` and `system\mirror1.gxa` through `mirror3.gxa`),
+`frame` selects the image within the file and `count` is the number of task counter ticks.
+The first invocation (counter zero, nothing loaded) loads the file. Every invocation whose
+counter is below `count - 1` places the selected frame centered on the 640 by 480 screen
+(x is half of the 640 minus the frame width, y half of the 480 minus the frame height),
+clears the second image slot and stays active. The invocation at counter `count - 1` or later
+discards the image, clears the drawn-image pointer and completes, so the image is drawn
+for `count - 1` frames (the same completion test as `Wait`). The main loop draws the pending image after the world frame.
+
 ### DropAllItems
 
 `DropAllItems` takes no arguments and returns zero. When the task system is enabled it
