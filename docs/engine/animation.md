@@ -612,6 +612,13 @@ one. Each path sets bits `0x30` of the actor's combat-state byte `+0x1cc` and ru
 further update routine for the actor before the decision reports success. Masks 1 and 2
 report a distinct success value from mask 8 and mask 4.
 
+The decision result selects the command's outcome. Not taken advances the cursor by one.
+A mask 8 transition leaves the cursor on the command, so the update ends with the group
+request already made. A mask 1 or 2 transition sets the cursor to the command's second
+operand (the start frame) and, like a taken `GoToFuture`, sets the exit marker and clears
+the two six-byte delta records. A mask 4 transition does the same with the third operand,
+as described next.
+
 Taking mask 4 jumps the cursor to the command's third operand (`target_group`, a
 command index below 128) and continues interpreting there, exactly as a taken
 `GoToFuture` does: it sets the exit marker, clears the movement-suppression
