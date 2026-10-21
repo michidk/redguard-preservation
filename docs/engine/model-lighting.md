@@ -365,6 +365,12 @@ one. Otherwise it clears the lock, enabled flag and inactivity counter without
 changing the retained offsets, intensity, radius, colors or modulation settings.
 It does not immediately release the record.
 
+When an actor light is submitted for drawing, the engine resolves its retained
+offset through the actor's current orientation and uses the resulting position
+for the local-light record. The light therefore follows the actor's current
+pose; a map placement position is not a permanent substitute for the actor's
+runtime position.
+
 While a record is disabled, maintenance adds the low byte of the elapsed tick
 count to its inactivity counter with byte wrapping. It releases the record and
 clears the actor's association only when the resulting unsigned counter exceeds
