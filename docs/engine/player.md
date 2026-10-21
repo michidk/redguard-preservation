@@ -485,6 +485,11 @@ update reads the entry at its current timer before advancing, then reads the
 entry at the advanced timer to decide whether it transfers to falling.
 A falling update uses entry zero when the signed timer is nonpositive.
 
+The additional increment is a constant zero: nothing ever writes it. The fine-tick
+increment is the [finer counter](#whole-nominal-ticks) increment of the update.
+The falling support query uses `post_collide_height` as its probe distance, as
+every other ordinary support query does.
+
 Queued motion writes `origin_Y - attribute_32 * factor[timer]`, then advances
 the timer by the sum of the fine-tick increment and its additional increment,
 wrapping as a byte. After that advance, a factor greater than 255 transfers the
