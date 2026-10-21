@@ -268,7 +268,9 @@ After those gates, a nonzero held-item byte runs weapon cleanup. With a zero
 held-item byte, absence of assigned weapon state also runs cleanup. Otherwise edge
 motion states 10 through 19 and stored surfaces 2 or 4 prevent the draw. A
 successful draw sets motion state 20. For the selected player it also sets
-combat flag `0x04`. This admission does not itself set the weapon-drawn flag.
+combat flag `0x04`. `DrawSword` runs this admission for its receiver; the repositioning step that
+follows it in the routine is inactive in the shipped game, so a draw never moves
+the actor. This admission does not itself set the weapon-drawn flag.
 
 ### Equipped-weapon transition
 
