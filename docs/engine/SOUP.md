@@ -546,6 +546,16 @@ On the first nonzero contact result, it clears the attacker's combat flag masks
 and requests the attacker's combat taunt category 3, in that order. It then
 returns without scanning later actor or static candidates.
 
+A candidate without a combat record skips the defence query. The contact query
+from the attacker to it must succeed and the candidate must not be dead (`IsDead`).
+An attacker with nonzero attribute 97 that neither holds a weapon nor has combat
+flag four then returns without scanning later candidates and without any response.
+Otherwise the same impact response as for an actor-owned face runs: the attacker's
+attribute-86 effect at volume zero and pitch offset `rnd(128) * 16 - 1024` Hz, then,
+for a candidate with nonzero health, negative attack damage and a death dispatch
+with selector zero below one. Attack processing then clears the attacker's combat
+flag masks `0x01` and `0x02` and returns without scanning later candidates.
+
 ### Unowned static weapon contact
 
 After actor candidates, attack processing visits retained face-query models in
