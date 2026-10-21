@@ -40,6 +40,14 @@ calls `LockoutPlayer(0)`, clearing the retained lockout and applying its
 (the Introduction), then loads world zero at marker zero. Movie playback
 finishes or follows its configured skip points before map loading begins.
 
+The New Game transition and the first entry after engine startup run the same
+session initializer, so a second New Game rebuilds the state a first launch
+builds. In order, it re-reads the script flag definitions from `SOUP386.DEF`,
+opens the item system from `ITEMS` (the player's starting item list and
+selection), deletes the per-world saved map files (`MAPS\*.TSG`), reads the
+menu and movie settings from `MENU.INI`, loads `LOGBOOK.TXT`, and then resets
+a fixed set of engine globals. A plain world replacement does not run it.
+
 `WonGame` ends the world loop with a won result (see
 [session requests](SOUP.md#session-requests-loadworld-wongame-pushplayer-and-popplayer)).
 The engine then runs the ending instead of showing a menu page: sound effects
