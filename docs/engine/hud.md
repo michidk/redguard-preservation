@@ -256,17 +256,19 @@ A cursor item without `bitmap[x]` draws no artwork.
 
 Coordinates are in the 640 × 480 screen. The screen draws, in order:
 
-1. `SYSTEM\INVBORDR.GXA` frame 0 at (90, 49).
-2. `SYSTEM\INVARROW.GXA` frame 0 at (313, 54) when the first visible row is
+1. A quad from (90, 49) to (550, 433) in colour (10, 10, 10) with alpha 180,
+   blended as source alpha over one minus source alpha, without depth test.
+2. `SYSTEM\INVBORDR.GXA` frame 0 at (90, 49).
+3. `SYSTEM\INVARROW.GXA` frame 0 at (313, 54) when the first visible row is
    not the first row.
-3. For each visible item, column `c` and visible row `r`, with
+4. For each visible item, column `c` and visible row `r`, with
    `x = 100 + 105c` and `y = 87 + 102r`:
    - the cursor item draws frame `bitmap[x]` of `bitmap_selected_file` at
      `(x − 2, y − 2)`; other items draw frame `bitmap[x]` of `bitmap_file` at
      `(x, y)`;
    - a count greater than 1 draws the count in decimal, centred on
      `x + 84`, with its top at `y + 10`.
-4. `SYSTEM\INVARROW.GXA` frame 1 at (313, 419) when rows follow the visible
+5. `SYSTEM\INVARROW.GXA` frame 1 at (313, 419) when rows follow the visible
    rows.
 
 Text uses the REDSEL font with a (2, 2) shadow. The cursor item's `name[x]`
