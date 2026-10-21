@@ -2028,6 +2028,10 @@ order, exactly as the combat "In sight" test described under the combat decision
 hit, or whose owner is the selected player, does not block; any other hit makes
 the result false.
 
+The candidate model list is one engine-wide list that every candidate gather replaces. A receiver that
+gathers no candidates of its own (an actor without collision) tests against the list the most recent gather
+by any actor left, which is empty before the first gather.
+
 <a id="node-marker-distance"></a>
 
 ### AtNodeMarker: node-marker distance
