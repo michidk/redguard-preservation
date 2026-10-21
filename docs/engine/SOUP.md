@@ -4310,8 +4310,8 @@ creator. The update returns one to keep flying and zero to end the task:
 1. The speed is the receiver's attribute 8 shifted left by eight, multiplied by the frame scale and shifted right by
    eight (signed). The previous local position is saved, then the offset `(0, 0, speed)` rotated by the receiver's
    pitch, yaw `& 0x7ff` and roll is added to its local position.
-2. A horizontal distance from the parent of `0xbb800` (Q8) or more ends the task. The distance is the single-precision
-   magnitude of the X/Z difference rounded to nearest-even; it is zero without a parent.
+2. A distance from the parent of `0xbb800` (Q8) or more ends the task, keeping the moved position. The distance is the
+   single-precision magnitude of the X, Y and Z differences rounded to nearest-even; it is zero without a parent.
 3. When the world has terrain and the receiver's Y is strictly greater than the terrain height at its integer X/Z
    (the [terrain support sample](player.md#terrain-support-sampling), times 256 and rounded), the previous position is
    restored and the task ends.
@@ -4319,7 +4319,8 @@ creator. The update returns one to keep flying and zero to end the task:
    receiver's own model, by the [live and transient candidate rules](player.md#live-and-transient-collision-candidates)
    (static placements, ordinary actors, transient models). The segment runs from the previous to the new position,
    both shifted right by eight.
-5. Every face-model candidate not owned by the parent is queried with that segment, without polygon sidedness. Over
+5. Every face-model candidate not owned by the parent is queried with that segment, without polygon sidedness. A
+   segment that ends exactly on a face plane does not cross it. Over
    all contacts, the one with the smallest rank (strictly less than `0x7fff` and every earlier rank) is kept. When any
    contact exists, the receiver moves to that contact's integer point shifted left by eight and the task ends.
 6. Otherwise every actor-style candidate except the parent is tested in candidate order with the actor's collision
