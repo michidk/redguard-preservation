@@ -4184,6 +4184,10 @@ record, the first call creates one: disabled and unlocked, offsets zero, intensi
 radius 100 (each current value equal to its starting value), flicker fields zero. `LightOff` does
 not create a record.
 
+Map loading gives a type-4 object a record of its own: locked and enabled, with the placement's intensity
+and radius as both current and starting values and colour zero (the placement's colour is not copied, unlike
+for a type-6 object), so those objects' first light call updates an existing record.
+
 | Function | Effect |
 |---|---|
 | `Light(radius, intensity)` | Enable; set current and starting radius and intensity |
