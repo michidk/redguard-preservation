@@ -736,7 +736,7 @@ These entry branches are distinct from continuation of an existing fall.
 
 ### Falling animation continuation
 
-For an animated actor already falling without support, the edge service runs
+For an animated actor already falling without support, the [edge service](#edge-service) runs
 before the continuation request. When it does not handle the actor, low falling
 state 3 requests group 63 without a burning torch or 64 with one. A set high bit
 with no burning torch otherwise requests group 58. These cases precede the
@@ -749,6 +749,195 @@ requests group 56 or 57 according to the torch-burning counter. An actor holding
 a weapon instead forces group 113 unless its current
 group is 115. The vertical writer runs after this request, reading the resulting
 animation's model-controlled vertical-motion marker.
+
+### Selected-player ledge entry
+
+Ledge entry lets the selected player catch a ledge while falling or during
+queued motion, hang from it, move along it and climb onto it. It uses the
+living-state byte, the sliding, falling and queued-motion bytes, the retained
+ledge-support actor reference, a retained ledge point and ledge heading, and the
+global action-inhibition countdown. Ledge living states are 10 through 19.
+Coordinates use Y increasing downward. The positive Y extent reaches from the
+actor origin down to its feet; the negative Y extent reaches up to its head.
+
+#### Edge service
+
+The edge service returns zero unless the actor is the selected player,
+attribute 105 is not one, the torch-burning counter is zero, and neither living
+state 33 or 34 nor current group 149 or 150 blocks it. Those block only while
+animation is enabled and shell context is clear. Then:
+
+- Stored surface 2 or 4 returns zero. In living state 15 it first runs the
+  [hang release](#ledge-hang-release) and then the
+  [ledge transition](#ledge-transition) once.
+- Living states 10 through 19 return one without other work.
+- Any other nonzero living state returns zero.
+- Living state zero becomes 19, the ledge-support reference is cleared and the
+  ledge transition runs once. A nonzero resulting living state clears the
+  sliding, falling and queued-motion bytes and sets the action-inhibition
+  countdown to 16. A zero resulting state with a nonzero action-transition
+  counter clears bit `0x80` of the queued-motion and falling bytes. The service
+  returns the transition's result.
+
+The ground response calls the service for an animated actor without support.
+An actor already falling calls it before the
+[continuation request](#falling-animation-continuation); an actor starting to
+fall calls it after its [initial fall request](#initial-falling-bookkeeping). A
+nonzero result clears the falling byte and ends that update's fall handling.
+[Queued motion arbitration](#queued-motion-arbitration) also calls it; a
+nonzero result clears queued motion and returns handled.
+
+Player initialization clears the action-inhibition countdown. Each update
+subtracts the whole nominal ticks; a countdown that would not stay positive
+becomes zero.
+
+#### No ledge candidate
+
+When the [ledge scan](#ledge-scan) finds no record, entry from living state zero
+sets living state 19, selects nothing, sets the living state back to zero and
+returns zero. Sliding, falling, queued motion and the action-inhibition countdown
+are unchanged, except for the bit `0x80` clear above when the action-transition
+counter is nonzero. The ledge-support reference stays cleared. The scan changes
+no actor state, so the caller continues its ordinary fall or queued-motion
+handling exactly as if the service had not run. A weapon-holding actor or a
+nonzero action-transition counter always takes this path.
+
+#### Ledge transition
+
+The transition returns zero without changes unless the actor is the selected
+player, attribute 105 is not one and the living state is 10 through 19. It
+clears the global hang-model reference. A nonzero torch-burning counter or the
+state-33/34 or group-149/150 block runs the hang release and returns zero.
+Otherwise states are handled in the table's order within one call; a state set
+by one row is handled by later rows in the same call.
+
+| State | Meaning | Handling |
+|---|---|---|
+| 15 | Hanging | Scan and select the hand-nearest class 3 record. None runs the hang release and returns 0. Otherwise set the hang-model reference to the record's top model. When a left or right sidestep started this update, add `256 × sine[256]` to the record's X and `256 × sine[768]` to its Z, nearest rounding; then, if the current animation's `BreakPoint` marker is clear, copy the record point to the ledge point and the record heading to both the ledge heading and the actor heading. Measure the [support below the origin](#ledge-support-below-the-origin). A distance below `(positive Y extent + 24) × 256` returns the [climb request](#ledge-climb-request)'s result. Otherwise apply the [hang pose](#ledge-hang-pose), set the ledge-support reference to the record's actor and return 1. |
+| 19 | Entering | Scan. Result 1 selects the first class 1 record and state 12. Otherwise the first class 2 record selects state 10, else the hand-nearest class 3 record selects state 14. Without a record, set state 0 and return 0. Otherwise copy the record point to the ledge point, its heading to the ledge heading and its actor to the ledge-support reference. |
+| 12 | Turning to a low ledge | Run the slope [turn helper](#ordinary-slope-response) toward the ledge heading. A nonzero result returns 1 when its magnitude is at most 256; otherwise set state 0 and return 0. When facing, rescan; a result other than 1 sets state 0 and returns 0. Otherwise set X/Z to the ledge point plus `low_forward[0] × 256` at ledge heading plus 1024, leave Y, force group 90 and set state 13. |
+| 14 | Catching a hang | A wrapped difference between actor heading and ledge heading above 256 in magnitude sets state 0 and returns 0. Select the hand-nearest class 3 record from the existing table without rescanning; none sets state 0 and returns 0. Set X/Z to the ledge point plus `high_forward[0] × 256` at ledge heading plus 1024, leave Y, force group 88 when record byte 0 is zero or 89 otherwise, set state 15, the actor heading to the record heading and the ledge-support reference to the record's actor, and return 1. |
+| 10 | Turning to a high ledge | As state 12, but the rescan must return 2. Set X/Z to the ledge point plus `high_forward[0] × 256`, set Y to the ledge point's Y, request group 86 with speed modifier 0 and frame threshold 2, and set state 11. |
+| 13 | Low climb | While the current group is 90, with `f` the animation's `real_frame`, set X/Z to the ledge point plus `low_forward[f] × 256 − lag` at ledge heading plus 1024; when `f` exceeds 6 set Y to `ledge_Y + (low_height[f] + standing_height) × 256`. Return 1. Otherwise set state 18, clear sliding, falling and queued motion, and return 1. |
+| 16 | Climb from hang | Force group 86, set state 11 and `real_frame` to zero. |
+| 11 | High climb | As state 13 with group 86, `high_forward` and `high_height`, writing Y on every frame. |
+| 17 | Dropping | Force group 56, set the action-transition counter to 6, clear the living state and the ledge-support reference, and return 0. |
+| 18 | Climb finished | Returns 0. The ordinary actor update clears the pending group while the current group is 90 or 86; otherwise it forces the default group and clears the living state. |
+
+Other ledge states return zero. A ledge reached from a fall or queued motion can
+only produce class 3 records (see [classification](#ledge-record-classification)),
+so a successful catch passes states 19, 14 and 15 in one call and returns 1.
+
+An offset `d` at heading `h` adds `round(d × sine[u])` to X and
+`round(d × sine[u + 512])` to Z, with `u = (−h) & 2047` and the shared
+floating-point sine table. Ledge heading plus 1024 points from the wall back
+toward open space. `lag` is `max(0, command_cursor − command_count / 2) × 256`
+for the current group's signed command cursor and command count, and zero while
+animation is disabled. The climb tables are indexed by `real_frame` without a
+bound check:
+
+| Table | Entries |
+|---|---|
+| `low_height` | 35, 35, 35, 35, 38, 29, 15, 0, −7, −21, −42, −56, −58, −60, −59, −61, −61, −61, −61, −61, −61, −61 |
+| `low_forward` | 28, 28, 27, 27, 28, 24, 21, 16, 8, 7, 6, 5, 4, 4, 4, 5, 4, 3, 2, 2, 2, 2 |
+| `high_height` | 81, 67, 45, 24, 11, −1, −19, −28, −29, −29, −29, −29, −45, −53, −58, −60, −61, −61, −60, −60, −60, −60, −60, −60, −60, −60 |
+| `high_forward` | 30, 30, 30, 26, 20, 16, 8, 3, −6, −6, −4, 0, −6, −3, 1, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2 |
+
+#### Ledge hang release
+
+For the selected player in living state 15 with a zero action-inhibition
+countdown, set living state 17, clear the ledge-support reference and run the
+transition. A nonzero resulting state clears the sliding, falling and
+queued-motion bytes. Other states, and a nonzero countdown, change nothing.
+
+#### Ledge climb request
+
+For the selected player in living state 15, scan and select the hand-nearest
+class 3 record. Without one, or with record byte 2 zero, return 1 and keep
+hanging. Otherwise set the ledge-support reference to the record's actor, set
+state 16 and run the transition; a nonzero resulting state clears the sliding,
+falling and queued-motion bytes. Return the transition's result.
+
+#### Ledge hang pose
+
+Let `g` be the grip-0 vertex of the first `ShowFrame` of the actor's animation
+group 7, from the [animation-vertex query](attachment.md#actor-model-point-conversion)
+in Q8 integers. Set X/Z to the ledge point plus `high_forward[0] × 256` at ledge
+heading plus 1024, and Y to `ledge_Y + standing_height × 256 + abs(g.y) + 512`.
+Without a group 7 frame nothing is written.
+
+#### Ledge support below the origin
+
+A vertical model segment runs at integer current X/Z from Y plus the positive Y
+extent up to Y. The smallest contact Y among classes 4 and 2 is kept; with
+terrain enabled, a terrain height strictly between Y and that value replaces it.
+The result is `selected × 256 − current_Y`, or 256000 without a selection.
+
+#### Ledge scan
+
+The scan clears the four-record ledge table and disables polygon sidedness for
+its duration, re-enabling it afterward. It finds nothing when the
+action-transition counter is nonzero or the actor holds a weapon. Otherwise it
+runs one pass at forward offset `p = 0` and, when that returns zero, a second at
+`p = 6144` (Q8). The result is 1 when a class 1 record exists, else 2 for
+class 2, else 3 for class 3, else 0.
+
+Each pass:
+
+1. Build a segment from actor-local Q8 `(0, 40960, 9728 + p)` to
+   `(0, −40960, 9728 + p)`, rotated by the actor's orientation matrix, added to
+   the current position and shifted right eight.
+2. Query each prepared model candidate with the integer ground-probe adapter,
+   classifying contacts with the
+   [surface classification](#ordinary-forward-walk-support-checks). Keep the
+   class 4 contact with the strictly greatest fraction as that candidate's top
+   (zero fractions never qualify). Class 8 contacts from candidates whose type
+   lacks bit `0x08` append their Y to an underside list shared by the pass.
+3. For a candidate with a top, while fewer than four records exist, build a
+   horizontal wall segment from local `(0, 0, 9728 + p)` to `(0, 0, p)`, rotated
+   and positioned as above, at Y = top Y + 16. Over all candidates keep the class
+   1 contact with the strictly greatest fraction whose normal's facing heading
+   (its displacement heading plus 1024) is within 256 of the actor heading,
+   differences wrapped by 2047. No such wall adds no record.
+4. Repeat the wall segment 24 units lower: any such facing class 1 contact sets
+   record byte 0 to one, otherwise zero. Append a record with byte 0, ledge point
+   `(wall_X, top_Y, wall_Z) × 256`, the top's model, the record heading (the wall
+   normal's facing heading) and the ledge-support actor (the wall candidate's
+   actor, zero when it has none). A fifth record is not guarded against.
+
+#### Ledge record classification
+
+Let `Y` be the integer current Y, `neg` and `pos` the Y extents,
+`reach = max(14, fall_step >> 9)` with `fall_step` the nonpositive-timer
+[falling step](#initial-falling-bookkeeping)
+`min(post_collide_height × 512 − 256, attribute_32 × factor[0] × (fine_tick_increment + 2))`,
+and `hand_Y = Y + (g.y >> 8)` for the group 7 grip vertex `g`, or `Y − 1000`
+without that frame. For each record with top Y `t`:
+
+- With falling or queued motion nonzero, or living state 14 through 17: class 3
+  in living state 15 or when `abs(hand_Y − t) < reach`, else 0.
+- Otherwise: class 2 when `Y − neg − reach <= t < Y − (neg >> 2)`; class 1 when
+  `Y − (neg >> 2) <= t < Y + pos − post_collide_height`; else 0.
+
+Then an underside Y with `abs(t − underside) < 8` sets class 0. For a nonzero
+class:
+
+- Outside living state 15, a wrapped heading difference above 256 between actor
+  and record heading sets class 0 and skips the fit test.
+- The fit test places the actor's collision spheres, with its current angles, at
+  the wall point plus offset 4096 at the record heading and Y
+  `(t − pos − standing_height) × 256`. Candidates are tested in order; a body
+  contact fails the body test and ends the loop. Until then each candidate is
+  also tested with one sphere of radius `post_collide_height >> 1` centered
+  `pos − (post_collide_height >> 1)` below that Y; a class 8 contact fails the
+  head test.
+- A failed body test sets classes 1 and 2 to 0. For class 3, record byte 2 is 0
+  when the head test failed, otherwise 1 when the body test passed and 0 when
+  it failed.
+
+The hand-nearest class 3 record minimizes `abs(t × 256 − (local_Y + g.y))`,
+earliest on ties, and does not exist without a group 7 frame. Other selections
+take the first record of the class.
 
 ### Ordinary jump entry
 
@@ -775,7 +964,7 @@ different current group returns unhandled without a burning torch, but handled
 with a burning torch. These branches do not read the living-state byte.
 
 Pending groups 32 through 37 and 111 defer queued motion and return unhandled.
-A successful selected-player edge service clears queued motion and returns
+A successful selected-player [edge service](#edge-service) clears queued motion and returns
 handled. Other admitted queued states make an ordinary animation request before
 vertical advancement:
 
