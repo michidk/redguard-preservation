@@ -539,6 +539,17 @@ For an initial ordinary animated fall, current groups 41, 42 and 43 apply
 this displacement using the retained motion direction and Q8 distance 4096
 before selecting their initial fall animation.
 
+### Ground stage by model kind
+
+A static-model actor runs its ground stage only when attribute 108 is nonzero
+and attribute 107 is zero, regardless of the collision attribute mask: the support
+query, then the ground response. The animated-model ground stage is selected by
+the collision attribute mask instead: a nonzero mask runs the obstacle pass
+unless the selected player is in its alternate collision mode, mask bit 8 runs
+the overlap pass, the support query follows, and mask bit 4 runs the ground
+response. Attribute 107 nonzero also ends a fall at the first support miss: the
+falling byte is cleared and nothing else changes.
+
 ### Ordinary landing decision
 
 On support regained while falling, clear the runtime jump selector and compare
