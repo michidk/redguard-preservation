@@ -720,11 +720,16 @@ vertical writer without an animation request. An animated actor's initial
 unarmed request is forced group 56 without a burning torch or 57 with one;
 a weapon-holding actor forces 113 unless current group is 115.
 
-Animated entry also has separate selector, previous-position recovery and
-horizontal-displacement branches before this initialization. Current groups
+Animated entry also has separate selector, stable-position recovery and
+horizontal-displacement branches before this initialization. When either
+directional-state byte has a low bit set, the recovery branch clears those two
+bits in both bytes, restores all three coordinates from the
+[stable position](#stable-ordinary-position) record, runs the ordinary jump entry
+with requested motion 8, forces group 35 with a burning torch or 34 without, runs
+the queued-motion arbitration once and ends the update's fall handling. Current groups
 18 and 30 have an exit-marker rollback branch and otherwise force 59 or 60.
-For the exit-marker branch, restore all three previous local position
-coordinates and force the current default group, then return without starting
+For the exit-marker branch, restore all three coordinates from the stable
+position record and force the current default group, then return without starting
 a fall. Without that marker, record the ordinary fall origin and timer, set
 falling to one and force 59 without a burning torch or 60 with one.
 These entry branches are distinct from continuation of an existing fall.
