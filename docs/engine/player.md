@@ -487,8 +487,12 @@ A falling update uses entry zero when the signed timer is nonpositive.
 
 The additional increment is a constant zero: nothing ever writes it. The fine-tick
 increment is the [finer counter](#whole-nominal-ticks) increment of the update.
-The falling support query uses `post_collide_height` as its probe distance, as
-every other ordinary support query does.
+While an animated-model actor's falling byte is nonzero, the ordinary support query
+instead uses a reduced probe distance chosen by the measured FPS that the frame scale was
+derived from (twelve during the startup countdown): at 10 or more it is
+`(post_collide_height >> 2) * 3`, below 10 it is `post_collide_height`.
+Every other ordinary support query, including every static-model one, uses
+`post_collide_height`.
 
 Queued motion writes `origin_Y - attribute_32 * factor[timer]`, then advances
 the timer by the sum of the fine-tick increment and its additional increment,
