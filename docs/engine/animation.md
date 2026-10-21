@@ -613,9 +613,9 @@ further update routine for the actor before the decision reports success. Masks 
 report a distinct success value from mask 8 and mask 4.
 
 The decision result selects the command's outcome. Not taken advances the cursor by one.
-A mask 8 transition leaves the cursor on the command, so the update ends with the group
+A mask 8 transition leaves the cursor on the command and ends the update with the group
 request already made. A mask 1 or 2 transition sets the cursor to the command's second
-operand (the start frame) and, like a taken `GoToFuture`, sets the exit marker and clears
+operand less two (the start frame field) and, like a taken `GoToFuture`, sets the exit marker and clears
 the two six-byte delta records. A mask 4 transition does the same with the third operand,
 as described next.
 
