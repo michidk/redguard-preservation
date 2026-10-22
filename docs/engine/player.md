@@ -846,6 +846,17 @@ Player initialization clears the action-inhibition countdown. Each update
 subtracts the whole nominal ticks; a countdown that would not stay positive
 becomes zero.
 
+#### Per-update ledge dispatch
+
+An actor whose ground-response bit `0x04` is set and whose living state is 10 through 19 runs the
+[ledge transition](#ledge-transition) once per update in place of the ordinary motion and ground
+response; weapon-draw states 20 and 21 keep their own branch. For an actor other than the selected
+player the transition changes nothing. When the sliding, falling and queued-motion bytes are all zero
+afterwards, the stable-position-valid flag becomes one and the current position is retained as the
+stable position, including when the transition ended in state 18 or cleared the state. Nonzero
+bytes leave the stable record unchanged. The update does not run the body-contact response of states
+other than 0, 15 and 27 through 32.
+
 #### No ledge candidate
 
 When the [ledge scan](#ledge-scan) finds no record, entry from living state zero
