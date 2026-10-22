@@ -10,6 +10,7 @@ the [configuration reference](../config/) describes the INI settings.
 |---|---|
 | [SOUP scripting](SOUP.md) | Virtual machine, bytecode, value modes, tasks, function dispatch, and global flags. |
 | [SOUP386.DEF](SOUPDEF.md) | Function, attribute, reference, and flag definitions used by scripts. |
+| [SOUP property descriptors](SOUPPROPS.md) | Actor-record offset and width of every script property. |
 | [Actor animation](animation.md) | Model frames, animation requests, loop counts, and placed actor eligibility. |
 | [Player movement](player.md) | Coordinate units, turning, collision, and frame timing. |
 | [Item attachment](attachment.md) | Vertex tracking for held weapons and shields. |

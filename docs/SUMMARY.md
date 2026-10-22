@@ -47,6 +47,7 @@
   - [RTX dialogue](formats/RTX.md)
   - [Smacker video](formats/SMK.md)
   - [SOUP386.DEF](engine/SOUPDEF.md)
+  - [SOUP property descriptors](engine/SOUPPROPS.md)
   - [Save-game containers](formats/SAVEGAME.md)
   - [Cheat states](formats/CHT.md)
   - [Console preferences](formats/CPF.md)
