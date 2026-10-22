@@ -326,6 +326,11 @@ their sample handles. These operations precede stopping all sample channels
 and setting the shared reset flag. It then clears the ownership byte of every
 node in every loaded walk-node map, regardless of the owning actor.
 
+Leaving a world, whether to enter another or to load a save, runs the world
+teardown, which clears every dialogue record and its text buffer and resets its
+sample handle, stops every entry of the active-sound list, and then stops all
+sample channels. No dialogue line survives into the next world.
+
 Restoring saved world state from either `SAVEGAME.SAV` or a per-world `.TSG`
 snapshot clears the RTX cache, clears dialogue records and their text buffers,
 then stops all sample channels before restoring actor records. After restoring
