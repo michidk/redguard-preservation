@@ -316,6 +316,12 @@ runs the executor with request 0: the move number selects the attack slot, the e
 slot's first motion (animation group, motion selector zero), sets combat intent bit one, sets the
 attack state to one and lowers aggression by ten. A hit on a target then follows the ordinary
 attack-processing rules for the current slot and motion. Before a start the original also tests whether a target is in
+
+The lunge (move 4) first moves the player: when its lifecycle byte is zero and no rope, sliding, falling
+or queued motion is set, it takes one [`MoveForward`](SOUP.md#moveforward) step of attribute byte 16
+(whole units times 256) along the local Y heading, with the same forward step check below startup
+counter three, the same startup ramp and frame scaling, but no animation request. The move also needs
+its authored slot, a zero cooldown and no drawing or sheathing state before this step is taken.
 reach for the move; when no target qualifies but a protected one is within reach it skips the start and
 the player speaks a taunt instead.
 
