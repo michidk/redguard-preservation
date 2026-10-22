@@ -551,6 +551,9 @@ The terrain query uses current integer map X/Z and truncates its interpolated
 height toward zero. That height replaces the model result only when it is
 strictly greater than current integer map Y and strictly less than the retained
 model height. It does not use the ordinary support-segment rank or lower end.
+The terrain query runs whenever the world has terrain. It does not test water
+cells: a water cell supplies the same interpolated height as a dry cell. The
+probe applies no height-grid bounds check of its own.
 
 ### Directional ordinary displacement
 
