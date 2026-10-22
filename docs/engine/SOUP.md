@@ -2426,6 +2426,12 @@ byte wrapping when the collision-response auxiliary byte has bit 7 set, a map is
 present, and a next node is held. A resulting counter greater than eight selects
 phase 24. Otherwise the counter resets to zero.
 
+Before the blocked-route counter, a body-response mark of bit 2 (a contact with another
+actor) whose overlap contact identifier is not one, outside phase 27, draws one raw engine
+random value. Its low two bits select: 1, the held next node becomes the previous next node and
+phase 27 is selected; 2, the shared pause delay is set to 36 and the call returns pending; otherwise
+nothing changes.
+
 Collision response marks are then read. When the collision-transition byte's
 bit 0 is clear, any of auxiliary-byte bits 1 or 7, or body-response bits 1 or 3,
 releases the actor's held walk nodes and selects phase zero, whatever phase the
