@@ -2409,6 +2409,24 @@ pending tail sets lifecycle seven and repeats deduplicating registration;
 attribute 1 remains 13 on this path. The initial visibility rejection and the
 attribute-95 transition retain attribute 1 at 12 instead.
 
+### Phase twelve (leap link)
+
+Phase twelve is selected when the claimed first link carries the `0x4000` flag.
+An unset next node releases held nodes and selects phase zero. Otherwise the
+stage runs the coordinate arrival test at the next node's X/Z with the caller's
+tolerance. An arrival assigns that node as the current node through the
+ordinary claim and selects phase eight. Without arrival, facing the node (the
+face-node turn used by phase one) that returns zero starts the leap: the
+receiver is given queued motion 2 and its animation requests group 32, or 33
+with a burning torch. The pending tail is the common one, with attribute 1 at
+12. Its start is refused, leaving the phase unchanged, while the receiver is
+the selected player in its post-jump cooldown, its group is 114, 116, 130 or 131,
+its falling, queued or sliding byte is nonzero, its stored surface is 2 or 4, it
+is attached to a rope, or its living state is outside zero and 15. State 15 runs
+the hang release instead of starting the leap. A started leap clears the
+stable-position-valid flag, records the current Y as fall origin and zeroes the
+fall timer and sliding distance.
+
 ### Coordinate walking and rollback
 
 Coordinate walking saves local position, the packed movement byte and retained
