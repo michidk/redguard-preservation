@@ -4477,13 +4477,21 @@ CYRUS is the selected player and GREMLIN is excluded from ordinary object update
 selected and CYRUS is excluded. The world loop re-asserts that selection and exclusion every iteration.
 
 - `PushPlayer` acts only while the swap state is clear. GREMLIN becomes the selected player, the swap state is
-  set, and GREMLIN takes CYRUS's position, heading and retained movement state. GREMLIN stops being excluded
+  set, and GREMLIN takes CYRUS's player transfer (below). GREMLIN stops being excluded
   from ordinary updates and CYRUS becomes excluded.
 - `PopPlayer` acts only while the swap state is set. CYRUS becomes the selected player again, the swap state is
   cleared, and CYRUS takes GREMLIN's position, heading and retained movement state with the same exclusion
   exchange reversed. CYRUS then receives an [ordinary animation group request](animation.md) for group 0, issued twice.
 
 A second `PushPlayer` while swapped, or a `PopPlayer` while not swapped, only clears its flag.
+
+The player transfer copies from the role that was selected to the role that becomes selected: the local position,
+two further triples of 32-bit words at offsets `0xFB` and `0x108`, the three angles, which the orientation setter
+masks to 0 through 2047 and also stores as both retained angle histories (offsets `0x144` and `0x150`) before it
+rebuilds the orientation matrix, the four motion bytes at `+0x1B1` through `+0x1B4` (the last is the living
+state), the 32-bit word at `+0x1CD`, the two words at `+0x08` and `+0x0C`, and byte 3 of the attribute block (the
+health attribute). It zeroes the words at `+0xC7` and `+0x25`, re-registers the new role in its map cell, and clears the
+new role's object-update exclusion byte while setting the old role's.
 
 ### KillMe and Resurrect
 
