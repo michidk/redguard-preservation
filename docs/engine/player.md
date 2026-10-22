@@ -272,6 +272,11 @@ With no forward input and backward input held, the same walk rule selects `WalkB
 walk/run key differ and the run helper otherwise. In a lifecycle state of 0x14, 0x15, 0x21 or 0x22
 forward and backward dispatch is unchanged, while left and right turning does not run.
 
+A player that holds a weapon (the weapon-holding predicate) or has combat flag `0x04` set
+ignores the retained walk mode in both forward and backward dispatch: the held walk/run key
+alone selects the walk helper, and its absence the run helper. With the weapon-holding predicate
+true, the forward and backward dispatch without the walk/run key does not start a jump entry.
+
 The helper selection does not bypass the helper's motion, support, animation,
 or movement-marker tests. Water states, drawn weapons, rope motion, jumping,
 and special living states have separate dispatch branches.
