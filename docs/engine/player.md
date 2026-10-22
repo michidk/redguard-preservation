@@ -809,6 +809,14 @@ a fall. Without that marker, record the ordinary fall origin and timer, set
 falling to one and force 59 without a burning torch or 60 with one.
 These entry branches are distinct from continuation of an existing fall.
 
+### Jump selector at a support miss
+
+An animated actor that misses support without falling first tests the runtime jump selector. A
+selector whose distance from 24 is below four (and nonzero) starts the
+[ordinary jump entry](#ordinary-jump-entry) for it, which selects queued motion 24 and forces group
+85, and the support miss ends there: the walk-off recovery, the fall start and the edge service do
+not run. Other selectors leave the miss to those services.
+
 ### Falling animation continuation
 
 For an animated actor already falling without support, the [edge service](#edge-service) runs
