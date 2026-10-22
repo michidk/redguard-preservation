@@ -1071,6 +1071,9 @@ otherwise queued 8 and request 34. Current group 30 similarly requests 37 or
 or 33 with a burning torch. A nonzero runtime jump selector instead selects
 queued 24 and forces group 85. Set motion direction to 2 after the request.
 
+The controller itself reads no surface state: water and lava surfaces change its
+behavior only through the movement helpers and the support response it calls.
+
 ### Jump-key arbitration
 
 While the jump key is held, every ordinary controller update after movement
