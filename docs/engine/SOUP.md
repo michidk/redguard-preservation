@@ -806,6 +806,59 @@ way and pitched by `−(sum of the step angles of links 1..i−1 >> 8) & 0x7FF`,
 unswinging rope hangs straight. Positions are stored as single-precision values divided
 by 256. An actor attached to node `i` is placed on that link position.
 
+### Rope attachment
+
+Each ordinary actor update of an actor whose movement profile enables the rope check runs an
+attachment test before ordinary movement. When the test reports true the ordinary movement and
+combat stages are skipped for that update. The test is false for every actor except the selected
+player, and false while the player is holding a weapon (see `IsHoldingWeapon`).
+
+For the selected player the test returns true without further work when it already has an
+attachment. It returns false when its directional state bytes 0x1B2 and 0x1B3 are both zero, and when
+byte 0xC1 is zero while the actor has no animation record or that record's word at offset 0x161 is
+zero. A nonzero rope countdown (byte 0x1B0) then decrements by the low byte of the shared tick count;
+when it would reach zero, the stored rope identifier (byte 0x1AF) and the countdown both clear. The
+rope identifier is the byte at rope offset 0xC, so a rope the player just left is skipped until the
+countdown expires.
+
+Ropes are tried in list order, head first. A rope is a candidate when it is not skipped by the
+identifier rule, it has a link array and more than one link, and it has a contact sphere list.
+Contact is decided by one of two tests:
+
+- With type bit 0x1 clear, any overlap between the player's body spheres and the rope's contact
+  spheres.
+- With type bit 0x1 set, the absolute heading difference (the smaller of the differences from the
+  rope heading and from the rope heading plus 0x400, over the 0..0x7FF circle) must not exceed 256,
+  and the same sphere overlap must hold.
+
+The player's spheres are its RAVC records (flag 2 always, flag 4 only while the actor's current
+animation group pair matches the record) followed, unless attribute 56 is nonzero, by its ordinary
+collision shape spheres; each center is rotated by the actor orientation and added to its position.
+At most 128 take part. The rope's spheres are the records of its own sphere list (11 bytes each:
+flags, a 16-bit position triple and radius, each `>> 16 << 8`), translated by the rope position, at
+most 128. Two spheres overlap when the rounded three-axis distance between their centers is less than
+the sum of their radii. Contact also records the lowest rope sphere index that touched.
+
+On contact the actor requests animation group 0x54, then attaches (below). For the selected player the
+rope's type bit 0x4 clears afterwards and a retained flag is set to one.
+
+Attach removes any attachment the actor already has (the removal above), allocates a 20-byte node,
+links it at the head of the rope's attachment list, stores the actor in the node and the node in the
+actor, copies the rope identifier into the actor and clears the countdown. The requested link index
+is the lowest touching sphere index, clamped to `[0, link count − 1]`, then replaced by the link
+nearest to the actor's hand height: starting at index − 8 (floor 0), the link whose stored Y (a
+single-precision value) is at or below the target height and closest to it wins. The target is the
+Y of the animation key point 0x4F plus the actor's Y position, shifted right by eight; when its
+distance from the floor probe is less than the actor height limit plus the key point's Y, it becomes
+the floor probe minus that limit. With no such key point the requested index stands. The
+node stores that chosen link index.
+
+Then, with type bit 0x1 clear the rope heading becomes the actor heading; with it set the actor
+heading adds the signed heading difference selected above. When either of the actor's directional
+bytes 0x1B2 and 0x1B3 exceeds one, the rope word at offset 0x6A becomes zero while actor byte 0x1CB is
+3 or 7 and 0x40000 otherwise, and the rope word at offset 0x62 clears. Finally bytes 0x1B1 through
+0x1B4 of the actor clear, and animation group 0x54 is requested when it is not already current.
+
 ### Rope attachment removal
 
 Ropes own doubly linked lists of attachment nodes. Each node retains its actor,
