@@ -48,6 +48,12 @@ selection), deletes the per-world saved map files (`MAPS\*.TSG`), reads the
 menu and movie settings from `MENU.INI`, loads `LOGBOOK.TXT`, and then resets
 a fixed set of engine globals. A plain world replacement does not run it.
 
+The New Game transition also tears the running session down before the
+initializer: it stops and releases every entry of the active-sound list
+(stopping the entry's channel when it is playing), stops all 16 sound channels,
+applies `LockoutPlayer(0)`, and replaces the actor message queues with 256 empty
+queues of eight 12-byte entries.
+
 `WonGame` ends the world loop with a won result (see
 [session requests](SOUP.md#session-requests-loadworld-wongame-pushplayer-and-popplayer)).
 The engine then runs the ending instead of showing a menu page: sound effects
