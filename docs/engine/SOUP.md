@@ -828,7 +828,7 @@ Contact is decided by one of two tests:
 - With type bit 0x1 clear, any overlap between the player's body spheres and the rope's contact
   spheres.
 - With type bit 0x1 set, the absolute heading difference (the smaller of the differences from the
-  rope heading and from the rope heading plus 0x400, over the 0..0x7FF circle) must not exceed 256,
+  rope heading and from the rope heading plus 0x400, over the 0..0x7FF circle) must not exceed SYSTEM.INI `rope_attach_angle` masked with 0x3FF (512 as shipped),
   and the same sphere overlap must hold.
 
 The player's spheres are its RAVC records (flag 2 always, flag 4 only while the actor's current
@@ -856,7 +856,7 @@ node stores that chosen link index.
 Then, with type bit 0x1 clear the rope heading becomes the actor heading; with it set the actor
 heading adds the signed heading difference selected above. When either of the actor's directional
 bytes 0x1B2 and 0x1B3 exceeds one, the rope word at offset 0x6A becomes zero while actor byte 0x1CB is
-3 or 7 and 0x40000 otherwise, and the rope word at offset 0x62 clears. Finally bytes 0x1B1 through
+3 or 7 and 0x40000 otherwise, and the rope amplitude becomes `(d / 1000) × (link count / link index)` rounded, with `d` the rounded planar distance of the actor's last step in Q8 and the integer division of `d` by 1000 truncated, and the rope word at offset 0x62 clears. Finally bytes 0x1B1 through
 0x1B4 of the actor clear, and animation group 0x54 is requested when it is not already current.
 
 ### Rope control while attached
@@ -938,6 +938,13 @@ node or null, removal applies detach motion, clears the actor's attachment and
 pitch, and sets its rope countdown to 24 before releasing the node. If the actor
 instead names another attachment, those actor writes are skipped. The removed
 node is released after the list and eligible actor updates.
+
+The detach motion is the actor's forward speed word, which queued motion 24 turns into a horizontal move of `|speed| × ticks >> 8` map units per update, forward
+at the actor heading for a nonnegative word and backward (heading plus 1024) for a negative one. With `j` the SYSTEM.INI `rope_jump_add` shifted left by eight (4608 as
+shipped) and `m` the node's motion value (the planar speed the chain update measured between the node's previous and new link position, in Q8, negated when the rope's
+direction byte is zero): when the rope amplitude is below 6 and `|m|` is below `ticks × 0x1800 >> 8`, the word is zero, except that for the selected player Up sets it to `j` and Down
+to `−j`. Otherwise, with the direction byte flipped when type bit 0x1 is set and the actor's heading differs from the rope heading by more than 16, a byte of 1 sets the word to
+`j + (|m| << 8) / ticks` and a byte of 0 sets it to `−j − (|m| << 8) / ticks`.
 
 Destroying an entire rope uses a separate path. It unlinks the rope from the
 rope list, walks and releases its attachment nodes, and clears each retained
