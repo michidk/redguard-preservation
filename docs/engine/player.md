@@ -315,7 +315,8 @@ and move 2 needs 1. Starting writes the move to the action selector and the pend
 runs the executor with request 0: the move number selects the attack slot, the executor starts that
 slot's first motion (animation group, motion selector zero), sets combat intent bit one, sets the
 attack state to one and lowers aggression by ten. A hit on a target then follows the ordinary
-attack-processing rules for the current slot and motion. Before a start the original also tests whether a target is in
+attack-processing rules for the current slot and motion. The jump attack is move 6 started once the falling
+byte is one: it needs its authored slot and an empty pending word, and consumes the action latch. Before a start the original also tests whether a target is in
 
 The lunge (move 4) first moves the player: when its lifecycle byte is zero and no rope, sliding, falling
 or queued motion is set, it takes one [`MoveForward`](SOUP.md#moveforward) step of attribute byte 16
@@ -768,8 +769,12 @@ restored animation snapshot does not replace the ordinary default group.
 The nonplayer then adds `Rnd(attribute_15 * 4) - attribute_15 * 2` to local heading,
 wrapped to 2048. A collision-response age strictly greater than 16 also runs the
 bounds-segment obstacle response. The recovery marks the shared position-changed
-flag. Selected-player recovery has a separate follow-up support query and can
-restore its attempted position and falling byte when that query misses.
+flag. The selected player takes neither the heading change nor the bounds response:
+after the shared restore (stable position, attribute 6, falling and sliding cleared,
+movement flags and animation snapshot, collision transition bit 1) it runs the
+ordinary ground response once more. When that response reports no support, the
+attempted position is written back, the stable-position record becomes invalid and
+the falling byte returns to its value before recovery.
 
 After reserved weight is restored, ordinary collision invokes stable recovery
 when attribute 89 is nonzero and either sliding or falling is nonzero. Otherwise,
