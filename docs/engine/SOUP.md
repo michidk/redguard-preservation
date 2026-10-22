@@ -4686,6 +4686,7 @@ body-contact test to pass, the step-hazard result to differ from one, then the
 additional destination-admission test to pass, in that order. A failed test
 sets bit `0x80` in the receiver's step-status byte and returns false. Early
 rope refusal and lifecycle acceptance leave that byte unchanged.
+The step's destination support test passes whenever attribute 1 bit 1 is clear.
 The additional destination-admission test runs the ordinary collision pass with
 the receiver temporarily at the destination. It restores the original position
 afterwards, while retaining other collision writes.
