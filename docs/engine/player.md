@@ -2148,6 +2148,10 @@ A world reload can restore temporary per-world saved state after player
 initialization. The restored player record replaces position and animation state;
 passing through marker initialization does not establish that the final loaded
 player is a fresh spawn. Temporary world snapshots use the map's `.TSG` file.
+A world change saves the departing world's temporary snapshot before the next
+world loads. Entering a world whose snapshot exists restores it and then places
+the player records at the destination marker; entering a world with no snapshot
+starts from its authored placement. New Game deletes every snapshot.
 
 ## Player contact lists
 
