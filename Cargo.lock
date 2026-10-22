@@ -930,7 +930,7 @@ dependencies = [
 
 [[package]]
 name = "redguard-preservation"
-version = "0.10.2"
+version = "0.10.3"
 dependencies = [
  "bitmap2ttf",
  "bytemuck",
