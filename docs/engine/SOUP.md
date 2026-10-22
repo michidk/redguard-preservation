@@ -859,6 +859,21 @@ bytes 0x1B2 and 0x1B3 exceeds one, the rope word at offset 0x6A becomes zero whi
 3 or 7 and 0x40000 otherwise, and the rope word at offset 0x62 clears. Finally bytes 0x1B1 through
 0x1B4 of the actor clear, and animation group 0x54 is requested when it is not already current.
 
+### Rope control while attached
+
+An actor attached to a rope skips the ordinary movement and combat stages (see
+[Rope attachment](#rope-attachment)). The selected player's ordinary update, before its
+animation service, reads two keys while it is attached and the View key (`key_c`) is not held:
+Down requests animation group 83 (rope down), otherwise Up requests group 82 (rope up). Each update
+the rope owner reads the attached actor's current group: group 82 moves the attachment one node toward
+the base (its node index decreases) when the shared tick count is nonzero, and group 83 moves it one node
+down while the limit routine allows it. Either step sets the rope's amplitude to 2 and its phase to
+zero when both the amplitude and the word at offset 0x62 are zero.
+
+While an attachment is placed on its node during the chain update, a selected player whose pending group is
+unset (or is group 79) and who holds neither Up nor Down requests group 80 when the rope's direction byte
+is nonzero. With that byte zero it requests group 81 when its pitch is nonzero.
+
 ### Rope attachment removal
 
 Ropes own doubly linked lists of attachment nodes. Each node retains its actor,
