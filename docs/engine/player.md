@@ -775,8 +775,9 @@ With a held weapon they are positive 96 and negative 97. Combat mode affects
 rate selection independently of the held-weapon animation branch. Heading
 writes wrap to 2048. The turn helper returns zero when the desired heading already
 matches or the turn snaps to it. Otherwise it returns the signed heading
-difference before applying the turn step. Selected-player turning also updates
-the follow camera.
+difference before applying the turn step. For the selected player the
+turn also rebuilds the actor's orientation matrix from its angles (identity, then negated yaw,
+pitch and roll) and copies the angles to the angle history; it changes no camera state.
 
 The first slide forces its slide group; subsequent slides request it ordinarily.
 Distance is the signed wrapping product `slide_speed * 128 * frame_scale`,
