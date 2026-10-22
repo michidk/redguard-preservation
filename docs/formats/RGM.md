@@ -144,8 +144,9 @@ Rope instancing behavior:
 
 - Decode base translation with the same MPOB scale/sign rules.
 - Spawn `length` copies of `rope_model`.
-- For each link: subtract `0.8` from Y and place one instance.
-- If `static_model` is present, place one additional instance after the chain.
+- Link 0 is placed at the base position; each following link is `0.8` lower in Y
+  (the height of the link model, shipped `ROPELINK` and `CHAINLNK` are both 0.8 tall and centered).
+- If `static_model` is present, place one additional instance `0.8` below the last link.
 - Rope swing sounds use `sound_1`–`sound_3`; see
   [positional sound](../engine/sound.md#engine-internal-starts).
 

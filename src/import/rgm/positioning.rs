@@ -482,7 +482,6 @@ fn append_rope_records(
             )
         {
             for j in 0..link_count {
-                pos[1] -= ROPE_LINK_Y_STEP;
                 positioned_models.push(PositionedModel {
                     flat: None,
                     model: model.model.clone(),
@@ -491,6 +490,7 @@ fn append_rope_records(
                     model_name: format!("R{i:03}_{j:03}_{}", record.rope_model),
                     source_id: Some(record.rope_model.clone()),
                 });
+                pos[1] -= ROPE_LINK_Y_STEP;
             }
         }
         if !record.static_model.is_empty()
@@ -504,7 +504,6 @@ fn append_rope_records(
                 diagnostics,
             )
         {
-            pos[1] -= ROPE_LINK_Y_STEP;
             positioned_models.push(PositionedModel {
                 flat: None,
                 model: model.model,
@@ -1363,7 +1362,6 @@ fn append_rope_placements(records: &[MprpRecord], placements: &mut Vec<Placement
         let static_stem = strip_extension(&record.static_model);
         if !rope_stem.is_empty() {
             for j in 0..link_count {
-                pos[1] -= ROPE_LINK_Y_STEP;
                 placements.push(Placement {
                     model_name: rope_stem.to_owned(),
                     source_id: format!("R{i:03}_{j:03}_{rope_stem}"),
@@ -1372,10 +1370,10 @@ fn append_rope_placements(records: &[MprpRecord], placements: &mut Vec<Placement
                     texture_id: 0,
                     image_id: 0,
                 });
+                pos[1] -= ROPE_LINK_Y_STEP;
             }
         }
         if !static_stem.is_empty() {
-            pos[1] -= ROPE_LINK_Y_STEP;
             placements.push(Placement {
                 model_name: static_stem.to_owned(),
                 source_id: format!("R{i:03}_{link_count:03}_{static_stem}"),
@@ -1482,5 +1480,43 @@ mod lazy_archive_tests {
         index.get_mut("SEGMENT1").unwrap()[1].data.clear();
         assert!(load_model_from_registry("segment1", &registry, &index).is_err());
         assert!(load_model_from_registry("absent", &registry, &index).is_err());
+    }
+}
+
+#[cfg(test)]
+mod rope_placement_tests {
+    use super::*;
+
+    fn record(length: i16, static_model: &str) -> MprpRecord {
+        MprpRecord {
+            id: 0,
+            unknown0: 0,
+            pos_x: 0,
+            pad_x: 0,
+            pos_y: 100,
+            pad_y: 0,
+            pos_z: 0,
+            angle_y: 0,
+            rope_type: 0,
+            swing: 0,
+            speed: 0,
+            length,
+            static_model: static_model.to_owned(),
+            rope_model: "ROPELINK".to_owned(),
+            unknown1: [0; 7],
+        }
+    }
+
+    #[test]
+    fn the_first_link_sits_at_the_base_and_the_end_model_after_the_last() {
+        let mut placements = Vec::new();
+        append_rope_placements(&[record(3, "CHAND.3D")], &mut placements);
+        let base = decode_position(0, 100, 0)[1];
+        let heights: Vec<f32> = placements.iter().map(|p| p.transform[13]).collect();
+        let expected = [base, base - 0.8, base - 1.6, base - 2.4];
+        assert_eq!(heights.len(), expected.len());
+        for (height, expected) in heights.iter().zip(expected) {
+            assert!((height - expected).abs() < 1e-3, "{height} vs {expected}");
+        }
     }
 }
