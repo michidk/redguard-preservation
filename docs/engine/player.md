@@ -1687,7 +1687,8 @@ An actor-pair overlap with a separation of three or more takes a landing branch
 before any weighted separation when the updating actor's falling state is
 nonzero, the other actor's attribute 98 (`attr_bounce_power`) is nonzero, and
 the absolute difference between the actor's Q8 Y and its retained fall origin
-is at least `SYSTEM.INI` `[game] fall_bounce_height` times 256. The branch
+is at least `SYSTEM.INI` `[game] fall_bounce_height` times 256 and the actor's
+positive Y extent is greater than zero. The branch
 attempts to land the actor on the other actor and ends the overlap pass with
 body-response bit `0x80` set whether or not the landing is admitted; without
 these conditions the weighted response applies. The landing is not admitted when
@@ -1696,8 +1697,10 @@ deepwater or scapedeepwater, or the other actor's model link is empty, and then
 changes nothing else. An admitted landing makes the other actor the
 actor's support, clears the actor's sliding, falling and queued-motion bytes
 and its two retained motion words, sets living state 27, requests animation
-group 10 on the other actor, and requests the landing animation group (114,
-66 or 65) on the actor.
+group 10 on the other actor, and requests the landing animation group on the
+actor: 114 when the actor holds a weapon (attribute 110,
+`attr_holding_weapon`, nonzero, or the drawn-weapon test), otherwise 66 when its
+burning-torch byte is nonzero, else 65.
 
 The overlap pass visits its retained actor-style candidate list in order. Later
 queries read the positions left by earlier responses. If any weighted
