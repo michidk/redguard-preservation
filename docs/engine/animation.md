@@ -454,9 +454,16 @@ attachment rules. The retained ledge point receives the support's translation
 and the same rotation about the support, and the ledge heading receives the
 support's heading delta, wrapped to 2048 units, in the same pass as the rider.
 The selected player in those states is not subject to the destination
-collision queries below. Otherwise the selected player can reject the
-transformed destination through additional collision queries. These cases are
-distinct from the ordinary unattached nonplayer path.
+collision queries below. Otherwise, for the selected player with collision
+attribute bit `0x01` set, the support's translation and heading delta are
+applied first and the candidate models are gathered again at that translated
+position. The rotated destination is then rejected when the player's body
+spheres, placed there with the current angles, meet a candidate (candidate type
+`0x80` is skipped while queued motion is 24), or when the segment from its
+update-entry position to the destination meets a candidate. Polygon sidedness is
+off for both tests. A rejected destination leaves the translated position and the
+turned heading in place; an accepted one stores the rotated position. These
+cases are distinct from the ordinary unattached nonplayer path.
 
 ## Ordinary actor eligibility
 
