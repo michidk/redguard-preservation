@@ -312,7 +312,10 @@ set it only consumes the action latch. Otherwise it selects one move:
 With none of these the action latch is consumed. A move starts only when its authored attack slot
 is populated and the pending move word allows it: moves 0 and 3 need it to be -1, move 1 needs 0
 and move 2 needs 1. Starting writes the move to the action selector and the pending move word and
-runs the attack executor with request 0. Before a start the original also tests whether a target is in
+runs the executor with request 0: the move number selects the attack slot, the executor starts that
+slot's first motion (animation group, motion selector zero), sets combat intent bit one, sets the
+attack state to one and lowers aggression by ten. A hit on a target then follows the ordinary
+attack-processing rules for the current slot and motion. Before a start the original also tests whether a target is in
 reach for the move; when no target qualifies but a protected one is within reach it skips the start and
 the player speaks a taunt instead.
 
