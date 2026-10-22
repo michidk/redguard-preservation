@@ -939,12 +939,12 @@ pitch, and sets its rope countdown to 24 before releasing the node. If the actor
 instead names another attachment, those actor writes are skipped. The removed
 node is released after the list and eligible actor updates.
 
-The detach motion is the actor's forward speed word, which queued motion 24 turns into a horizontal move of `|speed| × ticks >> 8` map units per update, forward
+The detach motion is the actor's forward speed word, which queued motion 24 turns into a horizontal move of `|speed| × frame scale >> 8` Q8 units per update, forward
 at the actor heading for a nonnegative word and backward (heading plus 1024) for a negative one. With `j` the SYSTEM.INI `rope_jump_add` shifted left by eight (4608 as
 shipped) and `m` the node's motion value (the planar speed the chain update measured between the node's previous and new link position, in Q8, negated when the rope's
-direction byte is zero): when the rope amplitude is below 6 and `|m|` is below `ticks × 0x1800 >> 8`, the word is zero, except that for the selected player Up sets it to `j` and Down
+direction byte is zero): when the rope amplitude is below 6 and `|m|` is below `frame scale × 0x1800 >> 8`, the word is zero, except that for the selected player Up sets it to `j` and Down
 to `−j`. Otherwise, with the direction byte flipped when type bit 0x1 is set and the actor's heading differs from the rope heading by more than 16, a byte of 1 sets the word to
-`j + (|m| << 8) / ticks` and a byte of 0 sets it to `−j − (|m| << 8) / ticks`.
+`j + (|m| << 8) / frame scale` and a byte of 0 sets it to `−j − (|m| << 8) / frame scale`.
 
 Destroying an entire rope uses a separate path. It unlinks the rope from the
 rope list, walks and releases its attachment nodes, and clears each retained
