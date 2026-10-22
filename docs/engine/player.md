@@ -1053,6 +1053,26 @@ entry also refuses the selected player while the conditional preliminary countdo
 is nonzero, so a nonzero queued or falling byte, or a nonzero sliding byte, ends the
 call without effect.
 
+### Jump window
+
+Every actor update, after its script stage and before its ordinary movement, adds the whole
+nominal ticks to a byte counter. When the counter exceeds 36 the second directional-state
+byte receives the first byte's bits, the first byte clears and the counter returns to zero. A
+nonzero queued byte, or a current group other than 18 and 30, clears the low two bits of both
+bytes. Then a set low bit of the second byte clears the low two bits of both bytes and starts the
+[ordinary jump entry](#ordinary-jump-entry) with requested motion 8; otherwise a set second bit
+does the same with requested motion 9. The pending first byte therefore survives for up to 36
+ticks while a run or walk jump group loops, which is the window in which a support miss takes the
+walk-off recovery.
+
+For the selected player the entry runs the following before the ordinary initialization, in
+order: it refuses while the conditional preliminary countdown is nonzero, while a rope is attached,
+while the queued, falling or sliding byte is nonzero, outside living states zero and 15, and in
+water or lava surfaces when attribute 105 is one. It clears the stable-position-valid flag. Living
+state 15 then runs the [hang release](#ledge-hang-release) instead of starting a jump, and living
+state zero runs the ledge entry (the edge service without the water exit, the action-inhibition
+countdown and the fall-bit clear); a ledge held by either ends the entry.
+
 ### Queued motion arbitration
 
 A zero queued byte returns unhandled. Low queued state 3 requires group 49
