@@ -316,15 +316,31 @@ runs the executor with request 0: the move number selects the attack slot, the e
 slot's first motion (animation group, motion selector zero), sets combat intent bit one, sets the
 attack state to one and lowers aggression by ten. A hit on a target then follows the ordinary
 attack-processing rules for the current slot and motion. The jump attack is move 6 started once the falling
-byte is one: it needs its authored slot and an empty pending word, and consumes the action latch. Before a start the original also tests whether a target is in
+byte is one: it needs its authored slot and an empty pending word, and consumes the action latch.
 
 The lunge (move 4) first moves the player: when its lifecycle byte is zero and no rope, sliding, falling
 or queued motion is set, it takes one [`MoveForward`](SOUP.md#moveforward) step of attribute byte 16
 (whole units times 256) along the local Y heading, with the same forward step check below startup
 counter three, the same startup ramp and frame scaling, but no animation request. The move also needs
 its authored slot, a zero cooldown and no drawing or sheathing state before this step is taken.
-reach for the move; when no target qualifies but a protected one is within reach it skips the start and
-the player speaks a taunt instead.
+Before any of these moves (0 to 4 and 6) starts, a reach test runs over the ordinary actor list, with
+the move number selecting the attack slot and the slot's first motion supplying `arc`, `arc_center`,
+`min_range` and `max_range`. An actor is in reach when its distance from the player (the rounded
+three-dimensional distance between query positions) is strictly between `min_range` and `max_range` and
+the absolute wrapped difference between the player's heading and the heading toward the actor is strictly
+within `arc_center + 512` plus or minus `arc`. The receiver itself is not excluded from the list. The start
+proceeds when either:
+
+- an actor with a combat record is in reach and is either attackable (attribute 97 zero) or in lifecycle
+  selector 6; or
+- no actor is protected: a protected actor is in reach, is not in lifecycle selector 6 or 8 and has
+  attribute 97 nonzero. For the forward move (3) the arc half-width used for this protected-actor test is
+  six times `arc`, evaluated in single precision.
+
+Otherwise the move does not start and the player requests an opponent-unarmed taunt: type 11 when the
+protected actor's attribute 118 is nonzero, else type 10. Those taunt types use ordered selection like
+[begin-combat taunts](../config/combat-ini.md#taunt-types), and are not requested while the retained
+taunt cache entry still remembers a sample.
 
 ### Controller initialization and preliminary state
 
