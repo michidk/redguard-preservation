@@ -862,17 +862,61 @@ bytes 0x1B2 and 0x1B3 exceeds one, the rope word at offset 0x6A becomes zero whi
 ### Rope control while attached
 
 An actor attached to a rope skips the ordinary movement and combat stages (see
-[Rope attachment](#rope-attachment)). The selected player's ordinary update, before its
-animation service, reads two keys while it is attached and the View key (`key_c`) is not held:
-Down requests animation group 83 (rope down), otherwise Up requests group 82 (rope up). Each update
-the rope owner reads the attached actor's current group: group 82 moves the attachment one node toward
-the base (its node index decreases) when the shared tick count is nonzero, and group 83 moves it one node
-down while the limit routine allows it. Either step sets the rope's amplitude to 2 and its phase to
-zero when both the amplitude and the word at offset 0x62 are zero.
+[Rope attachment](#rope-attachment)). The selected player's movement dispatch has a rope branch that
+runs while it is attached. Keys are the KEYS.INI bindings: Up, Down, Left, Right, A (`key_a`), B (`key_b`,
+the jump key) and C (`key_c`, the view key).
+
+- **Idle.** When the actor holds a weapon, or neither Up nor Down is held, the branch requests group 6
+  (the idle-rope entry of the named group table).
+- **Jump release.** B is latched on attach: the latch stays set while B is held and clears on an update
+  with B up. With the latch clear and B held, the branch removes the attachment (the
+  [removal](#rope-attachment-removal) with its detach motion), runs the ordinary jump entry (which, with the rope
+  countdown now nonzero, requests group 85 and sets the second directional-state byte to 24), clears the
+  heading-turn rate below and sets the latch. Damage and a world change also remove the attachment.
+- **Climb.** Without a held weapon and with C up, Up runs the climb-up helper and otherwise Down runs
+  the climb-down helper. Climb up does nothing unless the attachment's node index is at least 2; it requests
+  group 82 when the current group is not 82 and returns true, otherwise it requests group 82 again while
+  the animation record's byte `+0x0a` is zero and returns whether byte `+0x0b` is nonzero. Climb down asks
+  the [hand-height link choice](#rope-attachment) for node index + 1; it does nothing unless the result is
+  greater than the current index, requests group 83 and returns true when the group was not already 83, and
+  otherwise returns whether byte `+0x0b` is nonzero. Each update the rope owner reads the current group:
+  group 82 moves the attachment one node toward the base when the shared tick count is nonzero, and group 83 one
+  node down while the limit routine allows it, and either step sets the amplitude to 2 and the phase to zero when
+  both the amplitude and the pending push (the word at rope offset 0x62) are zero. The selected player's ordinary
+  update also requests group 83 for Down and else group 82 for Up while attached and C is up.
+- **Turn.** A nonzero heading-turn rate adds `(rate >> 4) × tick scale >> 8` to the actor heading (mod 2048) each update and
+  accumulates the step; the rate clears once the accumulated total exceeds the rate in magnitude. With a zero
+  rate and A held, a rope whose amplitude is below 5 either (type bit 0x1 set) starts a turn of rate 1024 for Left or
+  −1024 for Right with the accumulated total cleared, or (bit clear) adds `Right × tick scale >> 8 − Left × tick scale >> 8`
+  to the heading.
+- **Pump.** With C and A up, the pump service runs on the attached rope unless its type bit 0x8 is set. With neither
+  Left nor Right held it clears the pending push. Otherwise, while the amplitude is zero it adds 3 to the pending push,
+  sets the amplitude to 2 and, with `d` the absolute heading difference between the actor and the rope heading, sets the
+  phase (rope offset 0x6A) to 0x40000 for Left or zero for Right when `d` is below 16, and the opposite when it is not.
+  While the amplitude is nonzero it takes the rope's direction byte (offset 0x38), flipped when type bit 0x1 is set and `d` exceeds
+  16, and adds 3 to the pending push for Left when the byte is 1 and for Right when it is 0; the other key subtracts 3
+  while the amplitude exceeds 2.
 
 While an attachment is placed on its node during the chain update, a selected player whose pending group is
 unset (or is group 79) and who holds neither Up nor Down requests group 80 when the rope's direction byte
 is nonzero. With that byte zero it requests group 81 when its pitch is nonzero.
+
+#### Rope amplitude updates
+
+Each chain update ends by passing the sum `t` of the link step angles to the amplitude service, which keeps the previous sum
+`t'`. A zero crossing (`t ≥ 0` with `t' < 0`, `t < 0` with `t' ≥ 0`, or both zero) runs two things. First, when the rope has
+attachments and `L = maximum / 4` exceeds 2, it plays a swing sound by amplitude `a`: sound 3 when `a ≥ 3L`, else sound 2 when
+`a ≥ 2L`, else sound 1 when `a ≥ L`, each only when its effect number is nonzero. Second, with `u = maximum / 5` and `p` the pending
+push (the word at offset 0x62), it adjusts the amplitude and the push by one step:
+
+- `p > 0`: the step is 5 when `p ≥ 5` and `p > 4u`, else 4 when `p ≥ 4` and `p > 3u`, else 2 when `p ≥ 2` and `p > 2u`, else 1.
+  The amplitude gains the step and the push loses it.
+- `p < 0`, with `n = −p`: the step is 1 when `n ≤ 3u` and (`n > 2` or `n ≤ 2u`), 2 when `n ≤ 3u` otherwise, 4 when `n > 3u` and `n ≤ 4u`, and
+  5 when `n > 4u`. The amplitude loses the step and the push gains it.
+- `p = 0` and `t` or `t'` nonzero: the amplitude falls by 5 when it exceeds `4u`, else 4 above `3u`, else 2 above `2u`, else 1 while nonzero.
+
+After either branch the direction byte (offset 0x38, copied to 0x39) is 0 when `t ≠ 0` and `t' < t`, and 1 otherwise, and `t'` becomes `t`. The
+amplitude is then clamped to `0..maximum` by the next update.
 
 ### Rope attachment removal
 
