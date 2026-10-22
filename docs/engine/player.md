@@ -274,8 +274,10 @@ forward and backward dispatch is unchanged, while left and right turning does no
 
 A player that holds a weapon (the weapon-holding predicate) or has combat flag `0x04` set
 ignores the retained walk mode in both forward and backward dispatch: the held walk/run key
-alone selects the walk helper, and its absence the run helper. With the weapon-holding predicate
-true, the forward and backward dispatch without the walk/run key does not start a jump entry.
+alone selects the walk helper, and its absence the run helper. Without the walk/run key, a held
+jump key starts the jump entry in place of the helper for a player that holds a weapon only while the
+action key is not held, and for any other player only while the current group is not a running
+group (forward) or one of the walking groups 19 and 23 (backward).
 
 The helper selection does not bypass the helper's motion, support, animation,
 or movement-marker tests. Water states, drawn weapons, rope motion, jumping,
