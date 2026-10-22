@@ -250,6 +250,39 @@ View (`key_c`) opens the cursor item's examine view with its
 `inventory_object_file` model. When that view returns a nonzero result, the
 inventory screen closes without changing the selection.
 
+### Examine view
+
+The view shows the item's `inventory_object_file` model (loaded from `INVENTRY.ROB`) over the
+frozen screen. The world loop also opens it, with mode 0, for a pickup presentation; the
+inventory screen opens it with mode 1 and the cursor cell's screen position. It pauses the game
+clock for its duration, plays sound effect 61 when it opens and 60 when it begins to close, and
+waits for the next BIOS tick each update. It returns 0 when the item is not in the list.
+
+Three Euler angles (0..0x7FF, wrapping) turn the model: yaw about Y, pitch about X and roll
+about Z, applied to an identity matrix in that order. Offsets are single-precision values. The
+model's extents `a`, `b` and `c` are the values at model offsets 1, 5 and 9 and `M` is the largest.
+The model starts at offset (0, 0, c + 180) and unrotated.
+
+While the view is open, each tick with any direction, A, B or C held applies one step:
+
+| Held | Left / right | Up / down |
+|---|---|---|
+| none | yaw +0x50 / −0x50 | pitch −0x50 / +0x50 |
+| B (`key_b`) | roll −0x50 / +0x50 | depth +80·s / −80·s |
+| A (`key_a`) | X offset −40·s / +40·s | Y offset −40·s / +40·s |
+
+The scale `s` is `(depth − c) / (8·M + 180) + 0.1`. Depth is clamped to `[c, c + 8·M + 180]`,
+and then each offset is clamped to `±2·M·s` (the Y offset's range is scaled by the viewport
+height over its width).
+The view opens by interpolating a factor from 1 to 0 in steps of 0.15 per tick: the model's
+offset is the target offset plus the fly-in offset times that factor. The screen position that
+mode 1 supplies is the cell the item sits in, so the model flies from its cell to the centre. The view
+ignores close requests until Activate, View, Enter and Escape are all released after opening.
+Pressing View, Activate, Enter or Escape then closes it: the factor rises by 0.15 per tick back
+to 1 with the angles interpolating to zero by the shortest way round, and the view returns once it
+exceeds 1. The return value is 1 when Activate or Enter was held at the close request and 0
+otherwise. The caller waits for View, Activate, Enter and Escape to release before continuing.
+
 A cursor item without `bitmap[x]` draws no artwork.
 
 ### Layout
