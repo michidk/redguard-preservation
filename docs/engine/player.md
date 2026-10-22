@@ -589,6 +589,15 @@ falling byte does. Neither nonzero skips the stage. The sliding byte never selec
 it. Directional displacement returns without effect while the actor is attached to
 a rope.
 
+For queued or falling motion 8 or 9 the displacement is forward at the actor heading. It sets motion
+direction 2, the forward update indicator and movement bits `0x30`, even when the current animation
+suppresses displacement. Otherwise, while the accumulated sliding distance is below `0x18000`, each
+update adds `(0x10000 / attribute 31) * frame_scale >> 8`, limited so the accumulated distance
+does not exceed `0x18000`, to that distance and translates by the same amount; at or above the
+cap nothing moves. Motion 2 (a jump steered forward) does the same with `0xb400` and a cap of
+`0x10000`. Deep water halves neither. Other motion values add no displacement here. A zero attribute
+31 divides by zero in the original.
+
 Queued arbitration, the queued and falling vertical writers, the edge service,
 landing and fall start are not part of this stage. They run only inside the
 [ground response](#ground-stage-by-model-kind), which an animated actor reaches
