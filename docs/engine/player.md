@@ -283,6 +283,39 @@ The helper selection does not bypass the helper's motion, support, animation,
 or movement-marker tests. Water states, drawn weapons, rope motion, jumping,
 and special living states have separate dispatch branches.
 
+### Armed attack input
+
+The input sampler keeps a tap latch per key (up, left, right, the walk key, jump, look and action).
+Once per world-loop iteration a latch whose key is not held counts frames since release and clears
+its press count when that timer exceeds the tap window; a latch whose key is held and was not held
+the previous iteration counts a press: the count rises when the release timer is above zero and
+below the window, and restarts at zero otherwise, and the timer restarts either way. The window is
+`[cyrus] tap_time` shifted left eight bits and divided by the frame scale (signed), with a floor
+of six. A latch query names a key, a count and whether to consume: it matches when the press count
+equals the count, and a consuming match clears count, timer and held flag.
+
+After movement dispatch, and only while the jump key is not held, a player holding a weapon runs
+the action-key handler. It does nothing in lifecycle states 20 and 21, without a combat record,
+without the action key, or unless the combat action selector is -1, 0 or 1. While the queued byte is
+nonzero or the falling byte is one, it records a pending jump attack, which starts the jump attack
+once falling is one; otherwise the record clears. With the first directional-state byte's low two bits
+set it only consumes the action latch. Otherwise it selects one move:
+
+| Condition (in order) | Move |
+|---|---|
+| Up key latch consumed at count 1 (a double tap) | Lunge, move 4 |
+| Up key held | 3 |
+| Action latch consumed at count 2 | 2 |
+| Action latch matches count 1 | 1 |
+| Action latch matches count 0 | 0 |
+
+With none of these the action latch is consumed. A move starts only when its authored attack slot
+is populated and the pending move word allows it: moves 0 and 3 need it to be -1, move 1 needs 0
+and move 2 needs 1. Starting writes the move to the action selector and the pending move word and
+runs the attack executor with request 0. Before a start the original also tests whether a target is in
+reach for the move; when no target qualifies but a protected one is within reach it skips the start and
+the player speaks a taunt instead.
+
 ### Controller initialization and preliminary state
 
 Creating the standalone `CYRUS` and `GREMLIN` actors runs the same player
