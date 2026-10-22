@@ -833,9 +833,10 @@ When the ground response finds support and the sliding-surface result is clear (
 return-state byte is nonzero), a nonzero sliding byte ends the slide. If the accumulated sliding
 distance exceeds `SYSTEM.INI [game] slide_hurt_height * 256`, the actor first takes directional
 displacement of Q8 distance `0x800` (direction 2 in groups 75 and 77, direction 3 otherwise), then
-requests group 73 and changes health by `-slide_hurt_zap`; the selected player instead raises its
-pending action 74 before the health change. The sliding byte then clears. The selected player also
-takes the hurt branch whenever its steep-landing flag is set.
+requests group 73 and changes health by `-slide_hurt_zap`; the selected player instead stores death
+override group 74 (no animation request) and takes the health change through its death-owning health.
+The sliding byte then clears. The selected player also takes the hurt branch whenever its
+steep-landing flag (the controller's pending action flag) is set, whatever the slide distance.
 
 ### Initial falling bookkeeping
 
