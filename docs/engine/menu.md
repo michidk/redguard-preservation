@@ -73,7 +73,7 @@ movie.
 ### Credits scroll
 
 The credits come from `CREDITS.TXT` in the game directory. The engine reads the whole
-file and splits it at line feeds into at most 2000 records. A line is
+file in text mode (carriage returns are dropped and a Ctrl-Z ends the data) and splits it at line feeds into at most 2000 records. A line is
 `[-]x,align,style,text`:
 
 - A leading `-` marks the line as continuing the previous one: it is drawn at the
@@ -83,8 +83,7 @@ file and splits it at line feeds into at most 2000 records. A line is
   centered on `x`, `R` or `r` right-aligned to `x`; other letters leave the record left-aligned.
 - `style` is a decimal font-table index with the [reader style table](hud.md#reader-style-table),
   except that style 5 uses the table's entry 9 (`FONTSEL`). Shipped styles are 0, 3 and 5.
-- `text` is the rest of the line, drawn with the same text routine as the reader. CR bytes
-  stay in the text.
+- `text` is the rest of the line, drawn with the same text routine as the reader.
 - A line with no fields keeps the previous record's style and draws nothing; it still occupies
   a line.
 
