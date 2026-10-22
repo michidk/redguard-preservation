@@ -4424,6 +4424,9 @@ destination nor the current position has a surface the result is no hazard. The 
 normal's Y (scale 256): at most -161 is 4, at least 161 is 8, at most -42 is 2, otherwise 1. The test reports a
 hazard when the destination's class is 2.
 
+The selected player runs the same test, except that it reports no hazard while the player's
+[support-history counter](player.md#selected-player-fallback-support) is nonzero.
+
 ### MoveForward
 
 `MoveForward(duration)` is a task that steps the receiver forward along its heading. It shares
