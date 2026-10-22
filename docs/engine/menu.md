@@ -65,10 +65,36 @@ queues of eight 12-byte entries.
 The engine then runs the ending instead of showing a menu page: sound effects
 stop, the CD pauses, movie 4 plays under the [movie rules](movies.md) (`WIN.SMK`
 in the installed MENU.INI, with its configured skip point), and the credits
-scroll plays. The credits stop the CD when they end or when Escape is pressed.
+scroll plays (see [Credits scroll](#credits-scroll)). The credits stop the CD when they end or when Escape is pressed.
 When `CREDITS.TXT` cannot be loaded the credits are skipped and the paused
 world track resumes. F10 in a world plays the same credits scroll without the
 movie.
+
+### Credits scroll
+
+The credits come from `CREDITS.TXT` in the game directory. The engine reads the whole
+file and splits it at line feeds into at most 2000 records. A line is
+`[-]x,align,style,text`:
+
+- A leading `-` marks the line as continuing the previous one: it is drawn at the
+  same height and adds no line advance.
+- `x` is the decimal horizontal position (shipped: 320).
+- `align` is the first letter after the second comma: `L` or `l` left, `C` or `c`
+  centered on `x`, `R` or `r` right-aligned to `x`; other letters leave the record left-aligned.
+- `style` is a decimal font-table index with the [reader style table](hud.md#reader-style-table),
+  except that style 5 uses the table's entry 9 (`FONTSEL`). Shipped styles are 0, 3 and 5.
+- `text` is the rest of the line, drawn with the same text routine as the reader. CR bytes
+  stay in the text.
+- A line with no fields keeps the previous record's style and draws nothing; it still occupies
+  a line.
+
+The scroll uses the 640 × 480 menu resolution, switching to it first when the world resolution
+differs. It first sets the glyph shadow to (2, 2). Text starts below the bottom edge and moves up one
+pixel per displayed frame, with no timer. A line advances by the line height of the engine's
+menu font record. Every frame redraws the visible records, then covers the first line height at the
+top and the last line height at the bottom of the screen with black. The scroll ends when the first visible record
+index passes the record count. Escape ends it earlier and waits for its release. The CD plays track 2
+for the duration (see [music](music.md)).
 
 The menu inherits the current engine lighting and environment state. The default
 book menu has no pointer hover or click selection. Pointer coordinates do not
