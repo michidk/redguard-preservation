@@ -41,7 +41,8 @@ extends 500 map units in each direction from the prepared actor Y plus its
 positive Y extent.
 
 When terrain is enabled, its sampled height is truncated toward zero to an
-integer map height. Terrain is eligible only strictly between the segment
+integer map height. The terrain query does not test water cells: a water cell
+supplies the same interpolated height as a dry cell. Terrain is eligible only strictly between the segment
 endpoints. Its rank is `abs(16384 - ((abs(height - start_y) * 8388) >> 8))`.
 The initial rank without eligible terrain is 65536.
 
