@@ -3564,6 +3564,10 @@ The camera still runs its pose-processing stage. These guards precede the
 holding-weapon and other player-state checks used to choose an automatic slot;
 they do not suspend the whole camera update.
 
+When neither guard applies, the ordinary camera-update path requests the slot from the
+[player camera slot selection](#player-camera-slot-selection) table and falls back to slot zero when no
+condition applies, so a player that sheathes its weapon returns to slot zero on the next update.
+
 ### Camera request candidate position
 
 The camera's initial position-composition stage gives record flag `0x04`
