@@ -929,6 +929,17 @@ bound check:
 | `high_height` | 81, 67, 45, 24, 11, −1, −19, −28, −29, −29, −29, −29, −45, −53, −58, −60, −61, −61, −60, −60, −60, −60, −60, −60, −60, −60 |
 | `high_forward` | 30, 30, 30, 26, 20, 16, 8, 3, −6, −6, −4, 0, −6, −3, 1, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2 |
 
+#### Hanging sidestep
+
+A left or right sidestep in living state 15 is admitted when the [ledge scan](#ledge-scan), run with
+the actor shifted along its own X axis, still finds a class 3 record for the hand. The shift is the
+actor's X extent on that side (the negative extent to the left, the positive to the right) plus
+attribute 10, in whole map units, rotated by the actor matrix; X and Z change and Y stays. The
+original position is restored whatever the result. An admitted step sets the left or right update
+indicator, which the [hanging transition](#ledge-transition) reads, and moves the actor along its
+own X axis by attribute 10 times the frame-scaled step ramp, with no translation while the current
+animation's `BreakPoint` marker is set.
+
 #### Ledge hang release
 
 For the selected player in living state 15 with a zero action-inhibition
