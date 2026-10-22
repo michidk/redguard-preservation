@@ -295,7 +295,10 @@ which advances earlier in the ordinary actor update.
 
 The conditional countdown is processed before the pending action flag. A
 pending action with sliding state zero selects action 74 and invokes its action
-helper. The two unconditional countdowns are processed afterward, before the
+helper: it stores group 74 as the death-animation override and applies health
+-255 through the death-owning selected-player health, naming the player as the
+source. The flag is not cleared by the helper, so each controller call with
+sliding state zero repeats it. The two unconditional countdowns are processed afterward, before the
 selected hit-inhibition test. Nonzero hit inhibition invokes the death controller
 and returns before idle-counter reset, lockout and ordinary keyboard dispatch.
 
@@ -630,9 +633,8 @@ which forwards the selected receiver to its death-owning health with no source.
 Its fatal landing makes no animation request. It stores group 74 as the
 death-animation override, applies health -256 through that same admission and
 then clears the falling byte. A fatal landing on a support whose stored
-classification is steep (2) instead sets a retained selected-player
-flag read by the sliding landing and does nothing else: no override, no health
-change, and falling stays set.
+classification is steep (2) instead raises the controller's pending action flag
+and does nothing else: no override, no health change, and falling stays set.
 
 ### Ordinary landing animation selection
 
