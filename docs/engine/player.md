@@ -342,6 +342,40 @@ protected actor's attribute 118 is nonzero, else type 10. Those taunt types use 
 [begin-combat taunts](../config/combat-ini.md#taunt-types), and are not requested while the retained
 taunt cache entry still remembers a sample.
 
+### Armed look-key handling
+
+The look key leaves the movement dispatch, but the armed handler described above still runs, ahead of the
+attack keys and only while the jump key is not held. In order:
+
+1. With both the look and action keys held, a timer adds the nominal ticks of the iteration. Once it is
+   greater than `[cyrus] sheath_sword_delay` (6 when the configured value is zero) the handler runs
+   [`SheathSword`](SOUP.md#sheathsword) for the player. The iteration ends either way. Any other state of
+   the two keys clears the timer.
+2. A drawing or sheathing sword ends the iteration.
+3. With the action key held the attack selection above follows.
+4. With the action key released, a counter that adds the nominal ticks of every iteration is compared with
+   COMBAT.INI `[misc] cyrus_defend_interval`. When the look key is held and the counter is greater, the
+   defence stance starts (below) with `[cyrus] auto_defend` off, or only when an automatic defence is
+   found with it on. A started stance sets the low two bits of the combat flags to 2 and clears the
+   counter.
+5. A jump attack still pending while the falling byte is one then starts as in the attack selection, and the
+   action latch is consumed.
+
+The defence stance does nothing unless no move is selected. It sets the pending defence index to zero, or
+to the counter-attack reference of the first attacker when that attacker is in the player's forward arc
+(strictly under 256 heading units) and its attack state is one. An attacker is an actor in the ordinary list
+other than the player with a combat record whose target is the player, whose attacker-selection state is one
+and that is not dead. The stance then selects move nine and runs the defence executor, which requests the
+selected defence's animation group, sets attack state two and lowers aggression by ten.
+
+The automatic defence visits the attackers in list order. An attacker qualifies when it is in the forward
+arc, has combat flag `0x01` and attack state one, and the strike window of its current motion lies inside the
+active window of the player's defence record for that motion's counter-attack reference. With
+`gap_near = first_collide_frame - cursor` and `gap_far = first_defend_frame - cursor` (the cursor is the
+attacker's animation command cursor) and the defence's `first_collide_frame` as `start` and
+`first_collide_frame + collide_duration` as `end`, the window is inside when `start < gap_far` or `gap_far <= 0`,
+and `end > gap_far`, and `start < gap_near`, and `end > gap_near`. The first qualifying attacker starts the stance.
+
 ### Controller initialization and preliminary state
 
 Creating the standalone `CYRUS` and `GREMLIN` actors runs the same player
