@@ -448,10 +448,15 @@ roll affect position but do not change the rider's pitch or roll.
 
 An attached support uses current and previous effective positions and angles;
 this path does nothing during the first two family generations. Living states
-10 through 19 instead use their separate owner and additional position/heading
-records. The selected player can reject the transformed destination through
-additional collision queries. These cases are distinct from the ordinary
-unattached nonplayer path.
+10 through 19 follow the [ledge-support actor](player.md#selected-player-ledge-entry)
+instead of the retained ground support, with the same attribute 24 and
+attachment rules. The retained ledge point receives the support's translation
+and the same rotation about the support, and the ledge heading receives the
+support's heading delta, wrapped to 2048 units, in the same pass as the rider.
+The selected player in those states is not subject to the destination
+collision queries below. Otherwise the selected player can reject the
+transformed destination through additional collision queries. These cases are
+distinct from the ordinary unattached nonplayer path.
 
 ## Ordinary actor eligibility
 
