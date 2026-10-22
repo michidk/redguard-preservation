@@ -2426,6 +2426,14 @@ byte wrapping when the collision-response auxiliary byte has bit 7 set, a map is
 present, and a next node is held. A resulting counter greater than eight selects
 phase 24. Otherwise the counter resets to zero.
 
+Collision response marks are then read. When the collision-transition byte's
+bit 0 is clear, any of auxiliary-byte bits 1 or 7, or body-response bits 1 or 3,
+releases the actor's held walk nodes and selects phase zero, whatever phase the
+blocked-route counter selected. When the transition bit is set, the held nodes are
+released too; a collision-response age below 16 then restores the three local
+coordinates from the actor's retained stable position, and an older response
+selects phase 24 unless the phase is already 24 or 25.
+
 The shared player-exclusion switch starts disabled during player setup. Point
 movement consults this switch before falling/queued-motion handling. It is the
 same switch used by walk-node admission; held-target admission has its own
