@@ -805,6 +805,10 @@ link position plus the previous link's matrix applied to `(0, link length, 0)`, 
 way and pitched by `−(sum of the step angles of links 1..i−1 >> 8) & 0x7FF`, so link 1 has pitch 0 and an
 unswinging rope hangs straight. Positions are stored as single-precision values divided
 by 256. An actor attached to node `i` is placed on that link position.
+Each placement then offsets the actor by its hand: the vector `(0, −hand Y, −hand Z)` of the same grip
+vertex, rotated by the actor's own orientation (heading, pitch, roll 0), is added to the actor's position,
+so the hand rests on the link. The Y component is skipped while the actor plays group 0x54 with the animation
+record byte `+0x11` below 3.
 
 ### Rope attachment
 
@@ -847,10 +851,13 @@ links it at the head of the rope's attachment list, stores the actor in the node
 actor, copies the rope identifier into the actor and clears the countdown. The requested link index
 is the lowest touching sphere index, clamped to `[0, link count − 1]`, then replaced by the link
 nearest to the actor's hand height: starting at index − 8 (floor 0), the link whose stored Y (a
-single-precision value) is at or below the target height and closest to it wins. The target is the
-Y of the animation key point 0x4F plus the actor's Y position, shifted right by eight; when its
-distance from the floor probe is less than the actor height limit plus the key point's Y, it becomes
-the floor probe minus that limit. With no such key point the requested index stands. The
+single-precision value) is at or below the target height and closest to it wins. The hand point is
+grip vertex 0 (the RAEX `grip0` vertex) of the first `ShowFrame` of animation group 79, as the
+integer Q8 model vertex. The target is `(hand Y + actor Y + 2 × link length − 1) >> 8`, the link length
+in Q8 as stored on the rope. When its distance from the floor probe is less than the actor height limit
+plus the vertex's absolute Y, it becomes the floor probe minus that limit. With no group 79 frame the
+requested index stands. The node stores that chosen link index.
+
 node stores that chosen link index.
 
 Then, with type bit 0x1 clear the rope heading becomes the actor heading; with it set the actor
