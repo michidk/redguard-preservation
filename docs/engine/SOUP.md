@@ -918,6 +918,12 @@ push (the word at offset 0x62), it adjusts the amplitude and the push by one ste
 After either branch the direction byte (offset 0x38, copied to 0x39) is 0 when `t ≠ 0` and `t' < t`, and 1 otherwise, and `t'` becomes `t`. The
 amplitude is then clamped to `0..maximum` by the next update.
 
+### Rope update order
+
+Each world-loop iteration builds the map render lists first, which places every rope's links and attached actors and runs
+each rope's amplitude service, then runs the rope update (swing step and attachment climbs), then the shell scripts, then
+the ordinary actors, whose update runs the [attachment test](#rope-attachment) and the [attached controls](#rope-control-while-attached).
+
 ### Rope attachment removal
 
 Ropes own doubly linked lists of attachment nodes. Each node retains its actor,
