@@ -48,6 +48,12 @@ selection), deletes the per-world saved map files (`MAPS\*.TSG`), reads the
 menu and movie settings from `MENU.INI`, loads `LOGBOOK.TXT`, and then resets
 a fixed set of engine globals. A plain world replacement does not run it.
 
+The player's health is retained outside the world. Every health change stores
+the selected player's health attribute (attribute 3) in a retained value, world
+entry copies that value into attribute 3 of both player records, and the session
+initializer sets it to 100. A plain world replacement therefore keeps the damage
+the player has taken, and New Game restores full health.
+
 The New Game transition also tears the running session down before the
 initializer: it stops and releases every entry of the active-sound list
 (stopping the entry's channel when it is playing), stops all 16 sound channels,
