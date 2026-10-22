@@ -1261,8 +1261,11 @@ receives death selector eight.
 ### Hit-defence response
 
 The candidate's hit-defence query requires the attacker to have combat state and
-an action other than `-1` or nine. The defender's retained defence selector must
-match the attacker's current-motion defence selector. The attacker's defence
+an action other than `-1` or nine. The defender's pending defence index, the word the
+[attack executor](#attack-executor) resolves through the four defense slots (written by an ordinary
+counter and by the selected player's [defence stance](player.md#armed-look-key-handling)), must
+equal the attacker's current-motion counter-attack reference. The defender's attack-slot selector
+does not take part. The attacker's defence
 window must admit processing, and the defender must have combat flag `0x02` set.
 Only then does the query test contact from attacker to defender.
 
