@@ -2222,10 +2222,12 @@ result at a single-precision midpoint. The result is compared with the
 signed `distance` argument using an inclusive bound. The distance argument
 therefore uses 256 units per map unit.
 
-Marker lookup rejects an out-of-range or absent marker. The ordinary world
-marker table has 128 slots and accepts any nonzero presence byte. The alternate
-map path uses its own stored count and requires a presence byte of one. The
-marker argument is an unscaled signed index, distinct from the distance units.
+Marker lookup is fatal for an out-of-range or absent marker. While a world is
+loaded, the lookup reads that map's own marker table: the index must be below
+the map's marker count and the presence byte must equal one. A fixed 128-slot
+table that accepts any nonzero presence byte is read only when no loaded map is
+active. The marker argument is an unscaled signed index, distinct from the
+distance units.
 
 ### Navigation map validation
 
