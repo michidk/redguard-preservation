@@ -775,6 +775,37 @@ raises the shared HUD health-feedback timer to 25 when it is at most 25; larger
 timers remain unchanged. This command does not write retained displayed health
 or invoke additive-health inhibition, hurt reactions or death services.
 
+### Rope construction and swing
+
+Loading a map builds one rope per `MPRP` record, only when SYSTEM.INI `ropes_load` is
+set. At most 255 ropes exist; another is a fatal error. A rope retains a link array and
+an attachment list and joins the head of the rope list.
+
+Constructor inputs, from the record: the link model is `rope_model` and the optional end model
+`static_model` (an empty name is none); the base position; `length` links (an `i16`); the
+`swing` maximum amplitude; the `speed` rate, where a value below 1 becomes 199; and the type
+byte. An end model sets bit 0x10 of the type byte. Bit 0x20 starts the live amplitude at the maximum
+(otherwise 0). Heading `angle_y` and the three swing sound effects at 0x34–0x3C are stored on the rope. A nonzero
+word at 0x44 lowers the base Y by the link length times `length`, plus 256 times an engine constant. A link's length is a fixed-point value
+taken from its model record. Link `i` records its position along the rope as
+`(link length / 2 + i × link length) >> 8` and its extent as `link length >> 8`.
+
+Each update, for ropes whose active word (set to 1 at construction) is 1, the amplitude is clamped to 0..maximum. With
+type bits 0x4 and 0x8 clear and a nonzero amplitude, the phase advances by
+`speed × 0x40 × frame scale >> 8` and the step angle is
+`sine[(phase >> 8) & 0x7FF] × amplitude >> 9`. A zero amplitude gives step angle 0. Attached
+actors playing animation 0x52 move one node toward the base, and 0x53 one node down while the
+limit routine allows it; each such step also sets the amplitude to 2 and the phase to 0 when the amplitude and the rope's word at offset 0x62 are zero.
+The integer sine table holds, for `i` in 0..1023, `trunc(sin(i × π / 1024) × 65536)`, with the
+entry at `2048 − i` negated and the entry at 1024 zero.
+
+Placement runs from the map render list. Link 0 sits at the rope position, yawed by
+`−angle_y & 0x7FF` and pitched by `−(amplitude >> 8) & 0x7FF`. Link `i ≥ 1` sits at the previous
+link position plus the previous link's matrix applied to `(0, link length, 0)`, and is yawed the same
+way and pitched by `−(sum of the step angles of links 1..i−1 >> 8) & 0x7FF`, so link 1 has pitch 0 and an
+unswinging rope hangs straight. Positions are stored as single-precision values divided
+by 256. An actor attached to node `i` is placed on that link position.
+
 ### Rope attachment removal
 
 Ropes own doubly linked lists of attachment nodes. Each node retains its actor,
