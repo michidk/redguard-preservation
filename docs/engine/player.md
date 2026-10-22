@@ -622,8 +622,17 @@ surface states 1 through 5 and 11. These threshold branches precede the
 ordinary landing animation selection. They clear the falling byte.
 
 For the ordinary nonplayer fatal path, group 74 is an ordinary request.
-The ordinary hurt group 73 also uses ordinary request arbitration. Selected
-player death presentation and steep-surface fatal handling are separate paths.
+The ordinary hurt group 73 also uses ordinary request arbitration.
+
+The selected player takes the same threshold tests and the same hurt response:
+group 73, then the generic health-with-death admission with `-fall_hurt_zap`,
+which forwards the selected receiver to its death-owning health with no source.
+Its fatal landing makes no animation request. It stores group 74 as the
+death-animation override, applies health -256 through that same admission and
+then clears the falling byte. A fatal landing on a support whose stored
+classification is steep (2) instead sets a retained selected-player
+flag read by the sliding landing and does nothing else: no override, no health
+change, and falling stays set.
 
 ### Ordinary landing animation selection
 
