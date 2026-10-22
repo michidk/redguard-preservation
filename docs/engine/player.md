@@ -1266,7 +1266,9 @@ midpoint ranking above, followed by terrain height comparison. This scan does
 not apply the queued-motion candidate-type exclusion. When local X and Z have
 not changed, the current result also serves as the previous result.
 
-If both queries miss, both results clear. Classification 4 at both positions
+If both queries miss, both results clear. When exactly one query misses, the
+classification of the missing side is read from uninitialised stack memory and
+is not defined. Classification 4 at both positions
 also clears both. Classification 2 at both positions permits motion and marks
 the sliding-surface result. For a current class 2 after another previous class,
 subtract the motion heading from the current normal heading minus 1024 and
