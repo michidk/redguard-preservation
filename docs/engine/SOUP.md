@@ -2075,7 +2075,7 @@ alignment flag and a nonzero one sets it, and the task reports that result.
 
 `GetAttribute` reads an unsigned byte from the receiving actor's attribute table and returns zero when the table is absent. `SetAttribute` returns zero. When the table exists, it writes the low byte of the supplied value. Writing attribute 6 also copies that byte to attribute 115; writing attribute 1 also copies it to attribute 119. These two handlers do not check the attribute index range.
 
-`GetMyAttr` reads an unsigned byte from the receiving actor's attribute table. It returns zero when the table is absent or the index is outside 0–255. `SetMyAttr` returns zero and ignores an absent table or an out-of-range index. A valid write truncates the supplied value to its low byte. Attribute 44 also stores that truncated byte as the combat death-default group when the actor has a combat record and its object-update exclusion is nonzero.
+`GetMyAttr` reads an unsigned byte from the receiving actor's attribute table. It returns zero when the table is absent or the index is outside 0–255. `SetMyAttr` returns zero and ignores an absent table or an out-of-range index. A valid write truncates the supplied value to its low byte. Attribute 44 also stores that truncated byte as the combat death-default group when the actor has a combat record and its object-update exclusion is nonzero. No other index has a write-time effect: attachment, rotation, family and model attributes are read where they are used, and a write neither rebinds the family nor refreshes the model.
 
 ### Initial attribute copy and defaults
 
