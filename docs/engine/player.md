@@ -1514,6 +1514,21 @@ and then truncated toward zero, using the shared heading-translation rule.
 Overlap marks share the body-response byte used by primary, residual, bounds
 and forward response. They do not write the separate rollback-result byte.
 
+An actor-pair overlap with a separation of three or more takes a landing branch
+before any weighted separation when the updating actor's falling state is
+nonzero, the other actor's attribute 98 (`attr_bounce_power`) is nonzero, and
+the absolute difference between the actor's Q8 Y and its retained fall origin
+is at least `SYSTEM.INI` `[game] fall_bounce_height` times 256. The branch
+lands the actor on the other actor and ends the overlap pass with body-response
+bit `0x80` set; without these conditions the weighted response applies. The
+landing is refused when the actor is in living states 10 through 19, 27 or 28,
+or its surface is deepwater or scapedeepwater, or the other actor has no model
+record; a refused landing changes nothing. A landing makes the other actor the
+actor's support, clears the actor's sliding, falling and queued-motion bytes
+and its two retained motion words, sets living state 27, requests animation
+group 10 on the other actor, and requests the landing animation group (114,
+66 or 65) on the actor.
+
 The overlap pass visits its retained actor-style candidate list in order. Later
 queries read the positions left by earlier responses. If any weighted
 separation occurred and the loop completes, the forward obstacle response
