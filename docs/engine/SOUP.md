@@ -4279,9 +4279,12 @@ that move, then invokes the defence executor with request zero synchronously.
 The executor can therefore change state before a later picker or starter reads it.
 It resolves the defence selector through the receiver's nine attack slots and
 uses the move selector to choose that attack's motion. When the actor leaves the
-expected animation group, a following motion of type one admits the next chain
-step, up to the third motion. The type test reads the following motion, not the
-current one. Unfilled motion slots retain their zero-initialized type.
+expected animation group, a populated following motion admits the next chain
+step, up to the third motion. The test reads the following motion's first word, not the
+current one's. Motion loading stores one in that first word for every motion it fills,
+whatever the authored `type` is (the authored `type` lives in a separate field), and unfilled
+motion slots keep their zero-initialized word. A combo therefore chains through all of its
+referenced moves.
 For selected-player kind four, the movement update precedes those writes and uses
 attribute 16 shifted left eight bits with movement mode one. Its return value does
 not gate the subsequent defence start. The nonplayer kind-four path omits that
