@@ -449,7 +449,8 @@ convert each result to an integer with nearest-even rounding. The final rider
 position is the resulting offset plus the current support position. Pitch and
 roll affect position but do not change the rider's pitch or roll.
 
-An attached support uses current and previous effective positions and angles;
+An attached support uses current and previous effective positions and angles
+(each family refresh stores the effective values it replaces as the previous ones);
 this path does nothing during the first two family generations. Living states
 10 through 19 follow the [ledge-support actor](player.md#selected-player-ledge-entry)
 instead of the retained ground support, with the same attribute 24 and
