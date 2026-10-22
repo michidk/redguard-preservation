@@ -143,7 +143,8 @@ All fields little-endian.
 Rope instancing behavior:
 
 - Decode base translation with the same MPOB scale/sign rules.
-- Spawn `length` copies of `rope_model`.
+- Spawn `length` copies of `rope_model`. Every link and the end model are yawed by `angle_y` (`0..2047`, 2048 per turn) with the
+  same convention as an MPOB object's `angle_y`; pitch and roll are zero for a rope at rest.
 - Link 0 is placed at the base position; each following link is `0.8` lower in Y
   (the height of the link model, shipped `ROPELINK` and `CHAINLNK` are both 0.8 tall and centered).
 - If `static_model` is present, place one additional instance `0.8` below the last link.

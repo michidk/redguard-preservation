@@ -486,7 +486,7 @@ fn append_rope_records(
                     flat: None,
                     model: model.model.clone(),
                     render_attributes: model.render_attributes,
-                    transform: translation_matrix(pos),
+                    transform: rope_transform(record.angle_y, pos),
                     model_name: format!("R{i:03}_{j:03}_{}", record.rope_model),
                     source_id: Some(record.rope_model.clone()),
                 });
@@ -508,7 +508,7 @@ fn append_rope_records(
                 flat: None,
                 model: model.model,
                 render_attributes: model.render_attributes,
-                transform: translation_matrix(pos),
+                transform: rope_transform(record.angle_y, pos),
                 model_name: format!("R{i:03}_{link_count:03}_{}", record.static_model),
                 source_id: Some(record.static_model.clone()),
             });
@@ -1125,6 +1125,15 @@ fn mpob_transform(record: &MpobRecord) -> [f32; 16] {
     )
 }
 
+/// Rope links and the end model are yawed by the rope heading with the same convention as
+/// [`mpob_transform`]; pitch and roll stay zero because ropes start at rest.
+fn rope_transform(angle_y: i32, position: [f32; 3]) -> [f32; 16] {
+    let yaw = f32::from(u16::try_from(angle_y.rem_euclid(2048)).unwrap_or_default())
+        * MPOB_ANGLE_TO_DEGREES;
+    let (sy, cy) = libm::sincosf(yaw.to_radians());
+    build_column_major_matrix([[cy, 0.0, sy], [0.0, 1.0, 0.0], [-sy, 0.0, cy]], position)
+}
+
 fn multiply_3x3(lhs: [[f32; 3]; 3], rhs: [[f32; 3]; 3]) -> [[f32; 3]; 3] {
     let mut out = [[0.0_f32; 3]; 3];
     for row in 0..3 {
@@ -1365,7 +1374,7 @@ fn append_rope_placements(records: &[MprpRecord], placements: &mut Vec<Placement
                 placements.push(Placement {
                     model_name: rope_stem.to_owned(),
                     source_id: format!("R{i:03}_{j:03}_{rope_stem}"),
-                    transform: translation_matrix(pos),
+                    transform: rope_transform(record.angle_y, pos),
                     object_type: PlacementType::RopeLink,
                     texture_id: 0,
                     image_id: 0,
@@ -1377,7 +1386,7 @@ fn append_rope_placements(records: &[MprpRecord], placements: &mut Vec<Placement
             placements.push(Placement {
                 model_name: static_stem.to_owned(),
                 source_id: format!("R{i:03}_{link_count:03}_{static_stem}"),
-                transform: translation_matrix(pos),
+                transform: rope_transform(record.angle_y, pos),
                 object_type: PlacementType::Mesh,
                 texture_id: 0,
                 image_id: 0,
@@ -1518,5 +1527,18 @@ mod rope_placement_tests {
         for (height, expected) in heights.iter().zip(expected) {
             assert!((height - expected).abs() < 1e-3, "{height} vs {expected}");
         }
+    }
+
+    #[test]
+    fn links_and_end_model_take_the_rope_heading() {
+        let flat = rope_transform(0, [1.0, 2.0, 3.0]);
+        assert_eq!(flat, translation_matrix([1.0, 2.0, 3.0]));
+        let quarter = rope_transform(512, [1.0, 2.0, 3.0]);
+        assert!(quarter[0].abs() < 1e-6 && quarter[10].abs() < 1e-6);
+        assert_eq!(&quarter[12..15], &[1.0, 2.0, 3.0]);
+        assert_eq!(
+            rope_transform(-1536, [0.0; 3]),
+            rope_transform(512, [0.0; 3])
+        );
     }
 }
