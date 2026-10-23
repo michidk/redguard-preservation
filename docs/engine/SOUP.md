@@ -4582,8 +4582,9 @@ is filled from the texture identifier, and a zero slot or one above 30000 is a f
 record, when present, gives the draw flags (the flag word is `1` plus the attribute's flag byte) and the alpha (the
 attribute's alpha byte plus one); without it the alpha is 255. The sprite is then submitted through the same routine
 as [placed flats](texture-animation.md#placed-flat-admission) with the cached slot, the record's frame word, the
-position, scale 1 and those flags and alpha; flag `0x80` selects a fixed brightness of 200 and alpha of 1, any
-other flag set the retained global brightness byte.
+position, scale 1 and those flags and alpha, with the retained global brightness byte as the brightness. When flag
+`0x80` is set the flag word also gains `0x200` and the brightness, alpha and size inputs are replaced by 200, 200 and
+200, which that submission reads as a solid-colour tint (red, green and blue all 200).
 
 `Resurrect` acts only while the killed flag is set or the death selector is 8; otherwise nothing further
 happens. It clears the killed flag. When the receiver has combat state and its death selector is 6, it first sets the
