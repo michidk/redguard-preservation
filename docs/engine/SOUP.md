@@ -1767,6 +1767,8 @@ finite. The authored sequence can repeat while the actor remains eligible.
 
 `Gosub` stores the address following its target operand in the actor's single return continuation, then jumps to the target. A later `Gosub` overwrites that continuation. `Return` resumes at the stored continuation and restores the actor's saved script-return byte. It does not pop a stack or clear the saved continuation. Subroutines share actor-local variables.
 
+A fresh actor's return continuation is null. A `Return` executed while it is null (installed scripts reach this by entering a subroutine body with `End`, for example the `VILEDOG` actor) behaves like `Endint`: the invocation ends and the actor's main continuation becomes the script base. The same holds when the `Return` runs from the entry continuation; the main continuation is reset to the script base there too, unlike `Endint`, which preserves it. The game continues running; nothing faults.
+
 ### Endint (`0x13`)
 
 Resets the active cursor to the script base and returns from the current invocation. Script-entry processing preserves the main continuation while advancing its separate entry cursor.
