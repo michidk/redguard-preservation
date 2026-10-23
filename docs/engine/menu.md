@@ -91,7 +91,7 @@ The scroll uses the 640 × 480 menu resolution, switching to it first when the w
 differs. It first sets the glyph shadow to (2, 2). Text starts below the bottom edge and moves up one
 pixel per displayed frame. Each frame first waits a 2 ms calibrated busy delay (the startup
 calibration counts DOS time calls over one clock second), then redraws and swaps buffers; there is no other timer. Graphics initialization sets the buffer swap interval to one, so
-each swap waits for the next vertical retrace of the display: the scroll moves one pixel per display refresh. A line advances by the line height of the engine's
+each swap waits for the next vertical retrace of the display: the scroll moves one pixel per display refresh. The Glide window is opened with the 60 Hz refresh setting, so a display that honours it scrolls 60 pixels per second. A line advances by the line height of the engine's
 menu font record. Every frame redraws the visible records, then covers the first line height at the
 top and the last line height at the bottom of the screen with black. The scroll ends when the first visible record
 index passes the record count. Escape ends it earlier and waits for its release. The CD plays track 2
