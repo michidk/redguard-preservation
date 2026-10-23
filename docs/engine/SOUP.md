@@ -2114,6 +2114,11 @@ Every invocation then runs, in order:
 
 The lift shares the fall-origin word. "Weapon held" is the ordinary holding-weapon predicate.
 
+The ordinary update's ground response begins with a handler for the actor's lifecycle states 27 through
+32. For states 30 and 31 it reports the update handled, so the ground response does nothing (no support
+query result is applied, no fall starts). State 32 is not handled: the ordinary falling and landing
+response runs, and the falling byte it clears ends the task as above.
+
 ### PlayerFaceObj
 
 `PlayerFaceObj` is a task that turns the selected player to face its receiving actor. It
