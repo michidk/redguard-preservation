@@ -4574,6 +4574,17 @@ traversal draws the actor's flat as a camera-facing sprite at the actor's positi
 through its orientation, using the texture's attributes for its flags and alpha. The installed type-3
 placements are the `LAVABUB1` lava bubbles (`DRINT`, `ISLAND`, `CATACOMB`) and the `LH_FIRE` and `CT_FIRE` fires.
 
+The drawing routine runs once per actor in the ordinary traversal, for actors whose draw-suppress byte is clear. It
+draws nothing unless the record's enable byte and texture identifier are nonzero. The three signed 16-bit offsets
+are transformed by the actor's current pose, and the integer result (the transformed point shifted right by eight)
+is the sprite's world position. The record caches the loaded image slot for its texture; while that cache is zero it
+is filled from the texture identifier, and a zero slot or one above 30000 is a fatal error. The texture's attribute
+record, when present, gives the draw flags (the flag word is `1` plus the attribute's flag byte) and the alpha (the
+attribute's alpha byte plus one); without it the alpha is 255. The sprite is then submitted through the same routine
+as [placed flats](texture-animation.md#placed-flat-admission) with the cached slot, the record's frame word, the
+position, scale 1 and those flags and alpha; flag `0x80` selects a fixed brightness of 200 and alpha of 1, any
+other flag set the retained global brightness byte.
+
 `Resurrect` acts only while the killed flag is set or the death selector is 8; otherwise nothing further
 happens. It clears the killed flag. When the receiver has combat state and its death selector is 6, it first sets the
 selector to 1 and the death response to 0, clears combat flag `0x04` and zeroes the close-distance pass counter and
