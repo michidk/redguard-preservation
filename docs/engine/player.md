@@ -1491,6 +1491,13 @@ shape's current local coordinates and angles. Residual response uses the first
 working record's copied angles, with its origin refreshed from the actor's
 current effective map position.
 
+An actor whose definition carries vertex-bound collision records (`RAVC`) selects a shape
+rebuilt from them instead of its initial shape: one sphere per record, in record order. Each center
+axis is the record's model vertex divided by 256, truncating toward zero, plus the record's signed
+offset on that axis, and the radius is the record's radius. The vertex is read in model units from the
+actor's current animation frame when the actor has an animated model source, otherwise from its
+base model. The rebuilt spheres then follow the position and orientation preparation above.
+
 The ordinary update copies the selected shape into two working records. For
 upright bounds, the second record's sphere count is increased by one, including
 the additional stored support sphere. The first record retains the ordinary
