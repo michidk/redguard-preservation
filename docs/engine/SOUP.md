@@ -4563,10 +4563,16 @@ receiver, and both reservation slots then hold no node.
 
 `KillMe` then clears the receiver's current model presentation record, releases its two retained per-actor
 buffers, sets its killed flag and its death selector to 8, and stops every active sound owned by the receiver.
-The two buffers are the receiver's [light record](#script-light-controls) (41 bytes) and a 20-byte record
-that map loading creates for a type-3 placement (an enable byte and the placement's texture value). Each
-pointer is cleared after its buffer is freed, so a later light call creates a new record with the defaults
-described there.
+The two buffers are the receiver's [light record](#script-light-controls) (41 bytes) and its 20-byte flat
+sprite record, the record the `Flat` functions control: an enable byte, a pending byte, three 16-bit offsets, the
+texture identifier, a frame cache and the playback counters. Each pointer is cleared after its buffer is freed,
+so a later light or flat call creates a new record with the defaults.
+
+Map loading creates a flat record for every type-3 placement, enabled, with zero offsets and the placement's
+texture value as its texture. While a record is enabled and its texture is nonzero, the ordinary actor drawing
+traversal draws the actor's flat as a camera-facing sprite at the actor's position plus the offset resolved
+through its orientation, using the texture's attributes for its flags and alpha. The installed type-3
+placements are the `LAVABUB1` lava bubbles (`DRINT`, `ISLAND`, `CATACOMB`) and the `LH_FIRE` and `CT_FIRE` fires.
 
 `Resurrect` acts only while the killed flag is set or the death selector is 8; otherwise nothing further
 happens. It clears the killed flag and leaves the death selector unchanged. When the receiver has combat state it
