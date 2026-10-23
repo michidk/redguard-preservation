@@ -4582,7 +4582,7 @@ is filled from the texture identifier, and a zero slot or one above 30000 is a f
 record, when present, gives the draw flags (the flag word is `1` plus the attribute's flag byte) and the alpha (the
 attribute's alpha byte plus one); without it the alpha is 255. The sprite is then submitted through the same routine
 as [placed flats](texture-animation.md#placed-flat-admission) with the cached slot, the record's frame word, the
-position, scale 1 and those flags and alpha, with the retained global brightness byte as the brightness. When flag
+position, scale 1 and those flags and alpha, with the world's `world_ambientfx` value (see [WORLD.INI](../config/world-ini.md#lighting)) as the brightness. When flag
 `0x80` is set the flag word also gains `0x200` and the brightness, alpha and size inputs are replaced by 200, 200 and
 200, which that submission reads as a solid-colour tint (red, green and blue all 200).
 
