@@ -4586,6 +4586,15 @@ position, scale 1 and those flags and alpha, with the world's `world_ambientfx` 
 `0x80` is set the flag word also gains `0x200` and the brightness, alpha and size inputs are replaced by 200, 200 and
 200, which that submission reads as a solid-colour tint (red, green and blue all 200).
 
+Each update of an actor that is not hidden also steps its flat record, beside the light maintenance. A zero or
+`0xffff` texture disables the record. A disabled record adds the elapsed ticks (low byte, wrapping) to its pending
+byte and is freed once that byte exceeds 32. An enabled record first consumes a wrap marker (the high bit of its
+loop byte): the marker clears and the frame returns to the record's counter. A frame of `0xffff`, or a counter equal
+to the last frame, shows a static image. Otherwise the frame moves by the elapsed ticks times the speed byte, up when
+the counter is below the last frame and down when it is above. Passing the last frame disables the record when the
+loop byte is zero; otherwise it sets the wrap marker and restarts the frame at the counter plus the overshoot (clamped
+to the counter if that still passes the last frame).
+
 `Resurrect` acts only while the killed flag is set or the death selector is 8; otherwise nothing further
 happens. It clears the killed flag. When the receiver has combat state and its death selector is 6, it first sets the
 selector to 1 and the death response to 0, clears combat flag `0x04` and zeroes the close-distance pass counter and
