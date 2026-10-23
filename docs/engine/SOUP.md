@@ -2475,7 +2475,9 @@ selects phase 25 and stays pending. Phase 25 changes nothing until the actor's c
 group equals its default group, then selects phase zero. Both phases stay pending (lifecycle
 selector seven, attribute 1 unchanged) and register the actor once for a deferred map update.
 
-The shared player-exclusion switch starts disabled during player setup. Point
+The shared player-exclusion switch starts disabled during player setup and nothing in the
+executable ever enables it, so walk-node admission and held-target admission never reject a
+node on its account. Point
 movement consults this switch before falling/queued-motion handling. It is the
 same switch used by walk-node admission; held-target admission has its own
 position quantization and angular checks.
