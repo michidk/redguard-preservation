@@ -2440,6 +2440,13 @@ released too; a collision-response age below 16 then restores the three local
 coordinates from the actor's retained stable position, and an older response
 selects phase 24 unless the phase is already 24 or 25.
 
+Phase 24 is the back-off after a blocked route. It releases the actor's held walk nodes, then
+steps backward for one update with `WalkBackward` when attribute 93 is zero and with `MoveBackward`
+otherwise (both with a frame count of one, and `WalkBackward` is `MoveBackward` in deep water),
+selects phase 25 and stays pending. Phase 25 changes nothing until the actor's current animation
+group equals its default group, then selects phase zero. Both phases stay pending (lifecycle
+selector seven, attribute 1 unchanged) and register the actor once for a deferred map update.
+
 The shared player-exclusion switch starts disabled during player setup. Point
 movement consults this switch before falling/queued-motion handling. It is the
 same switch used by walk-node admission; held-target admission has its own
