@@ -119,7 +119,7 @@ volume and a pan.
 - **Channels:** 16 sample channels. A start takes the first idle channel at or
   above a start index. When none is idle the sound is dropped; playing sounds
   are never stolen. The start index is 0 for the player's own animation sounds
-  and for speech, 4 for combat hit sounds, and 6 otherwise (0 at boot until the
+  and for speech, 4 for the combat message responses, and 6 otherwise (0 at boot until the
   first sound that resets it).
 - **Ownership:** each channel records its owner object and the requested
   effect index (before any SURFACE.INI remap).
@@ -397,7 +397,11 @@ its range; the script must call it again to resume.
 
 - **Combat hits:** effect from the attacker's `hit_sound` attribute,
   `off = 0`, `rate_offset = random(0..127) × 16 − 1024` Hz (−1024 to
-  +1008), start index 4. Not started when `v = 0`.
+  +1008). Not started when `v = 0`. The start index is 4 for the effect a
+  combat message response plays (the hit message `0xd001` and the
+  direct-damage message `0xd005`, see [SOUP](SOUP.md)). The same effect started by
+  the weapon-contact service, and the sword clank cues started by the contact
+  and defence services, use the shared start index (6).
 - **Speech:** [RTX](../formats/RTX.md) clips start at pan 64 with rate offset
   0 and volume `clamp(header byte 0x0C, 0, 127)` (100 in the shipped
   `ENGLISH.RTX` audio headers), start index 0. While the dialogue runs, the
