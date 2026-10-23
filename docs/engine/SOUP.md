@@ -2083,6 +2083,37 @@ byte (10 gives 9, 11 gives 10, 20 gives 11, 21 gives 12), the current animation 
 whether the player's local position differs from its position saved at the update's entry (21).
 Classes 13 and 14 repeat the living-state tests of 9 and 10 and are never returned.
 
+### BounceObject
+
+`BounceObject(power, speed, steer)` is a task that launches its object (the selected player in
+installed content: `BounceObject(160, 40, 1)`) up and forward, then leaves the descent to the ordinary
+falling controller. It reports one while it runs and zero when done. The lifecycle byte moves through
+30 (entry requested), 31 (rising) and 32 (falling). The first invocation refuses, ending the task with no
+effect, when the item system is not ready, the lifecycle byte is 30 or 31 or in 10 to 19, the surface
+is deep water (2 or 4), or `power` is zero. Otherwise it clears the falling, queued-motion and sliding
+bytes and the first two motion-vector words, sets lifecycle 30 and requests animation group 114 with a
+weapon held, 66 with a burning torch, otherwise 65.
+
+Every invocation then runs, in order:
+
+1. While the lifecycle byte is 30: if the current animation group is not 114, 66 or 65, clear the same
+   motion bytes and words and report one. Otherwise set lifecycle 31 and set the lift to attribute 32
+   (jump height in map units) times 256.
+2. If the object is the selected player and `steer` is nonzero, subtract the ground-turn delta (scaled
+   right amount minus scaled left amount) from the heading, modulo 2048.
+3. Move forward along the heading by `((128 - speed) << 8) / 3` (truncating division) times the frame
+   scale, shifted right by 8, in Q8 units.
+4. While the lifecycle byte is 31: subtract `lift * scale >> 8` from Y and `((256 - power) << 4) * scale >> 8`
+   from the lift. A lift above zero requests group 112 with a weapon held or the stance bit `0x04`
+   set, 38 with a burning torch, otherwise 39, and clears the motion bytes and words as above. A lift of
+   zero or less starts an ordinary fall (fall origin Y plus attribute 32 times 256, timer 30, falling
+   byte 1), requests group 113 (forced) with a weapon held or the stance bit set unless the current
+   group is already 115, otherwise group 57 with a burning torch or 56 (forced), and sets lifecycle 32.
+   Either way the call reports one.
+5. Otherwise, when the falling byte is zero set lifecycle 0 and report zero; else report one.
+
+The lift shares the fall-origin word. "Weapon held" is the ordinary holding-weapon predicate.
+
 ### PlayerFaceObj
 
 `PlayerFaceObj` is a task that turns the selected player to face its receiving actor. It
