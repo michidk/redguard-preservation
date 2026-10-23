@@ -36,6 +36,11 @@ Startup ground settling is separate from the ordinary grounded movement update.
 It prepares the spatial window around the actor X/Z, using the
 [static collision list order](#static-collision-list-order). It queries nearby
 model candidates with radius 1000 map units, excluding the actor's current model.
+The candidate list is the one the ordinary collision queries build, so it holds more than the
+static placements: after them come the models of the ordinary actors that have a model, are not the
+excluded player role, are not excluded from object updates, have attribute 55 equal to zero and pass the
+model-distance test, and only an actor whose model kind byte is one contributes to the face-model list the
+contacts are taken from. An actor-owned deck, such as a ship, therefore competes with the terrain.
 The vertical segment keeps the prepared actor X/Z and
 extends 500 map units in each direction from the prepared actor Y plus its
 positive Y extent.
