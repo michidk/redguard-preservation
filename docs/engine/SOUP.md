@@ -650,8 +650,8 @@ health response for the selected player. Other receivers continue regardless
 of that flag. The response negates the sender's unsigned attribute 96 and passes
 that signed change to generic additive health with mode zero, then reads the
 receiver's health. Health below one requests receiver taunt category six only
-for a nonplayer receiver, then invokes contact death with selector zero for
-either identity. Nonfatal health skips taunt and death dispatch.
+for a nonplayer receiver, then invokes the [combat death service](#combat-death-service)
+with selector zero for either identity. Nonfatal health skips taunt and death dispatch.
 
 ### Combat hit-response damage scaling
 
@@ -666,8 +666,9 @@ at 32 bits. No separate strength, damage or armor clamp occurs here.
 The response passes this signed change to generic additive health with mode
 zero, then reads the receiver's health. Health below one requests receiver taunt
 category six, followed by attacker taunt category seven. It then reads the
-attacker's current motion kind and invokes the receiver's contact death response
-with selector zero for kind zero, or selector one for any nonzero kind.
+attacker's current motion kind and invokes the receiver's
+[combat death service](#combat-death-service) with selector zero for kind zero, or selector one
+for any nonzero kind.
 Nonfatal health skips these taunts, the motion-kind read and death dispatch.
 
 ### Health native routing
@@ -1271,6 +1272,32 @@ After a group starts, a receiver with combat state requests walk-node release
 and stores its death default as 124 for group 122 or 123 for group 121.
 Receivers without combat state skip those writes. Every nonnull receiver then
 receives death selector eight.
+
+### Combat death service
+
+The direct-damage and scaled hit responses end a fatal hit with this service; the weapon-contact
+caller uses the [contact death animation dispatch](#contact-death-animation-dispatch) instead.
+A null receiver does nothing. A selected-player receiver does nothing while the session
+death-suppression flag is set or hit inhibition is active. The service takes a selector: zero
+prefers death group 122 when the receiver has it, any other selector or a missing group 121.
+
+With attribute 69 equal to zero, the selected player stores the chosen group as the death-animation
+override when none is set; it does not start the animation here, the
+[selected death controller](#selected-player-death-controller) does. A nonplayer receiver instead
+force-starts the group, releases its held walk nodes while storing death default 124 (group 122) or
+123 (group 121), sends coordination message `0xd002` from itself to the first non-selected actor in list order that
+passes the target search (an actor not at death selector eight that is holding a weapon or in
+combat stance), when one exists, and clears the close-distance pass counter and coordination
+selection state.
+
+Every receiver then loses its combat target. A receiver with death selector eight releases its held
+walk nodes; any other receiver takes the combat reset (lifecycle selector one, AI mode zero, native
+hook enabled). The service sets death selector eight, clears combat flag `0x04` and zeroes the
+close-distance pass counter and coordination selection state. The selected player finally applies
+health -256 through the [death-owning health](#selected-player-death-owning-health-mode) with no
+source actor, which enables hit inhibition and ends the world loop once the death animation
+completes. Both death-owning armed branches and the nonplayer death admission also clear the
+combat target after storing the death default.
 
 ### Hit-defence response
 
