@@ -4561,12 +4561,16 @@ new role's object-update exclusion byte while setting the old role's.
 receiver's two held walk-node reservations: a reserved node is cleared only when its recorded owner is the
 receiver, and both reservation slots then hold no node.
 
-`KillMe` then releases the receiver's two retained per-actor buffers, sets its killed flag and its death
-selector to 8, and stops every active sound owned by the receiver.
+`KillMe` then clears the receiver's current model presentation record, releases its two retained per-actor
+buffers, sets its killed flag and its death selector to 8, and stops every active sound owned by the receiver.
+The two buffers are the receiver's [light record](#script-light-controls) (41 bytes) and a 20-byte record
+that map loading creates for a type-3 placement (an enable byte and the placement's texture value). Each
+pointer is cleared after its buffer is freed, so a later light call creates a new record with the defaults
+described there.
 
 `Resurrect` acts only while the killed flag is set or the death selector is 8; otherwise nothing further
-happens. It clears the killed flag. When the receiver has combat state it then re-initializes that state from the
-receiver's attributes.
+happens. It clears the killed flag and leaves the death selector unchanged. When the receiver has combat state it
+then re-initializes that state from the receiver's attributes.
 
 <a id="killed-object-removal"></a>
 
