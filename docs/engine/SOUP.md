@@ -4609,6 +4609,17 @@ creator. The update returns one to keep flying and zero to end the task:
 7. On the first hit, an actor with combat state is sent combat message `0xd005` from the parent; with or without
    combat state, the previous position is restored and the task ends. Without a hit the task continues.
 
+### InKey
+
+`InKey(code)` returns one when a keyboard key is down and zero otherwise. The low byte of the argument
+is a character; its key is found by matching the character against the keyboard table's unshifted
+and shifted characters, and a character with no table entry returns zero. The next three bytes each
+name a required modifier by a character, either case: `s` Shift (either shift key), `c` Control and
+`a` Alt; the result is zero when a named modifier is not held. Otherwise the result is one when the
+key's state word is nonzero or the key is the latest key event the keyboard handler recorded. The
+debug shell reads it for the letters `p`, `c` and `d` and for Alt+`q`, and a few bridge and door
+scripts read `r`.
+
 ### GolemSteam and DragonBreath
 
 `GolemSteam` takes no arguments and returns zero. A receiver excluded from object updates does nothing. Otherwise
