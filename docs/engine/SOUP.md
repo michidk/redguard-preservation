@@ -4575,8 +4575,11 @@ through its orientation, using the texture's attributes for its flags and alpha.
 placements are the `LAVABUB1` lava bubbles (`DRINT`, `ISLAND`, `CATACOMB`) and the `LH_FIRE` and `CT_FIRE` fires.
 
 `Resurrect` acts only while the killed flag is set or the death selector is 8; otherwise nothing further
-happens. It clears the killed flag and leaves the death selector unchanged. When the receiver has combat state it
-then re-initializes that state from the receiver's attributes.
+happens. It clears the killed flag. When the receiver has combat state and its death selector is 6, it first sets the
+selector to 1 and the death response to 0, clears combat flag `0x04` and zeroes the close-distance pass counter and
+the attacker selection state (the unconditional part of the end-of-combat reset); a receiver that `KillMe` just
+killed has selector 8, so Resurrect leaves its selector unchanged. With combat state it then re-initializes that
+state from the receiver's attributes.
 
 <a id="killed-object-removal"></a>
 
