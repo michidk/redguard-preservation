@@ -1285,19 +1285,20 @@ With attribute 69 equal to zero, the selected player stores the chosen group as 
 override when none is set; it does not start the animation here, the
 [selected death controller](#selected-player-death-controller) does. A nonplayer receiver instead
 force-starts the group, releases its held walk nodes while storing death default 124 (group 122) or
-123 (group 121), sends coordination message `0xd002` from itself to the first non-selected actor in list order that
-passes the target search (an actor not at death selector eight that is holding a weapon or in
-combat stance), when one exists, and clears the close-distance pass counter and coordination
-selection state.
+123 (group 121), sends coordination message `0xd002` from itself to the
+[active-state coordinator](#combat-coordination) when one exists, and clears its close-distance
+pass counter and coordination selection state. A nonplayer without a combat record faults.
 
-Every receiver then loses its combat target. A receiver with death selector eight releases its held
-walk nodes; any other receiver takes the combat reset (lifecycle selector one, AI mode zero, native
-hook enabled). The service sets death selector eight, clears combat flag `0x04` and zeroes the
-close-distance pass counter and coordination selection state. The selected player finally applies
-health -256 through the [death-owning health](#selected-player-death-owning-health-mode) with no
-source actor, which enables hit inhibition and ends the world loop once the death animation
-completes. Both death-owning armed branches and the nonplayer death admission also clear the
-combat target after storing the death default.
+Every receiver then resets its combat action selector to -1. A receiver with death selector eight
+releases its held walk nodes; any other receiver takes the combat reset: lifecycle selector one
+(with its response byte cleared when the selector was not already one) and, when the killed flag
+is set, the script-control hook enabled. The service sets death selector eight, clears combat
+flag `0x04` and zeroes the close-distance pass counter and coordination selection state. The
+selected player finally applies health -256 through the
+[death-owning health](#selected-player-death-owning-health-mode) with no source actor, which
+enables hit inhibition and ends the world loop once the death animation completes. The
+death-owning armed branch and the nonplayer death admission also reset the combat action
+selector to -1 after storing the death default.
 
 ### Hit-defence response
 
