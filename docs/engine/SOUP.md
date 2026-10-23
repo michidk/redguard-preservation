@@ -2457,6 +2457,10 @@ phase one when a next node is held or phase zero otherwise, sets lifecycle
 selector seven, and returns pending. This path precedes immediate arrival and
 default-animation admission.
 
+A motion direction of 15 takes the same path after first calling a ledge update that acts only on
+the selected player (and only while its attribute 105 is not one); for every other actor that call
+changes nothing.
+
 Phases 11 and 22 skip the immediate-arrival test. For other phases, a successful
 immediate-arrival test copies the destination's local X and Z to the actor while
 preserving local Y, admits the default animation, and completes with result zero.
