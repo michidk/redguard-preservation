@@ -1369,13 +1369,16 @@ path returns the resolved surface, which equals P when the surface did not chang
 
 - S is outside 1 through 4 and P is 0 or above 4 (not in water before or now): when S is 5 or P is
   5, one effect of identifier `0x2580` is created at the actor; otherwise nothing happens.
+  Each effect is the `AddFlatEffect` native with zero spread and speed one, placed at the actor's X and Z moved
+  eight map units (0x800 in Q8) toward the camera, along the bearing from the camera to the actor, at the
+  support height truncated toward zero plus `standing_height` (map units, scaled to Q8) plus 0x600.
 - Otherwise (in water now or before):
   1. Animation request. S not 2 or 4 and P equal to 2 or 4 (leaving deep water): the actor's current
      animation motion byte 2 or 6 requests group 18, or group 30 while the torch-burning counter is
      nonzero; any other motion byte requests group 19, or 23 with the torch. S equal to 2 or 4
      (in deep water): motion byte 2 or 6 requests group 142, any other motion byte group 143.
      Shallow-to-shallow changes request nothing.
-  2. One effect of identifier `0x2500` is created at the actor.
+  2. One effect of identifier `0x2500` is created, placed as above.
   3. A positional sound at the actor with volume zero and a rate offset equal to a random value
      below 64 minus 32: effect 70 when S is outside 1 through 4 (left the water); otherwise effect 71
      when P is 0 or above 4 or S is 2 or 4 (entered water, or in deep water); otherwise effect 70.
