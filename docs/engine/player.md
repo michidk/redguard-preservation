@@ -1361,6 +1361,9 @@ produce water/lava transition effects.
 The effects below run only for the selected player, only when the surface updater ran (collision
 attribute mask `0x04`) and its returned value differs from the saved previous surface. Let P be the
 saved previous surface and S the actor's stored surface after the update; the predicates read S.
+An update that takes the excluded-query result returns zero without storing, so with a nonzero P the
+comparison fires and the predicates read the unchanged stored surface; the return-without-assignment
+path returns the resolved surface, which equals P when the surface did not change.
 
 - S is outside 1 through 4 and P is 0 or above 4 (not in water before or now): when S is 5 or P is
   5, one effect of identifier `0x2580` is created at the actor; otherwise nothing happens.
