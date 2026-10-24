@@ -1356,6 +1356,25 @@ Water surfaces are values 1 through 4; lava is value 5. When both the previous
 and current actor surfaces are outside water and lava, this wrapper does not
 produce water/lava transition effects.
 
+#### Water and lava transition effects
+
+The effects below run only for the selected player, only when the surface updater ran (collision
+attribute mask `0x04`) and its returned value differs from the saved previous surface. Let P be the
+saved previous surface and S the actor's stored surface after the update; the predicates read S.
+
+- S is outside 1 through 4 and P is 0 or above 4 (not in water before or now): when S is 5 or P is
+  5, one effect of identifier `0x2580` is created at the actor; otherwise nothing happens.
+- Otherwise (in water now or before):
+  1. Animation request. S not 2 or 4 and P equal to 2 or 4 (leaving deep water): the actor's current
+     animation motion byte 2 or 6 requests group 18, or group 30 while the torch-burning counter is
+     nonzero; any other motion byte requests group 19, or 23 with the torch. S equal to 2 or 4
+     (in deep water): motion byte 2 or 6 requests group 142, any other motion byte group 143.
+     Shallow-to-shallow changes request nothing.
+  2. One effect of identifier `0x2500` is created at the actor.
+  3. A positional sound at the actor with volume zero and a rate offset equal to a random value
+     below 64 minus 32: effect 70 when S is outside 1 through 4 (left the water); otherwise effect 71
+     when P is 0 or above 4 or S is 2 or 4 (entered water, or in deep water); otherwise effect 70.
+
 SOUP `IsInDeepWater()` reads the receiving actor's stored surface state.
 It returns one for states 2 and 4, and zero for every other state. It does not
 perform a new terrain or support query.
