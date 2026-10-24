@@ -1214,6 +1214,8 @@ the mask bit set. Otherwise:
   either current group 18 or 30, a clear exit marker sets the low two bits of both
   directional-state bytes and clears the byte at `+0x1be`. Any other state calls
   the ordinary jump entry.
+  This jump start refuses, without any state change, while the actor stands on surface 2 or 4
+  (deep water), while its current group is 114, 116, 130 or 131, and while its falling byte is nonzero.
 
 This is the only writer that sets the directional-state low bits. The ordinary jump
 entry also refuses the selected player while the conditional preliminary countdown
