@@ -4213,7 +4213,10 @@ The world-loop counter resets to zero on loop entry and increments once at the b
 of each iteration. In the waiting branch, after spacing, one random draw admits a
 chance taunt when `draw * 100 / 32767 < 2`. The taunt type is 5 when the wrapping sum
 of the receiver's allocation index and world-loop counter is even, and 8 when odd.
-Timed selection of that requested type still uses the cached clock sample.
+Timed selection of that requested type still uses the cached clock sample. The
+active branch ends the same way: after spacing, counter-attack selection and
+defence selection, one random draw admits a chance taunt under the same
+`draw * 100 / 32767 < 2` test, and the requested type is always 5.
 
 **Valid target.** An actor is a valid combat target when it exists, it is not both in
 lifecycle state 8 and killed, it has a combat record, and its own combat target is not itself.
