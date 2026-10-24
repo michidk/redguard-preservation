@@ -605,6 +605,25 @@ the point the landing effect uses, with the camera-relative displacement of the
 Bit `0x10` then adds one [screen-shake impulse](SOUP.md#frame-view-angles-and-screen-shake).
 No other bit has an effect.
 
+## Action words
+
+Each actor has a pending action word and an accepted action word. `SetAction(mask)` accepts only
+mask `1` or `2`. When neither word already contains the requested bit, the call checks that the
+current group is in `0x41..0x4a` and that falling and queued-motion bytes are clear. A failed check
+clears the two low action bits in both words. A successful request sets the requested low bit in
+the pending word and starts the action-specific animation request; the pending timer is reset.
+
+The per-tick action update adds the elapsed tick count to the pending timer. After 36 ticks it
+moves the pending bits into the accepted word and clears the pending word. It clears the low bits
+when no queued motion is active and the actor is outside groups `0x12` and `0x1e`. Accepted bit 1
+requests the default action-8 queued motion; accepted bit 2 requests default action 9. Those
+requests are admitted only when the actor is not already queued, falling or sliding and has living
+state 0 or 15; the selected player also requires the normal non-water admission.
+
+`ResetAction(mask)` clears the requested bits in both action words. `ResetAllAction` clears the
+pending word and copies the cleared value to the accepted word. The words are actor state and are
+independent of the selected player's controller pending-action flag.
+
 ## Transition command
 
 Opcode fifteen carries a trigger mask, a start frame and a target group. Reverse
