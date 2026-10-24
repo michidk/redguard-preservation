@@ -3766,9 +3766,12 @@ computed from the queried segment.
 
 Candidate collection subtracts the fixed-point endpoints before arithmetic-shifting
 the displacement components right by eight. It separately shifts the starting
-point by eight. When the squared displacement sum fits signed 32-bit arithmetic,
-the added model-bound radius is twice the floor of the Euclidean displacement
-length. The center-distance test accepts equality with the squared sum of the
+point by eight. Each shifted component is squared with a wrapping signed 32-bit
+multiply, made non-negative with a wrapping absolute value (the most negative
+value stays negative), and the three results are summed with 32-bit wrap. The
+added model-bound radius is twice the floor of the integer square root of that
+sum read as an unsigned 32-bit value, so a displacement long enough to wrap
+still yields a radius. The center-distance test accepts equality with the squared sum of the
 model radius and this added radius.
 
 The bounds test stores each integer-origin minus model-center component at
