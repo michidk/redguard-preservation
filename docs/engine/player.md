@@ -127,8 +127,21 @@ claim that input updates occur at a fixed wall-clock frequency.
 
 Animation and player state control whether this heading update is allowed.
 The arithmetic alone is insufficient to implement the player state machine.
-Combat can select `attr_fight_turn_speed` and `attr_fight_turn_accel` instead of
-the ordinary turn settings.
+Each input update recomputes both accumulators. A direction that is not held
+resets to zero; with no selected player a held direction is one. Otherwise the
+accumulator is incremented by the ordinary settings, or by the selected player's
+fight-turn attributes when either of these holds:
+
+- The player holds a weapon (attribute 110 is nonzero, or the item system is
+  ready and the player has an assigned, drawn, not sheathing weapon) and its
+  current animation group is neither 18 nor 31.
+- Its `hand_item` is 51.
+
+The fight-turn increment is `attr_fight_turn_accel` (attribute 22) and the limit
+is `attr_fight_turn_speed` (attribute 21): while the accumulator is below the
+limit the increment is added, with the same overshoot as the ordinary settings.
+CYRUS carries accel 12 and speed 64, against the ordinary 12 and 48; the
+`attr_turn_speed` attribute (15, value 32) is not read by this update.
 
 ## Ground-turn eligibility and animation
 
