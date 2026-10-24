@@ -243,6 +243,19 @@ The third spacing range is that sum divided by the number of populated slots,
 including slots whose first motion has another kind. If no slot qualifies,
 the near, far and third ranges are 10000, 30000 and 20000 respectively.
 
+The motion kind this test reads is the first word of the runtime motion record,
+which is not the COMBAT.INI `type`. The `type` value is stored further into the
+record. The loader writes 1 in the first word of every attack motion: single
+attacks of type 0 (melee) and type 3 (stab) and the first moves of combos all
+carry it, so every populated slot of the installed actors qualifies. For example
+the three slots of the Vermai fighters (attacks 75, 76 and 77, each with
+minimum 0, maximum 55000, types 3, 3 and 0) give near 0, far 55000 and third
+27500, and the five slots of the START pirates (two combos of maximum 45000
+and three singles of maximum 35000, all minimum 0) give near 0, far 45000 and
+third 19500. The first word of a `type` 4 (finishing) motion has not been
+read from the original. The installed COMBAT.INI contains attacks of `type`
+0, 2, 3 and 4 only.
+
 Fight spacing runs only when the action selector is -1. With the combat-stance
 predicate set, it uses the constructor's spacing ranges directly. Both stance
 paths turn toward the target after preparing their ranges and period, and continue
