@@ -4581,11 +4581,15 @@ Presenting a taunt replaces the current taunt reference in the combat record.
 
 ### PlayAnimation
 
-`PlayAnimation(group, modifier)` requests an animation group for the receiver and returns zero
+`PlayAnimation(group, modifier)` in its function form requests an animation group for the receiver and returns zero
 without waiting (unlike `PushAnimation`, which is a task). The request goes through the ordinary
 [request arbitration](animation.md) with the modifier narrowed to one byte. It does nothing when
 the animation system is disabled, when the receiver has no animation state, or when the receiver
 is excluded from ordinary object updates.
+
+The installed BAT and DOORBAT scripts also pass this native through the multitask encoding. The
+void native does not assign a stable result register in that entry path, so its multitask completion
+value is unspecified; the function-form zero result does not define multitask slot completion.
 
 ### Candidate collection for an ordinary update
 
