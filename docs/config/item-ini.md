@@ -79,6 +79,31 @@ rejected request is not retained for a later update. Display requires ownership
 of item 83, a player lockout value other than 1, and player attribute 105 other
 than 1. The map screen loads `SYSTEM\MAPMAP.GXA` and `SYSTEM\CROSS.GXA`.
 
+#### Island map screen
+
+An admitted request freezes the simulation clock, stores the player marker position (below) and, when audio is enabled
+and the current music mode is not 1, switches the music mode to 1 for the duration, restoring it on exit. It then
+loads `SYSTEM\MAPMAP.GXA` and `SYSTEM\CROSS.GXA`, installs the palette read with the second file as palette 5 and
+activates it. The screen is 640 by 480: the map image is drawn at X 0 with its top at `(480 - height) / 2`.
+
+The marker position is chosen from the current world when the screen opens. With no selected player or no current
+world, and in world 0, it is the fixed Q8 position (X 0xC68000, Z 0x793000), which is map units (50816, 31024).
+In worlds 7 and 14 it is the fixed Q8 position (X -0x196400, Z 0xB1BC00), map units (-6500, 45500). In worlds 1, 6,
+27, 28 and 30 it is the selected player's current position. In every other world the previous position is
+kept (initially unset).
+
+Each axis is the map position (the Q8 value divided by 256, truncating toward zero), multiplied by
+`image_width / 65535` and by a per-world scale, then converted to an integer with the engine's float-to-integer
+conversion and offset. For X the position is used directly; for Z the value is `65536 - z`. `image_width` is the
+16-bit width field of the MAPMAP header, used for both axes. In world 6 the scales are 0.82 (X) and 0.53 (Z) and the
+offsets are -86 (X) and 26 (Z); in every other world the scales are 0.88 and 1.0 and the offsets 101 and -27. The
+scale factors are single-precision values.
+
+The cross animation plays once: for each frame of CROSS.GXA the map image is drawn again, the frame is drawn at the
+marker position, the screen is presented and the loop waits 100 ms. The screen then waits for the map action to be
+released and for input to be polled until the map action and the adjacent action word are both clear, frees both images, and
+resumes the clock.
+
 #### Objects and bitmaps
 
 | Field | Description |
