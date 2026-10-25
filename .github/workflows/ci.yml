@@ -1,5 +1,5 @@
 # @orcastrate
-# template: rust-ci
+# template: rust/ci
 # params:
 #   test_os: [ubuntu-24.04, macos-latest, windows-latest]
 # @end-orcastrate
