@@ -4640,6 +4640,20 @@ they were. `menuSelection` returns the value at offset 0x14 of the record at the
 test the count, so after `menuNew` it keeps returning the last stored value of that slot until a later
 `menuAddItem` overwrites it.
 
+### Flat natives
+
+The `Flat` functions control the receiver's 20-byte [flat sprite record](#killme-and-resurrect) (enable byte at offset 0,
+pending byte at 1, offsets at 2, 4 and 6, texture identifier at 8, last-frame word at 0xc, counter at 0xe, frame at
+0x10, animation byte at 0x13). Every one except `FlatOff` first creates the record when the receiver has none; the
+new record has its enable and pending bytes clear. All return zero.
+
+- `FlatLikeStatic(texture)` sets the enable byte to one and the pending byte to zero, stores `texture` as the
+  texture identifier, sets the last-frame word to `0xffff` and the counter, frame and animation byte to zero.
+- `FlatOffset(x, y, z)` clears the pending byte and stores the three offsets.
+- `FlatStop` copies the last-frame word to the counter and the counter to the frame, sets the enable byte to one,
+  and clears the pending byte and the animation byte.
+- `FlatOff` does nothing for a receiver without a record; otherwise it clears the enable and pending bytes.
+
 ### Session requests: LoadWorld, WonGame, PushPlayer and PopPlayer
 
 `LoadWorld(world, marker, heading)`, `WonGame`, `PushPlayer` and `PopPlayer` return zero and only record a
