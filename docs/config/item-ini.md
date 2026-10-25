@@ -70,6 +70,15 @@ than that many shells of the script are running. It then drops one unit of each
 `drop_use_item_list` entry. When that changed the item's own count and flag bit
 `2` is set, one unit of the item is dropped; flag bit `4` then empties the item.
 
+### Island map request
+
+Using general item 83 sets a pending island-map request before the item's use
+script and drop-list processing. The display handler treats this request like
+the map input action. It clears the request before checking admission, so a
+rejected request is not retained for a later update. Display requires ownership
+of item 83, a player lockout value other than 1, and player attribute 105 other
+than 1. The map screen loads `SYSTEM\MAPMAP.GXA` and `SYSTEM\CROSS.GXA`.
+
 #### Objects and bitmaps
 
 | Field | Description |
