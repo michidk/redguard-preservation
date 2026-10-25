@@ -4654,6 +4654,13 @@ new record has its enable and pending bytes clear. All return zero.
   and clears the pending byte and the animation byte.
 - `FlatOff` does nothing for a receiver without a record; otherwise it clears the enable and pending bytes.
 
+### PlayerHanging and updatePlayerViewAttrib
+
+`PlayerHanging()` returns one when the selected player's living state is 15 (hanging) and its retained
+hang-model reference (see [ledge entry](player.md#selected-player-ledge-entry)) is the receiver's model; otherwise
+it returns zero. `updatePlayerViewAttrib()` is an empty routine: it takes no input, changes nothing and returns
+no meaningful value.
+
 ### Session requests: LoadWorld, WonGame, PushPlayer and PopPlayer
 
 `LoadWorld(world, marker, heading)`, `WonGame`, `PushPlayer` and `PopPlayer` return zero and only record a
