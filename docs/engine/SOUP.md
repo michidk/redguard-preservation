@@ -2863,6 +2863,45 @@ moving, is greater than the step, each displacement component is
 task returns one. Otherwise the local position is assigned the target and the task
 returns zero.
 
+### Direct point moves: MoveMarker, MoveLocation, MovePosition
+
+`MoveMarker(marker, tolerance)`, `MoveLocation(location, tolerance)` and `MovePosition(x, y, z, tolerance)` are
+three front ends to one stepped walk toward a Q8 destination, called once per task update; the
+`MoveNodeMarker`, `MoveNodeLocation` and `MoveNodePosition` natives are the walk-node counterparts and do not use
+this routine. The position form passes its three Q8 arguments unchanged. `MoveLocation` passes the actor's stored
+location position unchanged: the location lookup returns the entry for a selector from zero through the stored count,
+and the actor's home location for a negative selector or one beyond the count. `MoveMarker` looks the marker up in the
+world's marker table (identifiers 0 through 127; an identifier outside that range or an unused slot raises a runtime
+error) and shifts its X and Z left by eight. Its Y is the marker Y minus the actor's positive Y extent, then shifted
+left by eight, so the actor's feet rather than its origin reach the marker height. The tolerance is passed on
+unchanged.
+
+Each step first releases the actor's held walk nodes. It then returns one with these effects, without further
+processing, when the actor is falling or has queued motion: its first attribute byte becomes 13, the retained phase
+becomes 0 and the lifecycle selector becomes 7. An actor hanging from a ledge (living state 15) is released from
+the ledge and takes the same exit. Otherwise, unless the phase is 11 or 22, an arrival test against the destination
+and tolerance runs first; on arrival the actor requests its default animation group and the step completes by
+returning zero. When it has not arrived, the first attribute byte becomes 12 and the retained phase selects the step:
+
+| Phase | Step |
+| --- | --- |
+| 0 | Select phase 22 (the routine the original calls here is empty). |
+| 22 | Turn toward the destination; select phase 11 once the turn is finished. |
+| 11 | Set the first attribute byte to 13. A sliding actor resets the phase to 0. Walk toward the destination; when the walk reports arrival the step completes with zero. Otherwise, while the walking animation has not reached its exit, keep facing the destination, and queue a map update. |
+| 9 | The countdown shared with the node wrapper: the retained 16-bit counter becomes zero when it is smaller than the elapsed ticks and otherwise drops by them. A zero counter, or an actor holding a weapon, selects phase 2. Otherwise an actor in its default animation group draws a random number each step and, when the low five bits are all set, draws again until the low two bits are 0 to 2 and requests that group plus one. |
+| 21 | Request the default animation group unless the actor already plays it, and complete with zero. |
+| any other | Reset the phase to 0. |
+
+Every step that stays pending also sets the lifecycle selector to 7 and returns one.
+
+### UnOffset
+
+A linked-position record names an owner actor, a stored offset triple and a cached position. `UnOffset` does nothing
+for an actor without a record or whose record names no owner. Otherwise it rotates the stored offset by the owner's
+orientation matrix, adds the owner's effective position and the actor's own local position (all with wrapping 32-bit
+addition), stores the sum as the actor's local position, publishes it right-shifted by eight to the cached model
+position, and clears the owner identifier. The record, its offset and its cached position are kept.
+
 ### Actor families and attached transforms
 
 `attr_master` and `attr_slave` are byte-sized group identities. A nonzero slave
