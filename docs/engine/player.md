@@ -1208,10 +1208,8 @@ jump animation or landing.
 Admission refuses a selected player with a nonzero conditional controller
 countdown. It also refuses surface 2 or 4, any active native task, nonzero
 queued, falling or sliding motion, and living states other than 0 or 15.
-Groups 114, 116, 130 and 131 refuse admission. The additional group-range
-test requires a group to be both at least 65 and at most 27, so it admits no
-additional group. For the selected player with attribute 105 equal to one,
-all water surfaces 1 through 4 refuse admission.
+Groups 114, 116, 130 and 131 refuse admission. For the selected player with
+attribute 105 equal to one, all water surfaces 1 through 4 refuse admission.
 
 After admission, clear the stable-position-valid flag. Living state 15 runs
 hang release and returns. Otherwise run selected-player edge entry; a handled
