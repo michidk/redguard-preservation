@@ -2323,6 +2323,16 @@ by any actor left, which is empty before the first gather.
 
 <a id="node-marker-distance"></a>
 
+### AtNodeLocation
+
+`AtNodeLocation(location, distance)` reads the receiver's indexed location (the same location table the other
+`Location` functions use) and returns one when the receiver is at it, otherwise zero. The height test comes
+first: the location's Y minus the receiver's local Y, shifted right by eight as an absolute value, must not exceed
+half of the receiver's total Y extent (attribute record offset 0x179, halved toward zero); otherwise the result
+is zero. Then the horizontal (X and Z) distance between the receiver's local position and the location, by
+the shared integer distance routine, is compared with the signed `distance` argument with an inclusive
+bound, in the same 256-per-map-unit scale.
+
 ### AtNodeMarker: node-marker distance
 
 `AtNodeMarker(marker, distance)` returns one when the receiver's ordinary local
