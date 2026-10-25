@@ -4614,6 +4614,14 @@ typed by source: static placements and the secondary list carry type `0x20`, act
 `0x80`. While the actor's queued-motion byte is `0x18` (24), actor-owned candidates are skipped, so
 only static models can block.
 
+### QueueMovie
+
+`QueueMovie(index)` compares the index as an unsigned integer. An index from 5 through 10 plays that
+[cinematic](movies.md) at once from inside the script call: the movie's table record is marked unlocked, the
+movie plays, and the stored queued-movie value becomes -1. Any other index, including a negative one,
+does not play: it replaces the stored queued-movie value (initially -1, meaning none), and the call returns
+without further effect.
+
 ### Session requests: LoadWorld, WonGame, PushPlayer and PopPlayer
 
 `LoadWorld(world, marker, heading)`, `WonGame`, `PushPlayer` and `PopPlayer` return zero and only record a
