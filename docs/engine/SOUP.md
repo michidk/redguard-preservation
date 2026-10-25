@@ -1900,6 +1900,38 @@ unmarked release starts at its own group. The first value found, combined with t
 byte; when none is found the released byte is just the mark. A member that completed keeps its group but loses
 its mark, so the channel advances to the next posted group unmarked until that member posts again or ends.
 
+### User synchronization channels
+
+User channels have separate member lists and released bytes from group channels.
+Actors register in the channel named by data byte 30 at creation, with a posted
+value of zero. Lookups use the actor's current byte 30; changing that byte does
+not register a new membership. World initialization clears both channel systems
+and enables them. World teardown disables them, frees their member lists and
+clears their released bytes.
+
+`SyncWithUser(value)` completes immediately when synchronization is disabled,
+the current user channel is zero, or the actor has no member entry in that
+channel. Otherwise each invocation stores the low byte of `value` OR `0x80`
+in its member entry. It then stays pending if any member of that user channel
+has data byte 43 equal to zero. If every member has nonzero byte 43, it compares
+the channel's released byte, zero extended, with the full operand value. Equality
+clears bit 7 of the caller's posted value and completes; inequality stays pending.
+
+The world-loop channel update processes each user channel immediately after its
+group channel. It builds a presence table indexed by each full posted byte of
+members whose data byte 43 is zero. Starting at the previous released byte, it
+checks up to 256 candidates. After each unsuccessful check the candidate becomes
+`(candidate + 1) & 0x7f`. The first present candidate becomes the released byte;
+if no candidate is present, the released byte becomes zero. It does not add a
+mark or require all members to have posted. In particular, the initial candidate
+can be above 127, while every subsequent candidate is at most 127.
+
+`ResetUserSync` and `End` clear the caller's posted user value to zero without
+changing the released byte or removing membership. They use the current byte 30
+and do nothing when synchronization is disabled, that channel is zero, or the
+caller has no member entry there. `ResetGroupSync` uses the equivalent guards
+and current byte 29 for its group member entry.
+
 <a id="animation-task-ownership-and-stopping"></a>
 
 ### PushAnimation and TaskStop: animation ownership
