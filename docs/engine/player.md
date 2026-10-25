@@ -1199,6 +1199,44 @@ queued 24 and forces group 85. Set motion direction to 2 after the request.
 The controller itself reads no surface state: water and lava surfaces change its
 behavior only through the movement helpers and the support response it calls.
 
+### Script Jump
+
+The zero-argument SOUP function `Jump` returns zero immediately, including when
+admission refuses or an edge service handles the call. It does not wait for the
+jump animation or landing.
+
+Admission refuses a selected player with a nonzero conditional controller
+countdown. It also refuses surface 2 or 4, any active native task, nonzero
+queued, falling or sliding motion, and living states other than 0 or 15.
+Groups 114, 116, 130 and 131 refuse admission. The additional group-range
+test requires a group to be both at least 65 and at most 27, so it admits no
+additional group. For the selected player with attribute 105 equal to one,
+all water surfaces 1 through 4 refuse admission.
+
+After admission, clear the stable-position-valid flag. Living state 15 runs
+hang release and returns. Otherwise run selected-player edge entry; a handled
+entry returns before initializing queued motion.
+
+Ordinary initialization records current local Q8 Y as fall origin, clears the
+fall timer and accumulated sliding distance, then chooses the queued motion and
+animation request below. A nonzero runtime jump selector overrides all rows,
+selecting queued motion 24 and forcing group 85.
+
+| Current group | Queued motion | Requested group | Additional writes |
+| --- | --- | --- | --- |
+| 18 | 8 | 34 | None |
+| 30 | 8 | 35 | None |
+| 19 | 3 | 49 | Copy heading into `ov.vy`; set the selected-player conditional countdown to 6 |
+| 23 | 3 | 50 | Copy heading into `ov.vy`; set the selected-player conditional countdown to 6 |
+| 31 | 8 | 34 | Copy heading into `ov.vy` |
+| Other, holding a weapon or with combat flag `0x04` | 1 | 111 | None |
+| Other, no held weapon or combat flag, torch burning | 1 | 33 | None |
+| Other, no held weapon or combat flag, no burning torch | 1 | 32 | None |
+
+All non-forced rows use the ordinary animation request with reverse zero.
+After the request, set motion direction to 2. The script native does not select
+the backward queued state 9 used by the parameterized ordinary jump entry.
+
 ### Jump-key arbitration
 
 While the jump key is held, every ordinary controller update after movement
