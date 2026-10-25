@@ -678,6 +678,11 @@ cells: a water cell supplies the same interpolated height as a dry cell. The
 probe applies no height-grid bounds check of its own: the height array is addressed linearly (row index times
 the grid width plus column), so a column past the east or west edge continues into the adjacent row of the array,
 and the cell interpolation then runs between the last column of one row and the first columns of the next.
+A row past the north end of the array reads memory outside the array. Swimming straight north from the NECRISLE
+start (west of the island) keeps the swimming state through the last array row and the row beyond it, and the player
+enters animation group 18 with surface 0 within a few map units of crossing Z 0; the height then drops about 835 map
+units in four seconds while Z keeps decreasing, so the player falls out of the world. The south end of the same map
+instead reads level ground at Y -64.
 
 ### Directional ordinary displacement
 
