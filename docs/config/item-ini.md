@@ -90,7 +90,7 @@ The marker position is chosen from the current world when the screen opens. With
 world, and in world 0, it is the fixed Q8 position (X 0xC68000, Z 0x793000), which is map units (50816, 31024).
 In worlds 7 and 14 it is the fixed Q8 position (X -0x196400, Z 0xB1BC00), map units (-6500, 45500). In worlds 1, 6,
 27, 28 and 30 it is the selected player's current position. In every other world the previous position is
-kept (initially unset).
+kept.
 
 Each axis is the map position (the Q8 value divided by 256, truncating toward zero), multiplied by
 `image_width / 65535` and by a per-world scale, then converted to an integer with the engine's float-to-integer
