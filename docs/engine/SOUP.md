@@ -4653,6 +4653,12 @@ new record has its enable and pending bytes clear. All return zero.
 - `FlatStop` copies the last-frame word to the counter and the counter to the frame, sets the enable byte to one,
   and clears the pending byte and the animation byte.
 - `FlatOff` does nothing for a receiver without a record; otherwise it clears the enable and pending bytes.
+- `FlatSetTexture(bank, image)` forms the texture identifier `((bank << 7) & 0xff80) | (image & 7)`. When the
+  record already holds that identifier and has a cached image slot (offset 0xa), the playback state is kept.
+  Otherwise the image is looked up by bank and image (and loaded when absent; a failed load is fatal), the
+  slot and identifier are stored, the last-frame word becomes the image's frame count minus one (at least
+  zero) and the counter and frame become zero. Either way the enable byte becomes one and the pending and
+  animation bytes zero.
 
 ### PlayerHanging and updatePlayerViewAttrib
 
