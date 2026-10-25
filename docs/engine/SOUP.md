@@ -4630,6 +4630,16 @@ empties item 1 and selects item 75. Any other `charge` does the same in the othe
 sets attribute 23 to 1, empties item 75 and selects item 1. The item add, empty and select operations are the
 shared inventory routines, so their own admission rules (for example a closed item system) apply to each step.
 
+### menuNew and menuSelection
+
+The scripted choice menu keeps an item count, a highlighted index, a committed index and a table of 30-byte item
+records; each record holds the item's text storage and, at offset 0x14, the 32-bit value that `menuAddItem`
+stored. `menuNew` does nothing while the count is zero. Otherwise it releases every item's text storage, sets
+the count and the highlighted index to zero and clears two menu-state words, leaving the other record fields as
+they were. `menuSelection` returns the value at offset 0x14 of the record at the committed index. It does not
+test the count, so after `menuNew` it keeps returning the last stored value of that slot until a later
+`menuAddItem` overwrites it.
+
 ### Session requests: LoadWorld, WonGame, PushPlayer and PopPlayer
 
 `LoadWorld(world, marker, heading)`, `WonGame`, `PushPlayer` and `PopPlayer` return zero and only record a
