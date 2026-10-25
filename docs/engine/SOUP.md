@@ -2902,6 +2902,30 @@ orientation matrix, adds the owner's effective position and the actor's own loca
 addition), stores the sum as the actor's local position, publishes it right-shifted by eight to the cached model
 position, and clears the owner identifier. The record, its offset and its cached position are kept.
 
+### Offset, PlayerOffset, PlayerOffsettask and CollidePlayerWeapon
+
+`Offset(x, y, z)` attaches the calling actor to the actor it is called on (the owner), so that it follows the owner:
+an actor with `attr_slave` set raises a runtime error. A caller already attached to this owner returns with no change;
+one attached to another owner is first detached as `UnOffset` does. The caller's linked-position record is created
+when it has none. The stored offset is the caller's local position minus the owner's effective position plus the
+three arguments (wrapping 32-bit arithmetic), rotated by the inverse of the owner's orientation matrix. The record
+takes the owner and that offset, and the caller's local position becomes zero. The actor's position is then the
+owner's effective position plus the stored offset rotated by the owner's matrix plus the (zero) local position, as
+`UnOffset` evaluates it.
+
+`PlayerOffset(x, y, z)` sets the selected player's local position to the receiver's effective position plus the three
+arguments rotated by the receiver's orientation matrix, and returns zero.
+`PlayerOffsettask(x, y, z)` does the same on every invocation and never completes (it returns one). Each invocation also
+copies the receiver's whole orientation matrix, its three angles and its three previous-angle values to the player. When the receiver's
+local position equals its previous-position copy and its angles equal its previous angles, the invocation additionally
+adds the elapsed ticks to the task slot's elapsed value, so the elapsed value of a task that watches a receiver at
+rest advances twice as fast.
+
+`CollidePlayerWeapon(x, y, z, radius)` returns zero unless the selected player holds a weapon, its attribute byte 105
+is not 1 and the player's attack state is exactly 1. Otherwise it evaluates the sphere/segment query described with the range/arc contact path
+for a sphere centred on the receiver's effective position plus the three arguments, shifted right by eight per
+axis, with the radius shifted right by eight, against the weapon's tip passed as both segment endpoints, and returns that query's result.
+
 ### Actor families and attached transforms
 
 `attr_master` and `attr_slave` are byte-sized group identities. A nonzero slave
