@@ -4622,6 +4622,14 @@ movie plays, and the stored queued-movie value becomes -1. Any other index, incl
 does not play: it replaces the stored queued-movie value (initially -1, meaning none), and the call returns
 without further effect.
 
+### chargeWeapon
+
+`chargeWeapon(charge)` swaps the receiver's weapon between item 1 and item 75 (the charged weapon). A signed
+16-bit `charge` equal to 1 adds item 75 with count 1, sets the receiver's attribute 23 (the weapon item) to 75,
+empties item 1 and selects item 75. Any other `charge` does the same in the other direction: it adds item 1,
+sets attribute 23 to 1, empties item 75 and selects item 1. The item add, empty and select operations are the
+shared inventory routines, so their own admission rules (for example a closed item system) apply to each step.
+
 ### Session requests: LoadWorld, WonGame, PushPlayer and PopPlayer
 
 `LoadWorld(world, marker, heading)`, `WonGame`, `PushPlayer` and `PopPlayer` return zero and only record a
