@@ -607,22 +607,42 @@ No other bit has an effect.
 
 ## Action words
 
-Each actor has a pending action word and an accepted action word. `SetAction(mask)` accepts only
-mask `1` or `2`. When neither word already contains the requested bit, the call checks that the
-current group is in `0x41..0x4a` and that falling and queued-motion bytes are clear. A failed check
-clears the two low action bits in both words. A successful request sets the requested low bit in
-the pending word and starts the action-specific animation request; the pending timer is reset.
+Each actor has unsigned 32-bit pending and accepted action words and an unsigned byte timer.
+The directional-state bytes used by [jump-key arbitration](player.md#jump-key-arbitration),
+walk-off recovery and surface assignment are the low bytes of these same words.
 
-The per-tick action update adds the elapsed tick count to the pending timer. After 36 ticks it
-moves the pending bits into the accepted word and clears the pending word. It clears the low bits
-when no queued motion is active and the actor is outside groups `0x12` and `0x1e`. Accepted bit 1
-requests the default action-8 queued motion; accepted bit 2 requests default action 9. Those
-requests are admitted only when the actor is not already queued, falling or sliding and has living
-state 0 or 15; the selected player also requires the normal non-water admission.
+`SetAction(mask)` acts only for mask `1` or `2`, and only when neither word already contains
+the requested bit. A current group from 65 through 74, nonzero queued motion, or nonzero
+falling motion clears the low two bits of both words and ends the call. Sliding motion is
+not tested at this stage.
 
-`ResetAction(mask)` clears the requested bits in both action words. `ResetAllAction` clears the
-pending word and copies the cleared value to the accepted word. The words are actor state and are
-independent of the selected player's controller pending-action flag.
+Otherwise, the step-hold condition is true when attribute 11 is zero or the motion byte's
+step field, bits 4 and 5, equals three. With that condition true, a current group of 18 or 30
+and a clear animation exit marker sets both low bits of the pending word and clears the
+timer. Other admitted states invoke [script Jump](player.md#script-jump). The checks for
+groups 67, 68, 69 and 70 occur after the 65-through-74 rejection and cannot be reached.
+The handler has no defined function return value.
+
+The action update runs after the actor's script stage and before ordinary movement. It adds
+elapsed nominal ticks to the timer with unsigned byte wrapping. A resulting timer strictly
+greater than 36 ORs the entire pending word into the accepted word, clears the pending word,
+and resets the timer. Nonzero queued motion, or a current group other than 18 or 30, clears
+the low two bits of both words. Higher bits survive this clearing.
+
+Accepted bit zero clears the low two bits of both words before requesting action entry 8.
+Only if accepted bit one remains set does it perform the same clearing before requesting
+entry 9. Thus bit zero wins when both bits are set, including when admission refuses.
+The [ordinary jump entry](player.md#ordinary-jump-entry) owns these requests. Group 18 maps
+entry 8 to queued motion 8 and group 34, and entry 9 to queued motion 9 and group 36.
+Group 30 instead requests groups 35 and 37. Other groups select ordinary jump motion 1
+with group 32, or group 33 with a burning torch. A nonzero runtime jump selector overrides
+these rows with queued motion 24 and forced group 85. Non-forced requests use reverse zero,
+and successful initialization sets motion direction to two.
+
+`ResetAction(mask)` clears every bit selected by its 32-bit mask in both words.
+`ResetAllAction` clears both words. Neither reset changes the timer. These handlers have no
+defined function return value. The words are independent of the selected player's controller
+pending-action flag.
 
 ## Transition command
 
