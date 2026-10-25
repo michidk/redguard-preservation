@@ -2919,12 +2919,19 @@ arguments rotated by the receiver's orientation matrix, and returns zero.
 copies the receiver's whole orientation matrix, its three angles and its three previous-angle values to the player. When the receiver's
 local position equals its previous-position copy and its angles equal its previous angles, the invocation additionally
 adds the elapsed ticks to the pause-tick word of the shared native command (the second word of the four-word command
-block). Nothing else in that task reads the word.
+block). The handler itself reads the word nowhere else.
 
 `CollidePlayerWeapon(x, y, z, radius)` returns zero unless the selected player holds a weapon, its attribute byte 105
 is not 1 and the player's attack state is exactly 1. Otherwise it evaluates the sphere/segment query described with the range/arc contact path
 for a sphere centred on the receiver's effective position plus the three arguments, shifted right by eight per
 axis, with the radius shifted right by eight, against the weapon's tip passed as both segment endpoints, and returns that query's result.
+
+### PlayerMain
+
+`PlayerMain` is the selected player's native controller: the shipped player actor's per-update hook is the zero-argument
+call `PlayerMain` on itself, and its handler is the controller routine described in
+[Ordinary controller dispatch](player.md#ordinary-controller-dispatch) and the sections that follow it. It takes no
+arguments and returns no value.
 
 ### Actor families and attached transforms
 
