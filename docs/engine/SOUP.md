@@ -2918,8 +2918,8 @@ arguments rotated by the receiver's orientation matrix, and returns zero.
 `PlayerOffsettask(x, y, z)` does the same on every invocation and never completes (it returns one). Each invocation also
 copies the receiver's whole orientation matrix, its three angles and its three previous-angle values to the player. When the receiver's
 local position equals its previous-position copy and its angles equal its previous angles, the invocation additionally
-adds the elapsed ticks to the task slot's elapsed value, so the elapsed value of a task that watches a receiver at
-rest advances twice as fast.
+adds the elapsed ticks to the pause-tick word of the shared native command (the second word of the four-word command
+block). Nothing else in that task reads the word.
 
 `CollidePlayerWeapon(x, y, z, radius)` returns zero unless the selected player holds a weapon, its attribute byte 105
 is not 1 and the player's attack state is exactly 1. Otherwise it evaluates the sphere/segment query described with the range/arc contact path
