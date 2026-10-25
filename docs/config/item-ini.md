@@ -101,8 +101,10 @@ scale factors are single-precision values.
 
 The cross animation plays once: for each frame of CROSS.GXA the map image is drawn again, the frame is drawn at the
 marker position, the screen is presented and the loop waits 100 ms. The screen then waits for the map action to be
-released and for input to be polled until the map action and the adjacent action word are both clear, frees both images, and
-resumes the clock.
+released. It then repeats a blocking key wait until the map action and the adjacent action word are both released:
+the wait polls every 50 ms and returns the first keyboard key, or a code for one of six game-controller button words
+(0x80, 0x81, 0x84, 0x85, 0x86, 0x87) when no key is down. Any key therefore dismisses the screen once the map action is
+no longer held. Both images are then freed and the clock resumes.
 
 #### Objects and bitmaps
 
