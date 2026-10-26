@@ -112,6 +112,24 @@ See [FPS-derived frame scale](../engine/player.md#fps-derived-frame-scale)
 for measurement and checkpoint behavior. Other `SVGV` fields are retained state
 and must be preserved when editing a save.
 
+## Engine globals
+
+The main save (`SAVEGAME.SAV`, not the per-world `.TSG` files) also writes an `SVG2` chunk after
+`SVGV`. Its payload is a fixed 1,666-byte concatenation of retained engine globals without padding or
+per-field headers, in this order:
+
+| Size | Contents |
+|---|---|
+| 4 | Retained player health, copied into both player records at load. |
+| 4 | Health-candle feedback state. |
+| 2 | Retained state word, written only by the save loader. |
+| 12 | Retained state block. |
+| 1600 | The journal tag table: 400 four-byte tags, zero marking an empty entry. |
+| 4 | Selected-player switch. |
+| 4 × 5 | Power-up slots: the two slots' frame values, their two retained frame indices (`-1` empty), then the slot alternation (see [power-up slots](../engine/hud.md#power-up-slots)). |
+| 4 × 4 | Four retained world-state words written when a world loads. |
+| 4 | Retained HUD state word. |
+
 ## Inventory
 
 `SVIT` contains 22-byte records in initialized item-list order,
