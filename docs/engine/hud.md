@@ -452,6 +452,12 @@ gauntlet, frame 1 shield) at `(game_xco1, game_yco1)` and
 - `UnShowBitmap(id)` clears slot 1 if its id matches, otherwise slot 2 if its
   id matches.
 - Slot contents are stored in save games.
+- The two slot frame indices live outside the world, with `-1` meaning empty, together with the
+  alternation state (which slot a new frame takes when both are full; it starts at slot 1).
+  Loading a world releases the slot bitmaps and resets the alternation to slot 1. World entry then
+  rebuilds each slot's bitmap from its retained frame index, so a power-up survives a world swap.
+  The session initializer (first start and New Game) sets both indices to `-1`, so New Game empties
+  both slots.
 
 ## Script logbook entries
 
