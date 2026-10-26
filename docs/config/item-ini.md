@@ -93,8 +93,7 @@ In worlds 7 and 14 it is the fixed Q8 position (X -0x196400, Z 0xB1BC00), map un
 kept.
 
 Each axis is the map position (the Q8 value divided by 256, truncating toward zero), multiplied by
-`image_width / 65535` and by a per-world scale, then converted to an integer with the engine's float-to-integer
-conversion and offset. For X the position is used directly; for Z the value is `65536 - z`. `image_width` is the
+`image_width / 65535` and by a per-world scale, then truncated toward zero to an integer and offset. For X the position is used directly; for Z the value is `65536 - z`. `image_width` is the
 16-bit width field of the MAPMAP header, used for both axes. In world 6 the scales are 0.82 (X) and 0.53 (Z) and the
 offsets are -86 (X) and 26 (Z); in every other world the scales are 0.88 and 1.0 and the offsets 101 and -27. The
 scale factors are single-precision values.
