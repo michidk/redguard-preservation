@@ -4986,6 +4986,26 @@ suppression set, it instead returns the adjusted amount without frame scaling.
 It does not translate the receiver. A subsequent movement request therefore
 reads the counter and animation state changed by this query.
 
+### Movement continuation
+
+Each ordinary actor update clears the four movement-called flags before its script and
+decision stages. After those stages and the animation processing, an actor with no rope
+attachment, no queued-motion or living-state value and a clear forward-called flag continues
+moving when its current animation group is 18, 30, 67 through 70, 75, 77, 92, 106, 130, 131
+or 142. The continuation is a forward step that requests no animation group: it stores
+motion direction 2, sets the forward-called flag and, below startup counter three, requires the
+forward step check. Its step length is attribute byte 17 with a held weapon or combat flag
+`0x04`, otherwise attribute byte 8 (shifted left seven instead of eight for groups 75 and 77),
+shifted left eight. The startup adjustment, the deep-water halving, the frame scaling and
+the translation-suppression marker apply as in the forward movement amount query, and the
+translation follows the actor's heading.
+
+Because it requests no group, an idle group requested earlier in the same update (a spacing
+pass that requested no movement, for example) stays pending until the playing group finishes
+and the actor keeps walking forward until then. A spacing pass for an actor in combat
+stance above three times its far range, or without stance below the midpoint between its far
+and third ranges, requests no movement; the actor still walks on through the continuation.
+
 ### WalkForward
 
 `WalkForward(duration)` delegates to `MoveForward(duration)` in deep water before
