@@ -70,6 +70,10 @@ When `CREDITS.TXT` cannot be loaded the credits are skipped and the paused
 world track resumes. F10 in a world plays the same credits scroll without the
 movie.
 
+The credits play CD track 2 at the `redbook_volume` setting. After them the engine opens the
+book menu in its ending mode, which starts no CD audio (only the ordinary in-game book plays
+track 2), so the page that follows the credits is silent.
+
 ### Credits scroll
 
 The credits come from `CREDITS.TXT` in the game directory. The engine reads the whole
