@@ -683,6 +683,9 @@ start (west of the island) keeps the swimming state through the last array row a
 enters animation group 18 with surface 0 within a few map units of crossing Z 0; the height then drops about 835 map
 units in four seconds while Z keeps decreasing, so the player falls out of the world. The south end of the same map
 instead reads level ground at Y -64.
+Swimming west in the same map stops at X 261 and stays there with the forward input held. The interpolated
+terrain height there, using the same linear addressing, is level (zero) at X 260 and rises steeply to the west
+(-45 at X 240, -157 at X 200, -720 at X 0), which is where the player stops: the wrapped columns form a wall.
 
 ### Directional ordinary displacement
 
