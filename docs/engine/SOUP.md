@@ -1418,7 +1418,8 @@ floating attachment position in extended precision, then truncates to a signed
 integer without an intermediate single-precision sum store.
 
 An absent attachment clears the retained attachment record and leaves both
-previous endpoints unchanged. An actor without combat state receives none of
+previous endpoints unchanged; both endpoints start at zero, so an actor that never selected
+an attachment tests the segment from the origin to the origin. An actor without combat state receives none of
 these writes. The attribute-126 contact path uses the retained tip for both of
 its segment endpoints.
 
