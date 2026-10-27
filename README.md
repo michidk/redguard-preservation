@@ -1,6 +1,6 @@
 # redguard-preservation
 
-[![Crates.io](https://img.shields.io/crates/v/redguard-preservation.svg)](https://crates.io/crates/redguard-preservation)
+[![Crates.io](https://img.shields.io/crates/v/redguard-preservation.svg)](https://crates.io/crates/redguard-preservation) [![Documentation](https://docs.rs/redguard-preservation/badge.svg)](https://docs.rs/redguard-preservation) [![GitHub](https://img.shields.io/github/stars/michidk/redguard-preservation?style=flat)](https://github.com/michidk/redguard-preservation)
 
 Documentation and tools for preserving *The Elder Scrolls Adventures: Redguard* (1998), Bethesda's action-adventure game. The project reverse-engineers the game's file formats and engine, writes down what it finds, and provides software that reads and converts the game's assets.
 
