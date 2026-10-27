@@ -5009,6 +5009,16 @@ shifted left eight for the others; startup counter at bits six and seven), and g
 turned by attribute byte 84 scaled by the frame scale, movement along the new heading plus
 or minus 512; the left circle stores motion direction 25, the right circle 5).
 
+The walking groups continue the same way, each with its own step check: groups 20, 21 and 31
+walk forward (motion direction 6, the forward step check at any startup counter; step length
+attribute byte 19 in combat stance, otherwise attribute byte 12, both shifted left eight; a
+zero length is half of attribute byte 8, unshifted); groups 22 and 23 walk backward (motion
+direction 7, the backward step check; attribute byte 20 in combat stance, otherwise 13; a zero
+length is half of attribute byte 9); groups 24, 25 and 28 sidestep left and 26, 27 and 29
+right (motion directions 4 and 5, the lateral step check; step length attribute byte 10 shifted
+left eight; movement along the heading plus or minus 512 without turning). These steps store
+their motion direction before the step check.
+
 Because it requests no group, an idle group requested earlier in the same update (a spacing
 pass that requested no movement, for example) stays pending until the playing group finishes
 and the actor keeps walking forward until then. A spacing pass for an actor in combat
