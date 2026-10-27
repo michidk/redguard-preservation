@@ -5007,8 +5007,7 @@ otherwise attribute byte 8 shifted left seven for groups 76 and 78 and attribute
 shifted left eight for the others; startup counter at bits six and seven), and groups 94 and
 95 circle left and right (step length attribute byte 83 shifted left eight, the heading
 turned by attribute byte 84 scaled by the frame scale, movement along the new heading plus
-or minus 512; the left circle stores motion direction 25, the right circle 5). The circle
-runs the lateral step check outside combat only.
+or minus 512; the left circle stores motion direction 25, the right circle 5).
 
 Because it requests no group, an idle group requested earlier in the same update (a spacing
 pass that requested no movement, for example) stays pending until the playing group finishes
