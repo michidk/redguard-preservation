@@ -45,7 +45,7 @@ session initializer, so a second New Game rebuilds the state a first launch
 builds. In order, it re-reads the script flag definitions from `SOUP386.DEF`,
 opens the item system from `ITEMS` (the player's starting item list and
 selection), deletes the per-world saved map files (`MAPS\*.TSG`), reads the
-menu and movie settings from `MENU.INI`, loads `LOGBOOK.TXT`, and then resets
+menu and movie settings from `MENU.INI`, deletes `LOGBOOK.TXT`, and then resets
 a fixed set of engine globals. A plain world replacement does not run it.
 
 The player's health is retained outside the world. Every health change stores
