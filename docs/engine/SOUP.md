@@ -5000,6 +5000,16 @@ shifted left eight. The startup adjustment, the deep-water halving, the frame sc
 the translation-suppression marker apply as in the forward movement amount query, and the
 translation follows the actor's heading.
 
+The same continuation runs the other directions when their own called flag is clear: groups
+19, 76, 78 and 93 step backward (motion direction 3; in combat stance the blocked-ahead
+probe at distance 30 stops it first; step length attribute byte 18 in combat stance,
+otherwise attribute byte 8 shifted left seven for groups 76 and 78 and attribute byte 9
+shifted left eight for the others; startup counter at bits six and seven), and groups 94 and
+95 circle left and right (step length attribute byte 83 shifted left eight, the heading
+turned by attribute byte 84 scaled by the frame scale, movement along the new heading plus
+or minus 512; the left circle stores motion direction 25, the right circle 5). The circle
+runs the lateral step check outside combat only.
+
 Because it requests no group, an idle group requested earlier in the same update (a spacing
 pass that requested no movement, for example) stays pending until the playing group finishes
 and the actor keeps walking forward until then. A spacing pass for an actor in combat
