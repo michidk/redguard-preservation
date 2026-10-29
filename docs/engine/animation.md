@@ -664,8 +664,25 @@ Taking mask 8 sets byte `+0x0a` of the animation record to one, then makes a gro
 request on the actor through the shared group-force routine: group 31 for a selected
 player holding a weapon, otherwise group 30 with a burning torch or group 18 without
 one. Each path sets bits `0x30` of the actor's combat-state byte `+0x1cc` and runs one
-further update routine for the actor before the decision reports success. Masks 1 and 2
+further update routine for the actor before the decision reports success. That routine is
+the actor's ground-walk step with a step budget of one: the ordinary walk step on the
+unarmed path and the armed movement step on the weapon path. Masks 1 and 2
 report a distinct success value from mask 8 and mask 4.
+
+The ordinary walk step does nothing while the 32-bit value at `+0x1ab` or any of the bytes
+at `+0x1b1`, `+0x1b2` and `+0x1b3` is nonzero. Otherwise it forces group 18 (group 30 when
+byte `+0x1fe` is nonzero) when that group exists, and moves the actor along its heading by
+the step byte of its model record (`+8`, shifted left eight bits and halved while the
+terrain-state byte `+0x1dc` is 2 or 4) times the movement scale. Bits 4–5 of `+0x1cc` hold a
+ramp counter. While it is below three, the step is first scaled by a factor chosen by the
+model record's ramp byte (`+0xb`) and the counter, and the counter then increments:
+
+| Ramp byte | Counter 0 | Counter 1 | Counter 2 |
+|---|---|---|---|
+| 0 | 1 | 1 | 1 |
+| 1 | ¼ | ⅓ | ½ |
+| 2 | 0 | ⅓ | ⅔ |
+| 3 | 0 | 0 | ½ |
 
 The decision result selects the command's outcome. Not taken advances the cursor by one.
 A mask 8 transition leaves the cursor on the command and ends the update with the group
