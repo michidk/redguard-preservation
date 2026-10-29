@@ -60,6 +60,12 @@ initializer: it stops and releases every entry of the active-sound list
 applies `LockoutPlayer(0)`, and replaces the actor message queues with 256 empty
 queues of eight 12-byte entries.
 
+Opening the book in any entry context, including the in-game pause book,
+the function keys and the death book, begins with the same sound teardown: it
+stops and releases every entry of the active-sound list and stops all 16 sound
+channels. Sound effects and speech therefore do not continue under the open
+book; the engine stops them and does not pause them for resumption.
+
 `WonGame` ends the world loop with a won result (see
 [session requests](SOUP.md#session-requests-loadworld-wongame-pushplayer-and-popplayer)).
 The engine then runs the ending instead of showing a menu page: sound effects
