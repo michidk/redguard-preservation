@@ -665,11 +665,15 @@ request on the actor through the shared group-force routine: group 31 for a sele
 player holding a weapon, otherwise group 30 with a burning torch or group 18 without
 one. Each path sets bits `0x30` of the actor's combat-state byte `+0x1cc` and runs one
 further update routine for the actor before the decision reports success. That routine is
-the actor's ground-walk step with a step budget of one: the ordinary walk step on the
-unarmed path and the armed movement step on the weapon path. Masks 1 and 2
+a ground step with a step budget of one: the ordinary forward step on the unarmed path
+(described next) and the walking step on the weapon path. The walking step skips itself in
+deep water, where the ordinary forward step runs instead; otherwise it checks the forward
+step, forces group 31 when the actor holds a weapon (group 21 with a burning torch, 20
+without), and moves by the model record's walking step byte (`+0x13` armed, `+0xc` otherwise)
+under the same ramp. Masks 1 and 2
 report a distinct success value from mask 8 and mask 4.
 
-The ordinary walk step does nothing while the 32-bit value at `+0x1ab` or any of the bytes
+The ordinary forward step does nothing while the 32-bit value at `+0x1ab` or any of the bytes
 at `+0x1b1`, `+0x1b2` and `+0x1b3` is nonzero. Otherwise it forces group 18 (group 30 when
 byte `+0x1fe` is nonzero) when that group exists, and moves the actor along its heading by
 the step byte of its model record (`+8`, shifted left eight bits and halved while the
