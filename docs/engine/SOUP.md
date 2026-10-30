@@ -4667,9 +4667,16 @@ without waiting (unlike `PushAnimation`, which is a task). The request goes thro
 the animation system is disabled, when the receiver has no animation state, or when the receiver
 is excluded from ordinary object updates.
 
-The installed BAT and DOORBAT scripts also pass this native through the multitask encoding. The
-void native does not assign a stable result register in that entry path, so its multitask completion
-value is unspecified; the function-form zero result does not define multitask slot completion.
+The installed BAT and DOORBAT scripts call `multitask PlayAnimation(10, 0)`.
+In BAT, this call requests group 10 and retains its native task slot while the
+main thread continues through rotation, sound, movement and waiting calls.
+The slot remains pending when group 10 is current and after the movement calls
+finish. `End` loops the main thread without clearing this slot. The next call
+at the same script site reuses the existing slot rather than allocating another.
+
+The native request routine does not assign a stable integer result on every
+return path. The function-form zero result therefore does not define a general
+task or multitask completion result for other operands or receiver states.
 
 ### Candidate collection for an ordinary update
 
