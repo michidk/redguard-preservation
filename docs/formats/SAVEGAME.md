@@ -112,6 +112,15 @@ See [FPS-derived frame scale](../engine/player.md#fps-derived-frame-scale)
 for measurement and checkpoint behavior. Other `SVGV` fields are retained state
 and must be preserved when editing a save.
 
+## Rope jump latch
+
+The selected player's rope jump latch is a four-byte little-endian word at
+`SVGV` payload offset `0x06C`. The global-state writer stores the latch directly,
+and the global-state reader copies the saved word back before restoring the
+per-world object and rope records. It is separate from the `SMRP` rope records.
+See [rope control while attached](../engine/SOUP.md#rope-control-while-attached)
+for its input behavior.
+
 ## Engine globals
 
 The main save (`SAVEGAME.SAV`, not the per-world `.TSG` files) also writes an `SVG2` chunk after
