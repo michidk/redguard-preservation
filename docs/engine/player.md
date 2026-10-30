@@ -1103,6 +1103,11 @@ queued-motion bytes. Other states, and a nonzero countdown, change nothing.
 
 #### Ledge climb request
 
+After jump-key handling, the selected-player controller calls the climb request
+while forward is held and the living state is 15. It then calls the hang release
+while backward is held and the living state is still 15. These directional calls
+do not require the walk key.
+
 For the selected player in living state 15, scan and select the hand-nearest
 class 3 record. Without one, or with record byte 2 zero, return 1 and keep
 hanging. Otherwise set the ledge-support reference to the record's actor, set
