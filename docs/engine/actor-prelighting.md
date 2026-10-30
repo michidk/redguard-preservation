@@ -20,3 +20,11 @@ face-vertex prelighting operation as static placements. Its retained color
 buffer is registered for world-level release together with the static-placement
 buffers. The attribute is tested at prelighting time; it is not a test of
 observed movement or current animation playback.
+
+Placed nonmoving actors initialize their model-instance translation from each
+signed Q8 position component shifted arithmetically right by eight bits, then
+converted to floating point. Fractional map units are discarded before the
+conversion. Placed orientation initializes the same instance matrix from the
+authored angles. The prelighting pass reuses this prepared translation and
+matrix when binding the static model; it does not rebuild the transform from
+the actor's current position or angles.
