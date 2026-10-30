@@ -284,7 +284,8 @@ All typed fields are little-endian.
 | 0x29 | 4 | `i32` | raan_offset | Byte offset into RAAN section data (rebased to pointer at load) |
 | 0x2D | 4 | — | anim_control_prefix | Low byte stored at animation control struct offset `+0x12` during RAGR loading. The complete signed field is compared with −1 when selecting the static-model shortcut; see [model loading](../engine/animation.md#placed-actor-initialization-and-eligibility). |
 | 0x31 | 4 | `u32` | ragr_offset | Byte offset into RAGR section data (rebased to pointer at load) |
-| 0x35 | 8 | — | padding | Always 0. |
+| 0x35 | 2 | `u16` | rafs_count | Number of optional RAFS sphere descriptors. Zero in shipped files. |
+| 0x37 | 6 | — | padding | Always 0. |
 | 0x3D | 4 | `u32` | rafs_index | Index into RAFS data (vestigial — RAFS is 1 byte in all shipped files) |
 | 0x41 | 4 | `u32` | num_strings | Number of strings used by this actor's script |
 | 0x45 | 4 | — | padding | Always 0. |
@@ -346,6 +347,21 @@ When an MPOB record has an empty `model_name`, the exporter resolves a model via
 ## RAFS (Actor FSphere Data)
 
 RAFS was intended to store pre-computed fsphere (combat/collision sphere) data for actors. The engine only loads this section when its size exceeds 10 bytes. In all 27 shipped RGM files, RAFS is exactly 1 byte — the section is vestigial and never loaded at runtime. FSpheres are instead computed from MPSZ bounding volume records indexed via RAHD.
+
+RAFS descriptors are independent of the 9-byte vertex-bound RAVC records. The actor
+header supplies a descriptor count and an index measured in 11-byte records. Each
+descriptor contains a flags byte, a 16-bit animation-group selector, three signed
+16-bit center offsets and a signed 16-bit radius. During actor initialization,
+flag 4 resolves the selector to the actor's animation binding pair; without that
+flag both selector bytes are cleared.
+
+The contact sphere builder admits flag 2 unconditionally, or flag 4 when the
+resolved binding pair matches the actor's current pair. It rotates the center by
+the actor's current matrix and adds its position. Unless actor attribute 56 is
+nonzero, ordinary body spheres follow these descriptors. This list is used for
+projectile endpoint contact and player contact with ropes. RAVC vertex volumes
+do not substitute for it.
+
 
 ## RAST (String Data)
 

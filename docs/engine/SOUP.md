@@ -849,7 +849,7 @@ Contact is decided by one of two tests:
   rope heading and from the rope heading plus 0x400, over the 0..0x7FF circle) must not exceed SYSTEM.INI `rope_attach_angle` masked with 0x3FF (512 as shipped),
   and the same sphere overlap must hold.
 
-The player's spheres are its RAVC records (flag 2 always, flag 4 only while the actor's current
+The player's spheres are its optional RAFS records (flag 2 always, flag 4 only while the actor's current
 animation group pair matches the record) followed, unless attribute 56 is nonzero, by its ordinary
 collision shape spheres; each center is rotated by the actor orientation and added to its position.
 At most 128 take part. The rope's spheres are the records of its own sphere list (11 bytes each:
@@ -4876,10 +4876,11 @@ creator. The update returns one to keep flying and zero to end the task:
    contact exists, the receiver moves to that contact's integer point shifted left by eight and the task ends.
 6. Otherwise every actor-style candidate except the parent is tested in candidate order with the actor's collision
    spheres. A sphere is hit when either segment endpoint lies within its radius (squared integer distance computed in
-   single precision and rounded, compared with the squared radius). The spheres are the actor's RAVC records (flag 2
+   single precision and rounded, compared with the squared radius). The spheres are the actor's optional RAFS records (flag 2
    always, flag 4 only while the actor's current animation group pair matches the record), followed, unless
    attribute 56 is nonzero, by the actor's [ordinary collision shape](player.md#ordinary-actor-collision-shape-initialization)
    spheres; each center is rotated by the actor's orientation and added to its position. At most 128 spheres take part.
+   Vertex-bound RAVC records are a separate collision owner and do not replace this sphere list.
 7. On the first hit, an actor with combat state is sent combat message `0xd005` from the parent; with or without
    combat state, the previous position is restored and the task ends. Without a hit the task continues.
 
