@@ -381,6 +381,19 @@ current radius and intensity. `LightRadius` and `LightIntensity` each replace
 both copies of their respective value, enable the record and clear its inactivity
 counter. These setters store the low sixteen bits of their arguments.
 
+### Glide submission boundary
+
+The normal Glide world draw keeps ordinary model actors and lightweight spatial
+objects in separate active lists. It registers light descriptors from the active
+spatial-object list. Owning a light record does not add an ordinary model actor
+to that list, and the ordinary model-actor draw traversal does not register its
+light record. Script-created light state on such an actor is therefore not an
+additional local-light emitter in this drawing pass.
+
+Local-light registration forwards the current signed RGB strengths and radius.
+The retained intensity word is not an input to this registration and does not
+scale RGB during submission.
+
 ## Runtime object-light region
 
 The normal world loop selects spatial lists using the target camera's integer
