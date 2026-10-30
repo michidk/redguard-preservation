@@ -140,7 +140,7 @@ match in the shared matcher, although flag commands require a nonempty pattern.
 
 | Command | Alias | Arguments and behavior |
 |---|---|---|
-| `load` | `l` | `load world[,marker][,angle]`. Requests a world load with optional marker and angle. Omitted marker and angle default to zero. |
+| `load` | `l` | `load world[,marker][,angle]`. Requests a world load with optional marker and angle. Omitted marker and angle default to zero; without a world the command prints a usage message and requests nothing. The request is held while the console is open: a later `load` replaces the pending world, marker and angle, F12 closes the console and the world loop then leaves for the requested world, and Escape closes the console and discards the request. The angle is the entry heading modulo 2048, as in marker-based world entry. |
 | `setmarker` | `sm` | `setmarker number`. Saves the current player/camera placement as a user marker in REDGUARD.MRK. |
 | `getmarker` | `gm` | `getmarker number`. Restores a user marker for the current world from REDGUARD.MRK. |
 | `setnetmark` | `snm` | `setnetmark number`. Saves a user marker in the configured shared marker file. Uses a file path from SYSTEM.INI; it is not a multiplayer command. |
