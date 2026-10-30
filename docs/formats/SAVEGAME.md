@@ -121,6 +121,18 @@ per-world object and rope records. It is separate from the `SMRP` rope records.
 See [rope control while attached](../engine/SOUP.md#rope-control-while-attached)
 for its input behavior.
 
+`SMOB` restores an actor's rope attachment by resolving the saved rope identity
+and constructing a fresh attachment. The actor receives that fresh pointer;
+the saved attachment pointer is not reused. The saved attachment node and motion
+word are then restored into the fresh attachment.
+
+When restoring `SMRP`, the rope's list references are resolved by rope identity.
+The current link-array and end-model pointers are retained. If the selected
+player has an attachment, the rope's current attachment-list head is retained
+as well. If the selected player has no attachment, the current head is freed
+and the restored head is null. The rope jump latch is restored through `SVGV`
+independently of these attachment pointers.
+
 ## Engine globals
 
 The main save (`SAVEGAME.SAV`, not the per-world `.TSG` files) also writes an `SVG2` chunk after
