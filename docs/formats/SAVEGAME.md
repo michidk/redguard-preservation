@@ -142,6 +142,10 @@ object and rope records before inventory, then reads `SVCB` into the selected
 player's existing script state. These records depend on initialized actor script
 owners; they do not allocate a replacement selected-player script owner.
 
+The script-state copy preserves the live taunt-pointer array, all nine attack
+references and all four defence references. Saved pointer values do not replace
+these dependencies of the initialized owner.
+
 ## Engine globals
 
 The main save (`SAVEGAME.SAV`, not the per-world `.TSG` files) also writes an `SVG2` chunk after
