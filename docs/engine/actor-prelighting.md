@@ -28,3 +28,18 @@ conversion. Placed orientation initializes the same instance matrix from the
 authored angles. The prelighting pass reuses this prepared translation and
 matrix when binding the static model; it does not rebuild the transform from
 the actor's current position or angles.
+
+## Entry and restoration order
+
+Prelighting runs after world-entry loading and before ordinary actor updates.
+On fresh entry, the actor loader's attribute defaults, model-path selection,
+placed orientation and initial group requests have already run. Ordinary script
+entry, task and main continuations have not advanced for the new entry.
+
+Revisiting a retained world restores its actor records before prelighting.
+Eligibility therefore uses the restored attribute and model kind, and the
+operation consumes the restored embedded model-instance transform. The saved
+script and animation continuations are installed before this pass resumes
+ordinary updates. Restoring a saved game follows the same ordering: restore
+world and actor state, run prelighting, then continue ordinary updates. Retained
+colors are rebuilt by the pass rather than treated as saved animation state.
