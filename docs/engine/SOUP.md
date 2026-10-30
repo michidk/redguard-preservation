@@ -4700,7 +4700,8 @@ only static models can block.
 [cinematic](movies.md) at once from inside the script call: the movie's table record is marked unlocked, the
 movie plays, and the stored queued-movie value becomes -1. Any other index, including a negative one,
 does not play: it replaces the stored queued-movie value (initially -1, meaning none), and the call returns
-without further effect.
+without further effect. The main loop plays a stored value other than -1 between
+worlds (see [movies](movies.md#unlock-flags-and-queued-playback)).
 
 ### chargeWeapon
 
