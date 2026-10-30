@@ -4748,6 +4748,12 @@ new record has its enable and pending bytes clear. All return zero.
   zero) and the counter and frame become zero. Either way the enable byte becomes one and the pending and
   animation bytes zero.
 
+In the Glide executable's ordinary actor update, retained flat maintenance runs
+immediately after light maintenance and before animation advancement and ordinary
+SOUP dispatch. It applies to actors that reach that maintenance stage and whose
+hidden flag is clear. A flat created or disabled by ordinary script dispatch is
+therefore first maintained on the next eligible update.
+
 ### PlayerHanging and updatePlayerViewAttrib
 
 `PlayerHanging()` returns one when the selected player's living state is 15 (hanging) and its retained
