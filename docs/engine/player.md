@@ -1513,7 +1513,7 @@ Fighting class 1 does not select the tertiary shape. An absent tertiary shape
 falls back to the ordinary shape.
 
 The animated actor loader builds the tertiary shape from the third RAHD MPSZ
-index using the signed RAEX radius scale. A negative third index leaves that
+index using the signed RAEX radius scale. A third index of -1 leaves that
 shape absent. Combat-record reinitialization preserves this shape. The selector
 updates the chosen shape's whole-map translation and wrapped inverse angles
 from the actor's current effective pose before returning it.
