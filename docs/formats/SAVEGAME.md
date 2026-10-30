@@ -133,6 +133,15 @@ as well. If the selected player has no attachment, the current head is freed
 and the restored head is null. The rope jump latch is restored through `SVGV`
 independently of these attachment pointers.
 
+## Actor script-state ownership
+
+`SMOB` retains the actor's existing script-state pointer instead of restoring the
+saved pointer value. When that actor has script state, its saved script-state
+record is copied into the existing allocation. The main save reader restores
+object and rope records before inventory, then reads `SVCB` into the selected
+player's existing script state. These records depend on initialized actor script
+owners; they do not allocate a replacement selected-player script owner.
+
 ## Engine globals
 
 The main save (`SAVEGAME.SAV`, not the per-world `.TSG` files) also writes an `SVG2` chunk after
