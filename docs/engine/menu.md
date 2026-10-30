@@ -46,7 +46,10 @@ builds. In order, it re-reads the script flag definitions from `SOUP386.DEF`,
 opens the item system from `ITEMS` (the player's starting item list and
 selection), deletes the per-world saved map files (`MAPS\*.TSG`), reads the
 menu and movie settings from `MENU.INI`, deletes `LOGBOOK.TXT`, and then resets
-a fixed set of engine globals. A plain world replacement does not run it.
+a fixed set of engine globals. Ten of those scalars are also cleared by every
+player placement (the routine that sets the player's position and heading when a
+world is entered), so New Game and world entry share that part of the reset. A plain
+world replacement does not run the initializer.
 
 The player's health is retained outside the world. Every health change stores
 the selected player's health attribute (attribute 3) in a retained value, world
