@@ -412,6 +412,12 @@ states 33/34 or animation groups 149/150. An owned item 0 then toggles the
 compass flag. An unowned item cannot toggle it. Holding the use input does not
 repeat the accepted toggle.
 
+The Activate/Attack key (`key_d`) uses the selected item for an unarmed selected player: one press
+starts one use of the item (a selected sabre is drawn, a selected drinkable item runs its use script
+once) and holding the key does not repeat it. Without the key press nothing is used. Item use itself
+keeps the refusals above, so a player holding a weapon uses nothing and the same key attacks instead.
+The order between this use and a world object's activation prompt in reach is not established.
+
 The compass flag lives outside the world and the session initializer. Only the item 0 toggle and a
 startup command-line switch write it, so it survives world swaps and a New Game.
 
