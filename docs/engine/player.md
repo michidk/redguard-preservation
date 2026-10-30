@@ -1504,6 +1504,20 @@ sphere centered at zero with radius 12. This bypasses the usual sphere builder.
 This initialization precedes the type-one placed-model fallback; loading a
 placement model afterward does not rerun collision-shape initialization.
 
+### Contact body-shape selection
+
+Contact queries use the actor's initialized ordinary body shape unless its
+current living animation belongs to class 2, a combat record exists, and that
+record has a tertiary MPSZ shape. That combination selects the tertiary shape.
+Fighting class 1 does not select the tertiary shape. An absent tertiary shape
+falls back to the ordinary shape.
+
+The animated actor loader builds the tertiary shape from the third RAHD MPSZ
+index using the signed RAEX radius scale. A negative third index leaves that
+shape absent. Combat-record reinitialization preserves this shape. The selector
+updates the chosen shape's whole-map translation and wrapped inverse angles
+from the actor's current effective pose before returning it.
+
 ### Upright actor collision spheres
 
 For bounds whose X and Z totals are not strictly greater than both other totals,

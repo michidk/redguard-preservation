@@ -4878,7 +4878,7 @@ creator. The update returns one to keep flying and zero to end the task:
    spheres. A sphere is hit when either segment endpoint lies within its radius (squared integer distance computed in
    single precision and rounded, compared with the squared radius). The spheres are the actor's optional RAFS records (flag 2
    always, flag 4 only while the actor's current animation group pair matches the record), followed, unless
-   attribute 56 is nonzero, by the actor's [ordinary collision shape](player.md#ordinary-actor-collision-shape-initialization)
+   attribute 56 is nonzero, by the actor's [selected body shape](player.md#contact-body-shape-selection)
    spheres; each center is rotated by the actor's orientation and added to its position. At most 128 spheres take part.
    Vertex-bound RAVC records are a separate collision owner and do not replace this sphere list.
 7. On the first hit, an actor with combat state is sent combat message `0xd005` from the parent; with or without
