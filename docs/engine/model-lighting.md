@@ -383,8 +383,8 @@ counter. These setters store the low sixteen bits of their arguments.
 
 ### Modulation maintenance
 
-The normal world update maintains light records on both eligible ordinary
-actors and active spatial objects. Ordinary actor maintenance precedes that
+The Glide executable maintains light records on both eligible ordinary actors
+and active spatial objects during its normal world update. Ordinary actor maintenance precedes that
 actor's ordinary SOUP dispatch. Spatial-object maintenance follows its SOUP
 dispatch, before the temporary actor state is written back to the object.
 Actor eligibility and maintenance bypasses still apply. Ordinary actor light
