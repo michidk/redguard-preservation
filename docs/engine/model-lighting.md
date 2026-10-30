@@ -381,6 +381,47 @@ current radius and intensity. `LightRadius` and `LightIntensity` each replace
 both copies of their respective value, enable the record and clear its inactivity
 counter. These setters store the low sixteen bits of their arguments.
 
+### Modulation maintenance
+
+The normal world update maintains light records on both eligible ordinary
+actors and active spatial objects. Ordinary actor maintenance precedes that
+actor's ordinary SOUP dispatch. Spatial-object maintenance follows its SOUP
+dispatch, before the temporary actor state is written back to the object.
+Actor eligibility and maintenance bypasses still apply. Ordinary actor light
+state advances even when the drawing pass does not submit it as a local light.
+
+`LightFlicker(amplitude, period)` configures intensity modulation;
+`LightSize(amplitude, period)` configures radius modulation. Each stores its
+arguments as sixteen-bit words and resets its phase timer to zero. Neither
+setter enables a disabled light record. A zero amplitude disables that channel's
+phase advancement and random draws.
+
+Enabled records process intensity before radius. Each active channel adds the
+shared whole nominal-tick increment to its sixteen-bit phase with wrapping.
+The resulting phase and period are compared as signed sixteen-bit values.
+When the phase is at least the period, it resets to zero and the channel takes
+one random sample. Excess ticks do not carry forward or produce additional
+samples in that maintenance pass. These are the same
+[nominal ticks](player.md#whole-nominal-ticks) used by animation, rather than
+render frames or milliseconds.
+
+For positive amplitude `A`, the new value is the channel's starting value plus
+`bounded_random(A) - floor(A / 2)`, stored with sixteen-bit wrapping. Intensity
+has no lower clamp. After both channels, the current radius is interpreted as a
+signed sixteen-bit value and raised to one if it is smaller. This radius clamp
+also applies when neither channel takes a sample. Disabled records perform
+inactivity cleanup instead of modulation.
+
+The shared random generator advances a wrapping unsigned 32-bit state with
+`state = state * 1103515245 + 12345` and returns `(state >> 16) & 32767`.
+The bounded helper consumes one such result. For positive bounds at most
+16384, it masks the result with one less than the smallest power of two that
+is at least the bound, with a minimum mask of one. Larger positive bounds use
+the unmasked result. It then subtracts the bound repeatedly until the result
+is smaller than the bound. This produces a biased distribution for many
+bounds; it does not redraw rejected values. Actor order and intensity-before-
+radius order therefore determine which samples each channel consumes.
+
 ### Glide submission boundary
 
 The normal Glide world draw keeps ordinary model actors and lightweight spatial
