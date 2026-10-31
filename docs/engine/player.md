@@ -1518,6 +1518,26 @@ sphere centered at zero with radius 12. This bypasses the usual sphere builder.
 This initialization precedes the type-one placed-model fallback; loading a
 placement model afterward does not rerun collision-shape initialization.
 
+### Living animation bounds selection
+
+An ordinary actor with combat and living-animation records refreshes its spatial
+bounds before its default-state update. The current living animation's
+[group class](animation.md#animation-group-classes) selects the bounds. Class 2
+uses the tertiary MPSZ bounds when the combat record has a tertiary shape.
+Class 1 uses the secondary MPSZ bounds when it has a secondary shape. Other
+classes, and missing shapes for the selected class, use the retained primary
+bounds.
+
+The animated actor loader initializes all three retained bounds from the actor's
+initial bounds, then replaces secondary and tertiary bounds for nonnegative
+second and third RAHD MPSZ indices. An index of -1 leaves the corresponding
+shape absent.
+
+Refreshing spatial bounds copies the bounds record without rebuilding the
+ordinary collision spheres. Support height and forward clearance therefore use
+the current animation's extents while ordinary body contacts retain their
+initialized spheres, subject to the separate contact selector below.
+
 ### Contact body-shape selection
 
 Contact queries use the actor's initialized ordinary body shape unless its
