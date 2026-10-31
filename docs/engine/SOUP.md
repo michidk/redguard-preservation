@@ -4951,6 +4951,18 @@ hazard when the destination's class is 2.
 The selected player runs the same test, except that it reports no hazard while the player's
 [support-history counter](player.md#selected-player-fallback-support) is nonzero.
 
+### Directional step refusal marks
+
+A refused directional destination check retains a mark in the receiver's packed
+collision-response word. Forward refusal sets body-response bit `0x80`, left
+sets body-response bit `0x20`, and right sets body-response bit `0x40`.
+Backward refusal sets collision-transition bit `0x01`. The writes preserve
+other response bits and do not use the two auxiliary response bytes.
+
+These marks participate in the `0x01e2` mask used by player alignment's
+fallback decision. The response-record maintenance counts their age and clears
+them with the other packed response bytes.
+
 ### MoveForward
 
 `MoveForward(duration)` is a task that steps the receiver forward along its heading. It shares
