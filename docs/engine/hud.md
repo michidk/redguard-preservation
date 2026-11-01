@@ -534,6 +534,28 @@ up operation subtracts 20 from the third angle, or 100 for the large step; down
 adds the corresponding amount. Angles wrap modulo 2048. Home and End do not
 rotate the models. The screen uses the menu viewport projection and a zero camera.
 
+### Logbook scroll lighting
+
+The reader lights its two `SCROLL.3D` instances with a light state of its own,
+so the loaded world's ambient, sun and lights have no effect on them. On entry the
+reader sets the ambient RGB to (64, 64, 64) and the directional light to white,
+(255, 255, 255), along the vector whose components are 16000 times the sine, cosine
+and sine of the table angles 256, 256 and 512, that is (11313, 11313, 16000),
+normalised. Every drawn frame also registers two white local lights of strength
+(255, 255, 255) and radius 6400 at (-390, 230, 600) and (390, 230, 600), in the zero-camera
+space the scrolls are placed in. The lights apply to the scrolls only; the paper
+is a flat picture.
+
+The scroll model's face brightness byte is zero and every corner takes its vertex
+normal through the model's indirection table (an authored radial normal in the XY
+plane). Corner lighting follows the [model lighting](model-lighting.md#ambient-and-directional-contribution)
+and [local-light](model-lighting.md#local-light-vertex-contribution) rules, with the
+instance rotation applied to positions and normals. The textured faces then use
+Glide's texture-times-iterated-colour combination, so a channel `T` lit to level
+`L` becomes `floor(T * (L + 1) / 256)`. The lit level reaches 255, which leaves the
+texture unchanged, over most of the lower scroll and darkens the upper scroll to
+about half its brightness where its surface turns away from both light positions.
+
 The single byte before a comma is converted to an integer font-table index;
 missing prefixes use index 7. The reader follows the font-table entry's small-font link directly. Index 7 therefore uses `FONTNORS.FNT` with main alpha
 200; index 9 uses `FONTSELS.FNT` with main alpha 255. Text shadows are disabled here.
