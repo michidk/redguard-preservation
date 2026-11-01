@@ -2635,6 +2635,11 @@ is preserved, and the actor is registered for a deferred map update. Registratio
 deduplicates the actor, including when the enclosing pending path also registers
 it. A missing map reports held-node arrival before reading a node.
 
+Held-node facing reads the node's unsigned X/Z coordinates scaled by 256,
+subtracts the actor's local Q8 position and turns toward the resulting horizontal
+bearing. It does not perform the coordinate-facing arrival test or snap X/Z.
+Without a current navigation map it returns zero without turning.
+
 Phase two releases held nodes and selects phase zero when no next node is held.
 Otherwise it faces the next node when the animation exit marker is clear,
 ignoring that facing result, then invokes coordinate walking toward the node
