@@ -527,6 +527,12 @@ the shared fifty-pixel step. Page Up also supplies up; Page Down supplies down.
 The installed log key, Escape or installed D binding closes the reader. Closing
 waits for those controls to be released before gameplay resumes.
 
+The reader selects the paper file's own palette (the `LOGPAPER.GXA` palette, installed
+as the file stores it) for both the paper and the scrolls, so the scroll textures take
+their colours from that palette and not from `REDGUARD.COL`. Apart from the colour-key
+entries it overrides, that palette is `REDGUARD.COL` with each channel truncated to six
+bits (`4 * floor(channel / 4)`).
+
 `MENU.ROB` supplies two instances of `SCROLL.3D`. Their positions are
 `(-324,-212,362)` and `(-324,200,362)` with initial rotations `(0,512,0)`.
 The rotations apply the second axis, then the first, then the third. Each admitted
