@@ -2665,12 +2665,14 @@ after the geometry call. The first blocking result rejects immediately.
 
 ### Point route initialization
 
-Phase zero releases held nodes and admits the default animation before trying
-to initialize a new route. Initialization releases held nodes, performs the
-ordinary nearest-free-node search and copies the shared selected map into the
-receiver, including an absent map on a miss. A missing map or node returns zero.
-Otherwise it assigns the found node as next and returns one after the assignment;
-the assignment's claim result does not change that return value.
+Phase zero releases held nodes and calls the animation-stop operation, which
+leaves playback unchanged. When the actor already holds a current node, it
+assigns that node as current again and selects phase eight. Otherwise route
+initialization releases held nodes, performs the ordinary nearest-free-node
+search and copies the shared selected map into the receiver, including an
+absent map on a miss. A missing map or node returns zero. Otherwise it assigns
+the found node as next and returns one after the assignment; the assignment's
+claim result does not change that return value.
 
 A nonzero initialization result selects phase one. A zero result retains phase
 zero. The pending tail sets lifecycle seven and attribute 1 to 12 and registers
