@@ -2635,6 +2635,11 @@ is preserved, and the actor is registered for a deferred map update. Registratio
 deduplicates the actor, including when the enclosing pending path also registers
 it. A missing map reports held-node arrival before reading a node.
 
+Held-node facing reads the node's unsigned X/Z coordinates scaled by 256,
+subtracts the actor's local Q8 position and turns toward the resulting horizontal
+bearing. It does not perform the coordinate-facing arrival test or snap X/Z.
+Without a current navigation map it returns zero without turning.
+
 Phase two releases held nodes and selects phase zero when no next node is held.
 Otherwise it faces the next node when the animation exit marker is clear,
 ignoring that facing result, then invokes coordinate walking toward the node
@@ -2665,12 +2670,14 @@ after the geometry call. The first blocking result rejects immediately.
 
 ### Point route initialization
 
-Phase zero releases held nodes and admits the default animation before trying
-to initialize a new route. Initialization releases held nodes, performs the
-ordinary nearest-free-node search and copies the shared selected map into the
-receiver, including an absent map on a miss. A missing map or node returns zero.
-Otherwise it assigns the found node as next and returns one after the assignment;
-the assignment's claim result does not change that return value.
+Phase zero releases held nodes and calls the animation-stop operation, which
+leaves playback unchanged. When the actor already holds a current node, it
+assigns that node as current again and selects phase eight. Otherwise route
+initialization releases held nodes, performs the ordinary nearest-free-node
+search and copies the shared selected map into the receiver, including an
+absent map on a miss. A missing map or node returns zero. Otherwise it assigns
+the found node as next and returns one after the assignment; the assignment's
+claim result does not change that return value.
 
 A nonzero initialization result selects phase one. A zero result retains phase
 zero. The pending tail sets lifecycle seven and attribute 1 to 12 and registers
