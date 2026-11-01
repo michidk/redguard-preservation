@@ -3047,8 +3047,9 @@ For the supplied wrapped angle `a`, `s` is table entry `a` and `c` is entry
 Both expressions use the row values from before that axis operation. The helper
 rounds the temporary result first, stores the other result in the matrix, then
 copies the temporary into the matrix. Each result is single precision before
-the next axis operation. Products
-and sums use x87 intermediates. Family composition applies these operations to
+the next axis operation. In the ordinary unattached incremental refresh, each
+product also rounds to single precision before the addition or subtraction.
+Family composition applies these operations to
 the copied parent matrix with negative local yaw, negative local pitch and
 negative local roll, each wrapped modulo 2048.
 

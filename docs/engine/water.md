@@ -61,12 +61,12 @@ It does not center the oscillation on the base height.
 ## Wave lookup table
 
 The shared rotation table contains samples of
-`sin(n * 6.2831852 / 2048)`, stored as 32-bit floats. The angle remains in
-the x87 register through the sine operation; a single-precision scratch store
-does not replace that register value. The initializer writes 2,561 entries,
+`sin(f32(n * 6.2831852 / 2048))`, stored as 32-bit floats. Here `f32`
+rounds the angle to single precision before evaluating the sine. The initialized
+table contains 2,561 entries,
 including the extended quarter revolution and its endpoint. Water addresses the table
 starting at sample 512, so `wave_table[p]` is the float sample
-`sin((p + 512) * 6.2831852 / 2048)`. The 2048 wave phases therefore start near
+`sin(f32((p + 512) * 6.2831852 / 2048))`. The 2048 wave phases therefore start near
 one, zero, minus one, and zero at phases 0, 512, 1024, and 1536 respectively.
 The decimal full-period constant is part of the table construction.
 

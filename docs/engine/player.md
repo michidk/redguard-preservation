@@ -97,6 +97,10 @@ wrapped modulo 2048 for the shared rotation-table lookup. Unchanged angles leave
 the matrix intact. The stored matrix therefore retains its accumulated
 single-precision rotation history; it is not reconstructed from the current
 heading on every refresh.
+Each axis operation rounds its products to single precision before adding or
+subtracting them, then rounds the resulting component to single precision.
+These rounding points apply to the ordinary unattached incremental refresh;
+coordinate transforms and collision-matrix construction are separate operations.
 The ordinary actor update copies current pitch, heading and roll into their
 previous-angle fields before selecting the default animation and running the
 ordinary animation block. Movement later in that update can change the current
