@@ -38,6 +38,9 @@ the payload, after the chunk header.
 | `0x90` | 128 | `[u8; 128]` | — | bitmap_filename | Stored bitmap filename, ending at the first NUL or the field boundary. |
 
 The engine checks the version and compatibility values before restoring a save.
+An incompatible format version prevents state restoration. A mismatch in the two
+compatibility values displays a warning but does not prevent state restoration
+when the format version matches.
 The stored bitmap filename is separate from the `THMB` thumbnail and `SCR3`
 screen-image chunks.
 
@@ -46,6 +49,20 @@ screen-image chunks.
 Save containers include global state and per-world state. Object and script
 records depend on the corresponding [RGM](RGM.md) scene and runtime definitions.
 They are not replacement scene assets.
+
+The world loader constructs object, rope and code owners before applying their
+saved records. The `SMOB`, `SMRP` and `SMCO` readers consume the number of records
+established by that initialized world, rather than deriving a count from the
+chunk length. `SMSH` includes a count, which must match the initialized shell
+count.
+
+Each `SMCO` record starts with a four-byte little-endian code-object identifier
+followed by a 204-byte packed runtime body. The reader resolves that identifier
+against the initialized code owners. Nonzero saved script references are offsets
+rebased against the loaded world's code and native-hook bases. Live list links
+and the code owner's runtime-only pointer are retained instead of accepting the
+saved pointer values. Matching a world number alone therefore does not supply
+the owners and script bases needed to interpret these records.
 
 `SMOB`, `SMRP`, `SMCO`, and `SMSH` hold object, rope, code, and shell state,
 respectively. `SVCM` holds camera records, and `SMFM` holds family references.
