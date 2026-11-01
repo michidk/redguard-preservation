@@ -2,5 +2,23 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "github>michidk/workflows//templates/presets/renovate"
+  ],
+  "packageRules": [
+    {
+      "matchManagers": [
+        "cargo"
+      ],
+      "groupName": "All Cargo Dependencies"
+    },
+    {
+      "description": "Keep the clock-free font revision until upstream main supports browser generation.",
+      "matchManagers": [
+        "cargo"
+      ],
+      "matchDepNames": [
+        "bitmap2ttf"
+      ],
+      "enabled": false
+    }
   ]
 }
