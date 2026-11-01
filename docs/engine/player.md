@@ -628,6 +628,11 @@ position has a selected surface, classification 2 rejects the attempt and other
 classifications allow this slope check. This selection is separate from the
 ordinary ground-support rank comparison.
 
+When neither the proposed-position nor the current-position slope probe selects a
+surface, the slope check allows the attempt to continue. The separate support
+query still runs and can accept the designated player's fallback sphere contact
+or reject absent support. A missing slope contact does not itself reject motion.
+
 ### Queued and falling vertical motion
 
 Queued and falling vertical motion skip their arithmetic when an animated
