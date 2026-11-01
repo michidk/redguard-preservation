@@ -1794,6 +1794,17 @@ For an ordinary actor, a nonzero `attr_weight` supplies mobility
 `256 - attr_weight`; weight zero supplies mobility zero. Actor overlap
 response excludes actors with nonzero attribute 26.
 
+The selected player has zero overlap mobility while either the shared player
+lineup result or the player lockout word is nonzero, regardless of attribute 6.
+This override applies both when the player owns the pass and when another actor
+queries it. It does not change the stored weight attribute.
+
+When an immovable response would restore the updating actor's previous position,
+a selected player with a nonzero shared lineup result keeps its current position
+instead. Lockout alone does not suppress that restoration. These rules apply to
+both actor-pair and actor-style static-placement responses; small actor-pair
+contacts still mark contact and return before weighted response.
+
 Grounded living states use the same weighted actor and static-placement overlap
 response as ordinary standing, including weapon drawing and sheathing, states
 20 and 21. They do not bypass overlap queries. The grounded state exception is
