@@ -4763,8 +4763,9 @@ new record has its enable and pending bytes clear. All return zero.
 In the Glide executable's ordinary actor update, retained flat maintenance runs
 immediately after light maintenance and before animation advancement and ordinary
 SOUP dispatch. It applies to actors that reach that maintenance stage and whose
-hidden flag is clear. A flat created or disabled by ordinary script dispatch is
-therefore first maintained on the next eligible update.
+hidden flag is clear. Standalone objects created after world loading use this
+same traversal and maintenance order. A flat created or disabled by ordinary
+script dispatch is therefore first maintained on the next eligible update.
 
 ### PlayerHanging and updatePlayerViewAttrib
 
