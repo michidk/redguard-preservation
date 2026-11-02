@@ -492,8 +492,11 @@ The installed C action opens a modal `Log Entry` dialog from the logbook
 reader. The default keyboard binding is Alt, configured by `key_c[0]` in
 `KEYS.INI`; this is the action binding, not the letter C.
 
-Each dialog starts with empty text and accepts at most 64 bytes. It converts
-lowercase ASCII letters to uppercase before processing them. Unshifted
+Each dialog starts with empty text and accepts at most 64 bytes. Further input
+bytes are ignored at the limit; deleting a byte permits another byte to be
+entered. Inserted control bytes count toward this limit. It converts lowercase
+ASCII letters to uppercase before processing them, with Caps Lock either on or
+off and with or without Shift. Unshifted
 Backspace removes the last byte when the text is nonempty. Unshifted Return
 accepts nonempty text; an empty submission leaves the dialog open. Escape
 cancels the dialog, including while Shift is held. Tab produces no character.
