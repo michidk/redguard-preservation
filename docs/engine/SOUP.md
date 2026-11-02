@@ -1610,9 +1610,13 @@ Used by opcodes `0x0F`, `0x10`, `0x14`, `0x19`, `0x1A`. A leading byte selects t
 | `0x01` | `u8` padding | `Player` — Cyrus |
 | `0x02` | `u8` padding | `Camera` |
 | `0x04` | `u8` string index | Named object from per-script string table (RASB/RAST) |
-| `0x0A` | `u8` var index | Object name from local variable |
+| `0x0A` | `u8` var index | Actor reference from local variable |
+
+The local-variable form uses the selected local's value directly as an actor reference. It does not resolve a runtime identifier through the namespace registry.
 
 Named object lookup compares bytes with ASCII letters A–Z folded to lowercase. It searches registered object namespace names, rather than actor script names. The registry orders entries by their signed 16-bit runtime object identifier; lookup returns the first matching name. Registering an identifier already in that registry does not add another entry.
+
+Removing a killed post-load object leaves its namespace registration in place. Named lookup returns the registered object reference without checking the live actor table or the object's killed flag. Resetting the namespace registry clears all registrations.
 
 ### Runtime object identifiers
 
@@ -4759,8 +4763,9 @@ new record has its enable and pending bytes clear. All return zero.
 In the Glide executable's ordinary actor update, retained flat maintenance runs
 immediately after light maintenance and before animation advancement and ordinary
 SOUP dispatch. It applies to actors that reach that maintenance stage and whose
-hidden flag is clear. A flat created or disabled by ordinary script dispatch is
-therefore first maintained on the next eligible update.
+hidden flag is clear. Standalone objects created after world loading use this
+same traversal and maintenance order. A flat created or disabled by ordinary
+script dispatch is therefore first maintained on the next eligible update.
 
 ### PlayerHanging and updatePlayerViewAttrib
 
