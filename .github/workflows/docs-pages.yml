@@ -27,17 +27,17 @@ jobs:
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
 
-      - name: Cache cargo registry
+      - name: Cache mdBook
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            ~/.cargo/bin/mdbook
-          key: ${{ runner.os }}-mdbook-${{ hashFiles('docs/book.toml') }}
+          path: ~/.cargo/bin/mdbook
+          key: ${{ runner.os }}-${{ runner.arch }}-mdbook-0.5.4
 
       - name: Install mdBook
-        run: cargo install mdbook --locked --force
+        run: |
+          if ! mdbook --version 2>/dev/null | grep -qx 'mdbook v0.5.4'; then
+            cargo install mdbook --version 0.5.4 --locked
+          fi
 
       - name: Build docs
         run: mdbook build docs
