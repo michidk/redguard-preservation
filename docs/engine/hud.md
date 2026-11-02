@@ -486,6 +486,57 @@ When a new logbook entry is written and the icon is not already playing,
 frame per rendered frame, then disappears. It is not hidden by lockout.
 Opening the logbook screen stops it.
 
+## Manual logbook entries
+
+The installed C action opens a modal `Log Entry` dialog from the logbook
+reader. The default keyboard binding is Alt, configured by `key_c[0]` in
+`KEYS.INI`; this is the action binding, not the letter C.
+
+Each dialog starts with empty text and accepts at most 64 bytes. Further input
+bytes are ignored at the limit; deleting a byte permits another byte to be
+entered. Inserted control bytes count toward this limit. It converts lowercase
+ASCII letters to uppercase before processing them, with Caps Lock either on or
+off and with or without Shift. Unshifted
+Backspace removes the last byte when the text is nonempty. Unshifted Return
+accepts nonempty text; an empty submission leaves the dialog open. Escape
+cancels the dialog, including while Shift is held. Tab produces no character.
+
+Shift+Backspace appends a carriage-return byte (`0x0D`), and Shift+Return appends
+a vertical-tab byte (`0x0B`), subject to the same byte limit. These combinations
+do not delete or submit. Caps Lock does not change these control mappings.
+
+Neither inserted control byte draws a visible symbol or starts a new line in
+the entry dialog. In the reader, vertical tab remains invisible within its
+record. Carriage return separates physical records when the accepted text is
+reloaded, so text after it appears on a new entry line.
+
+Acceptance appends `9,`, the entered text and CRLF to `LOGBOOK.TXT` in binary
+append mode. It uses the shared logbook writer and its notification behavior,
+bypassing the script tag-deduplication table. The writer's current style is then
+reset to `7`. The reader reloads the file and selects its maximum scroll offset,
+showing the newest text. Cancellation does not invoke the writer.
+
+This operation adds a new record. It does not select, replace or delete an
+existing entry.
+
+The dialog restores its captured reader background on each redraw and draws
+`SYSTEM/MINIMENU.GXA` at `(175, 140)` in the canonical 640-by-480 viewport.
+Its backing rectangle uses RGB `(10, 10, 10)` and alpha 125, including the
+right and bottom image boundaries. The `Log Entry` title is centered at
+`(320, 170)` with REDSEL and the normal font style from `SYSTEM.INI`.
+The edited text starts at `(200, 200)` with REDSEL and the selected font style.
+Both use the shared font shadow and colour rules.
+
+An underscore cursor is appended to the display copy while its phase is on.
+The phase starts off. Each newly sampled BIOS tick toggles it only if that
+tick is divisible by six; missed ticks do not cause extra toggles.
+The display copy, including any cursor, replaces spaces with newlines by
+scanning from byte offset 13, excluding the final byte. After a replacement,
+scanning resumes fourteen bytes later. The stored edit buffer is unchanged.
+The glyph painter also wraps before a glyph whose width would extend past
+x = 450, returning to the text's starting x one font line lower. This pixel
+wrap applies to unbroken runs as well as the prepared display lines.
+
 ## Logbook reading layout and navigation
 
 The logbook reads physical lines from its stored text. CR and LF are line
