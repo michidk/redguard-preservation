@@ -493,9 +493,14 @@ reader. The default keyboard binding is Alt, configured by `key_c[0]` in
 `KEYS.INI`; this is the action binding, not the letter C.
 
 Each dialog starts with empty text and accepts at most 64 bytes. It converts
-lowercase ASCII letters to uppercase before processing them. Translated input
-code 9 removes the last byte when the text is nonempty. Code 10 accepts nonempty
-text; an empty submission leaves the dialog open. Escape cancels the dialog.
+lowercase ASCII letters to uppercase before processing them. Unshifted
+Backspace removes the last byte when the text is nonempty. Unshifted Return
+accepts nonempty text; an empty submission leaves the dialog open. Escape
+cancels the dialog, including while Shift is held. Tab produces no character.
+
+Shift+Backspace appends a carriage-return byte (`0x0D`), and Shift+Return appends
+a vertical-tab byte (`0x0B`), subject to the same byte limit. These combinations
+do not delete or submit. Caps Lock does not change these control mappings.
 
 Acceptance appends `9,`, the entered text and CRLF to `LOGBOOK.TXT` in binary
 append mode. It uses the shared logbook writer and its notification behavior,
