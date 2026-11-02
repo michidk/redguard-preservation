@@ -1610,7 +1610,9 @@ Used by opcodes `0x0F`, `0x10`, `0x14`, `0x19`, `0x1A`. A leading byte selects t
 | `0x01` | `u8` padding | `Player` — Cyrus |
 | `0x02` | `u8` padding | `Camera` |
 | `0x04` | `u8` string index | Named object from per-script string table (RASB/RAST) |
-| `0x0A` | `u8` var index | Object name from local variable |
+| `0x0A` | `u8` var index | Actor reference from local variable |
+
+The local-variable form uses the selected local's value directly as an actor reference. It does not resolve a runtime identifier through the namespace registry.
 
 Named object lookup compares bytes with ASCII letters A–Z folded to lowercase. It searches registered object namespace names, rather than actor script names. The registry orders entries by their signed 16-bit runtime object identifier; lookup returns the first matching name. Registering an identifier already in that registry does not add another entry.
 
