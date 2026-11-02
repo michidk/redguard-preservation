@@ -1614,6 +1614,8 @@ Used by opcodes `0x0F`, `0x10`, `0x14`, `0x19`, `0x1A`. A leading byte selects t
 
 Named object lookup compares bytes with ASCII letters A–Z folded to lowercase. It searches registered object namespace names, rather than actor script names. The registry orders entries by their signed 16-bit runtime object identifier; lookup returns the first matching name. Registering an identifier already in that registry does not add another entry.
 
+Removing a killed post-load object leaves its namespace registration in place. Named lookup returns the registered object reference without checking the live actor table or the object's killed flag. Another registration with the same runtime identifier still retains the first entry. Resetting the namespace registry clears all registrations.
+
 ### Runtime object identifiers
 
 Runtime identifiers are separate from the MPOB record's object id. The reusable actor pool has capacity `max(10, SYSTEM.INI [system] max_active_objects)`. An allocation uses the first free pool slot and initially assigns its zero-based index plus three as the actor's 16-bit identifier.
