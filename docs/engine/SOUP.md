@@ -2091,7 +2091,8 @@ threshold, or a distance strictly greater than the threshold. It does not
 snap or register the actor.
 
 Alignment turning uses the [support-response turn rules](player.md#ordinary-slope-response),
-including selected-player camera updates. Returning to the default animation
+including the selected player's orientation-matrix and angle-history refresh.
+The turn helper changes no camera state. Returning to the default animation
 reports success on every normal return; it does not wait for playback to finish.
 
 ### Player turn, speed, arctangent and location-distance queries
