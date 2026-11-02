@@ -526,6 +526,8 @@ right and bottom image boundaries. The `Log Entry` title is centered at
 `(320, 170)` with REDSEL and the normal font style from `SYSTEM.INI`.
 The edited text starts at `(200, 200)` with REDSEL and the selected font style.
 Both use the shared font shadow and colour rules.
+In the dialog, an entered carriage return has no visible glyph and advances
+the text pen by one pixel without starting a new line.
 
 An underscore cursor is appended to the display copy while its phase is on.
 The phase starts off. Each newly sampled BIOS tick toggles it only if that
