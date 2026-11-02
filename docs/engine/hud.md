@@ -502,6 +502,11 @@ Shift+Backspace appends a carriage-return byte (`0x0D`), and Shift+Return append
 a vertical-tab byte (`0x0B`), subject to the same byte limit. These combinations
 do not delete or submit. Caps Lock does not change these control mappings.
 
+Neither inserted control byte draws a visible symbol or starts a new line in
+the entry dialog. In the reader, vertical tab remains invisible within its
+record. Carriage return separates physical records when the accepted text is
+reloaded, so text after it appears on a new entry line.
+
 Acceptance appends `9,`, the entered text and CRLF to `LOGBOOK.TXT` in binary
 append mode. It uses the shared logbook writer and its notification behavior,
 bypassing the script tag-deduplication table. The writer's current style is then
