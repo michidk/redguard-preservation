@@ -486,6 +486,26 @@ When a new logbook entry is written and the icon is not already playing,
 frame per rendered frame, then disappears. It is not hidden by lockout.
 Opening the logbook screen stops it.
 
+## Manual logbook entries
+
+The installed C action opens a modal `Log Entry` dialog from the logbook
+reader. The default keyboard binding is Alt, configured by `key_c[0]` in
+`KEYS.INI`; this is the action binding, not the letter C.
+
+Each dialog starts with empty text and accepts at most 64 bytes. It converts
+lowercase ASCII letters to uppercase before processing them. Translated input
+code 9 removes the last byte when the text is nonempty. Code 10 accepts nonempty
+text; an empty submission leaves the dialog open. Escape cancels the dialog.
+
+Acceptance appends `9,`, the entered text and CRLF to `LOGBOOK.TXT` in binary
+append mode. It uses the shared logbook writer and its notification behavior,
+bypassing the script tag-deduplication table. The writer's current style is then
+reset to `7`. The reader reloads the file and selects its maximum scroll offset,
+showing the newest text. Cancellation does not invoke the writer.
+
+This operation adds a new record. It does not select, replace or delete an
+existing entry.
+
 ## Logbook reading layout and navigation
 
 The logbook reads physical lines from its stored text. CR and LF are line
