@@ -519,6 +519,21 @@ showing the newest text. Cancellation does not invoke the writer.
 This operation adds a new record. It does not select, replace or delete an
 existing entry.
 
+The dialog restores its captured reader background on each redraw and draws
+`SYSTEM/MINIMENU.GXA` at `(175, 140)` in the canonical 640-by-480 viewport.
+Its backing rectangle uses RGB `(10, 10, 10)` and alpha 125, including the
+right and bottom image boundaries. The `Log Entry` title is centered at
+`(320, 170)` with REDSEL and the normal font style from `SYSTEM.INI`.
+The edited text starts at `(200, 200)` with REDSEL and the selected font style.
+Both use the shared font shadow and colour rules.
+
+An underscore cursor is appended to the display copy while its phase is on.
+The phase starts off. Each newly sampled BIOS tick toggles it only if that
+tick is divisible by six; missed ticks do not cause extra toggles.
+The display copy, including any cursor, replaces spaces with newlines by
+scanning from byte offset 13, excluding the final byte. After a replacement,
+scanning resumes fourteen bytes later. The stored edit buffer is unchanged.
+
 ## Logbook reading layout and navigation
 
 The logbook reads physical lines from its stored text. CR and LF are line
