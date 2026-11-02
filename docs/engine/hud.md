@@ -533,6 +533,9 @@ tick is divisible by six; missed ticks do not cause extra toggles.
 The display copy, including any cursor, replaces spaces with newlines by
 scanning from byte offset 13, excluding the final byte. After a replacement,
 scanning resumes fourteen bytes later. The stored edit buffer is unchanged.
+The glyph painter also wraps before a glyph whose width would extend past
+x = 450, returning to the text's starting x one font line lower. This pixel
+wrap applies to unbroken runs as well as the prepared display lines.
 
 ## Logbook reading layout and navigation
 
