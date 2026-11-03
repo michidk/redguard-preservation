@@ -5297,3 +5297,27 @@ blocked-ahead probe.
 one, not multiplied by 256; the step-counter adjustment and frame scaling then apply as for
 MoveBackward.
 
+
+### MoveAboveMe
+
+`MoveAboveMe(offset_x, offset_y, offset_z, angle)` is a four-argument function.
+Its source actor comes from the shared source actor reference, independently
+of its receiver. It resolves the source position using the alternate-position,
+active-attachment, then current-local-position precedence. A source with the
+alternate-position predicate set invokes diagnostic error 137 before the
+transform. If the diagnostic services return, the function continues.
+
+The source actor's matrix transforms the three offsets in place. Each
+transformed offset is added to the corresponding resolved source coordinate.
+The target Y then subtracts the receiver's vertical offset shifted left eight
+bits and adds the shared vertical adjustment. These integer operations wrap
+at 32 bits.
+
+For the selected-player receiver, the function sets the pending-position flag
+to one, stores target XYZ in the pending-player coordinates, and stores the
+angle argument unchanged in the pending angle. It does not directly write the
+receiver's local coordinates or register the receiver in the actor list.
+
+For another receiver, it writes target XYZ directly to current local
+coordinates, stores `angle & 2047` as the local Y angle, and registers that
+receiver in the pending-position list. Both returning paths return zero.
