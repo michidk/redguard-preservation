@@ -6361,3 +6361,17 @@ action byte is 33 or the animation/control record's first word is 149.
 The action comparison occurs first and a match skips the animation-word read.
 The other returning paths return zero. The wrapper and both callees do not
 modify receiver, animation/control, or global state.
+
+### ReleaseAnimation
+
+`ReleaseAnimation` is a zero-argument function. A null receiver returns zero
+without reading receiver state. Otherwise it reads the receiver's
+animation/control pointer. A null pointer returns zero. With a nonnull
+pointer, it reads the same control-record byte used by `HoldAnimation` and
+`PauseAnimation`. Only a value of 255 causes a store, which replaces it with
+zero. Values from zero through 254 are retained without a write.
+
+Every path with a nonnull control pointer leaves that pointer as the residual
+return value, whether or not a store occurs. The handler makes no calls and
+does not read the ordinary native-enable or shared mode words. Other
+control-record bytes and receiver state are unchanged.
