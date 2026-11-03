@@ -259,6 +259,19 @@ those bytes to the buffer. With no output buffer, it instead calls the palette
 installation service for 256 entries. Inventory bitmap initialization uses the
 copy branch for all three resources.
 
+Bitmap image preparation keeps six texture slots arranged as three columns
+and two rows. The column and row origins are spaced 256 pixels apart. Slots
+outside the image dimensions contain no texture. Each populated slot receives
+a separate buffer of indexed pixels, copied row by row using the full image
+width as the source stride and the region width as the destination stride.
+A 640 by 480 image therefore produces widths 256, 256 and 128 in each row,
+with heights 256 and 224.
+
+Each region requests an indexed texture and supplies its tightly packed pixel
+buffer to the texture population service. The resulting texture identifiers
+are stored in the image's six-slot array. The preparation routine assigns
+consecutive image identity values to populated regions in slot order.
+
 ### Item list
 
 The list holds every item with `hide[x] = 0` and a nonzero count, in ID
