@@ -160,7 +160,7 @@ diagnostic output, and returns `1`. It reports the receiver's identifier,
 optional name, and script name when its script handle resolves in the script
 registry. An absent or unresolved handle uses the no-script diagnostic.
 
-The following diagnostic reports the receiver's node, destination node, AI type,
+The following diagnostic reports the receiver's `node`, `dnode`, AI type,
 mode, delay, length, and two AI variables. The AI variables are printed as signed
 16-bit values. The function does not change the receiver or execute its RAHK
 native hook. The ordinary update's native-hook stage is a separate operation.
