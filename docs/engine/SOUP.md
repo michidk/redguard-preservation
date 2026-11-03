@@ -6808,3 +6808,35 @@ sender objects are unchanged, and no entry is released. A missing messaging
 context requests the missing-context diagnostic before the selection read.
 There is no receiver-null, malformed-entry or iteration-limit gate in this
 function.
+
+### PipeAroundMe query
+
+`PipeAroundMe(distance)` walks the shared actor list, excludes the supplied
+receiver by pointer identity, and returns a shared array of selected actor
+pointers in list order. For each other actor it subtracts the receiver's three
+position coordinates from that actor's coordinates using wrapping 32-bit
+subtraction. The signed differences pass through the numerical distance helper
+described under [DistanceFromLocation](#distancefromlocation-numerical-distance-helper).
+The helper's signed integer result is compared with the complete signed 32-bit
+argument. An actor is selected when that result is less than or equal to the
+argument.
+
+The query does not establish an x87 control word. Coordinate conversion,
+intermediate precision, square root and integer conversion follow the helper's
+incoming floating-point settings. The comparison also treats an integer-indefinite
+result as a signed integer; it does not reject that result or negative arguments.
+
+For fewer than 64 selected actors, a null pointer follows the selected prefix.
+An empty selection returns the same buffer with its first slot null. Later
+slots retain their previous contents. Actor links and positions are unchanged.
+
+Each selected pointer is stored before the count increments and the capacity
+check runs. A count of 64 or greater requests runtime error 11 before following
+the next actor link. The 64th pointer is already stored at that request. This
+handler does not update source context or copy source-name text before the
+request. The error service determines whether traversal continues. The output
+terminator is written only when traversal reaches the end of the list.
+
+The receiver need not occur in the list. Its position is read only when a
+candidate other than itself is visited. There is no ordinary native-enable or
+shared-mode gate and no cycle detection.
