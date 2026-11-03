@@ -5337,3 +5337,27 @@ without appending a terminator. As in [CountAiShells](#countaishells-list-query)
 the ninth byte comes from the low byte of the following next pointer. Its two
 shared scratch buffers are separate from those used by `CountAiShells`.
 Traversal has no cycle check or iteration limit.
+
+### FxFlickerDim
+
+`FxFlickerDim(amount)` is declared as a one-argument multitask. Its native
+handler obtains the receiver's auxiliary record and takes the wrapping
+32-bit absolute value of `amount` as a random bound. It draws one random
+value and subtracts that same value from each of three unsigned base words.
+Each result is truncated to 16 bits before being interpreted as signed.
+Results below -255 are replaced by -255. The handler returns one.
+
+The random generator advances its shared 32-bit seed by multiplying by
+1103515245 and adding 12345, with wrapping arithmetic. It takes bits 16
+through 30 of the new seed. For a positive bound at most 16384, it masks
+this value to the smallest low-bit mask covering `bound - 1`, with a minimum
+mask of one. Larger positive bounds use all 15 bits. Repeated subtraction
+reduces the value below the bound. A zero amount or the minimum signed
+32-bit amount does not terminate this reduction loop.
+
+An existing receiver record is reused. A missing record increments the
+allocation count and allocated-byte total, requests 41 bytes and stores the
+returned pointer on the receiver. Initialization clears three leading bytes
+and three following words, sets two words to 256 and two to 100, and clears
+six further words. It does not initialize the three base words read by
+`FxFlickerDim`. Allocation failure is not checked before record writes.
