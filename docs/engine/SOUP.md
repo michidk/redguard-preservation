@@ -6515,3 +6515,28 @@ An absent context requests the missing-context diagnostic.
 Receiver, control-subrecord, sentinel-table, message-entry, and sender state
 are unchanged. There is no null-receiver or null-control-subrecord gate before
 the receiver and channel reads.
+
+### InCircle query
+
+`InCircle(x, z, radius)` queries the supplied receiver's horizontal position.
+A nonzero attached-position attribute selects its attached position. Otherwise
+a linked positioned record with a nonnull first pointer supplies position;
+if that record is absent or its first pointer is null, ordinary local position
+is used. The attached-position choice takes precedence over the linked record.
+
+The query subtracts `x` and `z` from the selected position's X and Z with
+32-bit wrapping, supplies zero for the Y difference, and calls the shared
+distance helper. It returns one when that helper's result, interpreted as a
+signed 32-bit integer, is at most the signed `radius`; otherwise it returns
+zero. The boundary is inclusive and selected position Y does not contribute.
+
+The distance helper stores each signed difference at single precision, forms
+the squared sum using the active x87 precision and rounding settings, stores
+the sum at double precision, takes its square root, stores the root at single
+precision, and converts it to a signed integer using the active x87 rounding
+mode. The query does not establish a rounding mode of its own.
+
+The query changes no receiver, metadata or linked-position state. It does not
+read the ordinary native-enable or shared mode words. Position selection reads
+receiver metadata before any receiver-null protection, so a null receiver is
+not a safe input.
