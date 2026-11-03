@@ -377,6 +377,11 @@ than 640 pixels. It restores the incoming font after each message. The text
 sink does not install a separate text style or select a renderer palette;
 [shared glyph services](subtitles.md#shared-text-colour-state) handle text colour.
 
+The ordinary route treats message contents as string data: percent characters
+remain literal. It copies bytes up to the first NUL, appends one line feed,
+and NUL-terminates the formatted text. An existing trailing line feed is
+retained, so an additional one follows it.
+
 The buffer-clear wrapper can run optional memory validation before filling.
 Outside a reentrant validation call, a nonzero byte count first checks the
 destination address, then the final byte address if the first check returns
