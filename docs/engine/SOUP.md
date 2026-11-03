@@ -6632,3 +6632,26 @@ Only the initial first-slot clear is a null write. Appends do not write a null
 terminator, and unused later slots retain their previous contents. The query
 does not read the ordinary native-enable or shared mode words and provides no
 protection against cyclic family links or master chains.
+
+### PipeSlaves query
+
+`PipeSlaves()` takes no script arguments. For a finite, acyclic family tree, it
+returns the shared actor-pointer buffer with its first slot set to null and
+the shared output count set to zero. Later buffer slots retain their previous
+contents.
+
+The native clears the count before calling its collector. The collector first
+reads the supplied receiver's `attr_master` byte. A zero byte returns without
+family traversal. Otherwise it calls the receiver-master lookup, which walks
+child and sibling links without selecting a matching node and returns no
+result. The collector therefore returns before appending pointers or entering
+its later diagnostic and recursive collection paths.
+
+Traversal updates the shared visited-node scratch pointer. It leaves the
+preceding-entry scratch unchanged and does not change actor, metadata, family
+node or slave-entry records. After collection, the native writes the null
+terminator at output index zero and returns the shared buffer. No diagnostic
+is requested on these finite, acyclic paths.
+
+The receiver metadata is dereferenced without a null check. The query does not
+read the ordinary native-enable or shared mode words.
