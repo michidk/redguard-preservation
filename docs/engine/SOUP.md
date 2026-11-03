@@ -28,6 +28,7 @@ synthetic `NullFunction`; authored entries start at index 1. See
 | `MoveObjectAxis` | [Move along the actor's orientation](#actor-local-axis-movement) |
 | `MoveByAxis`, `sMoveByAxis`, `MoveAlongAxis` | [Relative movement](#relative-axis-movement) |
 | `TrueFunction` | [Return constant true](#truefunction) |
+| `Animal` | [No-op task](#animal) |
 | `Rnd`, `QuickRnd` | [Draw from the shared random stream](#random-functions) |
 | `HideMe`, `ShowMe` | [Change model visibility](#object-visibility) |
 | `PlayerStand`, `Fighting` | [Standing query](#playerstand-query), [combat query](#fighting-query) |
@@ -42,6 +43,11 @@ specified alongside the functions that use them below.
 
 `TrueFunction()` takes no script arguments and returns `1`. It does not change
 world or actor state.
+
+### Animal
+
+`Animal` is declared as a task with two script arguments. Its handler ignores
+their values, returns zero, and changes no actor or world state.
 
 ## Script Data Sources
 
