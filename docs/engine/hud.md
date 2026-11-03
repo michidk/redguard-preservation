@@ -302,6 +302,17 @@ other keys close without changing the selection. The screen then waits until
 the inventory key, Escape, the walk/run modifier, Activate and Enter are all
 released.
 
+Exit selects resource group 31 and releases group 28, then processes deferred
+texture residency changes. A texture also owned by another group retains that
+ownership. A texture whose last group is released is freed even when repeated
+lookups had raised its reference count.
+
+The saved 16-bit frame is copied back using the destination display stride,
+then its buffer is freed. Exit calls display finalization, clears the cached
+candle health, frees the temporary item list, restores the saved text state
+and resumes the clock, in that order. Restoring the saved frame copies its
+pixel values directly; it does not select a renderer palette.
+
 View (`key_c`) opens the cursor item's examine view with its
 `inventory_object_file` model. When that view returns a nonzero result, the
 inventory screen closes without changing the selection.
