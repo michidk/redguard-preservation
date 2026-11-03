@@ -5660,6 +5660,29 @@ one, not multiplied by 256; the step-counter adjustment and frame scaling then a
 MoveBackward.
 
 
+### OffsetLocation
+
+`OffsetLocation(source, x, y, z)` transforms the supplied offset by the source
+actor's matrix, adds the result to the source's resolved position with 32-bit
+wrapping addition, and writes the three sums into the receiving actor's current
+local position. It returns zero and removes the fourth argument from the
+caller's stack. It makes no pending-position registration call.
+
+The native resolves the source position first and the receiver position second.
+It discards the receiver's resolved position. Source and receiver may be the
+same actor. Position resolution selects the actor's alternate position when
+its alternate-position attribute is nonzero; otherwise it selects the
+attachment record's position when that record names an attached actor, or the
+actor's current local position when no such attachment is active. The matrix
+always belongs to the supplied source actor, regardless of which position
+storage is selected.
+
+The matrix helper converts the three signed offsets to single precision before
+multiplying them by the source's three matrix rows. Products and additions use
+x87 intermediates. Each completed row is stored in single precision, reloaded,
+and converted to a signed 32-bit integer using the incoming floating-point
+rounding mode. The matrix helper leaves that control word unchanged. The
+subsequent position additions wrap at 32 bits.
 ### SetObjectLocation
 
 `SetObjectLocation(location, x, y, z)` selects coordinates from the receiving
