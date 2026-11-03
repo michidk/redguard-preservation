@@ -190,6 +190,11 @@ directional or local-light calculation. Its texture-coordinate extents use
 twice the source dimensions times the texture coordinate scales, independently
 of the three color inputs.
 
+Actor-flat drawing starts with submission flags 1 and selects special mode from
+bit `0x80` of the matching texture attribute in the map's [FLAT table](../formats/RGM.md#flat).
+A missing attribute leaves the ordinary path selected. The selected image frame
+is passed separately and does not add submission flags.
+
 Actor-flat drawing adds submission flag `0x200` to this special path and supplies
 red, green and blue values of 200. Those values are a constant tint, rather than
 a request for a geometry scale of 200 or a constant alpha of 200.
