@@ -1869,6 +1869,13 @@ The location selector and native wrapper do not write actor or table state.
 
 ## Function Dispatch
 
+### IsBouncing
+
+`IsBouncing()` takes no script arguments. It returns one when the receiving
+actor's motion-state byte is from 27 through 32 inclusive, and zero for every
+other byte value. It reads the receiver directly, without looking up the
+selected player or calling another service. The query does not modify actor
+or shared state.
 ### IsShellScript
 
 `IsShellScript()` takes no script arguments. It returns zero when the shell
