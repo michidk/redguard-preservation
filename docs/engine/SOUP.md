@@ -5931,6 +5931,20 @@ the ninth byte comes from the low byte of the following next pointer. Its two
 shared scratch buffers are separate from those used by `CountAiShells`.
 Traversal has no cycle check or iteration limit.
 
+### FxLightSize
+
+`FxLightSize(first, second)` is declared as a two-argument multitask. Its
+native handler resolves the receiver's auxiliary record, writes the low
+16 bits of `first` to one word and the low 16 bits of `second` to another,
+and clears the intervening word. It returns zero. The arguments are not
+clamped or scaled, and their upper 16 bits are discarded.
+
+An existing receiver record is reused without reinitialization. A missing
+record increments the allocation count and byte total, requests 41 bytes
+and stores the returned pointer on the receiver. The resolver clears the
+three words before the native assigns them. Other record fields retain
+the resolver's initialization or their previous values. Allocation failure
+is not checked before record writes.
 ### FxFlickerOnOff
 
 `FxFlickerOnOff(bound)` is declared as a one-argument multitask. Its native
