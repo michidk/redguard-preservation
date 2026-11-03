@@ -6961,3 +6961,45 @@ native-enable or shared-mode word, or modify actor or shared selection state.
 At the native boundary the receiver and three coordinates enter in registers;
 the distance argument occupies one stack word, which the native removes on
 return.
+
+### TurnToAngle native boundary
+
+`TurnToAngle(angle)` first compares the complete argument with the receiver's
+stored yaw. Exact equality returns zero without querying weapon state or
+changing yaw.
+
+Otherwise the native queries `IsHoldingWeapon` for the supplied receiver. If
+that query is false, it tests the receiver's weapon-control flag. Either true
+condition selects the unsigned armed-turn attribute byte; otherwise it selects
+the unsigned ordinary-turn attribute byte. The selected byte is multiplied by
+the shared movement scale with wrapping 32-bit arithmetic, arithmetic-shifted
+right by eight bits, and clamped to a minimum step of eight.
+
+The angular helper masks current and target yaw to 11 bits, subtracts target
+from current, and adjusts differences above 1024 or below -1024 by one full
+2048-unit turn. The native negates this difference. The two exact half-turn
+signs remain distinct.
+
+A zero difference or an absolute difference no greater than the step snaps
+stored yaw to the target masked to 11 bits and returns zero. For the selected
+player, the native requests the receiver's orientation-matrix update after
+storing yaw and before returning.
+
+For a larger difference, the step takes the difference's sign. If the receiver
+has an animation record, the native requests a directional animation before
+changing yaw. A false holding query selects the ordinary directional pair,
+with the receiver's style flag choosing its variant. A true holding query
+selects the armed directional pair. The animation request receives the supplied
+receiver and a zero third argument.
+
+After that request returns, or immediately when no animation record exists,
+the native adds the signed step to current yaw and masks the result to 11 bits.
+The selected player then receives the orientation-matrix update request. The
+incremental path returns the original signed angular difference, rather than
+the step or the remaining difference after the update. Animation-selection and
+matrix-update services determine whether their callers' continuations are
+reached.
+
+The native does not apply an ordinary native-enable or shared-mode gate before
+the exact-yaw comparison. Its receiver-specific weapon predicates retain their
+own guards. Receiver metadata is required on paths that select a turn attribute.
