@@ -6911,3 +6911,30 @@ The query does not establish an x87 control word or apply an ordinary
 native-enable or shared-mode gate. Its numerical result follows the helper's
 incoming floating-point settings. It reads receiver position before the speed
 query's missing-record guards.
+
+### ReplyBroadcastSender entry write
+
+`ReplyBroadcastSender(value)` returns zero. It requests the missing-context
+diagnostic before testing the argument when the messaging context is absent.
+A zero argument returns without querying broadcast availability or the sender.
+A nonzero argument also returns without changing entries when no broadcast is
+selected, or when the selected sender is null or equals the receiver.
+
+Otherwise the function uses the context's first pointer as a 12-byte entry
+array. At the global broadcast no-selection index, it stores the receiver as
+sender, the selected broadcast's sender as recipient, and the argument as the
+entry value, in that order. The sender token is compared and stored without
+dereferencing its object.
+
+It then increments the global index as an 8-bit value, wrapping 255 to zero.
+The new byte is zero-extended and compared with the global limit as signed
+32-bit integers. A value below the limit is retained; otherwise the index is
+reset to zero. After that update, the function reads the context's first
+pointer again and clears all three words of the newly indexed entry.
+
+The entry stores precede the index increment, any reset, and the three clear
+stores. If the updated index names the slot just written, the clear stores
+erase that new entry. If it names the currently selected entry, that entry is
+cleared. The receiver's own broadcast-selection byte is unchanged. The
+function does not inspect the destination entry before overwriting it,
+allocate an entry, or release one.
