@@ -17,17 +17,12 @@ on:
   push:
     tags: ["v*"]
   workflow_dispatch:
-    inputs:
-      tag:
-        description: Stable release tag to build
-        required: true
-        type: string
 
 permissions:
   contents: read
 
 concurrency:
-  group: release-${{ github.repository }}-${{ github.event_name }}-${{ inputs.tag || github.ref_name }}
+  group: release-${{ github.repository }}-${{ github.ref }}
   cancel-in-progress: false
 
 defaults:
@@ -38,35 +33,18 @@ env:
 
   BIN_NAME: rgpre
 
-  TAG_NAME: ${{ inputs.tag || github.ref_name }}
+  TAG_NAME: ${{ github.ref_name }}
   PUBLISH_RELEASE: "true"
 
 jobs:
-  dispatch:
-    name: Dispatch release on default branch
-    if: github.event_name == 'push'
-    runs-on: ubuntu-26.04
-    timeout-minutes: 5
-    permissions:
-      actions: write
-    env:
-      GH_TOKEN: ${{ github.token }}
-      GH_REPO: ${{ github.repository }}
-      DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
-    steps:
-      # Default-branch caches are visible to subsequent tagged-source builds.
-      - name: Dispatch tagged source build
-        run: gh workflow run release.yml --ref "$DEFAULT_BRANCH" -f tag="$TAG_NAME"
-
   verify:
-    if: github.event_name == 'workflow_dispatch'
     name: Verify release
     runs-on: ubuntu-26.04
     timeout-minutes: 20
     steps:
-      - name: Validate release tag
+      - name: Validate release tag and publishing token
         run: |
-          if [[ ! "$TAG_NAME" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+          if [[ "$GITHUB_REF_TYPE" != "tag" || ! "$TAG_NAME" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
             echo '::error::Select a stable vX.Y.Z release tag.'
             exit 1
           fi
@@ -74,7 +52,6 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          ref: refs/tags/${{ env.TAG_NAME }}
           persist-credentials: false
 
       - name: Install toolchain
@@ -84,9 +61,6 @@ jobs:
 
       - name: Cache
         uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
-        with:
-          key: release-verify-${{ hashFiles('src/**', 'tests/**', 'build.rs') }}
-          cache-workspace-crates: true
 
       - name: Verify Cargo version matches tag
         run: |
@@ -108,8 +82,8 @@ jobs:
 
 
   build:
-    if: github.event_name == 'workflow_dispatch'
     name: Build (${{ matrix.target }})
+    needs: verify
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45
     strategy:
@@ -153,7 +127,6 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          ref: refs/tags/${{ env.TAG_NAME }}
           persist-credentials: false
 
       - name: Install toolchain
@@ -164,9 +137,7 @@ jobs:
       - name: Cache
         uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
         with:
-          shared-key: release-${{ matrix.target }}
-          key: ${{ hashFiles('src/**', 'build.rs') }}
-          cache-workspace-crates: true
+          key: release-${{ matrix.target }}
 
       - name: Install cross
         if: matrix.cross
@@ -214,7 +185,7 @@ jobs:
 
   release:
     name: Create GitHub release
-    needs: [verify, build]
+    needs: build
     runs-on: ubuntu-26.04
     timeout-minutes: 10
     permissions:
@@ -235,7 +206,6 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
-          ref: refs/tags/${{ env.TAG_NAME }}
           persist-credentials: false
 
       - name: Generate release changelog
