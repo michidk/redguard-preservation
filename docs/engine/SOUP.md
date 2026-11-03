@@ -7358,3 +7358,18 @@ with a clear override instead requests the selected-player service with mode 6.
 The byte and shared result have already been written at this request boundary;
 the retained selection, gate and clock have not yet been cleared by this path.
 Further service processing controls progress beyond that request.
+
+### lookCyrus target forwarding boundary
+
+`lookCyrus(frames)` is declared as a task with one argument. Its wrapper saves
+its receiver but forwards the shared selected-player pointer and `frames` to
+the exact native handler bound to `lookObj`. It returns that handler's result
+unchanged if the handler returns. The wrapper does not use its supplied receiver
+to select the target.
+
+The shared handler saves the target and frame argument, then requests formatting
+of the literal label `lookObj` into the shared camera diagnostic buffer. This
+request precedes its frame-sign check, camera counter updates and target
+accesses. Neither the wrapper nor this prefix dereferences the selected player
+or writes actor or camera state before the formatter request. The formatter and
+subsequent camera processing determine progress beyond that boundary.
