@@ -344,6 +344,10 @@ Initialization first tears down the previous queue, allocates and zeroes 66
 buffers of 256 bytes each, then enables processing. Teardown frees and clears
 all buffer pointers when the enable flag is exactly one, then clears the flag.
 
+For each buffer, initialization stores the allocation result and passes it
+directly to the 256-byte zero-fill operation. It does not test for a null result
+or retry the allocation before that operation.
+
 The buffer-fill path repeats the low byte of the fill value across the requested
 byte range and returns the original destination. A zero byte count skips all
 destination access. For a positive count, the underlying fill routine reads the
