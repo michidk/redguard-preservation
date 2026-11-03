@@ -6108,6 +6108,23 @@ registration. With a single matching entry this moves the receiver to the
 head. A remaining duplicate prevents a replacement allocation. Lookup follows
 next links, stops at the first match and has no cycle check or iteration limit.
 
+### IsDrawingOrSheathing
+
+`IsDrawingOrSheathing` is a zero-argument function. It calls
+`IsSheathingSword` with the supplied receiver first. A nonzero result returns
+one immediately. Otherwise it calls `IsDrawingSword` with that same receiver
+and returns its result.
+
+Both callees return zero when native execution is disabled, the receiver is
+null, the receiver's animation/control pointer is null, or the shared mode
+word is nonzero. These checks precede their action and animation reads.
+
+With those gates satisfied, `IsSheathingSword` returns one when the receiver's
+action byte is 21 or the animation/control record's first word is 129.
+`IsDrawingSword` returns one when the action byte is 20 or that word is 91.
+The action comparison occurs first and a match skips the animation-word read.
+The other returning paths return zero. The wrapper and both callees do not
+modify receiver, animation/control, or global state.
 ### IsCarryingWeapon
 
 `IsCarryingWeapon` is a zero-argument function returning zero or one. It
@@ -6245,3 +6262,42 @@ preserved.
 The handler makes no calls and does not read the ordinary native-enable or
 shared mode words. Apart from the selected byte, control-record and receiver
 state are unchanged.
+### PlayerArmed
+
+`PlayerArmed` is a zero-argument function that calls `IsHoldingWeapon` on the
+globally selected player and returns its Boolean result. The supplied
+receiver is not used to select the queried actor. A null selected player
+returns zero.
+
+`IsHoldingWeapon` first rejects a null receiver. It then reads the receiver's
+metadata. A nonzero carrying-state byte in that metadata returns one before
+the ordinary enable and mode checks.
+
+When that byte is zero, the function returns zero if native execution is
+disabled, the receiver's animation/control pointer is null, or the shared
+mode word is nonzero. Otherwise a nonnull receiver model pointer and a
+nonzero receiver active byte are both required. The function then calls
+`IsSheathingSword` on the same receiver and returns one only when that
+predicate returns zero.
+
+The model predicate reads the metadata carrying-state byte before its own
+ordinary gates and tests the model pointer without dereferencing it. The
+holding predicate and all helpers used by `PlayerArmed` leave receiver,
+metadata, animation/control, and global state unchanged.
+### IsLightingOrUnlighting
+
+`IsLightingOrUnlighting` is a zero-argument function. It calls
+`IsLightingTorch` with the supplied receiver first. A nonzero result returns
+one immediately. Otherwise it calls `IsUnlightingTorch` with that same
+receiver and returns its result.
+
+Both callees return zero when native execution is disabled, the receiver is
+null, the receiver's animation/control pointer is null, or the shared mode
+word is nonzero. These checks precede their action and animation reads.
+
+With those gates satisfied, `IsLightingTorch` returns one when the receiver's
+action byte is 33 or the animation/control record's first word is 149.
+`IsUnlightingTorch` returns one when the action byte is 34 or that word is 150.
+The action comparison occurs first and a match skips the animation-word read.
+The other returning paths return zero. The wrapper and both callees do not
+modify receiver, animation/control, or global state.
