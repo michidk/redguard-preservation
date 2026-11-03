@@ -2945,6 +2945,14 @@ call `PlayerMain` on itself, and its handler is the controller routine described
 [Ordinary controller dispatch](player.md#ordinary-controller-dispatch) and the sections that follow it. It takes no
 arguments and returns no value.
 
+### IsSlave and IsMaster
+
+`IsSlave()` returns one when the receiver's byte-sized `attr_slave` is nonzero,
+otherwise zero. `IsMaster()` applies the same test to `attr_master`. Both take
+no arguments and leave the receiver unchanged. They test attribute values
+directly without searching the family tree or requiring a matching membership
+record. The other family attribute does not affect the result.
+
 ### Actor families and attached transforms
 
 `attr_master` and `attr_slave` are byte-sized group identities. A nonzero slave
