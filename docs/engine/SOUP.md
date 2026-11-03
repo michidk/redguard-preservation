@@ -7156,3 +7156,12 @@ as unsigned integers. A smaller value snaps pitch to zero; otherwise it writes
 `(pitch + step) & 2047`. For positive pitch at most 1024, an unsigned comparison
 of pitch with the step selects either zero or `(pitch - step) & 2047`. Nonpositive
 pitch is left unchanged. The pitch helper changes no transform matrix itself.
+
+### WaitLineUp argument actor flag
+
+`WaitLineUp(actor)` is declared as a task with one argument. It tests mask `2`
+in the argument actor's alignment flag byte and returns one when that bit is
+set, otherwise zero. Other bits do not affect the result. The supplied receiver
+is not dereferenced, and the task does not change the argument actor, receiver,
+or shared lineup state. It calls no helper or waiting service itself. The
+argument must identify an actor whose flag byte can be read.
