@@ -377,6 +377,11 @@ than 640 pixels. It restores the incoming font after each message. The text
 sink does not install a separate text style or select a renderer palette;
 [shared glyph services](subtitles.md#shared-text-colour-state) handle text colour.
 
+The text viewport-mode setter retains its full 32-bit input value. The setter
+leaves the display width, display height and selected renderer palette unchanged.
+Ordinary text treats zero as the fixed 640-pixel viewport mode and any nonzero
+value as the configured-width mode.
+
 The ordinary route treats message contents as string data: percent characters
 remain literal. It copies bytes up to the first NUL, appends one line feed,
 and NUL-terminates the formatted text. An existing trailing line feed is
