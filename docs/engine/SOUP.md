@@ -7397,3 +7397,16 @@ the shared view-distance threshold as signed values. It returns one for distance
 at or below the threshold, and zero for a greater distance. Equality is admitted.
 It writes no actor or shared camera state and makes no direction, visibility or
 occlusion query.
+
+### swordAI initial terrain request
+
+`swordAI()` is declared as a task with no arguments. Its native retains the
+supplied receiver, reads the receiver's stored X and Z coordinates, and
+arithmetic-shifts each signed coordinate right by eight. It passes the shifted
+X and Z to its first terrain-sampling helper. Negative fractional coordinates
+therefore round downward at this boundary. Receiver Y, yaw and incoming argument
+register values do not contribute to this initial request.
+
+Before the terrain-sampling request, the native writes only its own stack. It
+has not changed receiver coordinates or shared state. The terrain-sampling
+helper and later movement processing determine progress beyond this boundary.
