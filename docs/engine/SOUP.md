@@ -2945,6 +2945,25 @@ call `PlayerMain` on itself, and its handler is the controller routine described
 [Ordinary controller dispatch](player.md#ordinary-controller-dispatch) and the sections that follow it. It takes no
 arguments and returns no value.
 
+### DetachMe
+
+`DetachMe()` takes no arguments and returns zero. A receiver with zero
+`attr_slave` is unchanged.
+
+For an attached receiver with nonzero `attr_master`, the function first clears
+`attr_slave`. It then uses the receiver-master lookup, which selects no node in
+a finite, acyclic family tree. The function returns without unlinking the family
+record, restoring position or angles, or requesting the actor refresh.
+
+For an attached receiver with zero `attr_master`, the function searches ordinary
+attached-actor lists for the receiver. It visits children before the current
+node's ordinary list, then visits siblings. A missing record leaves the receiver
+unchanged. A found record is unlinked by updating either the owning list's head
+or the preceding record's next pointer. The function clears `attr_slave`, copies
+effective position and effective angles into the receiver's local position and
+angles, and requests the actor refresh. It does not free the unlinked membership
+record or change the effective-position and effective-angle fields.
+
 ### Actor families and attached transforms
 
 `attr_master` and `attr_slave` are byte-sized group identities. A nonzero slave
