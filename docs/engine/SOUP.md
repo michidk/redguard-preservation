@@ -2286,6 +2286,23 @@ attribute writes do not directly replace that selection step. See
 
 <a id="player-distance-and-facing"></a>
 
+### FaceObject task entry
+
+`FaceObject(target)` is a one-argument task. It first reads the receiver's
+attribute byte 15. A zero byte returns zero without reading the target or
+calling the shared facing wrapper. A nonzero byte forwards the receiver and
+target to that wrapper and converts its result to a Boolean: zero stays zero,
+and every nonzero result becomes one.
+
+The wrapper first passes the target's local X/Z coordinates to the
+[facing-arrival test](#alignment-distance-thresholds). A nonzero arrival result
+returns zero without calculating a bearing or invoking the turn helper.
+Otherwise it subtracts the receiver's local X/Z from the target's local X/Z,
+with 32-bit wrapping, and passes the differences to the bearing helper. It
+negates the returned bearing and masks it to 2048 heading units before calling
+the ordinary turn helper for the receiver. The wrapper forwards that helper's
+result unchanged; the task entry applies the Boolean conversion.
+
 ### PlayerDistance and PlayerFacing
 
 `PlayerDistance()` returns the sum of the absolute X, Y and Z differences
