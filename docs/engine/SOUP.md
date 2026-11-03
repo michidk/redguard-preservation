@@ -2570,6 +2570,34 @@ negates the returned bearing and masks it to 2048 heading units before calling
 the ordinary turn helper for the receiver. The wrapper forwards that helper's
 result unchanged; the task entry applies the Boolean conversion.
 
+### FaceLocation timed facing
+
+`FaceLocation(location, deadline)` is a two-argument task. The receiver's location
+table begins with a signed upper index bound followed by three-word position
+records. A nonnegative index at or below that bound selects its record. A null
+table, negative index or index above the bound selects the receiver's inline
+location instead.
+
+The task subtracts the receiver's local X/Z from the selected location's X/Z
+with 32-bit wrapping and calculates a planar bearing. It computes
+`delta = (-heading - bearing) & 2047`. A zero delta returns zero immediately.
+For delta at most 1024, the turn distance is delta and the update adds a step
+to the heading. For a larger delta, the distance is `(-delta - 1024) & 1023`
+and the update subtracts the step. The exact half turn uses the addition branch.
+
+The divisor is the signed magnitude of the wrapping difference between the
+shared tick counter and `deadline`, with a zero divisor replaced by one.
+Magnitude uses wrapping 32-bit negation, so the minimum signed value retains its
+bit pattern. The step is the signed quotient of `distance << 8` by that divisor,
+truncated toward zero, then arithmetically shifted right by eight. A zero step
+returns zero without writing the heading. Otherwise, heading arithmetic wraps
+at 32 bits and the stored heading is not masked back to 2048 units.
+
+After a nonzero step, the task returns one only when wrapping `deadline - 1`
+is greater than the current tick counter as a signed 32-bit value. Every other
+return is zero. The task changes the heading directly rather than invoking the
+ordinary turn helper.
+
 <a id="player-distance-and-facing"></a>
 
 ### PlayerDistance and PlayerFacing
