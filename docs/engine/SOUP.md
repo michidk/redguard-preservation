@@ -2387,6 +2387,11 @@ distance units.
 Walk-map construction clears its runtime disabled byte, so newly loaded maps
 are enabled. This byte is separate from installed node reservation bytes.
 
+`DisableNodeMaps()` and `EnableNodeMaps()` are zero-argument functions that
+traverse the loaded walk-map list. Disable writes one to each map's runtime
+disabled byte; enable writes zero. They leave list links, node reservations and
+actor navigation records unchanged. An empty list is allowed. Both return zero.
+
 Common actor initialization clears the current walk map and sets the held
 current-node, next-node and final-destination indices to -1. Later actor loading
 or navigation can assign a map and node; raw allocation zeroes do not describe
