@@ -5381,3 +5381,40 @@ Changing to the same nonzero group still removes the first matching entry and
 performs registration again. With one matching entry this moves the receiver to
 the head; a remaining duplicate prevents a replacement allocation. Lookup stops
 at the first matching receiver and has no cycle check or traversal bound.
+
+### ScriptParticles
+
+`ScriptParticles(offset, count, tag, lifetime, mode, speed, resource, companion)`
+is an eight-argument function. It resolves a receiver position pointer and
+adds `offset` to that position's second 32-bit component in place, with
+wrapping arithmetic. This changes the receiver's selected position storage;
+it is not a temporary position copy. The addition occurs before the particle
+system's enable check, including when the system is disabled or `count` is
+zero or negative.
+
+The position resolver first checks a receiver metadata byte. A nonzero byte
+selects the receiver's alternate position. Otherwise, a nonnull receiver
+reference whose first word is nonzero selects the referenced position; all
+other cases select the receiver's ordinary position. The reference is not
+consulted when the metadata byte selects the alternate position.
+
+When enabled, the dispatcher resolves `resource` before testing the signed
+`count`. A nonpositive count performs no record allocation. A positive count
+repeatedly requests a free particle record, stopping at the requested count
+or the first failed allocation. Allocation scans a contiguous array of
+86-byte records up to its signed capacity, choosing the first zero tag word
+and requesting an 86-byte zero fill.
+
+For each allocated record, the dispatcher writes `tag`, the low 16 bits of
+the resolved resource token and a copy of the three selected position
+components. It clears a control word, stores `lifetime`, calls the velocity
+setup with `mode` and `speed`, then stores 256 and -1 in two further control
+words and writes `companion`. A zero tag leaves the record eligible for
+selection again on the next allocation.
+
+The wrapper preserves the dispatcher's residual return register rather than
+assigning a separate success value. A disabled dispatcher leaves `count` in
+that register. An enabled nonpositive count leaves zero; completing the loop
+leaves the requested count, while a failed allocation leaves zero even after
+some records were initialized. These values do not report how many records
+were successfully initialized before exhaustion.
