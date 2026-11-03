@@ -7373,3 +7373,27 @@ request precedes its frame-sign check, camera counter updates and target
 accesses. Neither the wrapper nor this prefix dereferences the selected player
 or writes actor or camera state before the formatter request. The formatter and
 subsequent camera processing determine progress beyond that boundary.
+
+### IsWithinView horizontal distance test
+
+`IsWithinView()` is a function with no arguments. A clear shared view-test gate
+returns zero before reading the receiver. With the gate enabled, the receiver's
+position-selection metadata byte chooses between its ordinary stored position
+and its alternate stored position. Any nonzero selection byte chooses the
+alternate position.
+
+The native arithmetic-shifts the selected X and Z coordinates and the shared
+camera X and Z coordinates right by eight individually. It subtracts the shifted
+receiver coordinates from the shifted camera coordinates with 32-bit wrapping
+arithmetic. It passes the resulting horizontal X and Z differences and a zero
+vertical difference to the integer distance helper. Receiver and camera Y do
+not contribute.
+
+The distance helper converts signed integer components to stored single-precision
+floats, computes the sum of their squares, takes the square root, stores that
+result as single precision, and converts it to an integer using the current
+floating-point rounding mode. `IsWithinView` compares the resulting integer with
+the shared view-distance threshold as signed values. It returns one for distance
+at or below the threshold, and zero for a greater distance. Equality is admitted.
+It writes no actor or shared camera state and makes no direction, visibility or
+occlusion query.
