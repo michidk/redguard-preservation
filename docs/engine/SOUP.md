@@ -5842,6 +5842,24 @@ The comparison therefore uses that ninth byte as well as the name bytes; this
 is not a fixed-width comparison of eight bytes. The list traversal has no cycle
 check or iteration bound.
 
+### SetPosition
+
+`SetPosition(x, y, z)` is a three-argument function. It copies the arguments
+unchanged to the receiver's current local coordinates, then copies that
+triple to its previous local coordinates. It does not quantize the arguments
+or apply the receiver's vertical offset.
+
+For the selected player, it also translates a retained shared reference
+triple by the same displacement. For each axis the new reference is
+`old_reference + argument - old_local`, with wrapping 32-bit arithmetic.
+Other receivers leave this reference triple unchanged.
+
+After these coordinate writes, it registers the receiver in the
+pending-position list. An empty list appends the receiver before checking
+capacity. A nonempty list first searches for the receiver and leaves an
+existing entry unchanged. An absent receiver appends when the signed count
+is below signed capacity. Otherwise the helper invokes diagnostic error 196
+without appending. The native returns zero when the helper returns.
 
 ### FindAiShell list query
 
