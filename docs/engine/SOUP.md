@@ -1814,6 +1814,14 @@ Resets the active cursor to the script base and returns from the current invocat
 
 ## Function Dispatch
 
+### IsBouncing
+
+`IsBouncing()` takes no script arguments. It returns one when the receiving
+actor's motion-state byte is from 27 through 32 inclusive, and zero for every
+other byte value. It reads the receiver directly, without looking up the
+selected player or calling another service. The query does not modify actor
+or shared state.
+
 ### Call Types
 
 Active tasks reevaluate their encoded operands on every task invocation. A task therefore observes changes to locals, global flags, and queried values while it is active. Literal arguments are a special case of this rule.
