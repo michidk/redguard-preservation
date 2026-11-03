@@ -3080,6 +3080,14 @@ call `PlayerMain` on itself, and its handler is the controller routine described
 [Ordinary controller dispatch](player.md#ordinary-controller-dispatch) and the sections that follow it. It takes no
 arguments and returns no value.
 
+### HideSlaves and ShowSlaves
+
+`HideSlaves()` and `ShowSlaves()` take no arguments and return zero. Neither
+changes visibility for a finite, acyclic family tree. A receiver with zero
+`attr_master` returns immediately. Otherwise both use a family lookup that
+traverses child and sibling lists without selecting a node and returns no
+result. Their later visibility writes are consequently unreachable. Traversal
+updates an internal scratch pointer without changing actors or the family tree.
 ### EnableSlaves and DisableSlaves
 
 `EnableSlaves()` and `DisableSlaves()` take no arguments and return zero.
