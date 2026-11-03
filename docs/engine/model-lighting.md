@@ -49,6 +49,9 @@ item suppresses the archive loader's automatic model preparation. After loading,
 the item model named by `ITEM.INI` is resolved and explicitly prepared. That
 preparation resolves indexed solid colors through the palette selected at that
 point; the inventory model-loading helper does not select a palette itself.
+The inventory screen draws before handling View. From that draw's return through
+Examine's item lookup and clock pause to model preparation, the selected palette
+is unchanged.
 
 ## Placed flat drawing
 
