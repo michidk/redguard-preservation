@@ -6245,6 +6245,23 @@ embedded payload pointer. The receiver assignments occur after lookup
 returns. List traversal has no cycle check or iteration bound, and the key
 scratch buffer is shared between calls.
 
+### PauseAnimation
+
+`PauseAnimation(value)` is a one-argument function. A null receiver returns
+zero without reading receiver state. Otherwise it reads the receiver's
+animation/control pointer. A null pointer returns zero. A nonnull pointer
+causes the low byte of `value` to replace the same control-record byte
+written by `HoldAnimation`. The upper argument bytes are ignored by the store.
+
+On the store path, the residual return has the control pointer's upper
+24 bits and the argument's low eight bits. The argument register is replaced
+by the control pointer. On the null receiver or null control paths, the
+argument register is unchanged. The other five saved general registers are
+preserved.
+
+The handler makes no calls and does not read the ordinary native-enable or
+shared mode words. Apart from the selected byte, control-record and receiver
+state are unchanged.
 ### PlayerArmed
 
 `PlayerArmed` is a zero-argument function that calls `IsHoldingWeapon` on the
