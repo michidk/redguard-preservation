@@ -1814,6 +1814,21 @@ Resets the active cursor to the script base and returns from the current invocat
 
 ## Function Dispatch
 
+### TestTask
+
+`TestTask(value)` takes one script argument and ignores it. It resolves the
+receiver's and selected player's query positions, subtracts the player's
+three coordinates from the receiver's with 32-bit wrapping, and passes the
+difference to the shared integer-distance calculation. A signed result
+greater than 131072 requests movement of the receiver toward the player's
+resolved position, with the movement request's final argument set to zero.
+Equality does not issue the movement request.
+
+The handler returns one regardless of whether it issues that request or of
+the movement request's return value. It does not report task completion;
+ordinary existing-task processing therefore retains its task slot until
+another operation removes it.
+
 ### Call Types
 
 Active tasks reevaluate their encoded operands on every task invocation. A task therefore observes changes to locals, global flags, and queried values while it is active. Literal arguments are a special case of this rule.
