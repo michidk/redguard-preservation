@@ -2284,8 +2284,6 @@ Ordinary actor updates select the playback default using actor state; these
 attribute writes do not directly replace that selection step. See
 [ordinary default selection](animation.md#placed-actor-initialization-and-eligibility).
 
-<a id="player-distance-and-facing"></a>
-
 ### FaceObject task entry
 
 `FaceObject(target)` is a one-argument task. It first reads the receiver's
@@ -2302,6 +2300,8 @@ with 32-bit wrapping, and passes the differences to the bearing helper. It
 negates the returned bearing and masks it to 2048 heading units before calling
 the ordinary turn helper for the receiver. The wrapper forwards that helper's
 result unchanged; the task entry applies the Boolean conversion.
+
+<a id="player-distance-and-facing"></a>
 
 ### PlayerDistance and PlayerFacing
 
