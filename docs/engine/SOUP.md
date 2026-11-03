@@ -7129,3 +7129,30 @@ entry stores. If both indices name the same slot, the final stores replace the
 new sender and value with zero while retaining the recipient. The recipient's
 message selection and other channels are unchanged. The function does not
 allocate an entry or release one.
+
+### LineUp task entry and phase boundaries
+
+`LineUp(angle, x_offset, z_offset)` is declared as a task with three arguments.
+It uses a retained shared lineup target. If that target is null, it copies the
+shared pointing target into the retained target before examining the lineup
+phase.
+
+When the phase is exactly one, it adds the angle argument to the target's yaw,
+masks to 2047, adds a half-turn of 1024, and masks again. It calls `TurnToAngle`
+for the receiver with this heading. A nonzero turning result makes `LineUp`
+return one. A zero turning result reaches the receiver's animation-completion
+service before the task can finish.
+
+Other phase values first compare the target pointer with the receiver. Equality
+requests the self-target diagnostic before normal alignment work. For a distinct
+target, the task first adjusts receiver pitch toward zero using the shared pitch
+step, then sets bit one of the receiver's alignment flag byte while preserving
+its other bits. It next queries receiver state before constructing the offset
+position. The X and Z offset arguments have not been consumed at this boundary.
+
+Pitch adjustment treats the stored pitch as signed when choosing its branch.
+For pitch above 1024, it compares the wrapped value `pitch + 2048` with the step
+as unsigned integers. A smaller value snaps pitch to zero; otherwise it writes
+`(pitch + step) & 2047`. For positive pitch at most 1024, an unsigned comparison
+of pitch with the step selects either zero or `(pitch - step) & 2047`. Nonpositive
+pitch is left unchanged. The pitch helper changes no transform matrix itself.
