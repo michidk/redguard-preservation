@@ -135,6 +135,17 @@ An existing unpaused blocking slot therefore does not by itself suppress the
 main body on this path. These runtime flags are not RAHD attribute indices. See
 [actor update order](animation.md#ordinary-actor-update-order).
 
+The zero-argument control natives modify only their mask in the receiver's
+script-control byte. Each disable function sets its mask; each enable function
+clears its mask. All return zero and preserve the remaining bits.
+
+| Disable function | Enable function | Mask |
+|---|---|---|
+| `DisableScript` | `EnableScript` | `0x01` |
+| `DisableTasks` | `EnableTasks` | `0x04` |
+| `DisableObject` | `EnableObject` | `0x08` |
+| `DisableCombat` | `EnableCombat` | `0x10` |
+
 `DisableScript` sets mask `0x01`; `EnableScript` clears only that mask. Both
 return zero and preserve the other bits. They do not terminate the native call's
 current interpreter invocation or clear existing tasks. The wrapper checks the
