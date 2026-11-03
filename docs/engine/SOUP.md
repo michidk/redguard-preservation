@@ -7165,3 +7165,22 @@ set, otherwise zero. Other bits do not affect the result. The supplied receiver
 is not dereferenced, and the task does not change the argument actor, receiver,
 or shared lineup state. It calls no helper or waiting service itself. The
 argument must identify an actor whose flag byte can be read.
+
+### ObjectLineUp entry and abort boundary
+
+`ObjectLineUp(angle, x_offset, z_offset)` is a task with three arguments. It
+loads the shared pointing target directly. Unlike `LineUp`, its entry does not
+initialize or select a retained lineup target.
+
+Before pitch adjustment or target-coordinate access, it checks the receiver's
+condition word and unsigned state byte. A nonzero condition word together with
+a state byte above eight aborts the task: it writes six to the shared lineup
+phase byte, clears mask `2` in the receiver's alignment flag byte while retaining
+the other bits, and returns zero. The target pointer and all three arguments do
+not affect this entry abort decision.
+
+Otherwise it runs the pitch adjustment described for `LineUp`, sets mask `2` in
+the alignment flag byte, and queries the receiver's state before querying the
+target or constructing the offset position. This entry uses the shared pointing
+target even when a separate retained lineup target exists. Target validity and
+the later geometry and movement services determine further progress.
