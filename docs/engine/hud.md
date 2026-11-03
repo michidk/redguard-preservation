@@ -327,8 +327,8 @@ a viewport limit therefore reaches one coordinate unit beyond that limit.
 
 The rectangle's graphics setup and post-draw reset send the following Glide API
 arguments in table order. The reset installs fixed values rather than restoring
-captured caller state. Setup disables chroma keying; the reset leaves that setting
-unchanged.
+captured caller state. Setup sets chroma-key mode to zero; the reset leaves that
+setting unchanged.
 
 | API | Rectangle setup arguments | Post-draw reset arguments |
 |-----|---------------------------|--------------------------|
