@@ -1869,6 +1869,11 @@ The location selector and native wrapper do not write actor or table state.
 
 ## Function Dispatch
 
+### Spare1Parm0 diagnostic
+
+`Spare1Parm0()` takes no script arguments. It sends a diagnostic containing
+the receiving actor pointer to the diagnostic writer and returns zero. The
+handler does not dereference the receiver or modify actor state.
 ### Spare0Parm7 diagnostic
 
 `Spare0Parm7(first, second, third, fourth, fifth, sixth, seventh)` takes seven
