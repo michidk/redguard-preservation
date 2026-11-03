@@ -638,6 +638,11 @@ surface, the slope check allows the attempt to continue. The separate support
 query still runs and can accept the designated player's fallback sphere contact
 or reject absent support. A missing slope contact does not itself reject motion.
 
+When the proposed position has no selected slope surface but the current position
+does, classification reads the uninitialized proposed normal. The result is not
+defined. When the proposed position has a selected surface, its classification
+determines rejection even if the current-position probe selects no surface.
+
 ### Queued and falling vertical motion
 
 Queued and falling vertical motion skip their arithmetic when an animated

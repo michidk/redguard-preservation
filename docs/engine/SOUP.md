@@ -27,6 +27,7 @@ synthetic `NullFunction`; authored entries start at index 1. See
 | `RotateToAxis`, `sRotateToAxis` | [Absolute rotation](#absolute-axis-rotation), [elapsed rotation](#elapsed-axis-rotation) |
 | `MoveObjectAxis` | [Move along the actor's orientation](#actor-local-axis-movement) |
 | `MoveByAxis`, `sMoveByAxis`, `MoveAlongAxis` | [Relative movement](#relative-axis-movement) |
+| `TrueFunction` | [Return constant true](#truefunction) |
 | `Animal` | [No-op task](#animal) |
 | `Rnd`, `QuickRnd` | [Draw from the shared random stream](#random-functions) |
 | `HideMe`, `ShowMe` | [Change model visibility](#object-visibility) |
@@ -37,6 +38,11 @@ synthetic `NullFunction`; authored entries start at index 1. See
 
 Shared actor setup, navigation, family transforms, and model admission are
 specified alongside the functions that use them below.
+
+### TrueFunction
+
+`TrueFunction()` takes no script arguments and returns `1`. It does not change
+world or actor state.
 
 ### Animal
 
@@ -140,6 +146,17 @@ both the existing-task pass and its blocking-task gate before the main body.
 An existing unpaused blocking slot therefore does not by itself suppress the
 main body on this path. These runtime flags are not RAHD attribute indices. See
 [actor update order](animation.md#ordinary-actor-update-order).
+
+The zero-argument control natives modify only their mask in the receiver's
+script-control byte. Each disable function sets its mask; each enable function
+clears its mask. All return zero and preserve the remaining bits.
+
+| Disable function | Enable function | Mask |
+|---|---|---|
+| `DisableScript` | `EnableScript` | `0x01` |
+| `DisableTasks` | `EnableTasks` | `0x04` |
+| `DisableObject` | `EnableObject` | `0x08` |
+| `DisableCombat` | `EnableCombat` | `0x10` |
 
 `DisableScript` sets mask `0x01`; `EnableScript` clears only that mask. Both
 return zero and preserve the other bits. They do not terminate the native call's
@@ -1626,6 +1643,10 @@ Removing a killed post-load object leaves its namespace registration in place. N
 
 ### Runtime object identifiers
 
+`MyId()` returns the receiving actor's stored runtime identifier as a signed
+16-bit value extended to the script integer. The query does not allocate an
+identifier or add the pool-slot bias.
+
 Runtime identifiers are separate from the MPOB record's object id. The reusable actor pool has capacity `max(10, SYSTEM.INI [system] max_active_objects)`. An allocation uses the first free pool slot and initially assigns its zero-based index plus three as the actor's 16-bit identifier.
 
 World object loading resets its identifier counter to the pool capacity plus three. It visits MPOB records in file order. Types two and six use separate object paths. Each other record creates an ordinary actor. A nonzero activation flag allocates from the reusable pool and increments the counter once; a zero flag allocates outside that pool. The ordinary actor path then increments the counter and assigns its low 16 bits as the actor identifier before loading its script and registering its namespace.
@@ -2198,6 +2219,12 @@ it by the [support-response turn rules](player.md#ordinary-slope-response): zero
 heading already matches or the turn snaps to it, otherwise nonzero. A zero result clears the
 alignment flag and a nonzero one sets it, and the task reports that result.
 
+### Receiver AI mode query
+
+`MyAiMode()` returns the receiving actor's AI mode as an unsigned byte value
+from 0 through 255. It reads the mode rather than the adjacent lifecycle
+selector, does not query the selected player and leaves actor state unchanged.
+
 <a id="attribute-reads-and-writes"></a>
 
 ### GetAttribute, SetAttribute, GetMyAttr, and SetMyAttr
@@ -2371,6 +2398,11 @@ distance units.
 
 Walk-map construction clears its runtime disabled byte, so newly loaded maps
 are enabled. This byte is separate from installed node reservation bytes.
+
+`DisableNodeMaps()` and `EnableNodeMaps()` are zero-argument functions that
+traverse the loaded walk-map list. Disable writes one to each map's runtime
+disabled byte; enable writes zero. They leave list links, node reservations and
+actor navigation records unchanged. An empty list is allowed. Both return zero.
 
 Common actor initialization clears the current walk map and sets the held
 current-node, next-node and final-destination indices to -1. Later actor loading
@@ -2950,6 +2982,14 @@ axis, with the radius shifted right by eight, against the weapon's tip passed as
 call `PlayerMain` on itself, and its handler is the controller routine described in
 [Ordinary controller dispatch](player.md#ordinary-controller-dispatch) and the sections that follow it. It takes no
 arguments and returns no value.
+
+### IsSlave and IsMaster
+
+`IsSlave()` returns one when the receiver's byte-sized `attr_slave` is nonzero,
+otherwise zero. `IsMaster()` applies the same test to `attr_master`. Both take
+no arguments and leave the receiver unchanged. They test attribute values
+directly without searching the family tree or requiring a matching membership
+record. The other family attribute does not affect the result.
 
 ### Actor families and attached transforms
 

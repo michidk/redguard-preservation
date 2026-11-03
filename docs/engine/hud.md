@@ -113,6 +113,22 @@ frames:
 | Level 5, health drops to 0 | 66, 67, …, 80, 80, … |
 | Snuffed, health set to 100 | 65, 59, 53, …, 11, 5, 0, 1, … |
 
+### Quick sword
+
+KEYS.INI `quick_sword_key` reads the held key on each world update. Lockout 1
+or selected-player `attr_player_type` 1 disables this handler. Drawing or
+sheathing a sword prevents another sword operation until that transition ends.
+
+When the player is holding a weapon, the key requests sheathing. Otherwise it
+uses the first owned item in the order 1, 13, 75. Items 1 and 13 become the
+selected item before use; item 75 is used without changing the selection. An
+empty search leaves the selection unchanged.
+
+The key remains held after handling. Holding it through a completed draw can
+therefore request sheathing without another press. Item use retains its normal
+eligibility and torch precedence: a burning torch is doused instead of drawing
+the requested sword, after the selection has changed to item 1 or 13.
+
 ### Visibility
 
 `[screen] candle_mode` selects the visibility mode (shipped `2`):
@@ -249,6 +265,11 @@ released.
 View (`key_c`) opens the cursor item's examine view with its
 `inventory_object_file` model. When that view returns a nonzero result, the
 inventory screen closes without changing the selection.
+
+On the screen update that opens View, the inventory drawing pass omits the
+cursor item's bitmap, quantity and description. Other visible cells keep their
+ordinary drawing behavior. The inventory background and health candle are still
+drawn before Examine opens.
 
 ### Examine view
 
@@ -406,10 +427,11 @@ when lockout is 1 or the selected player is on an edge, or when the latch is
 already set. Otherwise it sets the latch before testing item-system readiness
 and the remaining actor gates. Item use requires the selected player, ordinary
 rather than shell execution, water state other than 2 or 4, no held weapon,
-no climbing or rope state, and no burning torch. Climbing and rope predicates
-require an initialized item system and an animation state; they recognize actor
-states 33/34 or animation groups 149/150. An owned item 0 then toggles the
-compass flag. An unowned item cannot toggle it. Holding the use input does not
+no torch lighting or dousing transition, and no burning torch. The transition
+checks require an initialized item system and an animation state; they recognize
+actor states 33/34 or animation groups 149/150. A rope attachment does not by
+itself block an explicit `UseItem` call, and the call does not remove the
+attachment. An owned item 0 then toggles the compass flag. An unowned item cannot toggle it. Holding the use input does not
 repeat the accepted toggle.
 
 The Activate/Attack key (`key_d`) uses the selected item for an unarmed selected player: one press
