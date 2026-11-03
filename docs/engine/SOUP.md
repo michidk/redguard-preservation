@@ -2192,6 +2192,12 @@ it by the [support-response turn rules](player.md#ordinary-slope-response): zero
 heading already matches or the turn snaps to it, otherwise nonzero. A zero result clears the
 alignment flag and a nonzero one sets it, and the task reports that result.
 
+### Receiver AI type query
+
+`MyAiType()` returns the receiving actor's lifecycle selector as an unsigned byte
+value from 0 through 255. It does not query the selected player or the adjacent
+AI mode, and does not change the actor's state.
+
 <a id="attribute-reads-and-writes"></a>
 
 ### GetAttribute, SetAttribute, GetMyAttr, and SetMyAttr
