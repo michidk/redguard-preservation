@@ -7031,3 +7031,27 @@ erase that new entry. If it names the currently selected entry, that entry is
 cleared. The receiver's own message-selection byte is unchanged. Other
 channels' index bytes and arrays are unchanged. The function does not inspect
 the destination entry before overwriting it, allocate an entry, or release one.
+
+### SendBroadcast entry write
+
+`SendBroadcast(value)` returns zero. When the messaging context is absent, it
+requests the missing-context diagnostic before testing the argument. A zero
+argument returns without reading the entry-array pointer or global limit and
+without changing entries or the global broadcast index.
+
+For a nonzero argument, the context's first pointer supplies a 12-byte entry
+array. At the global broadcast no-selection index, the function stores the
+receiver token as sender, zero as recipient, and the argument as value, in
+that order. It does not dereference the receiver or inspect the destination
+entry's previous contents.
+
+It then increments the global index as an 8-bit value, wrapping 255 to zero.
+The new byte is zero-extended and compared with the global limit as signed
+32-bit integers. A value below the limit is retained; otherwise the index is
+reset to zero. The function reads the context's first pointer again and clears
+all three words of the newly indexed entry.
+
+The entry stores precede the index increment, any reset, and the three clear
+stores. If the updated index names the slot just written, those clear stores
+erase the new entry. No receiver selection is read or changed. The function
+does not allocate an entry or release one.
