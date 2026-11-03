@@ -5297,3 +5297,23 @@ blocked-ahead probe.
 one, not multiplied by 256; the step-counter adjustment and frame scaling then apply as for
 MoveBackward.
 
+
+### MovePos
+
+`MovePos(x, y, z)` is a three-argument function that returns a horizontal
+proximity result without writing actor state. It resolves the receiving
+actor's position before checking the actor's movement-state byte. State `7`
+returns `1` without a speed or distance query.
+
+For other states, the native queries `GetMovementSpeed` for that receiver.
+Let `s` be the speed shifted left by eight bits. Zero `s` returns `1`.
+Otherwise the threshold is formed by multiplying `(2 * s - 1)` by the engine's
+movement-time factor, keeping the low 32 bits, interpreting them as signed,
+and shifting right arithmetically by eight bits. A nonpositive threshold also
+returns `1` without querying distance.
+
+For a positive threshold, the distance helper receives target X minus resolved
+X, zero, and target Z minus resolved Z, with 32-bit wrapping subtraction. The
+Y argument does not affect the result. A signed distance result greater than
+the threshold returns `1`; an equal or smaller result returns `0`. The native
+performs no coordinate writes, relocation, or movement-task scheduling.
