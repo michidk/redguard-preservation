@@ -1288,8 +1288,8 @@ the mask bit set. Otherwise:
   arbitration. The sliding byte is not tested here.
 - Otherwise a step-hold condition is true when attribute 11 is zero or the motion
   byte's step field (bits 4 and 5) equals 3. With the step-hold condition true and
-  either current group 18 or 30, a clear exit marker sets the low two bits of both
-  directional-state bytes and clears the byte at `+0x1be`. Any other state calls
+  either current group 18 or 30, a clear exit marker sets both low bits of the pending
+  action word and clears the jump-window timer. Any other state calls
   the ordinary jump entry.
   This jump start refuses, without any state change, while the actor stands on surface 2 or 4
   (deep water), while its current group is 114, 116, 130 or 131, and while its falling byte is nonzero.
