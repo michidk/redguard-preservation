@@ -1814,6 +1814,17 @@ Resets the active cursor to the script base and returns from the current invocat
 
 ## Function Dispatch
 
+### IsShellScript
+
+`IsShellScript()` takes no script arguments. It returns zero when the shell
+system is disabled, the shell list is empty, or the receiving actor pointer
+is null. Otherwise it returns the shared shell execution-context word
+unchanged, without converting it to a Boolean.
+
+The query does not dereference the receiver or inspect its script identity or
+shell-list membership. It makes no calls and does not modify actor or shared
+shell state.
+
 ### Call Types
 
 Active tasks reevaluate their encoded operands on every task invocation. A task therefore observes changes to locals, global flags, and queried values while it is active. Literal arguments are a special case of this rule.
