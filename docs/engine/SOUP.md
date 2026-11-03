@@ -6938,3 +6938,26 @@ erase that new entry. If it names the currently selected entry, that entry is
 cleared. The receiver's own broadcast-selection byte is unchanged. The
 function does not inspect the destination entry before overwriting it,
 allocate an entry, or release one.
+
+### AtNodePosition coordinate-distance predicate
+
+`AtNodePosition(x, y, z, distance)` returns one when the supplied coordinates
+are within the supplied distance of the receiver, and zero otherwise. It
+subtracts the receiver's position from each corresponding coordinate argument
+using wrapping 32-bit subtraction. These differences pass directly to the
+numerical helper described under
+[DistanceFromLocation](#distancefromlocation-numerical-distance-helper), without
+shifting the coordinates or applying a vertical adjustment.
+
+The helper's signed integer result is compared with the complete signed 32-bit
+`distance` argument. Equality is accepted. Negative arguments and an
+integer-indefinite result are compared as signed integers without a separate
+rejection. The function does not establish an x87 control word; its result
+follows the helper's incoming floating-point precision and rounding settings.
+
+The predicate reads the receiver position directly, without a receiver-null
+gate. It does not look up a node, read node-map state, check an ordinary
+native-enable or shared-mode word, or modify actor or shared selection state.
+At the native boundary the receiver and three coordinates enter in registers;
+the distance argument occupies one stack word, which the native removes on
+return.
