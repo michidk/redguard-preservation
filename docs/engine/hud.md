@@ -348,6 +348,11 @@ For each buffer, initialization stores the allocation result and passes it
 directly to the 256-byte zero-fill operation. It does not test for a null result
 or retry the allocation before that operation.
 
+The buffer-fill path repeats the low byte of the fill value across the requested
+byte range and returns the original destination. A zero byte count skips all
+destination access. For a positive count, the underlying fill routine reads the
+first destination byte before writing and has no null-pointer guard.
+
 Startup initializes queued-text suppression from `[system] disable_debug_text`
 in `SYSTEM.INI`, separately from the ordinary `disable_text` value. When the
 startup `q` option query succeeds, it sets both values to one and skips those
@@ -363,6 +368,14 @@ It then clears all 66 buffers, 256 bytes each, even when drawing is suppressed
 or stops at an empty buffer, and restores the incoming text-disable value.
 The queue processor does not save and restore the remaining text state or select
 a renderer palette itself; text-service calls are separate operations.
+
+The buffer-clear wrapper can run optional memory validation before filling.
+Outside a reentrant validation call, a nonzero byte count first checks the
+destination address, then the final byte address if the first check returns
+without an error. These numeric checks enter a diagnostic path for addresses
+below 16; they do not read the destination bytes. A zero count skips these
+address checks. If validation returns normally, its return value does not
+suppress the subsequent fill.
 
 View (`key_c`) opens the cursor item's examine view with its
 `inventory_object_file` model. When that view returns a nonzero result, the
