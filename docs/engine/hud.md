@@ -238,8 +238,12 @@ Lockout values other than 1 do not hide the icon.
 
 KEYS.INI `inventory_key` opens a modal screen over the last world frame. The
 world update latches the key and opens the screen on its next update. The
-screen waits until the key is released, pauses the game clock, and resumes it
-on exit. Each screen update waits for the next 18.2 Hz BIOS tick.
+screen pauses the game clock and captures the current frame before waiting
+for the key to be released. It then installs the inventory text settings.
+The saved frame contains tightly packed 16-bit pixels copied from the display
+rows using the source stride; capturing it does not select a renderer palette.
+The clock resumes on exit. Each screen update waits for the next 18.2 Hz BIOS
+tick.
 
 ### Item list
 
