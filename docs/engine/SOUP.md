@@ -5381,3 +5381,29 @@ Changing to the same nonzero group still removes the first matching entry and
 performs registration again. With one matching entry this moves the receiver to
 the head; a remaining duplicate prevents a replacement allocation. Lookup stops
 at the first matching receiver and has no cycle check or traversal bound.
+
+
+### ChangeUser membership update
+
+`ChangeUser(user)` is a one-argument function returning zero. It reads the
+receiver's current unsigned user byte before checking whether list management
+is enabled. When disabled, it leaves the user byte and lists unchanged.
+
+When enabled and the old user is nonzero, it searches that user's list for the
+first entry whose object pointer equals the receiver. A match is unlinked and
+released. Removing the head updates the user head; otherwise the predecessor's
+next link is updated. A following entry receives the removed entry's previous
+link. An absent receiver entry does not prevent the update.
+
+The receiver's user byte then receives the low eight bits of `user`.
+Registration does nothing for user zero or when that user's list already
+contains the receiver. Otherwise it requests a 13-byte entry and inserts it at
+the head, storing the old head as its next link, a null previous link, the
+receiver pointer, and a zero trailing byte. An existing head's previous link
+points to the new entry. These stores initialize all 13 entry bytes; there is
+no separate clearing call.
+
+Changing to the same nonzero user still removes the first match before
+registration. With a single matching entry this moves the receiver to the
+head. A remaining duplicate prevents a replacement allocation. Lookup follows
+next links, stops at the first match and has no cycle check or iteration limit.
