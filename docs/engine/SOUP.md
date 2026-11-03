@@ -7467,3 +7467,27 @@ item record. A missing identifier therefore reaches `PushItem`'s diagnostic
 path after any earlier items have already changed. There is no wrapper-level
 rollback before that diagnostic request. The missing-item copy and error
 services determine whether iteration can continue.
+
+### PopAllItems restoration and selection
+
+`PopAllItems()` is a function with no arguments. Disabled item processing
+returns zero without restoring items or selecting an item. With processing
+enabled, it starts an index at zero and invokes `PopItem(index)` with the
+original receiver while the signed index is less than the shared signed item
+count. It increments the index after each return and rereads the count. A zero
+or negative count skips restoration. The identifiers are consecutive integers,
+not the identifiers obtained by traversing the item list. A missing identifier
+therefore enters `PopItem`'s diagnostic path after earlier restorations.
+
+After the loop finishes, the command ensures an item selection and returns
+zero. An existing nonnull selection is retained without changing the player's
+selection byte. Otherwise, the ordered item lookup first requests identifier
+one. A matching record becomes selected and the player's selection byte becomes
+one, regardless of that record's current value or kind.
+
+If that lookup fails, selection traverses the linked item list. Records with
+zero current value are skipped. The first record with a nonzero current value
+and kind one wins. If none has kind one, the first record with a nonzero current
+value wins. Selecting a record stores its pointer and copies the low byte of its
+identifier to the player's selection byte. If no record qualifies, both fields
+remain unchanged.
