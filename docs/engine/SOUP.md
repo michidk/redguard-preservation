@@ -5842,6 +5842,26 @@ The comparison therefore uses that ninth byte as well as the name bytes; this
 is not a fixed-width comparison of eight bytes. The list traversal has no cycle
 check or iteration bound.
 
+### AddLightEffect
+
+`AddLightEffect(a, b, c, d, e, f, g, h)` is an eight-argument function. Its
+receiver and first three arguments do not affect the operation. It returns
+zero when the shared effect system is disabled or no record is allocated.
+Otherwise it returns the allocated record itself.
+
+Allocation requests record type two. It requires an enabled effect system and
+a strictly positive signed free count, then scans the linked record list for
+the first zero type byte. A successful allocation decrements the free count,
+preserves the record's next link and sets its type byte to two. A positive
+free count does not guarantee success when the list contains no free record.
+The allocation requests a four-byte zero fill at the record's start, then
+restores the saved link; it does not clear the whole record.
+
+The native then copies `d` into two record parameters and `f` into another
+two, and stores `h`, `g` and `e` in three further parameters. Two control words
+are set to one and two companion words to zero. These assignments do not
+read the receiver or calculate a position from `a`, `b` or `c`. Record bytes
+outside the assigned fields retain their previous values.
 ### ReloadPosition
 
 `ReloadPosition()` is a zero-argument function. It copies the receiver's
