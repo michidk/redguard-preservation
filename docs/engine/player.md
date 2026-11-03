@@ -743,8 +743,24 @@ suppresses displacement. Otherwise, while the accumulated sliding distance is be
 update adds `(0x10000 / attribute 31) * frame_scale >> 8`, limited so the accumulated distance
 does not exceed `0x18000`, to that distance and translates by the same amount; at or above the
 cap nothing moves. Motion 2 (a jump steered forward) does the same with `0xb400` and a cap of
-`0x10000`. Deep water halves neither. Other motion values add no displacement here. A zero attribute
+`0x10000`. Deep water halves neither. A zero attribute
 31 divides by zero in the original.
+
+Motion 3 uses the ordinary backward displacement rule. A held weapon or combat
+stance first refuses a blocked-ahead probe at distance 30. It then sets motion
+direction 3 and applies the deep-water edge probe. An admitted step sets the
+backward update indicator. Its heading is the retained jump heading when the
+queued byte equals 3 exactly, otherwise the current heading, plus 1024 modulo
+2048. Its Q8 step length is attribute 18 shifted left eight in weapon/combat
+stance; otherwise groups 76 and 78 use attribute 8 shifted left seven, and other
+groups use attribute 9 shifted left eight. The upper two movement-counter bits
+apply the attribute-11 startup adjustment and advance toward three. Deep water
+does not halve this backward step. Translation occurs only when the animation
+does not suppress it and the signed step length times frame scale, shifted right
+eight, is positive. It does not consume the accumulated sliding distance.
+
+The stage dispatches the directional displacement helper with the selected
+motion value; its branches are not limited to the forward jump cases above.
 
 Queued arbitration, the queued and falling vertical writers, the edge service,
 landing and fall start are not part of this stage. They run only inside the
