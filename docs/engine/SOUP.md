@@ -13,6 +13,8 @@ synthetic `NullFunction`; authored entries start at index 1. See
 
 | Functions | Behavior |
 |---|---|
+| `PrintParms`, `LogParms` | [Parameter diagnostics](#parameter-diagnostics) |
+| `HeaderHook` | [Receiver diagnostics](#headerhook-diagnostics) |
 | `TaskStop`, `TaskPause`, `TaskResume` | [Control task slots](#actor-task-controls-and-return-state) |
 | `Wait`, `WaitOnTasks`, `WaitNonMulti` | [Wait for time or other tasks](#wait-waitontasks-and-waitnonmulti) |
 | `Anchor`, `Yield`, `ScriptRV` | [Control continuation and return state](#anchor-yield-and-scriptrv) |
@@ -27,7 +29,9 @@ synthetic `NullFunction`; authored entries start at index 1. See
 | `RotateToAxis`, `sRotateToAxis` | [Absolute rotation](#absolute-axis-rotation), [elapsed rotation](#elapsed-axis-rotation) |
 | `MoveObjectAxis` | [Move along the actor's orientation](#actor-local-axis-movement) |
 | `MoveByAxis`, `sMoveByAxis`, `MoveAlongAxis` | [Relative movement](#relative-axis-movement) |
+| `IsWithinMap` | [Constant true query](#iswithinmap) |
 | `TrueFunction` | [Return constant true](#truefunction) |
+| `Animal` | [No-op task](#animal) |
 | `Rnd`, `QuickRnd` | [Draw from the shared random stream](#random-functions) |
 | `HideMe`, `ShowMe` | [Change model visibility](#object-visibility) |
 | `PlayerStand`, `Fighting` | [Standing query](#playerstand-query), [combat query](#fighting-query) |
@@ -38,10 +42,34 @@ synthetic `NullFunction`; authored entries start at index 1. See
 Shared actor setup, navigation, family transforms, and model admission are
 specified alongside the functions that use them below.
 
+### Parameter diagnostics
+
+`PrintParms` and `LogParms` take eight integer arguments and return `0`. Both
+include the receiver's associated script name, using `Unknown script` when its
+script handle cannot be resolved. They format all eight arguments as signed
+decimal integers in argument order, separated by a comma and a space.
+
+`PrintParms` separates the script name from the first integer with a space. It
+copies the formatted line into the first empty diagnostic message slot, scanning
+66 slots in order with a copy bound of 255 bytes. If every slot is occupied, it
+adds no message and still returns `0`.
+
+`LogParms` sends its line to the internal diagnostic log. Its format starts with
+two spaces and places `|3` between the script name and the first integer.
+Neither function changes the receiver's gameplay state.
+### IsWithinMap
+
+`IsWithinMap()` takes no script arguments and always returns `1`. It does not
+read map bounds or actor position, and changes no actor or world state.
 ### TrueFunction
 
 `TrueFunction()` takes no script arguments and returns `1`. It does not change
 world or actor state.
+
+### Animal
+
+`Animal` is declared as a task with two script arguments. Its handler ignores
+their values, returns zero, and changes no actor or world state.
 
 ## Script Data Sources
 
@@ -168,6 +196,18 @@ or exclude the selected actor. Combat maintenance applies its own player and
 nonplayer branches. The entry continuation
 is processed later inside the enabled main stage. Mask `0x01` does not suppress
 the separate native hook.
+
+### HeaderHook diagnostics
+
+`HeaderHook()` takes no script arguments, writes receiver information to the
+diagnostic output, and returns `1`. It reports the receiver's identifier,
+optional name, and script name when its script handle resolves in the script
+registry. An absent or unresolved handle uses the no-script diagnostic.
+
+The following diagnostic reports the receiver's `node`, `dnode`, AI type,
+mode, delay, length, and two AI variables. The AI variables are printed as signed
+16-bit values. The function does not change the receiver or execute its RAHK
+native hook. The ordinary update's native-hook stage is a separate operation.
 
 ### PlayerStand query
 
@@ -1812,6 +1852,21 @@ A fresh actor's return continuation is null. A `Return` executed while it is nul
 
 Resets the active cursor to the script base and returns from the current invocation. Script-entry processing preserves the main continuation while advancing its separate entry cursor.
 
+### DistanceFromLocation location selection and distance-helper boundary
+
+`DistanceFromLocation(location)` has one argument. It selects a coordinate
+triple from the receiving actor's location table. The table begins with a
+signed upper bound followed by triples of 32-bit coordinates. A nonnegative
+location at or below that bound selects the corresponding triple, including
+location zero and the upper-bound entry. An absent table, a negative location,
+or a location above the signed upper bound selects the actor's saved start
+coordinates instead.
+
+The native subtracts the actor's current local X, Y and Z coordinates from the
+selected coordinates with 32-bit wrapping subtraction. It passes those three
+differences to the distance helper and returns the helper's result unchanged.
+The location selector and native wrapper do not write actor or table state.
+
 ## Function Dispatch
 
 ### Spare0Parm3 diagnostic
@@ -1820,6 +1875,12 @@ Resets the active cursor to the script base and returns from the current invocat
 all three. It sends a diagnostic containing the receiving actor pointer to
 the diagnostic writer and returns zero. The handler does not dereference the
 receiver or modify actor state.
+### Spare0Parm0 diagnostic
+
+`Spare0Parm0()` takes no script arguments. It sends a diagnostic containing the
+receiving actor pointer to the diagnostic writer and returns zero. The handler
+does not dereference the receiver or modify actor state. Its diagnostic output
+is a side effect even though it makes no gameplay state change.
 
 ### Call Types
 
@@ -1849,7 +1910,17 @@ Object-targeted task dispatch differs from a self task statement. The receiver o
 [param_count × value in PARAMETER mode]
 ```
 
-Function index 0 is always `NullFunction` (synthetic; prepended by the parser, not present in `SOUP386.DEF`). The `func_id` is multiplied by the function-table entry stride (49 bytes) to index the runtime table.
+Function index 0 is `NullFunction`, a synthetic parser entry absent from
+`SOUP386.DEF`. The native dispatch table uses four-byte handler-pointer entries.
+Its loader clears the allocation and fills authored entries starting at index 1,
+leaving slot zero null.
+
+Index-zero native dispatch returns zero without calling a handler, evaluating
+parameters, or dereferencing the receiver. It records the receiver as the current
+native-call receiver before checking the table. The argument-preparation entry
+also returns zero for this null slot before reading the parameter count or
+writing the argument buffer. These are null-slot dispatch paths, rather than a
+named zero-argument native handler.
 
 ### Parameter Type Overrides
 
@@ -2126,11 +2197,15 @@ Alignment turning uses the [support-response turn rules](player.md#ordinary-slop
 including selected-player camera updates. Returning to the default animation
 reports success on every normal return; it does not wait for playback to finish.
 
-### Player turn, speed, arctangent and location-distance queries
+### Player movement, turn, speed, arctangent and location-distance queries
 
 `PlayerArctan()` returns the arctangent angle (0 through 2047) of the horizontal displacement from the
 selected player to the receiver (or to the stored fallback position when no player is selected), the
 negation modulo 2048 of the bearing `PlayerLooking` uses.
+
+`PlayerMoved()` compares the selected player's current local X, Y and Z position with its stored
+previous position. It returns 1 if any component differs and 0 otherwise. It does not require a model
+handle. The receiver is not the actor queried.
 
 `PlayerTurned()` returns 1 when any of the selected player's three angles differs from the angles saved
 at the ordinary update's entry, otherwise 0. `PlayerTurnedDirection()` returns the sign of the change of
@@ -2140,7 +2215,9 @@ without a model handle.
 
 `PlayerMovementSpeed()` returns an attribute byte of the selected player selected by its current animation
 group: groups 18 and 30 attribute 8, 19 attribute 9, 20 and 21 attribute 12, 22 and 23 attribute 13, 24
-through 27 attribute 10. Other groups, and a player without animation state or attributes, return zero.
+through 27 attribute 10. The selected attribute is an unsigned byte, returned without scaling. The query
+uses the selected player rather than its receiver and does not inspect position changes or require a
+model handle. Other groups, and a player without animation state or attributes, return zero.
 
 `DistanceToLocation(location)` returns the rounded Euclidean length, in Q8 units, from the receiver's
 position (its linked position when it has one) to the location, selected as in `MoveToLocation`.
@@ -2291,6 +2368,23 @@ Ordinary actor updates select the playback default using actor state; these
 attribute writes do not directly replace that selection step. See
 [ordinary default selection](animation.md#placed-actor-initialization-and-eligibility).
 
+### FaceObject task entry
+
+`FaceObject(target)` is a one-argument task. It first reads the receiver's
+attribute byte 15. A zero byte returns zero without reading the target or
+calling the shared facing wrapper. A nonzero byte forwards the receiver and
+target to that wrapper and converts its result to a Boolean: zero stays zero,
+and every nonzero result becomes one.
+
+The wrapper first passes the target's local X/Z coordinates to the
+[facing-arrival test](#alignment-distance-thresholds). A nonzero arrival result
+returns zero without calculating a bearing or invoking the turn helper.
+Otherwise it subtracts the receiver's local X/Z from the target's local X/Z,
+with 32-bit wrapping, and passes the differences to the bearing helper. It
+negates the returned bearing and masks it to 2048 heading units before calling
+the ordinary turn helper for the receiver. The wrapper forwards that helper's
+result unchanged; the task entry applies the Boolean conversion.
+
 <a id="player-distance-and-facing"></a>
 
 ### PlayerDistance and PlayerFacing
@@ -2342,9 +2436,17 @@ position selection described above. It does not perform a visibility or line-of-
 query.
 
 `PrintSingleParm(value)` formats the receiving script's name (or `Unknown script`
-when the actor has none) and the signed integer as `<name> <value>` and writes the
-text to the first free of the console's 66 text lines. It drops the text when no
-line is free and returns zero.
+when its script handle cannot be resolved) and the signed integer as
+`<name> <value>`. It writes the text to the first free of the console's 66 text
+lines with a copy bound of 255 bytes, drops the text when no line is free, and
+returns zero.
+
+`PrintStringParm(text)` uses the same script-name prefix, message slots, copy
+bound, full-queue behavior and zero return. It formats the supplied string as
+`<name> <text>` instead of interpreting its value as an integer. The handler uses
+the string value already supplied by native-parameter evaluation; it does not
+perform another string-table lookup. See [native string parameters](#vm-architecture)
+for their source context.
 
 `PlayerInSight()` is true when the selected player is within 262144 units of the
 receiver and nothing blocks the line between them. The distance is the rounded
@@ -2984,6 +3086,77 @@ call `PlayerMain` on itself, and its handler is the controller routine described
 [Ordinary controller dispatch](player.md#ordinary-controller-dispatch) and the sections that follow it. It takes no
 arguments and returns no value.
 
+### AttachMe
+
+`AttachMe(group)` takes an integer family identity and returns zero. An argument
+of zero, the receiver's current `attr_slave`, or its current `attr_master`
+returns immediately without changing the receiver.
+
+Otherwise the function finds the receiver's existing ordinary membership,
+detaches the receiver, then searches the family tree for a master whose
+byte-sized `attr_master` equals the full integer argument. A missing target
+returns zero after the detach attempt; this operation does not roll back the
+previous attachment. Target selection visits a node before its children and
+siblings. The receiver-master lookup used separately by this operation does
+not select a node in a finite, acyclic family tree.
+
+An ordinary membership record is reused when one was found before detaching;
+otherwise a new record is allocated. The record is prepended to the target's
+ordinary attached-actor list and references the target master's matrix. The
+receiver's slave identity becomes the group value.
+
+Before converting the receiver to local coordinates, the function copies its
+position and angles into the effective-position and effective-angle fields.
+It subtracts the target group's position from the local position and passes
+the result through the target matrix's transpose transform. When the receiver's
+`attr_no_slave_rot` is zero, each local angle becomes the difference from the
+target group's angle modulo 2048. These local angles also become the saved
+previous local angles. The receiver's matrix is rebuilt from the target matrix
+with negative local yaw, pitch and roll rotations in that order. A nonzero
+`attr_no_slave_rot` skips these angle and matrix changes; it still converts
+position to the target frame.
+### FixSlaveAngle
+
+`FixSlaveAngle(axis, angle)` returns zero. When the receiver's `attr_slave` is
+zero, it leaves the receiver unchanged. Otherwise it selects the angle-table
+entry indexed by that slave group and writes one local angle component:
+
+```text
+local_component = (angle - group_component) & 2047
+```
+
+Axis zero selects pitch, axis one selects yaw, and every other integer selects
+roll. The function does not update the other angle components, the effective
+angles, or the orientation matrix. It reads the existing group-angle table
+directly without a family-tree lookup.
+### DetachSlaves
+
+`DetachSlaves()` takes no arguments and returns zero. It does not change
+attachments for a finite, acyclic family tree. A receiver with zero
+`attr_master` returns immediately. Otherwise its family lookup traverses child
+and sibling lists without selecting a node and returns no result. The later
+detach calls are consequently unreachable. Traversal updates an internal
+scratch pointer without changing actors or the family tree.
+### HideSlaves and ShowSlaves
+
+`HideSlaves()` and `ShowSlaves()` take no arguments and return zero. Neither
+changes visibility for a finite, acyclic family tree. A receiver with zero
+`attr_master` returns immediately. Otherwise both use a family lookup that
+traverses child and sibling lists without selecting a node and returns no
+result. Their later visibility writes are consequently unreachable. Traversal
+updates an internal scratch pointer without changing actors or the family tree.
+### EnableSlaves and DisableSlaves
+
+`EnableSlaves()` and `DisableSlaves()` take no arguments and return zero.
+Neither changes actor state for a finite, acyclic family tree. A receiver with
+zero `attr_master` returns immediately. Otherwise the handler searches the
+engine's family tree, but the shared lookup traverses child and sibling lists
+without selecting a matching node and returns no result. The actor-flag changes
+after that lookup are consequently unreachable.
+
+The lookup updates an internal traversal scratch pointer while visiting nodes.
+These functions do not change the global slave-scheduling settings or act as
+aliases for the generic `Enable` and `Disable` commands.
 ### IsSlave and IsMaster
 
 `IsSlave()` returns one when the receiver's byte-sized `attr_slave` is nonzero,
@@ -3788,7 +3961,8 @@ the camera. Otherwise it runs `showObjPan` with the arguments `(argument << 8) -
 component, where `B` is the bound position of the record selected at the call, and
 `showObjPan` shifts them left eight bits again.
 
-`showObjRot` does nothing and returns zero.
+`showObjRot` is declared as a task with eight script arguments. Its handler
+ignores their values, changes no camera or actor state, and returns zero.
 
 ### lookObj
 
@@ -4956,6 +5130,34 @@ key's state word is nonzero or the key is the latest key event the keyboard hand
 debug shell reads it for the letters `p`, `c` and `d` and for Alt+`q`, and a few bridge and door
 scripts read `r`.
 
+### SpacePressed
+
+`SpacePressed()` is a function without arguments. It returns one when the
+Space key's 16-bit input state word is nonzero and zero when it is zero. Space
+is keyboard code 57 in [KEYS.INI](../config/keys-ini.md#defined). The function
+does not consume or change the state word, inspect the latest-key-event byte,
+or dereference the receiver. It makes no service calls and creates no task.
+Repeated calls return the same result while that word remains unchanged.
+
+### PressKey
+
+`PressKey(code)` takes one packed integer argument. Its low byte is a character,
+resolved through the keyboard table's unshifted and shifted characters. No
+matching key returns zero before checking modifiers. Each of the next three
+bytes can require `c` Control, `s` either Shift key or `a` Alt, in either case.
+Other modifier bytes are ignored, and repeated requirements have the same
+meaning as one. All named modifiers must have nonzero state words; either
+Shift state word satisfies `s`. Modifier state uses the fixed keyboard codes
+listed in [KEYS.INI](../config/keys-ini.md#defined), not action bindings.
+
+Once the modifiers pass, a nonzero state word for the resolved key or a matching
+latest-key-event byte returns one and clears that key's state word. Otherwise
+it returns zero without clearing the word. It does not clear the latest-event
+byte: repeated calls can return one again while that byte still matches, even
+after the state word has been cleared. A failed modifier check does not consume
+the key state. The receiver is not dereferenced or changed. This is an ordinary
+function, not a task.
+
 ### GolemSteam and DragonBreath
 
 `GolemSteam` takes no arguments and returns zero. A receiver excluded from object updates does nothing. Otherwise
@@ -5276,3 +5478,119 @@ blocked-ahead probe.
 one, not multiplied by 256; the step-counter adjustment and frame scaling then apply as for
 MoveBackward.
 
+
+
+### CountAiShells list query
+
+`CountAiShells(name)` is a one-argument function. It returns zero when the AI
+shell list is disabled or its head is null. Otherwise it extracts the filename
+stem from `name` into a shared nine-byte buffer, with an eight-character stem
+limit, and uppercases that stem. The receiver is not dereferenced.
+
+It traverses the AI shell list through each entry's next pointer. For each entry
+it clears a second nine-byte shared buffer, copies nine bytes from the entry's
+start into that buffer, and compares it case-insensitively with the query stem.
+Each equal comparison increments the result. Traversal counts every matching
+entry, including duplicates, without changing entries or links.
+
+The next pointer follows the entry's first eight name bytes, so the ninth copied
+byte is the low byte of that pointer. The copy does not append a terminator.
+The comparison therefore uses that ninth byte as well as the name bytes; this
+is not a fixed-width comparison of eight bytes. The list traversal has no cycle
+check or iteration bound.
+
+
+### FindAiShell list query
+
+`FindAiShell(name)` is a one-argument function returning a Boolean. A disabled
+AI shell list or a null head returns zero before processing the name. Otherwise
+it extracts and uppercases the filename stem into its shared query buffer, then
+walks the list in link order. Each entry is copied into a second shared buffer
+and compared case-insensitively with the query stem.
+
+The first equal comparison returns one immediately, before reading that entry's
+next pointer or visiting later entries. Reaching the null link without a match
+returns zero. The result is a presence flag, not an entry pointer or a count.
+The receiver is not dereferenced, and entries and links are not changed.
+
+Its stem extraction uses a limit of eight, and each entry copy uses nine bytes
+without appending a terminator. As in [CountAiShells](#countaishells-list-query),
+the ninth byte comes from the low byte of the following next pointer. Its two
+shared scratch buffers are separate from those used by `CountAiShells`.
+Traversal has no cycle check or iteration limit.
+
+
+### ChangeGroup membership update
+
+`ChangeGroup(group)` is a one-argument function returning zero. It reads the
+receiver's current unsigned group byte before checking whether group-list
+management is enabled. When disabled, it leaves that byte and the lists unchanged.
+
+When enabled and the old group is nonzero, it searches that group's list in
+link order for the first entry whose object pointer equals the receiver. If
+found, it unlinks and releases that entry. Removing the head updates the group
+head; removing a later entry updates its predecessor's next link. A following
+entry receives the removed entry's previous link. Failure to find the receiver
+does not prevent the group change.
+
+It then stores the low eight bits of `group` as the receiver's group and
+registers the receiver in that group's list. Group zero has no registration.
+For a nonzero group, an existing matching receiver entry prevents insertion.
+Otherwise registration requests a 13-byte entry, clears those 13 bytes, and
+inserts it at the head. The entry contains next and previous pointers, the
+receiver pointer, and a trailing zero byte. The previous link is null, and an
+existing head's previous link points to the new entry.
+
+Changing to the same nonzero group still removes the first matching entry and
+performs registration again. With one matching entry this moves the receiver to
+the head; a remaining duplicate prevents a replacement allocation. Lookup stops
+at the first matching receiver and has no cycle check or traversal bound.
+
+
+### ChangeUser membership update
+
+`ChangeUser(user)` is a one-argument function returning zero. It reads the
+receiver's current unsigned user byte before checking whether list management
+is enabled. When disabled, it leaves the user byte and lists unchanged.
+
+When enabled and the old user is nonzero, it searches that user's list for the
+first entry whose object pointer equals the receiver. A match is unlinked and
+released. Removing the head updates the user head; otherwise the predecessor's
+next link is updated. A following entry receives the removed entry's previous
+link. An absent receiver entry does not prevent the update.
+
+The receiver's user byte then receives the low eight bits of `user`.
+Registration does nothing for user zero or when that user's list already
+contains the receiver. Otherwise it requests a 13-byte entry and inserts it at
+the head, storing the old head as its next link, a null previous link, the
+receiver pointer, and a zero trailing byte. An existing head's previous link
+points to the new entry. These stores initialize all 13 entry bytes; there is
+no separate clearing call.
+
+Changing to the same nonzero user still removes the first match before
+registration. With a single matching entry this moves the receiver to the
+head. A remaining duplicate prevents a replacement allocation. Lookup follows
+next links, stops at the first match and has no cycle check or iteration limit.
+
+### LoadStatic
+
+`LoadStatic(name)` is a one-argument function. It resolves `name` to a record
+payload, stores that pointer on the receiver, sets the receiver's static
+selection byte to one and returns the receiver itself. The existing pointer
+and selection byte are overwritten; the native does not release the old
+pointer or copy the payload.
+
+The lookup obtains a search key through a shared name helper, copies it to a
+shared scratch buffer and uppercases it. It searches the first linked list
+in order and then the second list, comparing each entry name with that key.
+The first equal entry wins. Thus a match in the first list prevents any
+search of the second list, and later duplicate entries are ignored. A record
+with type byte two is rejected after selection; lookup does not continue to
+a later matching record of another type.
+
+A missing name stores the requested name pointer in shared error context and
+requests error 33. Selecting a type-two record stores the same error context
+and requests error 34. For other selected types, lookup returns the record's
+embedded payload pointer. The receiver assignments occur after lookup
+returns. List traversal has no cycle check or iteration bound, and the key
+scratch buffer is shared between calls.
