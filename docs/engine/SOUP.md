@@ -5317,3 +5317,23 @@ byte is the low byte of that pointer. The copy does not append a terminator.
 The comparison therefore uses that ninth byte as well as the name bytes; this
 is not a fixed-width comparison of eight bytes. The list traversal has no cycle
 check or iteration bound.
+
+
+### FindAiShell list query
+
+`FindAiShell(name)` is a one-argument function returning a Boolean. A disabled
+AI shell list or a null head returns zero before processing the name. Otherwise
+it extracts and uppercases the filename stem into its shared query buffer, then
+walks the list in link order. Each entry is copied into a second shared buffer
+and compared case-insensitively with the query stem.
+
+The first equal comparison returns one immediately, before reading that entry's
+next pointer or visiting later entries. Reaching the null link without a match
+returns zero. The result is a presence flag, not an entry pointer or a count.
+The receiver is not dereferenced, and entries and links are not changed.
+
+Its stem extraction uses a limit of eight, and each entry copy uses nine bytes
+without appending a terminator. As in [CountAiShells](#countaishells-list-query),
+the ninth byte comes from the low byte of the following next pointer. Its two
+shared scratch buffers are separate from those used by `CountAiShells`.
+Traversal has no cycle check or iteration limit.
