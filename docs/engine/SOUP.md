@@ -1814,6 +1814,26 @@ Resets the active cursor to the script base and returns from the current invocat
 
 ## Function Dispatch
 
+### GetMovementSpeed
+
+`GetMovementSpeed()` takes no script arguments and queries the receiving actor.
+It returns zero when the receiver has no animation record or attribute table.
+Otherwise its current unsigned 16-bit animation group selects an attribute
+byte, returned as an unsigned integer without scaling:
+
+| Animation groups | Attribute index |
+| --- | --- |
+| 18, 30, 142 | 8 |
+| 19, 143 | 9 |
+| 20, 21 | 12 |
+| 22, 23 | 13 |
+| 24 through 27 | 10 |
+| 31 | 19 |
+| 92, 93 | 17 |
+
+Every other group returns zero. The query does not require a model, inspect
+the selected player, call another service, or modify actor or shared state.
+
 ### Call Types
 
 Active tasks reevaluate their encoded operands on every task invocation. A task therefore observes changes to locals, global flags, and queried values while it is active. Literal arguments are a special case of this rule.
