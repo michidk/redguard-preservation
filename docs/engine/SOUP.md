@@ -7303,3 +7303,31 @@ For the selected player, after the initial gates, the native instead requests
 the player adjustment service with zero mode and the original `amount`. This is
 a distinct service from `ZapObjectNoKill`'s player request. It controls later
 effects and the returned value.
+
+### ZapPlayerNoKill selected-player adjustment
+
+`ZapPlayerNoKill(amount)` is a function with one argument. It saves its receiver
+but selects the player through the shared player pointer. A nonzero shared
+adjustment gate bypasses all updates and leaves the supplied receiver as the
+return value. This gate is tested before the selected player is read.
+
+With the gate clear, a shared threshold-controlled value below 50 in signed
+comparison is replaced with 25; values at least 50 are retained. The native
+reads the selected player's unsigned adjustment byte, adds `amount` with 32-bit
+wrapping arithmetic, and treats the sum as signed.
+
+It first compares the sum with the shared signed adjustment ceiling. A sum above
+the ceiling stores the ceiling's low byte and uses that unsigned byte as the
+local result. Otherwise, a positive sum stores its low byte while retaining the
+full signed sum as the local result. Otherwise it stores zero and uses zero as
+the local result. The ceiling comparison precedes the comparison with zero, so
+the ceiling is not implicitly restricted to the byte range.
+
+A nonnegative `amount` publishes the local result to the shared adjustment-result
+word and returns that same result. The published result can differ from the
+stored byte when a positive sum is within a ceiling above 255. The receiver's
+identity does not select the adjusted actor.
+
+A negative `amount` instead requests a service for the selected player with mode
+2 after the threshold and adjustment-byte updates, before publishing the local
+result. Further service processing controls progress beyond this request.
