@@ -44,6 +44,12 @@ the converted world RGB, including black palette index zero, before model
 lighting. Loading-progress drawing temporarily selects the interface palette
 and restores the renderer-selected palette before model preparation continues.
 
+Inventory model preparation is deferred. Loading `INVENTRY.ROB` for an examined
+item suppresses the archive loader's automatic model preparation. After loading,
+the item model named by `ITEM.INI` is resolved and explicitly prepared. That
+preparation resolves indexed solid colors through the palette selected at that
+point; the inventory model-loading helper does not select a palette itself.
+
 ## Placed flat drawing
 
 Ordinary MPSF flats use point-sampled textures and palette chroma-key rejection.
