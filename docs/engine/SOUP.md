@@ -1869,6 +1869,25 @@ The location selector and native wrapper do not write actor or table state.
 
 ## Function Dispatch
 
+### GetMovementSpeed
+
+`GetMovementSpeed()` takes no script arguments and queries the receiving actor.
+It returns zero when the receiver has no animation record or attribute table.
+Otherwise its current unsigned 16-bit animation group selects an attribute
+byte, returned as an unsigned integer without scaling:
+
+| Animation groups | Attribute index |
+| --- | --- |
+| 18, 30, 142 | 8 |
+| 19, 143 | 9 |
+| 20, 21 | 12 |
+| 22, 23 | 13 |
+| 24 through 27 | 10 |
+| 31 | 19 |
+| 92, 93 | 17 |
+
+Every other group returns zero. The query does not require a model, inspect
+the selected player, call another service, or modify actor or shared state.
 ### IsBouncing
 
 `IsBouncing()` takes no script arguments. It returns one when the receiving
