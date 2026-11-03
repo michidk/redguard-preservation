@@ -1869,6 +1869,18 @@ The location selector and native wrapper do not write actor or table state.
 
 ## Function Dispatch
 
+### DistanceFromStart
+
+`DistanceFromStart(axis)` returns a signed displacement from the receiving
+actor's current local coordinate to its saved start coordinate. Axis 0 selects
+X, 1 selects Y, and 2 selects Z. Every other axis value returns zero before
+reading actor coordinates.
+
+For a supported axis, it subtracts the current local coordinate from the saved
+start coordinate with 32-bit wrapping, then shifts the signed result right by
+eight bits. The result is in world units; negative fractional differences round
+toward negative infinity. It reads the receiver's stored coordinates directly,
+makes no calls, and does not modify actor or shared state.
 ### GetMovementSpeed
 
 `GetMovementSpeed()` takes no script arguments and queries the receiving actor.
