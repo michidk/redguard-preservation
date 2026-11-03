@@ -5931,6 +5931,28 @@ the ninth byte comes from the low byte of the following next pointer. Its two
 shared scratch buffers are separate from those used by `CountAiShells`.
 Traversal has no cycle check or iteration limit.
 
+### FxFlickerOnOff
+
+`FxFlickerOnOff(bound)` is declared as a one-argument multitask. Its native
+handler resolves the receiver's auxiliary record, then draws one bounded
+random value. A nonzero draw leaves the record unchanged. A zero draw clears
+a selected word when it is nonzero; when that word is zero, it copies the
+paired word into it. Copying a zero paired word therefore leaves it zero.
+The handler returns one.
+
+The bound is passed directly to the random generator, without an absolute
+value conversion. For positive bounds the generator advances its shared
+32-bit seed by multiplying by 1103515245 and adding 12345, with wrapping
+arithmetic, and takes bits 16 through 30. For bounds at most 16384 it masks
+the draw to the smallest low-bit mask covering `bound - 1`, with a minimum
+mask of one. Larger positive bounds retain all 15 bits. Repeated subtraction
+reduces the draw below the bound. A zero bound never exits this reduction.
+
+An existing receiver record is reused. A missing record increments the
+allocation count and byte total, requests 41 bytes and stores the returned
+pointer on the receiver. The resolver initializes both words used by this
+native to 100. Thus a zero draw on a newly allocated record clears the
+selected word. Allocation failure is not checked before record writes.
 ### FxFlickerDim
 
 `FxFlickerDim(amount)` is declared as a one-argument multitask. Its native
