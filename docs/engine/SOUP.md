@@ -6387,3 +6387,26 @@ Every path with a nonnull control pointer leaves that pointer as the residual
 return value, whether or not a store occurs. The handler makes no calls and
 does not read the ordinary native-enable or shared mode words. Other
 control-record bytes and receiver state are unchanged.
+
+
+### GetMessageSenderId query
+
+`GetMessageSenderId()` is a zero-argument function. It uses a channel byte
+from the receiver's animation/control subrecord and the receiver's message
+selection byte. Each channel has its own no-selection byte. Equal selection
+and no-selection bytes return zero without reading a message entry or sender.
+
+The function first calls the message-availability helper, which compares those
+bytes. If that helper returns zero, the query returns zero. Otherwise the
+query reads the channel and selection again and repeats the comparison.
+
+For a selection different from the channel's sentinel, the channel indexes
+a table of pointers to message-entry arrays. Each entry is 12 bytes. The
+selection indexes that array, and the entry's first pointer supplies the
+sender. The result is the sender's stored runtime identifier, extracted as a
+signed 16-bit value from the upper halfword of its identity word.
+
+The query does not consume the selection or modify the receiver, channel
+tables, message entry, or sender. The helper and query both request the
+missing-context diagnostic when the message context is absent. Neither
+provides a null-sender or entry-bound check in the lookup path.
