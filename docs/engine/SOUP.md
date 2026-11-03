@@ -1875,6 +1875,18 @@ The location selector and native wrapper do not write actor or table state.
 sends a diagnostic containing the receiving actor pointer to the diagnostic
 writer and returns zero. The handler does not dereference the receiver or
 modify actor state.
+### Spare0Parm1 diagnostic
+
+`Spare0Parm1(argument)` takes one script argument and ignores it. It sends a
+diagnostic containing the receiving actor pointer to the diagnostic writer and
+returns zero. The handler does not dereference the receiver or modify actor
+state.
+### Spare0Parm4 diagnostic
+
+`Spare0Parm4(first, second, third, fourth)` takes four script arguments and
+ignores all four. It sends a diagnostic containing the receiving actor pointer
+to the diagnostic writer and returns zero. The handler does not dereference
+the receiver or modify actor state.
 ### Spare0Parm0 diagnostic
 
 `Spare0Parm0()` takes no script arguments. It sends a diagnostic containing the
@@ -2297,6 +2309,11 @@ it by the [support-response turn rules](player.md#ordinary-slope-response): zero
 heading already matches or the turn snaps to it, otherwise nonzero. A zero result clears the
 alignment flag and a nonzero one sets it, and the task reports that result.
 
+### Receiver AI type query
+
+`MyAiType()` returns the receiving actor's lifecycle selector as an unsigned byte
+value from 0 through 255. It does not query the selected player or the adjacent
+AI mode, and does not change the actor's state.
 ### Receiver AI mode query
 
 `MyAiMode()` returns the receiving actor's AI mode as an unsigned byte value
@@ -3086,6 +3103,24 @@ call `PlayerMain` on itself, and its handler is the controller routine described
 [Ordinary controller dispatch](player.md#ordinary-controller-dispatch) and the sections that follow it. It takes no
 arguments and returns no value.
 
+### DetachMe
+
+`DetachMe()` takes no arguments and returns zero. A receiver with zero
+`attr_slave` is unchanged.
+
+For an attached receiver with nonzero `attr_master`, the function first clears
+`attr_slave`. It then uses the receiver-master lookup, which selects no node in
+a finite, acyclic family tree. The function returns without unlinking the family
+record, restoring position or angles, or requesting the actor refresh.
+
+For an attached receiver with zero `attr_master`, the function searches ordinary
+attached-actor lists for the receiver. It visits children before the current
+node's ordinary list, then visits siblings. A missing record leaves the receiver
+unchanged. A found record is unlinked by updating either the owning list's head
+or the preceding record's next pointer. The function clears `attr_slave`, copies
+effective position and effective angles into the receiver's local position and
+angles, and requests the actor refresh. It does not free the unlinked membership
+record or change the effective-position and effective-angle fields.
 ### AttachMe
 
 `AttachMe(group)` takes an integer family identity and returns zero. An argument
