@@ -7055,3 +7055,36 @@ The entry stores precede the index increment, any reset, and the three clear
 stores. If the updated index names the slot just written, those clear stores
 erase the new entry. No receiver selection is read or changed. The function
 does not allocate an entry or release one.
+
+### TurnToPos native boundary
+
+`TurnToPos(x, z)` takes two script integers in the receiver's stored coordinate
+units. It first measures horizontal distance using the wrapped differences
+`current_x - x` and `current_z - z`, with a zero vertical component. Its proximity
+threshold is computed from `GetMovementSpeed(receiver) + 1`: shift left eight
+bits, multiply by the shared movement scale with 32-bit wrapping, then shift
+arithmetically right eight bits. The distance and threshold compare as signed
+integers, including equality.
+
+Within that threshold, the native writes the exact supplied X and Z coordinates,
+leaves Y unchanged, registers the receiver for position processing, and returns
+zero. Registration follows the shared position-processing queue rules, including
+its capacity diagnostic after the coordinate writes.
+
+Outside the threshold, it computes the wrapped differences `x - current_x` and
+`z - current_z`, converts them to a planar angle, negates that angle, masks it to
+2047, and delegates to `TurnToAngle` on the same receiver. Its return is the
+turning operation's return.
+
+For signed planar components other than the minimum signed integer, conversion
+records their signs and takes their magnitudes. While either magnitude exceeds
+511, it shifts both right by one bit. The positive Z axis is angle zero, positive
+X is 512, negative Z is 1024, and negative X is 1536. Equal nonzero normalized
+magnitudes produce a first-quadrant angle of 256. Otherwise it indexes the
+arctangent table with `floor(512 * smaller / larger)` and complements about 512
+when X is larger. Sign adjustment selects the quadrant, and the result is masked
+to 2047. The zero vector produces zero.
+
+The hardware arctangent initialization path fills 513 table entries for indices
+zero through 512. Entry `i` is the integer truncation of
+`atan(i / 512) * 65536 / 3.141592654`, shifted arithmetically right six bits.
