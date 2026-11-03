@@ -5478,3 +5478,26 @@ Changing to the same nonzero user still removes the first match before
 registration. With a single matching entry this moves the receiver to the
 head. A remaining duplicate prevents a replacement allocation. Lookup follows
 next links, stops at the first match and has no cycle check or iteration limit.
+
+### LoadStatic
+
+`LoadStatic(name)` is a one-argument function. It resolves `name` to a record
+payload, stores that pointer on the receiver, sets the receiver's static
+selection byte to one and returns the receiver itself. The existing pointer
+and selection byte are overwritten; the native does not release the old
+pointer or copy the payload.
+
+The lookup obtains a search key through a shared name helper, copies it to a
+shared scratch buffer and uppercases it. It searches the first linked list
+in order and then the second list, comparing each entry name with that key.
+The first equal entry wins. Thus a match in the first list prevents any
+search of the second list, and later duplicate entries are ignored. A record
+with type byte two is rejected after selection; lookup does not continue to
+a later matching record of another type.
+
+A missing name stores the requested name pointer in shared error context and
+requests error 33. Selecting a type-two record stores the same error context
+and requests error 34. For other selected types, lookup returns the record's
+embedded payload pointer. The receiver assignments occur after lookup
+returns. List traversal has no cycle check or iteration bound, and the key
+scratch buffer is shared between calls.
