@@ -308,8 +308,14 @@ action key is not held, and for any other player only while the current group is
 group (forward) or one of the walking groups 19 and 23 (backward).
 
 The helper selection does not bypass the helper's motion, support, animation,
-or movement-marker tests. Water states, drawn weapons, rope motion, jumping,
-and special living states have separate dispatch branches.
+or movement-marker tests. Hanging state 15 selects the sidestep/walk dispatch;
+other ledge states 10 through 19 retain the ordinary forward/backward helper
+selection. A climb does not itself suppress a forward animation request: the
+movement helper can queue its group behind the active climb while its animation
+admission prevents ordinary translation. Jump handling precedes the state-15
+climb and release calls described under [ledge climb request](#ledge-climb-request).
+Water states, drawn weapons, rope motion and jumping retain their own dispatch
+rules.
 
 ### Armed attack input
 
