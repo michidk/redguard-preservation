@@ -5417,3 +5417,31 @@ Changing to the same nonzero user still removes the first match before
 registration. With a single matching entry this moves the receiver to the
 head. A remaining duplicate prevents a replacement allocation. Lookup follows
 next links, stops at the first match and has no cycle check or iteration limit.
+
+### CheckPlayerWeapon
+
+`CheckPlayerWeapon()` is a zero-argument function. It does nothing when the
+item system is disabled or the supplied receiver is null. Otherwise, it
+replaces the receiver with the globally selected player; the supplied
+nonnull receiver is not dereferenced.
+
+The player's selected item is retained only when the player has a nonnull
+animation pointer, a shared mode word is zero, the selected item byte is
+nonzero, and lookup finds an item whose type is one and signed quantity is
+strictly positive. Lookup scans the item list in order using unsigned item
+IDs. It returns the first equal ID or stops with no result at the first ID
+greater than the requested byte value. It does not search past that entry.
+
+On any failed condition, the function clears the player's selected item
+byte and runs the reset helper. For current animation words 129 or 91, that
+helper requests motion using the signed upper half of the player's retained
+motion word and a zero third argument. Player action bytes 20 and 21 are
+cleared together with their companion byte; other action values are retained.
+A nonzero active byte is cleared, sets shared feedback to 25, and clears bit
+two of a player model byte while preserving its other bits.
+
+The return register is residual state, not a Boolean result. The initial
+no-op paths retain the supplied receiver. A retained item leaves its item
+record pointer. Reset leaves the player pointer when the active byte was
+zero and the player's model pointer when that byte was nonzero. The reset
+helper's motion request result is overwritten before these returns.
