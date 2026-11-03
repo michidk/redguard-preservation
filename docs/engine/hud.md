@@ -238,8 +238,39 @@ Lockout values other than 1 do not hide the icon.
 
 KEYS.INI `inventory_key` opens a modal screen over the last world frame. The
 world update latches the key and opens the screen on its next update. The
-screen waits until the key is released, pauses the game clock, and resumes it
-on exit. Each screen update waits for the next 18.2 Hz BIOS tick.
+screen pauses the game clock and captures the current frame before waiting
+for the key to be released. It then installs the inventory text settings.
+The saved frame contains tightly packed 16-bit pixels copied from the display
+rows using the source stride; capturing it does not select a renderer palette.
+The clock resumes on exit. Each screen update waits for the next 18.2 Hz BIOS
+tick.
+
+### Inventory bitmap resources
+
+Inventory bitmap initialization releases the previous mask, border and arrow
+images, then loads `SYSTEM\INVMASK.GXA`, `SYSTEM\INVBORDR.GXA` and
+`SYSTEM\INVARROW.GXA` in that order. All three loads use the same palette
+output buffer. Each successful load overwrites that buffer, leaving the arrow
+palette after the final load.
+
+The bitmap loader expands the first decoded frame's palette by shifting each
+of its 768 bytes left by two bits. With a palette output buffer, it copies
+those bytes to the buffer. With no output buffer, it instead calls the palette
+installation service for 256 entries. Inventory bitmap initialization uses the
+copy branch for all three resources.
+
+Bitmap image preparation keeps six texture slots arranged as three columns
+and two rows. The column and row origins are spaced 256 pixels apart. Slots
+outside the image dimensions contain no texture. Each populated slot receives
+a separate buffer of indexed pixels, copied row by row using the full image
+width as the source stride and the region width as the destination stride.
+A 640 by 480 image therefore produces widths 256, 256 and 128 in each row,
+with heights 256 and 224.
+
+Each region requests an indexed texture and supplies its tightly packed pixel
+buffer to the texture population service. The resulting texture identifiers
+are stored in the image's six-slot array. The preparation routine assigns
+consecutive image identity values to populated regions in slot order.
 
 ### Item list
 
@@ -270,6 +301,108 @@ item under the cursor, making it the HUD [active item](#active-item). The
 other keys close without changing the selection. The screen then waits until
 the inventory key, Escape, the walk/run modifier, Activate and Enter are all
 released.
+
+Exit selects resource group 31 and releases group 28, then processes deferred
+texture residency changes. A texture also owned by another group retains that
+ownership. A texture whose last group is released is freed even when repeated
+lookups had raised its reference count.
+
+The saved 16-bit frame is copied back using the destination display stride,
+then its buffer is freed. Exit calls display finalization, clears the cached
+candle health, frees the temporary item list, restores the saved text state
+and resumes the clock, in that order. Restoring the saved frame copies its
+pixel values directly; it does not select a renderer palette.
+
+The optional rectangle drawn during display finalization uses black RGB vertex
+colour. Its colour setup and rectangle drawing do not select an indexed
+renderer palette.
+
+The rectangle helper swaps both corner pairs when the second Y coordinate is
+smaller than the first. It does not independently reorder reversed X coordinates.
+It rejects rectangles wholly above or left of the viewport, or whose first
+corner lies beyond the right or bottom viewport limit. It clamps negative first
+coordinates to zero and second coordinates to the viewport limits, then adds
+one to the second X and Y coordinates before emitting two triangles. A point on
+a viewport limit therefore reaches one coordinate unit beyond that limit.
+
+The rectangle's graphics setup and post-draw reset send the following Glide API
+arguments in table order. The reset installs fixed values rather than restoring
+captured caller state. Setup sets chroma-key mode to zero; the reset leaves that
+setting unchanged.
+
+| API | Rectangle setup arguments | Post-draw reset arguments |
+|-----|---------------------------|--------------------------|
+| `grChromakeyMode` | `0` | No call |
+| `guColorCombineFunction` | `2` | `6` |
+| `grDepthMask` | `0` | `1` |
+| `grDepthBufferFunction` | `7` | `1` |
+| `guAlphaSource` | `1` | `0` |
+| `grAlphaBlendFunction` | `1, 5, 4, 0` | `4, 0, 4, 0` |
+
+The queued-text enable flag belongs to the queue's buffer lifecycle.
+Initialization first tears down the previous queue, allocates and zeroes 66
+buffers of 256 bytes each, then enables processing. Teardown frees and clears
+all buffer pointers when the enable flag is exactly one, then clears the flag.
+
+For each buffer, initialization stores the allocation result and passes it
+directly to the 256-byte zero-fill operation. It does not test for a null result
+or retry the allocation before that operation.
+
+The buffer-fill path repeats the low byte of the fill value across the requested
+byte range and returns the original destination. A zero byte count skips all
+destination access. For a positive count, the underlying fill routine reads the
+first destination byte before writing and has no null-pointer guard.
+
+Startup initializes queued-text suppression from `[system] disable_debug_text`
+in `SYSTEM.INI`, separately from the ordinary `disable_text` value. When the
+startup `q` option query succeeds, it sets both values to one and skips those
+configuration reads. These are initial values; suppression is mutable engine
+state, separate from the queue's allocation flag. Queue initialization and
+display finalization do not restore suppression from saved text state.
+
+Display finalization also processes queued text. When that processing is enabled,
+it temporarily enables text output. Unless drawing is suppressed, it visits up
+to 66 queued buffers in order and stops at the first empty buffer. The console
+output route submits each buffer with `%s`; the ordinary text route uses `%s\n`.
+It then clears all 66 buffers, 256 bytes each, even when drawing is suppressed
+or stops at an empty buffer, and restores the incoming text-disable value.
+The queue processor does not save and restore the remaining text state or select
+a renderer palette itself; text-service calls are separate operations.
+
+Ordinary queued text starts at the current text cursor and leaves that cursor
+updated after each message. Line feeds return X to the current line origin and
+advance Y by the font line height. This route uses the current font, temporarily
+selecting its linked small font when a configured text viewport is narrower
+than 640 pixels. It restores the incoming font after each message. The text
+sink does not install a separate text style or select a renderer palette;
+[shared glyph services](subtitles.md#shared-text-colour-state) handle text colour.
+
+The ordinary route treats message contents as string data: percent characters
+remain literal. It copies bytes up to the first NUL, appends one line feed,
+and NUL-terminates the formatted text. An existing trailing line feed is
+retained, so an additional one follows it.
+
+TAB in ordinary text changes only the horizontal cursor. For a positive text
+viewport width `W` of at least eight pixels, let `s = trunc(W / 8)`. Without
+signed arithmetic overflow, the new X is `X + rem(X + s, s)`, where `rem` is the
+signed remainder from division truncated toward zero. This calculation uses
+absolute X, without subtracting the line origin, and does not wrap immediately.
+At a width of 640 pixels, X values 1, 79 and 80 become 2, 158 and 80 respectively.
+Repeated tabs apply the calculation to the updated X. TAB bypasses character
+lookup and glyph drawing. NUL ends the formatted text; apart from LF and TAB,
+nonzero bytes, including CR, pass unchanged to character lookup.
+
+The ordinary text sink reuses shared formatting storage supplied by the
+executable data image. It does not allocate or free formatting storage per
+message. The formatting call receives no destination-size argument.
+
+The buffer-clear wrapper can run optional memory validation before filling.
+Outside a reentrant validation call, a nonzero byte count first checks the
+destination address, then the final byte address if the first check returns
+without an error. These numeric checks enter a diagnostic path for addresses
+below 16; they do not read the destination bytes. A zero count skips these
+address checks. If validation returns normally, its return value does not
+suppress the subsequent fill.
 
 View (`key_c`) opens the cursor item's examine view with its
 `inventory_object_file` model. When that view returns a nonzero result, the

@@ -93,9 +93,22 @@ still consumes its index byte.
 
 ## Playback and looping
 
-`gui.anm` plays at 10 frames per second. Its final record converts the last
-display frame back to the first. This loop delta is excluded from the displayed
-frame sequence. The authored frame-count field includes that record.
+The header supplies a frame rate and can identify a final loop delta. That
+record converts the last display frame back to the first and is excluded from
+the displayed image sequence. The authored frame-count field includes it.
+
+## GUI image collection
+
+`system/gui.anm` uses the animation container to bundle separate GUI graphics.
+Its 25 display images contain small, medium, and large parchment buttons in
+different states, followed by a parchment background. Each image occupies a
+320 by 200 canvas. These are selectable artwork variants, rather than a motion
+sequence. The header declares 10 frames per second; this is container metadata,
+not GUI interaction timing.
+
+[`system/gui.lbm`](LBM.md#gui-artwork) contains the same button designs arranged
+on a 640 by 480 bitmap sheet. The files have different embedded palettes, so
+matching artwork can use different palette indices.
 
 ## External References
 
