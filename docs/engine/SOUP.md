@@ -3808,7 +3808,8 @@ the camera. Otherwise it runs `showObjPan` with the arguments `(argument << 8) -
 component, where `B` is the bound position of the record selected at the call, and
 `showObjPan` shifts them left eight bits again.
 
-`showObjRot` does nothing and returns zero.
+`showObjRot` is declared as a task with eight script arguments. Its handler
+ignores their values, changes no camera or actor state, and returns zero.
 
 ### lookObj
 
