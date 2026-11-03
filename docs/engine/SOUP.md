@@ -7331,3 +7331,30 @@ identity does not select the adjusted actor.
 A negative `amount` instead requests a service for the selected player with mode
 2 after the threshold and adjustment-byte updates, before publishing the local
 result. Further service processing controls progress beyond this request.
+
+### ZapPlayer adjustment and zero-result request
+
+`ZapPlayer(amount)` is a function with one argument. It reads the selected
+player's unsigned adjustment byte before testing the shared adjustment gate.
+A nonzero gate bypasses all writes and returns that byte. The receiver does not
+select the player being read.
+
+With the gate clear, the native adds `amount` to the byte with 32-bit wrapping
+arithmetic. A shared threshold-controlled value below 50 in signed comparison
+is replaced with 25. A negative `amount` then requests a service for the selected
+player before writing the adjustment byte or publishing the local result.
+
+For a nonnegative `amount`, the signed wrapped sum is compared with the shared
+signed ceiling before comparison with zero. A sum above the ceiling stores the
+ceiling's low byte and uses that unsigned byte as the local result. Otherwise a
+positive sum stores its low byte and retains the full sum as the local result.
+Otherwise the native stores zero and uses zero. It publishes the local result
+to the shared adjustment-result word.
+
+A nonzero local result, or a nonzero shared zero-result override, clears the
+retained animation selection, adjustment gate and adjustment clock. For a
+nonnegative `amount`, this path returns the local result. A zero local result
+with a clear override instead requests the selected-player service with mode 6.
+The byte and shared result have already been written at this request boundary;
+the retained selection, gate and clock have not yet been cleared by this path.
+Further service processing controls progress beyond that request.
