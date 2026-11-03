@@ -5317,3 +5317,20 @@ byte is the low byte of that pointer. The copy does not append a terminator.
 The comparison therefore uses that ninth byte as well as the name bytes; this
 is not a fixed-width comparison of eight bytes. The list traversal has no cycle
 check or iteration bound.
+
+### SetRotation
+
+`SetRotation(x, y, z)` is a three-argument function. It masks each argument
+with 2047, writes the results to the receiver's current pitch, yaw and roll,
+then copies that triple to its previous-angle history. Existing angles do not
+supply any component of the new triple.
+
+It then rebuilds the receiver's orientation matrix. Rotation mode attribute
+28 equal to exactly one selects the alternate matrix construction, passing
+all three masked angles unchanged. Every other byte value first resets the
+matrix to the identity, then applies negated yaw, negated pitch and negated
+roll in that order. Each negated angle is masked with 2047 before its matrix
+operation. All operations target the receiver's own matrix.
+
+The function returns zero after matrix construction returns. It does not
+register the actor in the pending-position list.
