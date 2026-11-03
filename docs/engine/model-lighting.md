@@ -196,8 +196,13 @@ A missing attribute leaves the ordinary path selected. The selected image frame
 is passed separately and does not add submission flags.
 
 Actor-flat drawing adds submission flag `0x200` to this special path and supplies
-red, green and blue values of 200. Those values are a constant tint, rather than
-a request for a geometry scale of 200 or a constant alpha of 200.
+red, green and blue values of 200. The queued polygon draw selects constant RGB
+without multiplying it by sampled texture RGB. It still binds the image and
+passes its texture coordinates, but the color combiner uses the supplied RGB
+rather than texture or interpolated vertex RGB. The ordinary texture-times-vertex
+color mode is restored after the queued draw completes.
+
+The three color inputs do not request a geometry scale or constant alpha.
 
 The special path keeps the ordinary flat's vertex positions at the caller's
 geometry scale. Horizontal and vertical flip flags still reverse its local
