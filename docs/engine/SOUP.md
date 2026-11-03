@@ -6445,3 +6445,14 @@ receiver, metadata, or global state.
 
 The metadata reads precede the later receiver-null test. That test does not
 make a null receiver a safe query input.
+
+### IsInAir query
+
+`IsInAir()` is a zero-argument function. A null receiver or a nonzero shared
+mode word returns zero before reading receiver state. With a nonnull receiver
+and shared mode zero, any nonzero sliding, falling or queued-motion byte
+returns one. If all three bytes are zero, living-state values 27, 28 and 29
+return one; every other living-state byte returns zero.
+
+The result is Boolean. The function does not read the ordinary native-enable
+word, call other services, or modify receiver or shared state.
