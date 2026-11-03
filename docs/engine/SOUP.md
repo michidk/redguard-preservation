@@ -7430,3 +7430,23 @@ A missing item records a diagnostic location and requests copying of the item
 error text into the shared error buffer before invoking the error service.
 This path has not changed any item record at the copy request boundary. The
 copy and error services determine progress beyond that request.
+
+### PushItem saved-value replacement
+
+`PushItem(id, value)` is a function with two arguments. Disabled item processing
+returns zero without searching the shared item list. With processing enabled,
+it uses the same unsigned ordered lookup described for `PopItem`. The supplied
+receiver does not choose the list.
+
+If the selected item's pushed-value flag is clear, the native sets the flag to
+one and copies the current 32-bit value into the saved-value field. If the flag
+is already nonzero, it retains both the flag byte and the saved value. It then
+writes the supplied `value` into the current-value field and returns that value.
+The write and return retain all 32 bits. Repeated pushes replace the current
+value while preserving the first saved value until another operation clears
+the pushed flag.
+
+A missing item records its diagnostic location and requests copying of its
+error text into the shared error buffer before invoking the error service.
+No item record has changed at that copy request boundary. The copy and error
+services govern progress beyond the request.
