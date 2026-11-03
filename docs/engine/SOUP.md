@@ -2148,11 +2148,15 @@ Alignment turning uses the [support-response turn rules](player.md#ordinary-slop
 including selected-player camera updates. Returning to the default animation
 reports success on every normal return; it does not wait for playback to finish.
 
-### Player turn, speed, arctangent and location-distance queries
+### Player movement, turn, speed, arctangent and location-distance queries
 
 `PlayerArctan()` returns the arctangent angle (0 through 2047) of the horizontal displacement from the
 selected player to the receiver (or to the stored fallback position when no player is selected), the
 negation modulo 2048 of the bearing `PlayerLooking` uses.
+
+`PlayerMoved()` compares the selected player's current local X, Y and Z position with its stored
+previous position. It returns 1 if any component differs and 0 otherwise. It does not require a model
+handle. The receiver is not the actor queried.
 
 `PlayerTurned()` returns 1 when any of the selected player's three angles differs from the angles saved
 at the ordinary update's entry, otherwise 0. `PlayerTurnedDirection()` returns the sign of the change of
