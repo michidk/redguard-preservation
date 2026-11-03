@@ -5417,3 +5417,16 @@ Changing to the same nonzero user still removes the first match before
 registration. With a single matching entry this moves the receiver to the
 head. A remaining duplicate prevents a replacement allocation. Lookup follows
 next links, stops at the first match and has no cycle check or iteration limit.
+
+### UnLoadStatic
+
+`UnLoadStatic()` is a zero-argument function. A separate receiver control
+word gates the operation. When that word is nonzero, the native clears the
+receiver's static selection byte to zero. When the control word is zero,
+it leaves that byte unchanged, including nonzero byte values.
+
+The gate does not test the payload pointer assigned by `LoadStatic`.
+`UnLoadStatic` retains that pointer on both paths. It returns the receiver,
+changes no other receiver bytes and makes no calls to release or modify the
+payload. Nonzero control words are treated alike, including values with only
+the sign bit set.
