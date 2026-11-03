@@ -6655,3 +6655,24 @@ is requested on these finite, acyclic paths.
 
 The receiver metadata is dereferenced without a null check. The query does not
 read the ordinary native-enable or shared mode words.
+
+### DeleteMessage selection advance
+
+`DeleteMessage()` takes no script arguments and returns zero. It first calls
+the message-availability helper. The helper reads the receiver's message
+channel from its subrecord and uses that byte to select a no-selection byte.
+If the receiver's message-selection byte equals that channel's no-selection
+byte, the function returns without changing the selection or reading the
+global message limit.
+
+Otherwise it increments the selection as an 8-bit value, wrapping 255 to zero.
+The new byte is zero-extended and compared with the global limit as signed
+32-bit integers. A new selection below the limit is retained; a selection
+greater than or equal to the limit is replaced with zero. The increment
+occurs before the comparison, including when a later reset stores zero again.
+
+Neither the function nor its availability helper reads or modifies message
+entries or sender memory, dereferences the context pointer, or releases an
+entry. The helper requests the missing-context diagnostic when that pointer
+is zero. There is no receiver-null or subrecord-null gate before the helper's
+channel and selection reads.
