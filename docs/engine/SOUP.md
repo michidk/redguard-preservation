@@ -5297,3 +5297,26 @@ blocked-ahead probe.
 one, not multiplied by 256; the step-counter adjustment and frame scaling then apply as for
 MoveBackward.
 
+
+### DistanceFromLocation numerical distance helper
+
+The numerical helper used by `DistanceFromLocation` takes three signed 32-bit
+coordinate differences. It converts each difference to single precision,
+forms the three squares with x87 intermediates, and adds X squared to Y
+squared before adding Z squared. The sum is stored as a double-precision
+argument to the square-root wrapper. For a nonnegative argument that wrapper
+loads the double and executes the x87 square-root instruction.
+
+The helper stores the square root in single precision, reloads it, and converts
+it to a signed 32-bit integer. These conversions and intermediate arithmetic
+use the incoming x87 control word. The helper does not replace that control
+word or force truncation. With nearest-even rounding, the triple `(3, 4, 0)`
+returns `5` and `(1, 1, 0)` returns `1`. With rounding toward positive infinity,
+`(1, 1, 0)` returns `2`. Single-precision stores can change results before the
+integer conversion, so an integer square root of the original differences is
+not equivalent.
+
+With masked floating-point exceptions, an out-of-range final integer conversion
+produces the x87 integer-indefinite value, whose 32-bit pattern is `0x80000000`.
+For example, under nearest-even rounding, the triple `(2147483647, 0, 0)`
+produces that value after its single-precision conversions.
