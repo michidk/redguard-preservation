@@ -5647,3 +5647,26 @@ and requests error 34. For other selected types, lookup returns the record's
 embedded payload pointer. The receiver assignments occur after lookup
 returns. List traversal has no cycle check or iteration bound, and the key
 scratch buffer is shared between calls.
+
+### PlayerArmed
+
+`PlayerArmed` is a zero-argument function that calls `IsHoldingWeapon` on the
+globally selected player and returns its Boolean result. The supplied
+receiver is not used to select the queried actor. A null selected player
+returns zero.
+
+`IsHoldingWeapon` first rejects a null receiver. It then reads the receiver's
+metadata. A nonzero carrying-state byte in that metadata returns one before
+the ordinary enable and mode checks.
+
+When that byte is zero, the function returns zero if native execution is
+disabled, the receiver's animation/control pointer is null, or the shared
+mode word is nonzero. Otherwise a nonnull receiver model pointer and a
+nonzero receiver active byte are both required. The function then calls
+`IsSheathingSword` on the same receiver and returns one only when that
+predicate returns zero.
+
+The model predicate reads the metadata carrying-state byte before its own
+ordinary gates and tests the model pointer without dereferencing it. The
+holding predicate and all helpers used by `PlayerArmed` leave receiver,
+metadata, animation/control, and global state unchanged.
