@@ -7205,3 +7205,22 @@ from the third element of the matrix's first and third rows respectively.
 The native returns zero. It makes no dialogue, animation, matrix-update,
 collision-query or position-processing registration call. Its coordinate writes
 are direct; the selected-player pointer and receiver matrix must already exist.
+
+### PlayerFaceTalk target construction boundary
+
+`PlayerFaceTalk(distance)` is a task with one argument. It obtains the selected
+player separately from its receiver. It initializes a local vector to
+`(0, 0, distance)`, transforms it through the receiver's stored orientation
+matrix using the integer-to-float matrix helper described for `PlayerForceTalk`,
+and adds receiver X and Z to the transformed X and Z with wrapping integer
+arithmetic. This constructs a local target position; it does not immediately
+write that position to the player.
+
+It then applies the pitch adjustment described for `LineUp` to the selected
+player, and queries that player's state before proceeding to alignment and
+movement. Receiver and selected player may identify the same actor. Target
+construction still precedes the player's pitch adjustment. At this boundary,
+the native has changed only player pitch where the pitch helper requires a
+write; receiver/player X, Y, Z and yaw are retained. No dialogue or animation
+request has occurred before the player-state query. Later alignment and movement
+services govern progress beyond that query.
