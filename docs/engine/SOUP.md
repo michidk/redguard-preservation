@@ -6781,3 +6781,30 @@ when traversal reaches the end of the list.
 
 The receiver is used only for pointer exclusion; its metadata is not read.
 There is no ordinary native-enable or shared-mode gate and no cycle detection.
+
+### ReceiveBroadcast entry selection
+
+`ReceiveBroadcast()` takes no script arguments. It compares the receiver's
+broadcast-selection byte with the broadcast no-selection byte. Equality
+returns zero before reading the messaging context's entry-array pointer or
+any entry. This function does not read the receiver's message-channel
+subrecord or ordinary message-selection byte.
+
+For an available selection, the first pointer in the messaging context gives
+the entry array. Entries have a 12-byte stride. A null recipient or a recipient
+equal to the receiver returns the entry's 32-bit value unchanged. The matching
+entry remains selected, including when its value is zero. Recipient tokens
+are compared without dereferencing them; the sender field is not read.
+
+An entry addressed to another receiver is skipped by incrementing the
+broadcast-selection byte. The new byte wraps from 255 to zero, is zero-extended,
+and is compared with the global limit as a signed 32-bit integer. A value below
+the limit is retained; otherwise the selection is reset to zero. The function
+then repeats the sentinel and entry checks. The sentinel and context's first
+pointer are read again during traversal.
+
+Only the receiver's selection changes while skipping entries. Entries and
+sender objects are unchanged, and no entry is released. A missing messaging
+context requests the missing-context diagnostic before the selection read.
+There is no receiver-null, malformed-entry or iteration-limit gate in this
+function.
