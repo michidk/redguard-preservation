@@ -4949,6 +4949,15 @@ key's state word is nonzero or the key is the latest key event the keyboard hand
 debug shell reads it for the letters `p`, `c` and `d` and for Alt+`q`, and a few bridge and door
 scripts read `r`.
 
+### SpacePressed
+
+`SpacePressed()` is a function without arguments. It returns one when the
+Space key's 16-bit input state word is nonzero and zero when it is zero. Space
+is keyboard code 57 in [KEYS.INI](../config/keys-ini.md#defined). The function
+does not consume or change the state word, inspect the latest-key-event byte,
+or dereference the receiver. It makes no service calls and creates no task.
+Repeated calls return the same result while that word remains unchanged.
+
 ### PressKey
 
 `PressKey(code)` takes one packed integer argument. Its low byte is a character,
