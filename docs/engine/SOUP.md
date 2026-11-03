@@ -7247,3 +7247,28 @@ selected node, it reads X and Z as unsigned 16-bit coordinates and Y as a signed
 coordinates to the movement service. Guard's zero mode is forwarded in the
 movement request. Lookup, random selection, reset and movement services determine
 progress beyond these request boundaries.
+
+### ZapObjectNoKill receiver adjustment
+
+`ZapObjectNoKill(amount)` is a function with one argument. A nonzero receiver
+metadata exclusion byte prevents the operation. When the receiver's weapon
+requirement byte is nonzero, the operation also requires either the holding
+weapon predicate or the model weapon flag. These gates precede player selection
+and all adjustment writes.
+
+For a receiver other than the selected player, the native reads the stored
+unsigned adjustment byte, adds `amount` with 32-bit wrapping arithmetic, and
+interprets the sum as signed. A sum above 255 stores 255, a positive sum at most
+255 stores its low byte, and a nonpositive sum stores zero. The native does not
+request a kill, animation or movement service on this path.
+
+The native does not normalize its return value. The exclusion gate leaves the
+receiver metadata pointer as the result. A failed weapon requirement leaves the
+weapon predicate's residual result: zero without a model, or the model pointer's
+upper 16 bits with its lower 16 bits zero. An upper clamp returns 255. A positive
+unclamped sum replaces only the low byte of the receiver pointer in the result.
+A nonpositive sum leaves the receiver metadata pointer as the result.
+
+For the selected player, after the same gates, the native calls the player
+adjustment service with a zero mode and the original `amount`. That service
+controls subsequent effects and the returned value.
