@@ -163,6 +163,15 @@ centred, by the [subtitle centring rule](subtitles.md#glyphs), on
 `x = candle_xco + width / 2 − 5` (integer half) with its top at
 `y = candle_yco + height`; with shipped values, centred on x = 32 at y = 106.
 
+After drawing the candle bitmap, the number pass saves the current text
+settings, selects the standard GUI font with text-colour indices 1 and 0,
+and enables text before formatting and painting the number. It reads the
+selected player's current health attribute independently of the cached health
+used to advance the candle animation. It then restores the previous font,
+colour indices, shadow settings, text cursor, case flags, text viewport and
+text-disable flag. The selected renderer palette is outside this saved text
+state; pushing and restoring these text settings does not select a palette.
+
 ### Mode key
 
 F8 (scan code 66, not configurable in KEYS.INI) cycles `candle_mode`
