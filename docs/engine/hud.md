@@ -113,6 +113,22 @@ frames:
 | Level 5, health drops to 0 | 66, 67, …, 80, 80, … |
 | Snuffed, health set to 100 | 65, 59, 53, …, 11, 5, 0, 1, … |
 
+### Quick sword
+
+KEYS.INI `quick_sword_key` reads the held key on each world update. Lockout 1
+or selected-player `attr_player_type` 1 disables this handler. Drawing or
+sheathing a sword prevents another sword operation until that transition ends.
+
+When the player is holding a weapon, the key requests sheathing. Otherwise it
+uses the first owned item in the order 1, 13, 75. Items 1 and 13 become the
+selected item before use; item 75 is used without changing the selection. An
+empty search leaves the selection unchanged.
+
+The key remains held after handling. Holding it through a completed draw can
+therefore request sheathing without another press. Item use retains its normal
+eligibility and torch precedence: a burning torch is doused instead of drawing
+the requested sword, after the selection has changed to item 1 or 13.
+
 ### Visibility
 
 `[screen] candle_mode` selects the visibility mode (shipped `2`):
