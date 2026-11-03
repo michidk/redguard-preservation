@@ -6540,3 +6540,25 @@ The query changes no receiver, metadata or linked-position state. It does not
 read the ordinary native-enable or shared mode words. Position selection reads
 receiver metadata before any receiver-null protection, so a null receiver is
 not a safe input.
+
+
+### GetBroadcastSender query
+
+`GetBroadcastSender()` is a zero-argument function returning the sender pointer
+from the receiver's selected broadcast entry. The pointer is returned unchanged
+without dereferencing the sender or extracting its runtime identifier. A null
+sender pointer in the selected entry therefore returns zero.
+
+The query first calls the broadcast-availability helper, which compares the
+receiver's broadcast-selection byte with the broadcast no-selection byte.
+Equal bytes return zero before reading an entry array. Otherwise the query
+reads the selection again and repeats that comparison.
+
+For a selection different from the sentinel, the broadcast context's first
+pointer supplies the entry array. Each entry is 12 bytes, indexed by the
+unsigned selection byte. The selected entry's first pointer is the result.
+
+The query does not consume the selection or modify receiver, entry-array,
+entry, or sender state. Both the query and its availability helper request
+the missing-context diagnostic when the broadcast context is absent. The
+lookup path does not check entry bounds or validate the returned pointer.
