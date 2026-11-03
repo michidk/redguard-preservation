@@ -5417,3 +5417,25 @@ Changing to the same nonzero user still removes the first match before
 registration. With a single matching entry this moves the receiver to the
 head. A remaining duplicate prevents a replacement allocation. Lookup follows
 next links, stops at the first match and has no cycle check or iteration limit.
+
+### IsCarryingWeapon
+
+`IsCarryingWeapon` is a zero-argument function returning zero or one. It
+uses the supplied receiver rather than replacing it with the global player.
+It first reads the receiver's metadata. A nonzero carrying-state byte in
+that metadata returns one before the ordinary enable and mode checks.
+
+When that byte is zero, the function returns zero if native execution is
+disabled, the receiver's animation/control pointer is null, or the shared
+mode word is nonzero. Otherwise it reads the selected item identifier byte
+from the same metadata. A zero identifier returns zero.
+
+A nonzero identifier is looked up in the shared ordered item list using
+unsigned identifiers. The first equal identifier wins; the first greater
+identifier stops the search. The function returns one exactly when that
+lookup finds an item of type one. Item quantity is not tested. All other
+returning paths return zero. The function and its item lookup do not modify
+receiver, metadata, item, or global state.
+
+The initial receiver and metadata reads precede the later receiver-null
+check. That check does not make a null receiver a safe query input.
