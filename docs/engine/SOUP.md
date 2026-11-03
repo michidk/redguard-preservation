@@ -1814,6 +1814,21 @@ Resets the active cursor to the script base and returns from the current invocat
 
 ## Function Dispatch
 
+### Spare1Parm7 diagnostic and argument count
+
+`SOUP386.DEF` declares eight arguments for `Spare1Parm7`. Its native handler
+emits a diagnostic using `0x%p Spare function` with the receiver pointer and
+returns zero without dereferencing the receiver or changing actor state.
+It does not use the incoming argument values.
+
+The handler receives the receiver and three argument values in registers and
+removes four argument slots from the stack on return. This accounts for seven
+arguments, despite the declaration's eight. If five argument slots are supplied
+on the stack after those three register arguments, the final slot remains on
+the caller's stack. Preserve the declaration's eight-argument count separately
+from the handler's four-slot stack cleanup.
+
+
 ### Call Types
 
 Active tasks reevaluate their encoded operands on every task invocation. A task therefore observes changes to locals, global flags, and queried values while it is active. Literal arguments are a special case of this rule.
