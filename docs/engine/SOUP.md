@@ -1814,6 +1814,18 @@ Resets the active cursor to the script base and returns from the current invocat
 
 ## Function Dispatch
 
+### MainloopExit
+
+`MainloopExit(code)` compares its argument as a signed 32-bit integer. Values
+below 5000 leave the shared main-loop exit request unchanged. Values at least
+5000 replace the request with the supplied code, including when a different
+request is already pending. The function returns zero in either case and does
+not access the receiver.
+
+At the main loop's late exit-request check, a nonzero request becomes the loop's
+return value. That check does not clear the request. A zero request continues
+through the remaining loop work.
+
 ### Call Types
 
 Active tasks reevaluate their encoded operands on every task invocation. A task therefore observes changes to locals, global flags, and queried values while it is active. Literal arguments are a special case of this rule.
