@@ -6456,3 +6456,26 @@ return one; every other living-state byte returns zero.
 
 The result is Boolean. The function does not read the ordinary native-enable
 word, call other services, or modify receiver or shared state.
+
+
+### GetMessageSender query
+
+`GetMessageSender()` is a zero-argument function returning the sender pointer
+from the receiver's selected message entry. It does not dereference that
+pointer or extract the sender's runtime identifier. A selected entry whose
+sender pointer is null therefore returns zero.
+
+The receiver's animation/control subrecord supplies a channel byte. Each
+channel has its own no-selection byte, compared with the receiver's message
+selection byte by the message-availability helper. An unavailable result
+returns zero before reading a message-entry array. Otherwise the query reads
+the channel and selection again and repeats the sentinel comparison.
+
+When the selection differs from that channel's sentinel, the channel indexes
+a table of pointers to message-entry arrays. The selection indexes the chosen
+array with a stride of 12 bytes. The entry's first pointer is returned unchanged.
+
+The query does not consume the selection or modify receiver, channel-table,
+message-entry, or sender state. Both the query and its availability helper
+request the missing-context diagnostic when the message context is absent.
+The lookup path does not check entry bounds or validate the returned pointer.
