@@ -5660,6 +5660,26 @@ one, not multiplied by 256; the step-counter adjustment and frame scaling then a
 MoveBackward.
 
 
+### SetLocation
+
+`SetLocation(location)` selects a coordinate triple from the receiving actor's
+location table. A nonnegative location at or below the table's signed upper
+bound selects that entry. An absent table, negative location, or location above
+the bound selects the saved start coordinates.
+
+The relocation helper writes all three selected coordinates unchanged into both
+the actor's current local position and its previous-position triple. When the
+receiver is the selected player, it also translates the engine's tracked
+reference-position vector by the same displacement. The subtraction and
+addition wrap at 32 bits, preserving the prior difference between the actor's
+local position and that reference vector. Other receivers leave the vector
+unchanged.
+
+After these writes, the helper registers the actor in the pending-position
+list. Existing entries suppress duplicate insertion. Empty-list insertion
+precedes the capacity check; a nonempty list appends an absent actor only when
+its signed count is below its signed capacity. A full nonempty list reports an
+error after the position writes. Normal completion returns zero.
 ### OffsetLocation
 
 `OffsetLocation(source, x, y, z)` transforms the supplied offset by the source
