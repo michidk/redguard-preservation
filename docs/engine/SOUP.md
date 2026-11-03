@@ -4836,8 +4836,9 @@ record, when present, gives the draw flags (the flag word is `1` plus the attrib
 attribute's alpha byte plus one); without it the alpha is 255. The sprite is then submitted through the same routine
 as [placed flats](texture-animation.md#placed-flat-admission) with the cached slot, the record's frame word, the
 position, scale 1 and those flags and alpha, with the world's `world_ambientfx` value (see [WORLD.INI](../config/world-ini.md#lighting)) as the brightness. When flag
-`0x80` is set the flag word also gains `0x200` and the brightness, alpha and size inputs are replaced by 200, 200 and
-200, which that submission reads as a solid-colour tint (red, green and blue all 200).
+`0x80` is set the flag word also gains `0x200` and the three inputs select the
+[special flat constant tint](model-lighting.md#special-flat-lighting-bypass), with red, green and blue each
+200.
 
 Each update of an actor that is not hidden also steps its flat record, beside the light maintenance. A zero or
 `0xffff` texture disables the record. A disabled record adds the elapsed ticks (low byte, wrapping) to its pending
