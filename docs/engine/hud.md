@@ -163,6 +163,13 @@ centred, by the [subtitle centring rule](subtitles.md#glyphs), on
 `x = candle_xco + width / 2 − 5` (integer half) with its top at
 `y = candle_yco + height`; with shipped values, centred on x = 32 at y = 106.
 
+The health number temporarily uses the standard GUI font and text-colour index
+1. It is drawn even when ordinary text is disabled. Drawing saves and restores
+the previous font, text colours, text-disable flag, case-conversion settings
+and text position. This text-state stack does not select or restore a renderer
+palette. Health-number drawing and inventory quantity drawing use the palette
+already selected by their caller.
+
 ### Mode key
 
 F8 (scan code 66, not configurable in KEYS.INI) cycles `candle_mode`
