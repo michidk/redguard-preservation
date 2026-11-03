@@ -6676,3 +6676,29 @@ entries or sender memory, dereferences the context pointer, or releases an
 entry. The helper requests the missing-context diagnostic when that pointer
 is zero. There is no receiver-null or subrecord-null gate before the helper's
 channel and selection reads.
+
+### PipeMyGroup query
+
+`PipeMyGroup()` takes no script arguments and returns a shared array of actor
+pointers. It first reads the supplied receiver's unsigned group byte, then
+walks the shared actor list. It excludes the receiver by pointer identity and
+appends every remaining actor with the same group byte, preserving list order.
+The receiver need not itself occur in that list. Group zero is compared like
+every other byte value.
+
+For fewer than 64 selected actors, the selected pointers are followed by a
+null pointer. An empty selection returns the same buffer with its first slot
+null. The selected prefix and terminator are rewritten; later slots retain
+their previous contents. Actor links, metadata and group bytes are unchanged.
+
+After each selected pointer is stored, the count increments. A count of 64 or
+greater updates the shared source context, copies the handler's source-name
+text including its terminator to the shared error buffer, and requests runtime
+error 11 before following the next actor link. The 64th pointer is already
+stored at that point. The error service determines whether the traversal
+continuation is reached. The output terminator is written only when traversal
+reaches the end of the list.
+
+Receiver metadata is read even when the actor list is empty, without a null
+check. The query does not read the ordinary native-enable or shared mode words
+and provides no cycle detection.
