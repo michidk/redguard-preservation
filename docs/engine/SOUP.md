@@ -6584,3 +6584,23 @@ only after traversal reaches the end of the list.
 
 The query does not read the ordinary native-enable or shared mode words. It
 provides no cycle detection or malformed-pointer checks.
+
+
+### DeleteBroadcast selection advance
+
+`DeleteBroadcast()` is a zero-argument function returning zero. It calls
+the broadcast-availability helper before changing the receiver. When the
+receiver's broadcast-selection byte equals the no-selection byte, it returns
+without changing the selection or reading the global broadcast limit.
+
+Otherwise it increments the selection as an 8-bit value, wrapping 255 to zero.
+The new byte is zero-extended and compared with the global limit as signed
+32-bit integers. A new selection below the limit is retained; a selection
+greater than or equal to the limit is replaced with zero. The increment
+occurs before the comparison, including when a later reset stores zero again.
+
+The function advances only the receiver's selection. Neither the function
+nor its availability helper reads or modifies broadcast-entry or sender
+memory, dereferences the context pointer, or releases an entry. The helper
+requests the missing-context diagnostic when that pointer is zero. There is
+no receiver-null gate before the selection read.
