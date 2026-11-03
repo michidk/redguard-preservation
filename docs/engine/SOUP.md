@@ -6498,3 +6498,20 @@ Boolean. The receiver is dereferenced without a null check.
 
 The function does not read the ordinary native-enable or shared mode words,
 call other services, or modify receiver or shared state.
+
+
+### IsMessageWaiting query
+
+`IsMessageWaiting()` is a zero-argument Boolean function. It reads a channel
+byte from the supplied receiver's animation/control subrecord and compares
+the receiver's message-selection byte with that channel's no-selection byte.
+Equal bytes return zero; different bytes return one.
+
+The function does not scan a queue, read a message-entry array, or inspect a
+sender. It does not dereference the message-context pointer. A nonzero context
+pointer is only tested for presence before the channel and selection reads.
+An absent context requests the missing-context diagnostic.
+
+Receiver, control-subrecord, sentinel-table, message-entry, and sender state
+are unchanged. There is no null-receiver or null-control-subrecord gate before
+the receiver and channel reads.
