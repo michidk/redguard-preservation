@@ -6488,3 +6488,13 @@ The result is Boolean. The receiver is dereferenced without a null check.
 
 The function does not read the ordinary native-enable or shared mode words,
 call other services, or modify receiver or shared state.
+
+### IsInWater query
+
+`IsInWater()` is a zero-argument function. It returns one when the supplied
+receiver's liquid-state byte is in the inclusive range 1 through 4 and zero
+for every other byte value. The comparison is unsigned and the result is
+Boolean. The receiver is dereferenced without a null check.
+
+The function does not read the ordinary native-enable or shared mode words,
+call other services, or modify receiver or shared state.
