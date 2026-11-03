@@ -344,6 +344,10 @@ Initialization first tears down the previous queue, allocates and zeroes 66
 buffers of 256 bytes each, then enables processing. Teardown frees and clears
 all buffer pointers when the enable flag is exactly one, then clears the flag.
 
+For each buffer, initialization stores the allocation result and passes it
+directly to the 256-byte zero-fill operation. It does not test for a null result
+or retry the allocation before that operation.
+
 Startup initializes queued-text suppression from `[system] disable_debug_text`
 in `SYSTEM.INI`, separately from the ordinary `disable_text` value. When the
 startup `q` option query succeeds, it sets both values to one and skips those
