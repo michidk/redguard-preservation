@@ -26,6 +26,19 @@ scales to the output size.
 - A line is centred on x = 320: it starts at `320 + trunc(−width / 2)`.
 - Subtitles ignore `[system] disable_text`.
 
+### Shared text colour state
+
+The Glide text colour setup does not select a palette. For a font with its
+indexed-colour flag set, it reads the current text-colour index from the
+already selected palette and writes those RGB components to the constant
+colour state. The constant alpha is the font's first style value, `A`.
+For a font without that flag, all four constant colour components are set
+to `A` instead. These are the text setup values; individual glyph and shadow
+passes apply the rules above.
+
+The text colour reset sets all four constant colour components to 255. It
+does not restore an earlier constant colour or change the selected palette.
+
 ## Dialogue
 
 The text is the RTX entry's own string: the label of a voiced entry, the text
