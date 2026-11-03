@@ -369,6 +369,14 @@ or stops at an empty buffer, and restores the incoming text-disable value.
 The queue processor does not save and restore the remaining text state or select
 a renderer palette itself; text-service calls are separate operations.
 
+Ordinary queued text starts at the current text cursor and leaves that cursor
+updated after each message. Line feeds return X to the current line origin and
+advance Y by the font line height. This route uses the current font, temporarily
+selecting its linked small font when a configured text viewport is narrower
+than 640 pixels. It restores the incoming font after each message. The text
+sink does not install a separate text style or select a renderer palette;
+[shared glyph services](subtitles.md#shared-text-colour-state) handle text colour.
+
 The buffer-clear wrapper can run optional memory validation before filling.
 Outside a reentrant validation call, a nonzero byte count first checks the
 destination address, then the final byte address if the first check returns
