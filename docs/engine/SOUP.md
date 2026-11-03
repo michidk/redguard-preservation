@@ -5297,3 +5297,23 @@ blocked-ahead probe.
 one, not multiplied by 256; the step-counter adjustment and frame scaling then apply as for
 MoveBackward.
 
+
+
+### CountAiShells list query
+
+`CountAiShells(name)` is a one-argument function. It returns zero when the AI
+shell list is disabled or its head is null. Otherwise it extracts the filename
+stem from `name` into a shared nine-byte buffer, with an eight-character stem
+limit, and uppercases that stem. The receiver is not dereferenced.
+
+It traverses the AI shell list through each entry's next pointer. For each entry
+it clears a second nine-byte shared buffer, copies nine bytes from the entry's
+start into that buffer, and compares it case-insensitively with the query stem.
+Each equal comparison increments the result. Traversal counts every matching
+entry, including duplicates, without changing entries or links.
+
+The next pointer follows the entry's first eight name bytes, so the ninth copied
+byte is the low byte of that pointer. The copy does not append a terminator.
+The comparison therefore uses that ninth byte as well as the name bytes; this
+is not a fixed-width comparison of eight bytes. The list traversal has no cycle
+check or iteration bound.
