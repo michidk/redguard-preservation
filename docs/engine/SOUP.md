@@ -2308,9 +2308,17 @@ position selection described above. It does not perform a visibility or line-of-
 query.
 
 `PrintSingleParm(value)` formats the receiving script's name (or `Unknown script`
-when the actor has none) and the signed integer as `<name> <value>` and writes the
-text to the first free of the console's 66 text lines. It drops the text when no
-line is free and returns zero.
+when its script handle cannot be resolved) and the signed integer as
+`<name> <value>`. It writes the text to the first free of the console's 66 text
+lines with a copy bound of 255 bytes, drops the text when no line is free, and
+returns zero.
+
+`PrintStringParm(text)` uses the same script-name prefix, message slots, copy
+bound, full-queue behavior and zero return. It formats the supplied string as
+`<name> <text>` instead of interpreting its value as an integer. The handler uses
+the string value already supplied by native-parameter evaluation; it does not
+perform another string-table lookup. See [native string parameters](#vm-architecture)
+for their source context.
 
 `PlayerInSight()` is true when the selected player is within 262144 units of the
 receiver and nothing blocks the line between them. The distance is the rounded
