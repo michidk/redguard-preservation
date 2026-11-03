@@ -6872,3 +6872,42 @@ There is no ordinary native-enable or shared-mode gate and no cycle detection.
 At the native boundary the receiver and three coordinates enter in registers;
 the distance argument occupies one stack word, which the native removes on
 return.
+
+### AtPos position arrival
+
+`AtPos(x, y, z)` takes three fixed-point coordinate arguments and returns zero
+or one. It first arithmetic-shifts each argument right by eight bits. It also
+arithmetic-shifts the receiver's position coordinates right by eight bits, then
+adds the receiver's vertical adjustment to the shifted vertical coordinate.
+These additions and subsequent coordinate differences use wrapping 32-bit
+arithmetic.
+
+The target-minus-adjusted-current differences pass through the numerical
+helper described under [DistanceFromLocation](#distancefromlocation-numerical-distance-helper).
+The arrival threshold is `GetMovementSpeed()` multiplied by 384, then
+arithmetic-shifted right by eight bits. The speed query reads the supplied
+receiver, including its animation-group and attribute guards. Arrival requires
+the threshold to be strictly greater than the signed numerical distance result;
+equality returns zero.
+
+On arrival, all three receiver position coordinates are replaced with the
+shifted target arguments shifted left by eight bits. The low eight input bits
+are discarded, including for negative coordinates. The vertical position receives
+the target coordinate directly; the earlier vertical adjustment is not subtracted
+from that write. After the position stores, the receiver is registered in the
+shared changed-actor list, then the function returns one. The nonarrival path
+returns zero without changing the position or changed-actor list.
+
+Registration appends immediately when the list count is zero, without checking
+capacity. For a nonzero count it first searches for the receiver by pointer
+identity. An existing entry leaves the list unchanged. An absent receiver is
+appended when the signed count is below the signed capacity. Otherwise the
+helper updates source context, copies source-name text including its terminator,
+and requests runtime error 196. The position stores have already occurred when
+that error is requested. The error service determines whether the function's
+remaining continuation is reached.
+
+The query does not establish an x87 control word or apply an ordinary
+native-enable or shared-mode gate. Its numerical result follows the helper's
+incoming floating-point settings. It reads receiver position before the speed
+query's missing-record guards.
