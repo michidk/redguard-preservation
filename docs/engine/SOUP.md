@@ -2945,6 +2945,19 @@ call `PlayerMain` on itself, and its handler is the controller routine described
 [Ordinary controller dispatch](player.md#ordinary-controller-dispatch) and the sections that follow it. It takes no
 arguments and returns no value.
 
+### EnableSlaves and DisableSlaves
+
+`EnableSlaves()` and `DisableSlaves()` take no arguments and return zero.
+Neither changes actor state for a finite, acyclic family tree. A receiver with
+zero `attr_master` returns immediately. Otherwise the handler searches the
+engine's family tree, but the shared lookup traverses child and sibling lists
+without selecting a matching node and returns no result. The actor-flag changes
+after that lookup are consequently unreachable.
+
+The lookup updates an internal traversal scratch pointer while visiting nodes.
+These functions do not change the global slave-scheduling settings or act as
+aliases for the generic `Enable` and `Disable` commands.
+
 ### Actor families and attached transforms
 
 `attr_master` and `attr_slave` are byte-sized group identities. A nonzero slave
