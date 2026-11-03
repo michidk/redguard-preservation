@@ -377,10 +377,29 @@ than 640 pixels. It restores the incoming font after each message. The text
 sink does not install a separate text style or select a renderer palette;
 [shared glyph services](subtitles.md#shared-text-colour-state) handle text colour.
 
+The text viewport-mode setter retains its full 32-bit input value. The setter
+leaves the display width, display height and selected renderer palette unchanged.
+Ordinary text treats zero as the fixed 640-pixel viewport mode and any nonzero
+value as the configured-width mode.
+
 The ordinary route treats message contents as string data: percent characters
 remain literal. It copies bytes up to the first NUL, appends one line feed,
 and NUL-terminates the formatted text. An existing trailing line feed is
 retained, so an additional one follows it.
+
+TAB in ordinary text changes only the horizontal cursor. For a positive text
+viewport width `W` of at least eight pixels, let `s = trunc(W / 8)`. Without
+signed arithmetic overflow, the new X is `X + rem(X + s, s)`, where `rem` is the
+signed remainder from division truncated toward zero. This calculation uses
+absolute X, without subtracting the line origin, and does not wrap immediately.
+At a width of 640 pixels, X values 1, 79 and 80 become 2, 158 and 80 respectively.
+Repeated tabs apply the calculation to the updated X. TAB bypasses character
+lookup and glyph drawing. NUL ends the formatted text; apart from LF and TAB,
+nonzero bytes, including CR, pass unchanged to character lookup.
+
+The ordinary text sink reuses shared formatting storage supplied by the
+executable data image. It does not allocate or free formatting storage per
+message. The formatting call receives no destination-size argument.
 
 The buffer-clear wrapper can run optional memory validation before filling.
 Outside a reentrant validation call, a nonzero byte count first checks the
