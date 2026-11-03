@@ -339,6 +339,18 @@ setting unchanged.
 | `guAlphaSource` | `1` | `0` |
 | `grAlphaBlendFunction` | `1, 5, 4, 0` | `4, 0, 4, 0` |
 
+The queued-text enable flag belongs to the queue's buffer lifecycle.
+Initialization first tears down the previous queue, allocates and zeroes 66
+buffers of 256 bytes each, then enables processing. Teardown frees and clears
+all buffer pointers when the enable flag is exactly one, then clears the flag.
+
+Startup initializes queued-text suppression from `[system] disable_debug_text`
+in `SYSTEM.INI`, separately from the ordinary `disable_text` value. When the
+startup `q` option query succeeds, it sets both values to one and skips those
+configuration reads. These are initial values; suppression is mutable engine
+state, separate from the queue's allocation flag. Queue initialization and
+display finalization do not restore suppression from saved text state.
+
 Display finalization also processes queued text. When that processing is enabled,
 it temporarily enables text output. Unless drawing is suppressed, it visits up
 to 66 queued buffers in order and stops at the first empty buffer. The console
