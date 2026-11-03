@@ -7184,3 +7184,24 @@ the alignment flag byte, and queries the receiver's state before querying the
 target or constructing the offset position. This entry uses the shared pointing
 target even when a separate retained lineup target exists. Target validity and
 the later geometry and movement services determine further progress.
+
+### PlayerForceTalk positioning
+
+`PlayerForceTalk(distance)` is a function with one argument. It builds the
+integer vector `(0, 0, distance)` and transforms it through the receiver's stored
+three-by-three floating-point orientation matrix. It adds the resulting X and Z
+components to the receiver's stored X and Z with 32-bit wrapping arithmetic,
+then writes those coordinates directly to the selected player's X and Z. The
+player's Y and yaw are left unchanged. The receiver may itself be the selected
+player; both coordinate additions use the corresponding receiver coordinate.
+
+The matrix helper first converts each integer input component to a stored
+single-precision float, computes each matrix row's dot product, and stores each
+result as a single-precision float. It then converts the stored results to signed
+integers using the current floating-point rounding mode. For the supplied
+zero-X, zero-Y vector and finite matrix entries, the X and Z contributions come
+from the third element of the matrix's first and third rows respectively.
+
+The native returns zero. It makes no dialogue, animation, matrix-update,
+collision-query or position-processing registration call. Its coordinate writes
+are direct; the selected-player pointer and receiver matrix must already exist.
