@@ -344,6 +344,11 @@ Initialization first tears down the previous queue, allocates and zeroes 66
 buffers of 256 bytes each, then enables processing. Teardown frees and clears
 all buffer pointers when the enable flag is exactly one, then clears the flag.
 
+The buffer-fill path repeats the low byte of the fill value across the requested
+byte range and returns the original destination. A zero byte count skips all
+destination access. For a positive count, the underlying fill routine reads the
+first destination byte before writing and has no null-pointer guard.
+
 Startup initializes queued-text suppression from `[system] disable_debug_text`
 in `SYSTEM.INI`, separately from the ordinary `disable_text` value. When the
 startup `q` option query succeeds, it sets both values to one and skips those
