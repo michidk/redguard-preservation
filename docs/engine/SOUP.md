@@ -1620,6 +1620,10 @@ Removing a killed post-load object leaves its namespace registration in place. N
 
 ### Runtime object identifiers
 
+`MyId()` returns the receiving actor's stored runtime identifier as a signed
+16-bit value extended to the script integer. The query does not allocate an
+identifier or add the pool-slot bias.
+
 Runtime identifiers are separate from the MPOB record's object id. The reusable actor pool has capacity `max(10, SYSTEM.INI [system] max_active_objects)`. An allocation uses the first free pool slot and initially assigns its zero-based index plus three as the actor's 16-bit identifier.
 
 World object loading resets its identifier counter to the pool capacity plus three. It visits MPOB records in file order. Types two and six use separate object paths. Each other record creates an ordinary actor. A nonzero activation flag allocates from the reusable pool and increments the counter once; a zero flag allocates outside that pool. The ordinary actor path then increments the counter and assigns its low 16 bits as the actor identifier before loading its script and registering its namespace.
