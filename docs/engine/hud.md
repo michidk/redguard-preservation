@@ -113,6 +113,22 @@ frames:
 | Level 5, health drops to 0 | 66, 67, …, 80, 80, … |
 | Snuffed, health set to 100 | 65, 59, 53, …, 11, 5, 0, 1, … |
 
+### Quick sword
+
+KEYS.INI `quick_sword_key` reads the held key on each world update. Lockout 1
+or selected-player `attr_player_type` 1 disables this handler. Drawing or
+sheathing a sword prevents another sword operation until that transition ends.
+
+When the player is holding a weapon, the key requests sheathing. Otherwise it
+uses the first owned item in the order 1, 13, 75. Items 1 and 13 become the
+selected item before use; item 75 is used without changing the selection. An
+empty search leaves the selection unchanged.
+
+The key remains held after handling. Holding it through a completed draw can
+therefore request sheathing without another press. Item use retains its normal
+eligibility and torch precedence: a burning torch is doused instead of drawing
+the requested sword, after the selection has changed to item 1 or 13.
+
 ### Visibility
 
 `[screen] candle_mode` selects the visibility mode (shipped `2`):
@@ -146,6 +162,15 @@ In mode 2 the player's `attr_health` is drawn as a decimal integer. It is
 centred, by the [subtitle centring rule](subtitles.md#glyphs), on
 `x = candle_xco + width / 2 − 5` (integer half) with its top at
 `y = candle_yco + height`; with shipped values, centred on x = 32 at y = 106.
+
+After drawing the candle bitmap, the number pass saves the current text
+settings, selects the standard GUI font with text-colour indices 1 and 0,
+and enables text before formatting and painting the number. It reads the
+selected player's current health attribute independently of the cached health
+used to advance the candle animation. It then restores the previous font,
+colour indices, shadow settings, text cursor, case flags, text viewport and
+text-disable flag. The selected renderer palette is outside this saved text
+state; pushing and restoring these text settings does not select a palette.
 
 ### Mode key
 
@@ -213,8 +238,39 @@ Lockout values other than 1 do not hide the icon.
 
 KEYS.INI `inventory_key` opens a modal screen over the last world frame. The
 world update latches the key and opens the screen on its next update. The
-screen waits until the key is released, pauses the game clock, and resumes it
-on exit. Each screen update waits for the next 18.2 Hz BIOS tick.
+screen pauses the game clock and captures the current frame before waiting
+for the key to be released. It then installs the inventory text settings.
+The saved frame contains tightly packed 16-bit pixels copied from the display
+rows using the source stride; capturing it does not select a renderer palette.
+The clock resumes on exit. Each screen update waits for the next 18.2 Hz BIOS
+tick.
+
+### Inventory bitmap resources
+
+Inventory bitmap initialization releases the previous mask, border and arrow
+images, then loads `SYSTEM\INVMASK.GXA`, `SYSTEM\INVBORDR.GXA` and
+`SYSTEM\INVARROW.GXA` in that order. All three loads use the same palette
+output buffer. Each successful load overwrites that buffer, leaving the arrow
+palette after the final load.
+
+The bitmap loader expands the first decoded frame's palette by shifting each
+of its 768 bytes left by two bits. With a palette output buffer, it copies
+those bytes to the buffer. With no output buffer, it instead calls the palette
+installation service for 256 entries. Inventory bitmap initialization uses the
+copy branch for all three resources.
+
+Bitmap image preparation keeps six texture slots arranged as three columns
+and two rows. The column and row origins are spaced 256 pixels apart. Slots
+outside the image dimensions contain no texture. Each populated slot receives
+a separate buffer of indexed pixels, copied row by row using the full image
+width as the source stride and the region width as the destination stride.
+A 640 by 480 image therefore produces widths 256, 256 and 128 in each row,
+with heights 256 and 224.
+
+Each region requests an indexed texture and supplies its tightly packed pixel
+buffer to the texture population service. The resulting texture identifiers
+are stored in the image's six-slot array. The preparation routine assigns
+consecutive image identity values to populated regions in slot order.
 
 ### Item list
 
@@ -246,9 +302,106 @@ other keys close without changing the selection. The screen then waits until
 the inventory key, Escape, the walk/run modifier, Activate and Enter are all
 released.
 
+Exit selects resource group 31 and releases group 28, then processes deferred
+texture residency changes. A texture also owned by another group retains that
+ownership. A texture whose last group is released is freed even when repeated
+lookups had raised its reference count.
+
+The saved 16-bit frame is copied back using the destination display stride,
+then its buffer is freed. Exit calls display finalization, clears the cached
+candle health, frees the temporary item list, restores the saved text state
+and resumes the clock, in that order. Restoring the saved frame copies its
+pixel values directly; it does not select a renderer palette.
+
+The optional rectangle drawn during display finalization uses black RGB vertex
+colour. Its colour setup and rectangle drawing do not select an indexed
+renderer palette.
+
+The rectangle helper swaps both corner pairs when the second Y coordinate is
+smaller than the first. It does not independently reorder reversed X coordinates.
+It rejects rectangles wholly above or left of the viewport, or whose first
+corner lies beyond the right or bottom viewport limit. It clamps negative first
+coordinates to zero and second coordinates to the viewport limits, then adds
+one to the second X and Y coordinates before emitting two triangles. A point on
+a viewport limit therefore reaches one coordinate unit beyond that limit.
+
+The rectangle's graphics setup and post-draw reset send the following Glide API
+arguments in table order. The reset installs fixed values rather than restoring
+captured caller state. Setup sets chroma-key mode to zero; the reset leaves that
+setting unchanged.
+
+| API | Rectangle setup arguments | Post-draw reset arguments |
+|-----|---------------------------|--------------------------|
+| `grChromakeyMode` | `0` | No call |
+| `guColorCombineFunction` | `2` | `6` |
+| `grDepthMask` | `0` | `1` |
+| `grDepthBufferFunction` | `7` | `1` |
+| `guAlphaSource` | `1` | `0` |
+| `grAlphaBlendFunction` | `1, 5, 4, 0` | `4, 0, 4, 0` |
+
+The queued-text enable flag belongs to the queue's buffer lifecycle.
+Initialization first tears down the previous queue, allocates and zeroes 66
+buffers of 256 bytes each, then enables processing. Teardown frees and clears
+all buffer pointers when the enable flag is exactly one, then clears the flag.
+
+For each buffer, initialization stores the allocation result and passes it
+directly to the 256-byte zero-fill operation. It does not test for a null result
+or retry the allocation before that operation.
+
+The buffer-fill path repeats the low byte of the fill value across the requested
+byte range and returns the original destination. A zero byte count skips all
+destination access. For a positive count, the underlying fill routine reads the
+first destination byte before writing and has no null-pointer guard.
+
+Startup initializes queued-text suppression from `[system] disable_debug_text`
+in `SYSTEM.INI`, separately from the ordinary `disable_text` value. When the
+startup `q` option query succeeds, it sets both values to one and skips those
+configuration reads. These are initial values; suppression is mutable engine
+state, separate from the queue's allocation flag. Queue initialization and
+display finalization do not restore suppression from saved text state.
+
+Display finalization also processes queued text. When that processing is enabled,
+it temporarily enables text output. Unless drawing is suppressed, it visits up
+to 66 queued buffers in order and stops at the first empty buffer. The console
+output route submits each buffer with `%s`; the ordinary text route uses `%s\n`.
+It then clears all 66 buffers, 256 bytes each, even when drawing is suppressed
+or stops at an empty buffer, and restores the incoming text-disable value.
+The queue processor does not save and restore the remaining text state or select
+a renderer palette itself; text-service calls are separate operations.
+
+Ordinary queued text starts at the current text cursor and leaves that cursor
+updated after each message. Line feeds return X to the current line origin and
+advance Y by the font line height. This route uses the current font, temporarily
+selecting its linked small font when a configured text viewport is narrower
+than 640 pixels. It restores the incoming font after each message. The text
+sink does not install a separate text style or select a renderer palette;
+[shared glyph services](subtitles.md#shared-text-colour-state) handle text colour.
+
+The ordinary route treats message contents as string data: percent characters
+remain literal. It copies bytes up to the first NUL, appends one line feed,
+and NUL-terminates the formatted text. An existing trailing line feed is
+retained, so an additional one follows it.
+
+The ordinary text sink reuses shared formatting storage supplied by the
+executable data image. It does not allocate or free formatting storage per
+message. The formatting call receives no destination-size argument.
+
+The buffer-clear wrapper can run optional memory validation before filling.
+Outside a reentrant validation call, a nonzero byte count first checks the
+destination address, then the final byte address if the first check returns
+without an error. These numeric checks enter a diagnostic path for addresses
+below 16; they do not read the destination bytes. A zero count skips these
+address checks. If validation returns normally, its return value does not
+suppress the subsequent fill.
+
 View (`key_c`) opens the cursor item's examine view with its
 `inventory_object_file` model. When that view returns a nonzero result, the
 inventory screen closes without changing the selection.
+
+On the screen update that opens View, the inventory drawing pass omits the
+cursor item's bitmap, quantity and description. Other visible cells keep their
+ordinary drawing behavior. The inventory background and health candle are still
+drawn before Examine opens.
 
 ### Examine view
 
@@ -406,10 +559,11 @@ when lockout is 1 or the selected player is on an edge, or when the latch is
 already set. Otherwise it sets the latch before testing item-system readiness
 and the remaining actor gates. Item use requires the selected player, ordinary
 rather than shell execution, water state other than 2 or 4, no held weapon,
-no climbing or rope state, and no burning torch. Climbing and rope predicates
-require an initialized item system and an animation state; they recognize actor
-states 33/34 or animation groups 149/150. An owned item 0 then toggles the
-compass flag. An unowned item cannot toggle it. Holding the use input does not
+no torch lighting or dousing transition, and no burning torch. The transition
+checks require an initialized item system and an animation state; they recognize
+actor states 33/34 or animation groups 149/150. A rope attachment does not by
+itself block an explicit `UseItem` call, and the call does not remove the
+attachment. An owned item 0 then toggles the compass flag. An unowned item cannot toggle it. Holding the use input does not
 repeat the accepted toggle.
 
 The Activate/Attack key (`key_d`) uses the selected item for an unarmed selected player: one press
