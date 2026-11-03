@@ -1831,6 +1831,21 @@ A fresh actor's return continuation is null. A `Return` executed while it is nul
 
 Resets the active cursor to the script base and returns from the current invocation. Script-entry processing preserves the main continuation while advancing its separate entry cursor.
 
+### DistanceFromLocation location selection and distance-helper boundary
+
+`DistanceFromLocation(location)` has one argument. It selects a coordinate
+triple from the receiving actor's location table. The table begins with a
+signed upper bound followed by triples of 32-bit coordinates. A nonnegative
+location at or below that bound selects the corresponding triple, including
+location zero and the upper-bound entry. An absent table, a negative location,
+or a location above the signed upper bound selects the actor's saved start
+coordinates instead.
+
+The native subtracts the actor's current local X, Y and Z coordinates from the
+selected coordinates with 32-bit wrapping subtraction. It passes those three
+differences to the distance helper and returns the helper's result unchanged.
+The location selector and native wrapper do not write actor or table state.
+
 ## Function Dispatch
 
 ### Spare0Parm0 diagnostic
