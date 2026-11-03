@@ -1869,6 +1869,16 @@ The location selector and native wrapper do not write actor or table state.
 
 ## Function Dispatch
 
+### IsShellScript
+
+`IsShellScript()` takes no script arguments. It returns zero when the shell
+system is disabled, the shell list is empty, or the receiving actor pointer
+is null. Otherwise it returns the shared shell execution-context word
+unchanged, without converting it to a Boolean.
+
+The query does not dereference the receiver or inspect its script identity or
+shell-list membership. It makes no calls and does not modify actor or shared
+shell state.
 ### MainloopExit
 
 `MainloopExit(code)` compares its argument as a signed 32-bit integer. Values
