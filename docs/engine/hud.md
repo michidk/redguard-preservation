@@ -325,6 +325,20 @@ coordinates to zero and second coordinates to the viewport limits, then adds
 one to the second X and Y coordinates before emitting two triangles. A point on
 a viewport limit therefore reaches one coordinate unit beyond that limit.
 
+The rectangle's graphics setup and post-draw reset send the following Glide API
+arguments in table order. The reset installs fixed values rather than restoring
+captured caller state. Setup sets chroma-key mode to zero; the reset leaves that
+setting unchanged.
+
+| API | Rectangle setup arguments | Post-draw reset arguments |
+|-----|---------------------------|--------------------------|
+| `grChromakeyMode` | `0` | No call |
+| `guColorCombineFunction` | `2` | `6` |
+| `grDepthMask` | `0` | `1` |
+| `grDepthBufferFunction` | `7` | `1` |
+| `guAlphaSource` | `1` | `0` |
+| `grAlphaBlendFunction` | `1, 5, 4, 0` | `4, 0, 4, 0` |
+
 View (`key_c`) opens the cursor item's examine view with its
 `inventory_object_file` model. When that view returns a nonzero result, the
 inventory screen closes without changing the selection.
