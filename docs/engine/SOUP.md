@@ -6562,3 +6562,25 @@ The query does not consume the selection or modify receiver, entry-array,
 entry, or sender state. Both the query and its availability helper request
 the missing-context diagnostic when the broadcast context is absent. The
 lookup path does not check entry bounds or validate the returned pointer.
+
+### PipeHidden query
+
+`PipeHidden()` is a zero-argument function returning a shared array of actor
+pointers. It walks the shared actor list in list order, excludes the supplied
+receiver by pointer identity, and appends each remaining actor whose hidden
+byte is nonzero. The receiver is compared without being dereferenced.
+
+For fewer than 64 selected actors, the array contains those pointers followed
+by a null pointer. The function returns the same shared buffer for an empty
+selection. It rewrites the selected prefix and terminator, leaving later slots
+unchanged. It does not change actor flags or list links.
+
+After storing each selected pointer, the function increments the count. A count
+of 64 or greater requests runtime error 11 before following the next list link.
+The 64th pointer is therefore already stored when that request occurs. The
+handler contains a traversal continuation after the request; the error service
+determines whether that continuation is reached. The terminator is written
+only after traversal reaches the end of the list.
+
+The query does not read the ordinary native-enable or shared mode words. It
+provides no cycle detection or malformed-pointer checks.
