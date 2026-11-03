@@ -62,6 +62,8 @@ Pull request titles are checked by CI against the same format. `cliff.toml` grou
 
 ## Working style for agents
 
+- Commit validated completed work directly to `main` and push `main`. Do not create pull requests in this repository. Synchronize with current remote main and reconcile concurrent changes without overwriting peer work. This policy applies to preservation contributions from Cyrus agents too.
+
 - Verify claims from code, game data, or sample files before publishing them.
 - Treat `docs/` as finished reference material, not a research log.
 - Keep verification methods, evidence sections, debugger traces, runtime observations, test vectors, measurement logs, research history, open questions, coverage notes, and implementation status out of published docs. Put that material in the pull request, commit message, or untracked research notes.
