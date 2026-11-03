@@ -2945,6 +2945,21 @@ call `PlayerMain` on itself, and its handler is the controller routine described
 [Ordinary controller dispatch](player.md#ordinary-controller-dispatch) and the sections that follow it. It takes no
 arguments and returns no value.
 
+### FixSlaveAngle
+
+`FixSlaveAngle(axis, angle)` returns zero. When the receiver's `attr_slave` is
+zero, it leaves the receiver unchanged. Otherwise it selects the angle-table
+entry indexed by that slave group and writes one local angle component:
+
+```text
+local_component = (angle - group_component) & 2047
+```
+
+Axis zero selects pitch, axis one selects yaw, and every other integer selects
+roll. The function does not update the other angle components, the effective
+angles, or the orientation matrix. It reads the existing group-angle table
+directly without a family-tree lookup.
+
 ### Actor families and attached transforms
 
 `attr_master` and `attr_slave` are byte-sized group identities. A nonzero slave
