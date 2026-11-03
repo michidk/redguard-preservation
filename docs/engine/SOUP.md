@@ -13,6 +13,7 @@ synthetic `NullFunction`; authored entries start at index 1. See
 
 | Functions | Behavior |
 |---|---|
+| `HeaderHook` | [Receiver diagnostics](#headerhook-diagnostics) |
 | `TaskStop`, `TaskPause`, `TaskResume` | [Control task slots](#actor-task-controls-and-return-state) |
 | `Wait`, `WaitOnTasks`, `WaitNonMulti` | [Wait for time or other tasks](#wait-waitontasks-and-waitnonmulti) |
 | `Anchor`, `Yield`, `ScriptRV` | [Control continuation and return state](#anchor-yield-and-scriptrv) |
@@ -174,6 +175,18 @@ or exclude the selected actor. Combat maintenance applies its own player and
 nonplayer branches. The entry continuation
 is processed later inside the enabled main stage. Mask `0x01` does not suppress
 the separate native hook.
+
+### HeaderHook diagnostics
+
+`HeaderHook()` takes no script arguments, writes receiver information to the
+diagnostic output, and returns `1`. It reports the receiver's identifier,
+optional name, and script name when its script handle resolves in the script
+registry. An absent or unresolved handle uses the no-script diagnostic.
+
+The following diagnostic reports the receiver's `node`, `dnode`, AI type,
+mode, delay, length, and two AI variables. The AI variables are printed as signed
+16-bit values. The function does not change the receiver or execute its RAHK
+native hook. The ordinary update's native-hook stage is a separate operation.
 
 ### PlayerStand query
 
