@@ -7410,3 +7410,23 @@ register values do not contribute to this initial request.
 Before the terrain-sampling request, the native writes only its own stack. It
 has not changed receiver coordinates or shared state. The terrain-sampling
 helper and later movement processing determine progress beyond this boundary.
+
+### PopItem saved-value restoration
+
+`PopItem(id)` is a function with one argument. When item processing is disabled,
+it returns zero without searching the item list. Otherwise it searches the
+shared ordered item list for the supplied unsigned identifier. An exact match
+selects the first matching record; encountering an identifier above the supplied
+identifier stops the search as a miss. The receiver does not select the list.
+
+On a matching item whose pushed-value flag is nonzero, the native clears that
+flag and restores the saved 32-bit value into the item's current-value field.
+With a clear pushed-value flag, it retains the current value. It returns the
+resulting current value in either case. The saved value itself is retained.
+A second call after restoration therefore returns the current value without
+repeating the restoration, unless another operation sets the pushed flag again.
+
+A missing item records a diagnostic location and requests copying of the item
+error text into the shared error buffer before invoking the error service.
+This path has not changed any item record at the copy request boundary. The
+copy and error services determine progress beyond that request.
