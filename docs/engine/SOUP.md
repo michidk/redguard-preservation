@@ -7003,3 +7003,31 @@ reached.
 The native does not apply an ordinary native-enable or shared-mode gate before
 the exact-yaw comparison. Its receiver-specific weapon predicates retain their
 own guards. Receiver metadata is required on paths that select a turn attribute.
+
+### ReplySender channel entry write
+
+`ReplySender(value)` returns zero. It requests the missing-context diagnostic
+before testing the argument when the messaging context is absent. A zero
+argument returns without querying message availability or the sender. A
+nonzero argument also returns without changing entries when no message is
+selected, or when the selected sender is null or equals the receiver.
+
+Otherwise the function reads the receiver's message channel from its subrecord.
+That channel selects an entry-array pointer from the context and a global
+no-selection byte. Entries have a 12-byte stride. At that global index, the
+function stores the receiver as sender, the selected message's sender as
+recipient, and the argument as value, in that order. The sender token is
+compared and stored without dereferencing its object.
+
+It then increments that channel's global index as an 8-bit value, wrapping
+255 to zero. The new byte is zero-extended and compared with the global limit
+as signed 32-bit integers. A value below the limit is retained; otherwise the
+index is reset to zero. The function reads the channel's context-array pointer
+again and clears all three words of the newly indexed entry.
+
+The entry stores precede the index increment, any reset, and the three clear
+stores. If the updated index names the slot just written, the clear stores
+erase that new entry. If it names the currently selected entry, that entry is
+cleared. The receiver's own message-selection byte is unchanged. Other
+channels' index bytes and arrays are unchanged. The function does not inspect
+the destination entry before overwriting it, allocate an entry, or release one.
