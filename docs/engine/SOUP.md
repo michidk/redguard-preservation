@@ -7491,3 +7491,23 @@ and kind one wins. If none has kind one, the first record with a nonzero current
 value wins. Selecting a record stores its pointer and copies the low byte of its
 identifier to the player's selection byte. If no record qualifies, both fields
 remain unchanged.
+
+### SubItem signed subtraction
+
+`SubItem(id, amount)` is a function with two arguments. Disabled item processing
+returns zero without looking up an item or changing item state. Otherwise,
+`id` uses the unsigned ordered lookup described for `PopItem`. A missing record
+enters the item diagnostic path before changing item state.
+
+For a matching record, a negative signed 32-bit `amount` is negated with 32-bit
+wrapping arithmetic. The minimum signed value therefore remains negative. The
+normalized amount is compared with the record's current value as signed 32-bit
+integers. If it is greater, the current value replaces the amount. The command
+subtracts that amount from the current value with 32-bit wrapping arithmetic,
+stores the result and returns zero. It does not change the pushed-value flag or
+saved value, and does not invoke item selection.
+
+For a nonnegative current value and an amount other than the minimum signed
+value, subtraction reduces the value by at most its current value. The signed
+minimum amount follows the same wrapping and signed comparison rules rather
+than being rejected or converted to a positive magnitude.
