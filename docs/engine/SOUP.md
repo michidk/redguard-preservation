@@ -7088,3 +7088,17 @@ to 2047. The zero vector produces zero.
 The hardware arctangent initialization path fills 513 table entries for indices
 zero through 512. Entry `i` is the integer truncation of
 `atan(i / 512) * 65536 / 3.141592654`, shifted arithmetically right six bits.
+
+### PointAt native boundary
+
+`PointAt()` takes no script arguments. It reads the shared pointing target and
+subtracts the receiver's floating-point X and Z coordinates from the target's
+corresponding coordinates. Each difference is truncated toward zero and stored
+as a signed integer before planar angle conversion. For finite differences
+within the signed conversion range, this discards the fractional component
+before selecting the angle.
+
+The native negates the planar angle, masks it to 2047, writes it directly to the
+receiver's yaw field, and returns zero. It does not delegate to `TurnToAngle`,
+request animation, or update a transform matrix. Existing yaw does not contribute
+to the result. The shared pointing target is distinct from a script argument.
