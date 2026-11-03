@@ -6362,6 +6362,18 @@ The action comparison occurs first and a match skips the animation-word read.
 The other returning paths return zero. The wrapper and both callees do not
 modify receiver, animation/control, or global state.
 
+### SpeedScale
+
+`SpeedScale(value)` is a one-argument function. It multiplies the argument by
+a shared 32-bit scaling word and retains the low 32 bits of the product.
+It interprets that truncated product as signed and shifts it right
+arithmetically by eight bits. Thus its return is the signed truncated product
+divided by 256, rounded toward negative infinity. Product truncation occurs
+before the shift.
+
+The receiver is not dereferenced, including when null. The handler makes no
+calls, modifies no receiver or global state, and does not read the ordinary
+native-enable or shared mode words. The argument register is unchanged.
 ### ReleaseAnimation
 
 `ReleaseAnimation` is a zero-argument function. A null receiver returns zero
