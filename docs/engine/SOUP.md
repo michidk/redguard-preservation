@@ -5417,3 +5417,21 @@ Changing to the same nonzero user still removes the first match before
 registration. With a single matching entry this moves the receiver to the
 head. A remaining duplicate prevents a replacement allocation. Lookup follows
 next links, stops at the first match and has no cycle check or iteration limit.
+
+### IsDrawingOrSheathing
+
+`IsDrawingOrSheathing` is a zero-argument function. It calls
+`IsSheathingSword` with the supplied receiver first. A nonzero result returns
+one immediately. Otherwise it calls `IsDrawingSword` with that same receiver
+and returns its result.
+
+Both callees return zero when native execution is disabled, the receiver is
+null, the receiver's animation/control pointer is null, or the shared mode
+word is nonzero. These checks precede their action and animation reads.
+
+With those gates satisfied, `IsSheathingSword` returns one when the receiver's
+action byte is 21 or the animation/control record's first word is 129.
+`IsDrawingSword` returns one when the action byte is 20 or that word is 91.
+The action comparison occurs first and a match skips the animation-word read.
+The other returning paths return zero. The wrapper and both callees do not
+modify receiver, animation/control, or global state.
