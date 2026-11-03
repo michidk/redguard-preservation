@@ -6,14 +6,7 @@
 
 name: Test & Lint
 
-on:
-  push:
-    branches: [main]
-  pull_request:
-
-concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+on: [push, pull_request]
 
 permissions:
   contents: read
@@ -45,17 +38,13 @@ jobs:
 
       - name: Cache
         uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
-        with:
-          # Refresh immutable caches when code changes; docs reuse the compiled crate.
-          key: ${{ hashFiles('src/**', 'tests/**', 'build.rs') }}
-          cache-workspace-crates: true
 
 
       - name: Compile
-        run: cargo test --locked --workspace --all-features --no-run
+        run: cargo test --workspace --all-features --no-run
 
       - name: Test
-        run: cargo test --locked --workspace --all-features -- --nocapture --quiet
+        run: cargo test --workspace --all-features -- --nocapture --quiet
 
 
   lints:
@@ -72,13 +61,9 @@ jobs:
 
       - name: Cache
         uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
-        with:
-          # Refresh immutable caches when code changes; docs reuse the compiled crate.
-          key: ${{ hashFiles('src/**', 'tests/**', 'build.rs') }}
-          cache-workspace-crates: true
 
       - name: Run cargo fmt
         run: cargo fmt --all -- --check --color always
 
       - name: Run cargo clippy
-        run: cargo clippy --locked --all-targets --all-features -- -D warnings
+        run: cargo clippy --all-targets --all-features -- -D warnings
