@@ -416,7 +416,11 @@ The Activate/Attack key (`key_d`) uses the selected item for an unarmed selected
 starts one use of the item (a selected sabre is drawn, a selected drinkable item runs its use script
 once) and holding the key does not repeat it. Without the key press nothing is used. Item use itself
 keeps the refusals above, so a player holding a weapon uses nothing and the same key attacks instead.
-The order between this use and a world object's activation prompt in reach is not established.
+A successful `Activate` or `TorchActivate` also marks the held action input as consumed.
+The selected player skips the quick-key and action-key handlers while that mark and the
+held action input are both set. Releasing the action input clears the mark before those
+handlers resume. Releasing the activation owner, including at script `End`, does not
+clear this input mark.
 
 The compass flag lives outside the world and the session initializer. Only the item 0 toggle and a
 startup command-line switch write it, so it survives world swaps and a New Game.
