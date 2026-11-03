@@ -58,6 +58,12 @@ Their generated local face normal is `(0, 0, -1)`. The camera-facing instance
 matrix also transforms local-light positions into the generated quad's local
 coordinates before applying the ordinary vertex-light calculation.
 
+Flat submission flag `0x400` instead makes the instance upright. It sets the
+local up axis to world up, removes the vertical components from the other two
+axes, and normalizes their horizontal projections independently. Ordinary MPSF
+submission cannot select this flag: its base flag is `1`, combined with the
+byte-sized drawing flags from a matching FLAT attribute.
+
 These flats retain depth writes and the less-than depth test. Textured RGB
 uses the ordinary vertex-light modulation path. Their submitted face brightness
 is 255 when the alpha input is below 254; otherwise it comes from the current
