@@ -6410,3 +6410,21 @@ The query does not consume the selection or modify the receiver, channel
 tables, message entry, or sender. The helper and query both request the
 missing-context diagnostic when the message context is absent. Neither
 provides a null-sender or entry-bound check in the lookup path.
+
+### ItemUsed
+
+`ItemUsed(identifier)` is a one-argument function. When native execution is
+disabled, it returns zero without looking up the item. Otherwise it searches
+the shared item list using the full unsigned 32-bit identifier. The first
+equal identifier wins. The first greater identifier stops the search, even
+if a later entry would match.
+
+On success it returns the matched item's stored used-state word unchanged,
+including its sign bit. It does not convert that word to a Boolean, check the
+item's type or quantity, or change the item. The supplied receiver is not
+dereferenced.
+
+A failed lookup updates the shared error context, copies the handler's source-name
+text into the shared error buffer, and requests runtime error 179. The native
+contains a zero-result continuation after that request. The runtime error
+service determines whether that continuation is reached.
