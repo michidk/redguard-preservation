@@ -6374,3 +6374,16 @@ before the shift.
 The receiver is not dereferenced, including when null. The handler makes no
 calls, modifies no receiver or global state, and does not read the ordinary
 native-enable or shared mode words. The argument register is unchanged.
+### ReleaseAnimation
+
+`ReleaseAnimation` is a zero-argument function. A null receiver returns zero
+without reading receiver state. Otherwise it reads the receiver's
+animation/control pointer. A null pointer returns zero. With a nonnull
+pointer, it reads the same control-record byte used by `HoldAnimation` and
+`PauseAnimation`. Only a value of 255 causes a store, which replaces it with
+zero. Values from zero through 254 are retained without a write.
+
+Every path with a nonnull control pointer leaves that pointer as the residual
+return value, whether or not a store occurs. The handler makes no calls and
+does not read the ordinary native-enable or shared mode words. Other
+control-record bytes and receiver state are unchanged.
