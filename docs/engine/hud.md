@@ -266,6 +266,11 @@ View (`key_c`) opens the cursor item's examine view with its
 `inventory_object_file` model. When that view returns a nonzero result, the
 inventory screen closes without changing the selection.
 
+On the screen update that opens View, the inventory drawing pass omits the
+cursor item's bitmap, quantity and description. Other visible cells keep their
+ordinary drawing behavior. The inventory background and health candle are still
+drawn before Examine opens.
+
 ### Examine view
 
 The view shows the item's `inventory_object_file` model (loaded from `INVENTRY.ROB`) over the
