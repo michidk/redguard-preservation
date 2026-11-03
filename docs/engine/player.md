@@ -1226,7 +1226,9 @@ current local Q8 Y as fall origin, set the byte fall timer to zero and clear
 accumulated sliding distance. With the runtime jump selector zero, current
 group 18 selects queued 9 and request 36 when the requested motion is 9,
 otherwise queued 8 and request 34. Current group 30 similarly requests 37 or
-35. Other current groups select queued 1 and request 32 without a burning torch,
+35. For the selected player's jump key, current group 19 (or 23 with a burning torch) instead selects
+queued 3 and request 49 (50), copies the heading into the motion vector and sets the controller
+countdown to 6, as the script Jump rows do; the walking backward groups jump standing. Other current groups select queued 1 and request 32 without a burning torch,
 or 33 with a burning torch. A nonzero runtime jump selector instead selects
 queued 24 and forces group 85. Set motion direction to 2 after the request.
 
