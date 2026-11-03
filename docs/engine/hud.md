@@ -245,6 +245,20 @@ rows using the source stride; capturing it does not select a renderer palette.
 The clock resumes on exit. Each screen update waits for the next 18.2 Hz BIOS
 tick.
 
+### Inventory bitmap resources
+
+Inventory bitmap initialization releases the previous mask, border and arrow
+images, then loads `SYSTEM\INVMASK.GXA`, `SYSTEM\INVBORDR.GXA` and
+`SYSTEM\INVARROW.GXA` in that order. All three loads use the same palette
+output buffer. Each successful load overwrites that buffer, leaving the arrow
+palette after the final load.
+
+The bitmap loader expands the first decoded frame's palette by shifting each
+of its 768 bytes left by two bits. With a palette output buffer, it copies
+those bytes to the buffer. With no output buffer, it instead calls the palette
+installation service for 256 entries. Inventory bitmap initialization uses the
+copy branch for all three resources.
+
 ### Item list
 
 The list holds every item with `hide[x] = 0` and a nonzero count, in ID
