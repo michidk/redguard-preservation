@@ -44,6 +44,15 @@ the converted world RGB, including black palette index zero, before model
 lighting. Loading-progress drawing temporarily selects the interface palette
 and restores the renderer-selected palette before model preparation continues.
 
+Inventory model preparation is deferred. Loading `INVENTRY.ROB` for an examined
+item suppresses the archive loader's automatic model preparation. After loading,
+the item model named by `ITEM.INI` is resolved and explicitly prepared. That
+preparation resolves indexed solid colors through the palette selected at that
+point; the inventory model-loading helper does not select a palette itself.
+The inventory screen draws before handling View. From that draw's return through
+Examine's item lookup and clock pause to model preparation, the selected palette
+is unchanged.
+
 ## Placed flat drawing
 
 Ordinary MPSF flats use point-sampled textures and palette chroma-key rejection.
@@ -57,6 +66,12 @@ the [FLAT attributes](../formats/RGM.md#flat).
 Their generated local face normal is `(0, 0, -1)`. The camera-facing instance
 matrix also transforms local-light positions into the generated quad's local
 coordinates before applying the ordinary vertex-light calculation.
+
+Flat submission flag `0x400` instead makes the instance upright. It sets the
+local up axis to world up, removes the vertical components from the other two
+axes, and normalizes their horizontal projections independently. Ordinary MPSF
+submission cannot select this flag: its base flag is `1`, combined with the
+byte-sized drawing flags from a matching FLAT attribute.
 
 These flats retain depth writes and the less-than depth test. Textured RGB
 uses the ordinary vertex-light modulation path. Their submitted face brightness
@@ -209,6 +224,14 @@ with draw flags `0x0c` disables chroma-key rejection, including when the image
 and frame already match the texture-binding cache. Draw flag `0x02` enables
 chroma rejection and supplies the image's chroma-key RGB instead. Texture-alpha
 selection is independent of the constant-RGB color selection.
+
+The indexed image path prepares and binds eight-bit palette textures. In the
+software Voodoo 1 renderer, palette lookup supplies alpha 255 for every index,
+including index zero. The indexed byte selects a palette entry; it does not
+supply an alpha value. Bilinear filtering of these palette samples preserves
+their constant alpha. This palette format is separate from the alpha-palette
+format available on Voodoo 2.
+
 
 The three color inputs do not request a geometry scale or constant alpha.
 

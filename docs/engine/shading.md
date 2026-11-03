@@ -46,6 +46,20 @@ their own constant-alpha blending and ordering rules. Sky and sun use separate
 drawing and blending paths. Water changes terrain geometry and shading normals;
 its displacement and normal-update rules are specified separately.
 
+## Texture residency
+
+The Glide renderer defers texture-residency rebuilding behind a pending flag.
+With no rebuild pending, the routine leaves texture assignments and the cached
+last-bound texture and frame unchanged. A pending rebuild clears that flag,
+invalidates both binding-cache entries and the active textures' residency
+assignments, then assigns texture-memory slots and uploads eligible resources.
+Inactive resource records are left unchanged.
+
+This rebuild changes texture residency and binding caches without selecting a
+renderer palette. Inventory opening invokes it after its text and item-list
+setup, before the first inventory draw. It retains the palette selected by the
+caller rather than selecting an inventory palette.
+
 ## Detailed rules
 
 | Topic | Reference |
