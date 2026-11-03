@@ -4949,6 +4949,25 @@ key's state word is nonzero or the key is the latest key event the keyboard hand
 debug shell reads it for the letters `p`, `c` and `d` and for Alt+`q`, and a few bridge and door
 scripts read `r`.
 
+### PressKey
+
+`PressKey(code)` takes one packed integer argument. Its low byte is a character,
+resolved through the keyboard table's unshifted and shifted characters. No
+matching key returns zero before checking modifiers. Each of the next three
+bytes can require `c` Control, `s` either Shift key or `a` Alt, in either case.
+Other modifier bytes are ignored, and repeated requirements have the same
+meaning as one. All named modifiers must have nonzero state words; either
+Shift state word satisfies `s`. Modifier state uses the fixed keyboard codes
+listed in [KEYS.INI](../config/keys-ini.md#defined), not action bindings.
+
+Once the modifiers pass, a nonzero state word for the resolved key or a matching
+latest-key-event byte returns one and clears that key's state word. Otherwise
+it returns zero without clearing the word. It does not clear the latest-event
+byte: repeated calls can return one again while that byte still matches, even
+after the state word has been cleared. A failed modifier check does not consume
+the key state. The receiver is not dereferenced or changed. This is an ordinary
+function, not a task.
+
 ### GolemSteam and DragonBreath
 
 `GolemSteam` takes no arguments and returns zero. A receiver excluded from object updates does nothing. Otherwise
