@@ -6755,3 +6755,29 @@ sender objects are unchanged, and no entry is released. A missing messaging
 context requests the missing-context diagnostic before the channel read.
 There is no receiver-null, subrecord-null, malformed-entry or iteration-limit
 gate in this function.
+
+### PipeUser query
+
+`PipeUser(user)` returns a shared array of actor pointers selected from the
+shared actor list. It excludes the supplied receiver by pointer identity and
+compares every other actor's unsigned metadata user byte with the complete
+32-bit argument. It does not truncate the argument to a byte. Arguments outside
+zero through 255 select no actors. Matching actors retain list order, and the
+receiver need not occur in the list. The receiver's own user byte does not
+determine the selection.
+
+For fewer than 64 selected actors, a null pointer follows the selected prefix.
+An empty selection returns the same buffer with its first slot null. Later
+slots retain their previous contents. The query does not modify actor links,
+metadata or user bytes.
+
+The selected pointer is stored before the count increments and the capacity
+check runs. A count of 64 or greater updates shared source context, copies the
+handler's source-name text including its terminator to the shared error buffer,
+and requests runtime error 11 before following the next actor link. The 64th
+pointer is already stored at that request. The error service determines whether
+the traversal continuation is reached. The output terminator is written only
+when traversal reaches the end of the list.
+
+The receiver is used only for pointer exclusion; its metadata is not read.
+There is no ordinary native-enable or shared-mode gate and no cycle detection.
