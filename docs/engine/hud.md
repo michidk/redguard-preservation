@@ -382,6 +382,10 @@ remain literal. It copies bytes up to the first NUL, appends one line feed,
 and NUL-terminates the formatted text. An existing trailing line feed is
 retained, so an additional one follows it.
 
+The ordinary text sink reuses shared formatting storage supplied by the
+executable data image. It does not allocate or free formatting storage per
+message. The formatting call receives no destination-size argument.
+
 The buffer-clear wrapper can run optional memory validation before filling.
 Outside a reentrant validation call, a nonzero byte count first checks the
 destination address, then the final byte address if the first check returns
