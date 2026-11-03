@@ -5337,3 +5337,30 @@ without appending a terminator. As in [CountAiShells](#countaishells-list-query)
 the ninth byte comes from the low byte of the following next pointer. Its two
 shared scratch buffers are separate from those used by `CountAiShells`.
 Traversal has no cycle check or iteration limit.
+
+
+### ChangeGroup membership update
+
+`ChangeGroup(group)` is a one-argument function returning zero. It reads the
+receiver's current unsigned group byte before checking whether group-list
+management is enabled. When disabled, it leaves that byte and the lists unchanged.
+
+When enabled and the old group is nonzero, it searches that group's list in
+link order for the first entry whose object pointer equals the receiver. If
+found, it unlinks and releases that entry. Removing the head updates the group
+head; removing a later entry updates its predecessor's next link. A following
+entry receives the removed entry's previous link. Failure to find the receiver
+does not prevent the group change.
+
+It then stores the low eight bits of `group` as the receiver's group and
+registers the receiver in that group's list. Group zero has no registration.
+For a nonzero group, an existing matching receiver entry prevents insertion.
+Otherwise registration requests a 13-byte entry, clears those 13 bytes, and
+inserts it at the head. The entry contains next and previous pointers, the
+receiver pointer, and a trailing zero byte. The previous link is null, and an
+existing head's previous link points to the new entry.
+
+Changing to the same nonzero group still removes the first matching entry and
+performs registration again. With one matching entry this moves the receiver to
+the head; a remaining duplicate prevents a replacement allocation. Lookup stops
+at the first matching receiver and has no cycle check or traversal bound.
