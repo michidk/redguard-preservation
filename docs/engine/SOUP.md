@@ -57,10 +57,12 @@ adds no message and still returns `0`.
 `LogParms` sends its line to the internal diagnostic log. Its format starts with
 two spaces and places `|3` between the script name and the first integer.
 Neither function changes the receiver's gameplay state.
+
 ### IsWithinMap
 
 `IsWithinMap()` takes no script arguments and always returns `1`. It does not
 read map bounds or actor position, and changes no actor or world state.
+
 ### TrueFunction
 
 `TrueFunction()` takes no script arguments and returns `1`. It does not change
@@ -1881,6 +1883,7 @@ start coordinate with 32-bit wrapping, then shifts the signed result right by
 eight bits. The result is in world units; negative fractional differences round
 toward negative infinity. It reads the receiver's stored coordinates directly,
 makes no calls, and does not modify actor or shared state.
+
 ### GetMovementSpeed
 
 `GetMovementSpeed()` takes no script arguments and queries the receiving actor.
@@ -1900,6 +1903,7 @@ byte, returned as an unsigned integer without scaling:
 
 Every other group returns zero. The query does not require a model, inspect
 the selected player, call another service, or modify actor or shared state.
+
 ### IsBouncing
 
 `IsBouncing()` takes no script arguments. It returns one when the receiving
@@ -1907,6 +1911,7 @@ actor's motion-state byte is from 27 through 32 inclusive, and zero for every
 other byte value. It reads the receiver directly, without looking up the
 selected player or calling another service. The query does not modify actor
 or shared state.
+
 ### IsShellScript
 
 `IsShellScript()` takes no script arguments. It returns zero when the shell
@@ -1917,6 +1922,7 @@ unchanged, without converting it to a Boolean.
 The query does not dereference the receiver or inspect its script identity or
 shell-list membership. It makes no calls and does not modify actor or shared
 shell state.
+
 ### MainloopExit
 
 `MainloopExit(code)` compares its argument as a signed 32-bit integer. Values
@@ -1928,6 +1934,7 @@ not access the receiver.
 At the main loop's late exit-request check, a nonzero request becomes the loop's
 return value. That check does not clear the request. A zero request continues
 through the remaining loop work.
+
 ### TestTask
 
 `TestTask(value)` takes one script argument and ignores it. It resolves the
@@ -1942,6 +1949,7 @@ The handler returns one regardless of whether it issues that request or of
 the movement request's return value. It does not report task completion;
 ordinary existing-task processing therefore retains its task slot until
 another operation removes it.
+
 ### Spare1Parm7 diagnostic and argument count
 
 `SOUP386.DEF` declares eight arguments for `Spare1Parm7`. Its native handler
@@ -1962,77 +1970,90 @@ from the handler's four-slot stack cleanup.
 and ignores all five. It sends a diagnostic containing the receiving actor
 pointer to the diagnostic writer and returns zero. The handler does not
 dereference the receiver or modify actor state.
+
 ### Spare1Parm4 diagnostic
 
 `Spare1Parm4(first, second, third, fourth)` takes four script arguments and
 ignores all four. It sends a diagnostic containing the receiving actor
 pointer to the diagnostic writer and returns zero. The handler does not
 dereference the receiver or modify actor state.
+
 ### Spare1Parm3 diagnostic
 
 `Spare1Parm3(first, second, third)` takes three script arguments and ignores
 all three. It sends a diagnostic containing the receiving actor pointer to
 the diagnostic writer and returns zero. The handler does not dereference the
 receiver or modify actor state.
+
 ### Spare1Parm2 diagnostic
 
 `Spare1Parm2(first, second)` takes two script arguments and ignores both. It
 sends a diagnostic containing the receiving actor pointer to the diagnostic
 writer and returns zero. The handler does not dereference the receiver or
 modify actor state.
+
 ### Spare1Parm1 diagnostic
 
 `Spare1Parm1(argument)` takes one script argument and ignores it. It sends a
 diagnostic containing the receiving actor pointer to the diagnostic writer and
 returns zero. The handler does not dereference the receiver or modify actor
 state.
+
 ### Spare1Parm0 diagnostic
 
 `Spare1Parm0()` takes no script arguments. It sends a diagnostic containing
 the receiving actor pointer to the diagnostic writer and returns zero. The
 handler does not dereference the receiver or modify actor state.
+
 ### Spare0Parm7 diagnostic
 
 `Spare0Parm7(first, second, third, fourth, fifth, sixth, seventh)` takes seven
 script arguments and ignores all seven. It sends a diagnostic containing the
 receiving actor pointer to the diagnostic writer and returns zero. The handler
 does not dereference the receiver or modify actor state.
+
 ### Spare0Parm6 diagnostic
 
 `Spare0Parm6(first, second, third, fourth, fifth, sixth)` takes six script
 arguments and ignores all six. It sends a diagnostic containing the receiving
 actor pointer to the diagnostic writer and returns zero. The handler does not
 dereference the receiver or modify actor state.
+
 ### Spare0Parm5 diagnostic
 
 `Spare0Parm5(first, second, third, fourth, fifth)` takes five script arguments
 and ignores all five. It sends a diagnostic containing the receiving actor
 pointer to the diagnostic writer and returns zero. The handler does not
 dereference the receiver or modify actor state.
+
 ### Spare0Parm3 diagnostic
 
 `Spare0Parm3(first, second, third)` takes three script arguments and ignores
 all three. It sends a diagnostic containing the receiving actor pointer to
 the diagnostic writer and returns zero. The handler does not dereference the
 receiver or modify actor state.
+
 ### Spare0Parm2 diagnostic
 
 `Spare0Parm2(first, second)` takes two script arguments and ignores both. It
 sends a diagnostic containing the receiving actor pointer to the diagnostic
 writer and returns zero. The handler does not dereference the receiver or
 modify actor state.
+
 ### Spare0Parm1 diagnostic
 
 `Spare0Parm1(argument)` takes one script argument and ignores it. It sends a
 diagnostic containing the receiving actor pointer to the diagnostic writer and
 returns zero. The handler does not dereference the receiver or modify actor
 state.
+
 ### Spare0Parm4 diagnostic
 
 `Spare0Parm4(first, second, third, fourth)` takes four script arguments and
 ignores all four. It sends a diagnostic containing the receiving actor pointer
 to the diagnostic writer and returns zero. The handler does not dereference
 the receiver or modify actor state.
+
 ### Spare0Parm0 diagnostic
 
 `Spare0Parm0()` takes no script arguments. It sends a diagnostic containing the
@@ -2460,6 +2481,7 @@ alignment flag and a nonzero one sets it, and the task reports that result.
 `MyAiType()` returns the receiving actor's lifecycle selector as an unsigned byte
 value from 0 through 255. It does not query the selected player or the adjacent
 AI mode, and does not change the actor's state.
+
 ### Receiver AI mode query
 
 `MyAiMode()` returns the receiving actor's AI mode as an unsigned byte value
@@ -3267,6 +3289,7 @@ or the preceding record's next pointer. The function clears `attr_slave`, copies
 effective position and effective angles into the receiver's local position and
 angles, and requests the actor refresh. It does not free the unlinked membership
 record or change the effective-position and effective-angle fields.
+
 ### AttachMe
 
 `AttachMe(group)` takes an integer family identity and returns zero. An argument
@@ -3296,6 +3319,7 @@ previous local angles. The receiver's matrix is rebuilt from the target matrix
 with negative local yaw, pitch and roll rotations in that order. A nonzero
 `attr_no_slave_rot` skips these angle and matrix changes; it still converts
 position to the target frame.
+
 ### FixSlaveAngle
 
 `FixSlaveAngle(axis, angle)` returns zero. When the receiver's `attr_slave` is
@@ -3310,6 +3334,7 @@ Axis zero selects pitch, axis one selects yaw, and every other integer selects
 roll. The function does not update the other angle components, the effective
 angles, or the orientation matrix. It reads the existing group-angle table
 directly without a family-tree lookup.
+
 ### DetachSlaves
 
 `DetachSlaves()` takes no arguments and returns zero. It does not change
@@ -3318,6 +3343,7 @@ attachments for a finite, acyclic family tree. A receiver with zero
 and sibling lists without selecting a node and returns no result. The later
 detach calls are consequently unreachable. Traversal updates an internal
 scratch pointer without changing actors or the family tree.
+
 ### HideSlaves and ShowSlaves
 
 `HideSlaves()` and `ShowSlaves()` take no arguments and return zero. Neither
@@ -3326,6 +3352,7 @@ changes visibility for a finite, acyclic family tree. A receiver with zero
 traverses child and sibling lists without selecting a node and returns no
 result. Their later visibility writes are consequently unreachable. Traversal
 updates an internal scratch pointer without changing actors or the family tree.
+
 ### EnableSlaves and DisableSlaves
 
 `EnableSlaves()` and `DisableSlaves()` take no arguments and return zero.
@@ -3338,6 +3365,7 @@ after that lookup are consequently unreachable.
 The lookup updates an internal traversal scratch pointer while visiting nodes.
 These functions do not change the global slave-scheduling settings or act as
 aliases for the generic `Enable` and `Disable` commands.
+
 ### IsSlave and IsMaster
 
 `IsSlave()` returns one when the receiver's byte-sized `attr_slave` is nonzero,
@@ -5683,6 +5711,7 @@ receiver's local coordinates or register the receiver in the actor list.
 For another receiver, it writes target XYZ directly to current local
 coordinates, stores `angle & 2047` as the local Y angle, and registers that
 receiver in the pending-position list. Both returning paths return zero.
+
 ### GotoLocation
 
 `GotoLocation(location)` is declared as a one-argument task. It selects a
@@ -5709,6 +5738,7 @@ returns one. This sentinel completion leaves movement state four. The refresh
 updates the state-four action attribute and countdown before the sentinel
 check. Countdown values zero and 255 are preserved; other values decrease by
 the engine countdown step, clamping to zero when smaller than that step.
+
 ### MovePos
 
 `MovePos(x, y, z)` is a three-argument function that returns a horizontal
@@ -5728,6 +5758,7 @@ X, zero, and target Z minus resolved Z, with 32-bit wrapping subtraction. The
 Y argument does not affect the result. A signed distance result greater than
 the threshold returns `1`; an equal or smaller result returns `0`. The native
 performs no coordinate writes, relocation, or movement-task scheduling.
+
 ### SetLocation
 
 `SetLocation(location)` selects a coordinate triple from the receiving actor's
@@ -5748,6 +5779,7 @@ list. Existing entries suppress duplicate insertion. Empty-list insertion
 precedes the capacity check; a nonempty list appends an absent actor only when
 its signed count is below its signed capacity. A full nonempty list reports an
 error after the position writes. Normal completion returns zero.
+
 ### OffsetLocation
 
 `OffsetLocation(source, x, y, z)` transforms the supplied offset by the source
@@ -5771,6 +5803,7 @@ x87 intermediates. Each completed row is stored in single precision, reloaded,
 and converted to a signed 32-bit integer using the incoming floating-point
 rounding mode. The matrix helper leaves that control word unchanged. The
 subsequent position additions wrap at 32 bits.
+
 ### SetObjectLocation
 
 `SetObjectLocation(location, x, y, z)` selects coordinates from the receiving
@@ -5789,6 +5822,7 @@ nonempty list appends an absent actor only while its signed count is below
 the signed capacity. Otherwise it reports an error after the coordinate
 writes. Normal completion returns zero. The native removes the fourth
 argument from the caller's stack.
+
 ### SetStartPosition
 
 `SetStartPosition(x, y, z)` restores selected components of the receiving actor's
@@ -5800,6 +5834,7 @@ not coordinate values. The saved start coordinates remain unchanged.
 The native returns zero. It performs no helper calls and writes only the
 selected current-position components. When all three flags are zero, it does
 not access the receiver's coordinates.
+
 ### DistanceFromLocation numerical distance helper
 
 The numerical helper used by `DistanceFromLocation` takes three signed 32-bit
@@ -5862,6 +5897,7 @@ two, and stores `h`, `g` and `e` in three further parameters. Two control words
 are set to one and two companion words to zero. These assignments do not
 read the receiver or calculate a position from `a`, `b` or `c`. Record bytes
 outside the assigned fields retain their previous values.
+
 ### ReloadPosition
 
 `ReloadPosition()` is a zero-argument function. It copies the receiver's
@@ -5877,6 +5913,7 @@ so the conversion itself does not discard additional precision. Current
 logical coordinates remain unchanged. The function returns zero and does
 not invoke position registration, attachment resolution or environmental
 model-position adjustments.
+
 ### SetRotation
 
 `SetRotation(x, y, z)` is a three-argument function. It masks each argument
@@ -5893,6 +5930,7 @@ operation. All operations target the receiver's own matrix.
 
 The function returns zero after matrix construction returns. It does not
 register the actor in the pending-position list.
+
 ### SetPosition
 
 `SetPosition(x, y, z)` is a three-argument function. It copies the arguments
@@ -5960,6 +5998,7 @@ increments allocation counters, requests 41 bytes and initializes selected
 fields before the native proceeds. Allocation failure is not checked before
 record writes. This allocation does not reset the shared accumulator or
 direction.
+
 ### FxLightSize
 
 `FxLightSize(first, second)` is declared as a two-argument multitask. Its
@@ -5974,6 +6013,7 @@ and stores the returned pointer on the receiver. The resolver clears the
 three words before the native assigns them. Other record fields retain
 the resolver's initialization or their previous values. Allocation failure
 is not checked before record writes.
+
 ### FxFlickerOnOff
 
 `FxFlickerOnOff(bound)` is declared as a one-argument multitask. Its native
@@ -5996,6 +6036,7 @@ allocation count and byte total, requests 41 bytes and stores the returned
 pointer on the receiver. The resolver initializes both words used by this
 native to 100. Thus a zero draw on a newly allocated record clears the
 selected word. Allocation failure is not checked before record writes.
+
 ### FxFlickerDim
 
 `FxFlickerDim(amount)` is declared as a one-argument multitask. Its native
@@ -6125,6 +6166,7 @@ action byte is 21 or the animation/control record's first word is 129.
 The action comparison occurs first and a match skips the animation-word read.
 The other returning paths return zero. The wrapper and both callees do not
 modify receiver, animation/control, or global state.
+
 ### IsCarryingWeapon
 
 `IsCarryingWeapon` is a zero-argument function returning zero or one. It
@@ -6164,6 +6206,7 @@ The later action calls and recursive `KillSlaves` call are unreachable through
 this lookup result. The reachable path does not change actors or family links;
 only the lookup scratch pointer changes. Lookup has no cycle check or traversal
 bound.
+
 ### CheckPlayerWeapon
 
 `CheckPlayerWeapon()` is a zero-argument function. It does nothing when the
@@ -6191,6 +6234,7 @@ no-op paths retain the supplied receiver. A retained item leaves its item
 record pointer. Reset leaves the player pointer when the active byte was
 zero and the player's model pointer when that byte was nonzero. The reset
 helper's motion request result is overwritten before these returns.
+
 ### UnLoadStatic
 
 `UnLoadStatic()` is a zero-argument function. A separate receiver control
@@ -6222,6 +6266,7 @@ selection against the sentinel again before indexing. The index is the full
 unsigned byte; there is no additional bounds or null-sender check on this path.
 An absent broadcast context requests a runtime error before the availability
 query. The availability helper also requests an error if the context is absent.
+
 ### LoadStatic
 
 `LoadStatic(name)` is a one-argument function. It resolves `name` to a record
@@ -6257,6 +6302,7 @@ The store replaces the entire byte, including when the previous value is
 already 255. Other control-record bytes and receiver state are unchanged.
 The handler makes no calls and does not read the ordinary native-enable or
 shared mode words.
+
 ### PauseAnimation
 
 `PauseAnimation(value)` is a one-argument function. A null receiver returns
@@ -6274,6 +6320,7 @@ preserved.
 The handler makes no calls and does not read the ordinary native-enable or
 shared mode words. Apart from the selected byte, control-record and receiver
 state are unchanged.
+
 ### PlayerArmed
 
 `PlayerArmed` is a zero-argument function that calls `IsHoldingWeapon` on the
@@ -6296,6 +6343,7 @@ The model predicate reads the metadata carrying-state byte before its own
 ordinary gates and tests the model pointer without dereferencing it. The
 holding predicate and all helpers used by `PlayerArmed` leave receiver,
 metadata, animation/control, and global state unchanged.
+
 ### IsLightingOrUnlighting
 
 `IsLightingOrUnlighting` is a zero-argument function. It calls
