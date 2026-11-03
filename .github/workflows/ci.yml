@@ -1,12 +1,16 @@
-# @orcastrate
-# template: rust/ci
-# params:
-#   test_os: [ubuntu-24.04, macos-latest, windows-latest]
-# @end-orcastrate
-
+# Repository-owned: main/PR triggers and exact-head CI retention are intentional.
+# Opted out of Orcastrate rust/ci, which overwrites these scheduling controls.
 name: Test & Lint
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Supersede stale PR attempts while retaining every main commit's acceptance.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}-${{ github.ref == 'refs/heads/main' && github.sha || '' }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 permissions:
   contents: read
