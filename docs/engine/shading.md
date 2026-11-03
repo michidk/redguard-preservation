@@ -60,6 +60,12 @@ renderer palette. Inventory opening invokes it after its text and item-list
 setup, before the first inventory draw. It retains the palette selected by the
 caller rather than selecting an inventory palette.
 
+Inventory exit selects resource group 31, releases inventory group 28, and
+invokes the deferred residency rebuild before restoring the saved frame. Group
+release clears inventory ownership and releases its references; resources still
+owned by other groups remain available. The release operation preserves the
+selected renderer palette.
+
 ## Detailed rules
 
 | Topic | Reference |
