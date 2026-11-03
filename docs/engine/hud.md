@@ -317,6 +317,14 @@ The optional rectangle drawn during display finalization uses black RGB vertex
 colour. Its colour setup and rectangle drawing do not select an indexed
 renderer palette.
 
+The rectangle helper swaps both corner pairs when the second Y coordinate is
+smaller than the first. It does not independently reorder reversed X coordinates.
+It rejects rectangles wholly above or left of the viewport, or whose first
+corner lies beyond the right or bottom viewport limit. It clamps negative first
+coordinates to zero and second coordinates to the viewport limits, then adds
+one to the second X and Y coordinates before emitting two triangles. A point on
+a viewport limit therefore reaches one coordinate unit beyond that limit.
+
 View (`key_c`) opens the cursor item's examine view with its
 `inventory_object_file` model. When that view returns a nonzero result, the
 inventory screen closes without changing the selection.
