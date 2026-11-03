@@ -13,6 +13,7 @@ synthetic `NullFunction`; authored entries start at index 1. See
 
 | Functions | Behavior |
 |---|---|
+| `PrintParms`, `LogParms` | [Parameter diagnostics](#parameter-diagnostics) |
 | `HeaderHook` | [Receiver diagnostics](#headerhook-diagnostics) |
 | `TaskStop`, `TaskPause`, `TaskResume` | [Control task slots](#actor-task-controls-and-return-state) |
 | `Wait`, `WaitOnTasks`, `WaitNonMulti` | [Wait for time or other tasks](#wait-waitontasks-and-waitnonmulti) |
@@ -41,6 +42,21 @@ synthetic `NullFunction`; authored entries start at index 1. See
 Shared actor setup, navigation, family transforms, and model admission are
 specified alongside the functions that use them below.
 
+### Parameter diagnostics
+
+`PrintParms` and `LogParms` take eight integer arguments and return `0`. Both
+include the receiver's associated script name, using `Unknown script` when its
+script handle cannot be resolved. They format all eight arguments as signed
+decimal integers in argument order, separated by a comma and a space.
+
+`PrintParms` separates the script name from the first integer with a space. It
+copies the formatted line into the first empty diagnostic message slot, scanning
+66 slots in order with a copy bound of 255 bytes. If every slot is occupied, it
+adds no message and still returns `0`.
+
+`LogParms` sends its line to the internal diagnostic log. Its format starts with
+two spaces and places `|3` between the script name and the first integer.
+Neither function changes the receiver's gameplay state.
 ### IsWithinMap
 
 `IsWithinMap()` takes no script arguments and always returns `1`. It does not
