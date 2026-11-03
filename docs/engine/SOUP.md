@@ -3080,6 +3080,35 @@ call `PlayerMain` on itself, and its handler is the controller routine described
 [Ordinary controller dispatch](player.md#ordinary-controller-dispatch) and the sections that follow it. It takes no
 arguments and returns no value.
 
+### AttachMe
+
+`AttachMe(group)` takes an integer family identity and returns zero. An argument
+of zero, the receiver's current `attr_slave`, or its current `attr_master`
+returns immediately without changing the receiver.
+
+Otherwise the function finds the receiver's existing ordinary membership,
+detaches the receiver, then searches the family tree for a master whose
+byte-sized `attr_master` equals the full integer argument. A missing target
+returns zero after the detach attempt; this operation does not roll back the
+previous attachment. Target selection visits a node before its children and
+siblings. The receiver-master lookup used separately by this operation does
+not select a node in a finite, acyclic family tree.
+
+An ordinary membership record is reused when one was found before detaching;
+otherwise a new record is allocated. The record is prepended to the target's
+ordinary attached-actor list and references the target master's matrix. The
+receiver's slave identity becomes the group value.
+
+Before converting the receiver to local coordinates, the function copies its
+position and angles into the effective-position and effective-angle fields.
+It subtracts the target group's position from the local position and passes
+the result through the target matrix's transpose transform. When the receiver's
+`attr_no_slave_rot` is zero, each local angle becomes the difference from the
+target group's angle modulo 2048. These local angles also become the saved
+previous local angles. The receiver's matrix is rebuilt from the target matrix
+with negative local yaw, pitch and roll rotations in that order. A nonzero
+`attr_no_slave_rot` skips these angle and matrix changes; it still converts
+position to the target frame.
 ### FixSlaveAngle
 
 `FixSlaveAngle(axis, angle)` returns zero. When the receiver's `attr_slave` is
