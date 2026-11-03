@@ -5931,6 +5931,35 @@ the ninth byte comes from the low byte of the following next pointer. Its two
 shared scratch buffers are separate from those used by `CountAiShells`.
 Traversal has no cycle check or iteration limit.
 
+### FxPhase
+
+`FxPhase(a, b, c, d, e, f, span)` is declared as a seven-argument multitask.
+Its native handler resolves the receiver's auxiliary record before testing
+`span`. A zero span returns zero without changing the shared phase state or
+assigning the three output words. Record allocation and initialization can
+therefore occur even on this return path.
+
+A nonzero span adds the shared step value to a shared 32-bit accumulator.
+If the signed accumulator is strictly greater than the signed span, the
+accumulator resets to zero and the shared direction becomes
+`(direction + 1) & 1`. Equality does not reset it. Both values are shared
+between receivers and advance on each call.
+
+A nonzero direction interpolates from `(a, b, c)` toward `(d, e, f)`; zero
+interpolates in the reverse direction. For each pair of start and end values,
+the handler subtracts their independently left-shifted-by-eight values with
+32-bit wrapping arithmetic. It divides that signed difference by the signed
+span, truncating toward zero, multiplies the quotient by the accumulator
+with 32-bit wrapping, then arithmetically shifts right by eight and adds the
+start value. The low 16 bits are stored in the corresponding output word.
+There is no output clamp. The handler returns one and removes four stack
+arguments. Signed division overflow is not guarded.
+
+The receiver resolver reuses an existing record. For a missing record it
+increments allocation counters, requests 41 bytes and initializes selected
+fields before the native proceeds. Allocation failure is not checked before
+record writes. This allocation does not reset the shared accumulator or
+direction.
 ### FxLightSize
 
 `FxLightSize(first, second)` is declared as a two-argument multitask. Its
