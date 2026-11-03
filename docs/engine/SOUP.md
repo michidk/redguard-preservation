@@ -6428,3 +6428,20 @@ A failed lookup updates the shared error context, copies the handler's source-na
 text into the shared error buffer, and requests runtime error 179. The native
 contains a zero-result continuation after that request. The runtime error
 service determines whether that continuation is reached.
+
+### IsCombatCapable
+
+`IsCombatCapable` is a zero-argument function and is the model predicate called
+by `IsHoldingWeapon`. It queries the supplied receiver. It first reads the
+receiver's metadata carrying-state byte. A nonzero byte returns one before
+the ordinary enable, animation/control, mode, and model-pointer checks.
+
+When that byte is zero, the function returns zero if native execution is
+disabled, the receiver's animation/control pointer is null, or the shared mode
+word is nonzero. Otherwise it returns one exactly when the receiver's model
+pointer is nonnull. Neither the animation/control pointer nor the model
+pointer is dereferenced by this predicate. It makes no calls and changes no
+receiver, metadata, or global state.
+
+The metadata reads precede the later receiver-null test. That test does not
+make a null receiver a safe query input.
