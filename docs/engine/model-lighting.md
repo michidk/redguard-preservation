@@ -194,6 +194,10 @@ Actor-flat drawing adds submission flag `0x200` to this special path and supplie
 red, green and blue values of 200. Those values are a constant tint, rather than
 a request for a geometry scale of 200 or a constant alpha of 200.
 
+The special path keeps the ordinary flat's vertex positions at the caller's
+geometry scale. Horizontal and vertical flip flags still reverse its local
+axes; the three constant-color inputs do not resize or reposition its vertices.
+
 ## Ambient and directional contribution
 
 Models share the ambient RGB, directional RGB and normalized world direction
