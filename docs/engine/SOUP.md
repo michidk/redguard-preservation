@@ -1842,7 +1842,17 @@ Object-targeted task dispatch differs from a self task statement. The receiver o
 [param_count × value in PARAMETER mode]
 ```
 
-Function index 0 is always `NullFunction` (synthetic; prepended by the parser, not present in `SOUP386.DEF`). The `func_id` is multiplied by the function-table entry stride (49 bytes) to index the runtime table.
+Function index 0 is `NullFunction`, a synthetic parser entry absent from
+`SOUP386.DEF`. The native dispatch table uses four-byte handler-pointer entries.
+Its loader clears the allocation and fills authored entries starting at index 1,
+leaving slot zero null.
+
+Index-zero native dispatch returns zero without calling a handler, evaluating
+parameters, or dereferencing the receiver. It records the receiver as the current
+native-call receiver before checking the table. The argument-preparation entry
+also returns zero for this null slot before reading the parameter count or
+writing the argument buffer. These are null-slot dispatch paths, rather than a
+named zero-argument native handler.
 
 ### Parameter Type Overrides
 
