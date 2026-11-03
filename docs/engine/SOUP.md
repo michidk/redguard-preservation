@@ -1814,6 +1814,19 @@ Resets the active cursor to the script base and returns from the current invocat
 
 ## Function Dispatch
 
+### DistanceFromStart
+
+`DistanceFromStart(axis)` returns a signed displacement from the receiving
+actor's current local coordinate to its saved start coordinate. Axis 0 selects
+X, 1 selects Y, and 2 selects Z. Every other axis value returns zero before
+reading actor coordinates.
+
+For a supported axis, it subtracts the current local coordinate from the saved
+start coordinate with 32-bit wrapping, then shifts the signed result right by
+eight bits. The result is in world units; negative fractional differences round
+toward negative infinity. It reads the receiver's stored coordinates directly,
+makes no calls, and does not modify actor or shared state.
+
 ### Call Types
 
 Active tasks reevaluate their encoded operands on every task invocation. A task therefore observes changes to locals, global flags, and queried values while it is active. Literal arguments are a special case of this rule.
