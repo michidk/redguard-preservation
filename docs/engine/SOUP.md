@@ -6840,3 +6840,35 @@ terminator is written only when traversal reaches the end of the list.
 The receiver need not occur in the list. Its position is read only when a
 candidate other than itself is visited. There is no ordinary native-enable or
 shared-mode gate and no cycle detection.
+
+### PipeAroundPos query
+
+`PipeAroundPos(x, y, z, distance)` walks the shared actor list and returns a
+shared array of selected actor pointers in list order. It excludes the supplied
+receiver by pointer identity. For every other actor, it subtracts the three
+explicit coordinate arguments from that actor's position using wrapping 32-bit
+subtraction. The receiver's position does not participate in this calculation.
+
+The signed differences pass through the numerical distance helper described
+under [DistanceFromLocation](#distancefromlocation-numerical-distance-helper).
+The helper's signed integer result is compared with the complete signed 32-bit
+`distance` argument. An actor is selected when the result is less than or equal
+to that argument. The query does not establish an x87 control word or reject
+negative arguments or an integer-indefinite result before this comparison.
+
+For fewer than 64 selected actors, a null pointer follows the selected prefix.
+An empty selection returns the same buffer with its first slot null. Later
+slots retain their previous contents. Actor links and positions are unchanged.
+
+Each selected pointer is stored before the count increments and the capacity
+check runs. A count of 64 or greater requests runtime error 11 before following
+the next actor link. The 64th pointer is already stored at that request. This
+handler does not update source context or copy source-name text before the
+request. The error service determines whether traversal continues. The output
+terminator is written only when traversal reaches the end of the list.
+
+The receiver need not occur in the list and is used only for pointer exclusion.
+There is no ordinary native-enable or shared-mode gate and no cycle detection.
+At the native boundary the receiver and three coordinates enter in registers;
+the distance argument occupies one stack word, which the native removes on
+return.
