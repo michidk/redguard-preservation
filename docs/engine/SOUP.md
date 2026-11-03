@@ -3080,6 +3080,14 @@ call `PlayerMain` on itself, and its handler is the controller routine described
 [Ordinary controller dispatch](player.md#ordinary-controller-dispatch) and the sections that follow it. It takes no
 arguments and returns no value.
 
+### DetachSlaves
+
+`DetachSlaves()` takes no arguments and returns zero. It does not change
+attachments for a finite, acyclic family tree. A receiver with zero
+`attr_master` returns immediately. Otherwise its family lookup traverses child
+and sibling lists without selecting a node and returns no result. The later
+detach calls are consequently unreachable. Traversal updates an internal
+scratch pointer without changing actors or the family tree.
 ### HideSlaves and ShowSlaves
 
 `HideSlaves()` and `ShowSlaves()` take no arguments and return zero. Neither
