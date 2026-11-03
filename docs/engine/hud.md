@@ -339,6 +339,15 @@ setting unchanged.
 | `guAlphaSource` | `1` | `0` |
 | `grAlphaBlendFunction` | `1, 5, 4, 0` | `4, 0, 4, 0` |
 
+Display finalization also processes queued text. When that processing is enabled,
+it temporarily enables text output. Unless drawing is suppressed, it visits up
+to 66 queued buffers in order and stops at the first empty buffer. The console
+output route submits each buffer with `%s`; the ordinary text route uses `%s\n`.
+It then clears all 66 buffers, 256 bytes each, even when drawing is suppressed
+or stops at an empty buffer, and restores the incoming text-disable value.
+The queue processor does not save and restore the remaining text state or select
+a renderer palette itself; text-service calls are separate operations.
+
 View (`key_c`) opens the cursor item's examine view with its
 `inventory_object_file` model. When that view returns a nonzero result, the
 inventory screen closes without changing the selection.
