@@ -202,6 +202,14 @@ passes its texture coordinates, but the color combiner uses the supplied RGB
 rather than texture or interpolated vertex RGB. The ordinary texture-times-vertex
 color mode is restored after the queued draw completes.
 
+The special queued draw selects texture alpha rather than the instance's
+constant alpha. RGB blending uses source alpha and one minus source alpha;
+the alpha-channel blend factors select source replacement. Binding the image
+with draw flags `0x0c` disables chroma-key rejection, including when the image
+and frame already match the texture-binding cache. Draw flag `0x02` enables
+chroma rejection and supplies the image's chroma-key RGB instead. Texture-alpha
+selection is independent of the constant-RGB color selection.
+
 The three color inputs do not request a geometry scale or constant alpha.
 
 The special path keeps the ordinary flat's vertex positions at the caller's
