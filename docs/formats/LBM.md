@@ -81,6 +81,14 @@ stored `BODY` pixels. A `CRNG` payload is eight bytes:
 The static image uses the stored palette. See also [PCX images](PCX.md) and
 [COL palettes](COL.md).
 
+## GUI artwork
+
+`system/gui.lbm` is a 640 by 480 sheet containing parchment button designs in
+multiple sizes and states, along with parchment background artwork.
+[`system/gui.anm`](ANM.md#gui-image-collection) packages variants of these GUI
+graphics as separate 320 by 200 LPF images. The two files have different
+embedded palettes; compare decoded RGB artwork rather than palette indices.
+
 ## External References
 
 - [LBM and PBM container layout](https://moddingwiki.shikadi.net/wiki/LBM_Format)
