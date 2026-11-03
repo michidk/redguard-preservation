@@ -6604,3 +6604,31 @@ nor its availability helper reads or modifies broadcast-entry or sender
 memory, dereferences the context pointer, or releases an entry. The helper
 requests the missing-context diagnostic when that pointer is zero. There is
 no receiver-null gate before the selection read.
+
+### PipeMasters query
+
+`PipeMasters()` takes no script arguments and returns the shared actor-pointer
+buffer. It first clears the shared output count and the buffer's first slot.
+If the supplied receiver's `attr_slave` byte is zero, it returns that buffer.
+Otherwise it searches the family tree for a slave entry naming the receiver.
+
+The lookup visits a node's child subtree before its own slave list, then
+continues through sibling nodes. The first matching slave entry wins. Shared
+scratch identifies the containing family node and the preceding slave entry.
+A missing match returns the buffer without appending anything further.
+
+For a match, the query takes the containing node's master actor, appends that
+pointer, increments the shared count, and repeats from that actor. It stops
+when the current actor's `attr_slave` is zero or no slave entry names it. Actor,
+metadata, family-node and slave-entry records are unchanged; lookup scratch and
+the output count are shared mutable state.
+
+The query checks the count before each append. If the count is already 64, it
+requests runtime error 11 before reading and storing the next master pointer.
+The error service determines whether the append continuation is reached.
+Exactly 64 pointers can be returned if the next iteration stops before append.
+
+Only the initial first-slot clear is a null write. Appends do not write a null
+terminator, and unused later slots retain their previous contents. The query
+does not read the ordinary native-enable or shared mode words and provides no
+protection against cyclic family links or master chains.
