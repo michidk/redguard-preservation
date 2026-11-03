@@ -7272,3 +7272,34 @@ A nonpositive sum leaves the receiver metadata pointer as the result.
 For the selected player, after the same gates, the native calls the player
 adjustment service with a zero mode and the original `amount`. That service
 controls subsequent effects and the returned value.
+
+### ZapObject adjustment and follow-up boundary
+
+`ZapObject(amount)` is a function with one argument. Its receiver metadata
+exclusion byte prevents adjustment when nonzero. A nonzero weapon requirement
+byte additionally requires the holding weapon predicate or model weapon flag.
+Both gates precede player selection and adjustment writes.
+
+For a receiver other than the selected player, it adds `amount` to the stored
+unsigned adjustment byte with 32-bit wrapping arithmetic and interprets the sum
+as signed. A sum above 255 stores 255. A positive sum at most 255 stores its low
+byte. A nonpositive sum stores zero and replaces the local sum with zero.
+
+A positive stored result returns immediately. The upper clamp returns 255;
+the positive unclamped path returns the receiver pointer with only its low byte
+replaced by the sum's low byte. The exclusion gate leaves the metadata pointer
+as the result. A failed weapon requirement leaves zero without a model, or the
+model pointer's upper 16 bits with its lower 16 bits zero. The native does not
+normalize these return values.
+
+After a nonpositive result, the native queries the holding weapon predicate
+again. A true result requests an animation condition query for the receiver
+with animation identifier 122. A false result requests a separate receiver-state
+predicate. These queries precede further animation and finalization services.
+The adjustment byte has already been written when either query is requested.
+Their results determine subsequent behavior.
+
+For the selected player, after the initial gates, the native instead requests
+the player adjustment service with zero mode and the original `amount`. This is
+a distinct service from `ZapObjectNoKill`'s player request. It controls later
+effects and the returned value.
