@@ -210,6 +210,14 @@ and frame already match the texture-binding cache. Draw flag `0x02` enables
 chroma rejection and supplies the image's chroma-key RGB instead. Texture-alpha
 selection is independent of the constant-RGB color selection.
 
+The indexed image path prepares and binds eight-bit palette textures. In the
+software Voodoo 1 renderer, palette lookup supplies alpha 255 for every index,
+including index zero. The indexed byte selects a palette entry; it does not
+supply an alpha value. Bilinear filtering of these palette samples preserves
+their constant alpha. This palette format is separate from the alpha-palette
+format available on Voodoo 2.
+
+
 The three color inputs do not request a geometry scale or constant alpha.
 
 The special path keeps the ordinary flat's vertex positions at the caller's
