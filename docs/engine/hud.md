@@ -360,6 +360,14 @@ or stops at an empty buffer, and restores the incoming text-disable value.
 The queue processor does not save and restore the remaining text state or select
 a renderer palette itself; text-service calls are separate operations.
 
+The buffer-clear wrapper can run optional memory validation before filling.
+Outside a reentrant validation call, a nonzero byte count first checks the
+destination address, then the final byte address if the first check returns
+without an error. These numeric checks enter a diagnostic path for addresses
+below 16; they do not read the destination bytes. A zero count skips these
+address checks. If validation returns normally, its return value does not
+suppress the subsequent fill.
+
 View (`key_c`) opens the cursor item's examine view with its
 `inventory_object_file` model. When that view returns a nonzero result, the
 inventory screen closes without changing the selection.
