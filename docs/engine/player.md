@@ -633,6 +633,11 @@ position has a selected surface, classification 2 rejects the attempt and other
 classifications allow this slope check. This selection is separate from the
 ordinary ground-support rank comparison.
 
+Current-position slope selection compares X and Z before map-unit conversion,
+using their representation with eight fractional bits. Equal X/Z skips that probe,
+regardless of Y. A difference of 1/256 map unit on either horizontal axis can
+therefore run a second probe even when the integer map coordinates match.
+
 When neither the proposed-position nor the current-position slope probe selects a
 surface, the slope check allows the attempt to continue. The separate support
 query still runs and can accept the designated player's fallback sphere contact
