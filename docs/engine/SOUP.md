@@ -2112,7 +2112,9 @@ without a model handle.
 
 `PlayerMovementSpeed()` returns an attribute byte of the selected player selected by its current animation
 group: groups 18 and 30 attribute 8, 19 attribute 9, 20 and 21 attribute 12, 22 and 23 attribute 13, 24
-through 27 attribute 10. Other groups, and a player without animation state or attributes, return zero.
+through 27 attribute 10. The selected attribute is an unsigned byte, returned without scaling. The query
+uses the selected player rather than its receiver and does not inspect position changes or require a
+model handle. Other groups, and a player without animation state or attributes, return zero.
 
 `DistanceToLocation(location)` returns the rounded Euclidean length, in Q8 units, from the receiver's
 position (its linked position when it has one) to the location, selected as in `MoveToLocation`.
