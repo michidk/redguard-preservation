@@ -7511,3 +7511,17 @@ For a nonnegative current value and an amount other than the minimum signed
 value, subtraction reduces the value by at most its current value. The signed
 minimum amount follows the same wrapping and signed comparison rules rather
 than being rejected or converted to a positive magnitude.
+
+### RemoveItem current-value clearing
+
+`RemoveItem(id)` is a function with one argument. Disabled item processing
+returns zero without looking up an item or changing item state. Otherwise, it
+uses the unsigned ordered lookup described for `PopItem`: the first exact
+identifier match wins, and a greater identifier ends the search. A missing
+record enters the item diagnostic path before changing item state.
+
+For a matching record, the command stores zero in the current-value word and
+returns zero, including when the word is already zero. It retains the saved
+value and pushed-value flag. The native does not invoke item selection,
+dependent-item removal or a presentation service. The receiver does not alter
+the lookup or clearing operation.
