@@ -5297,3 +5297,30 @@ blocked-ahead probe.
 one, not multiplied by 256; the step-counter adjustment and frame scaling then apply as for
 MoveBackward.
 
+
+### GotoLocation
+
+`GotoLocation(location)` is declared as a one-argument task. It selects a
+coordinate triple from the receiver's location table using an inclusive signed
+upper bound, falling back to saved start coordinates for an absent table,
+negative location, or location above the bound.
+
+The arrival helper first shifts target and current local coordinates right
+arithmetically by eight bits. It adds the actor's vertical offset to the
+shifted current Y, then queries the three-dimensional distance between those
+positions. Arrival requires that signed distance be strictly less than the
+receiver's movement speed multiplied by 1.5 and rounded down to an integer.
+Equality does not count as arrival.
+
+On arrival, the helper copies the quantized target coordinates back into the
+actor's current local position, clearing their low eight bits, and registers
+the actor in the pending-position list. The task then sets movement state to
+zero and returns zero. It does not update the previous-position triple.
+
+Otherwise the task sets movement state to four, stores the low 16 bits of the
+location argument, and invokes the state-refresh helper. After that refresh,
+a stored signed 16-bit location of `-1` returns zero; every other stored value
+returns one. This sentinel completion leaves movement state four. The refresh
+updates the state-four action attribute and countdown before the sentinel
+check. Countdown values zero and 255 are preserved; other values decrease by
+the engine countdown step, clamping to zero when smaller than that step.
