@@ -7224,3 +7224,26 @@ the native has changed only player pitch where the pitch helper requires a
 write; receiver/player X, Y, Z and yaw are retained. No dialogue or animation
 request has occurred before the player-state query. Later alignment and movement
 services govern progress beyond that query.
+
+### Guard native request boundary
+
+`Guard(a, b, c)` is declared as a task with three arguments. Its native stores
+the supplied arguments but does not use their values. It clears the receiver's
+guard-control byte, then calls its movement helper with that receiver, a fixed
+radius of 262144 and a zero mode argument. If the helper returns, Guard returns
+zero regardless of the helper's result.
+
+The helper measures the receiver's displacement from its stored start position.
+A signed distance above the supplied radius selects a lookup of the start
+coordinates after arithmetic shifts right by eight. Distance equal to the radius
+uses the within-radius path. Within the radius, a clear activity byte together
+with both retained selection words equal to minus one requests random selection
+with a bound twice the radius before constructing candidate coordinates.
+
+When a retained movement record or selected node is unavailable, the helper
+clears the activity byte and requests a receiver-state reset. For a valid
+selected node, it reads X and Z as unsigned 16-bit coordinates and Y as a signed
+16-bit coordinate, shifts each left eight bits, and passes the receiver and
+coordinates to the movement service. Guard's zero mode is forwarded in the
+movement request. Lookup, random selection, reset and movement services determine
+progress beyond these request boundaries.
