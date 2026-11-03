@@ -4,12 +4,12 @@ Scene/map container with sectioned records for placed objects, script metadata, 
 
 ## Section Framing
 
-Each section starts with an 8-byte header. Some sections then include a 4-byte little-endian `record_count` word at the beginning of section data.
+Each data section starts with an 8-byte header. Some sections then include a 4-byte little-endian `record_count` word at the beginning of section data.
 
 | Offset | Size | Type | Endian | Name | Description |
 |---|---|---|---|---|---|
-| 0x00 | 4 | `[u8; 4]` | — | section_name | ASCII section tag (for example `RAHD`, `MPOB`, `MPSO`, `END `) |
-| 0x04 | 4 | `u32` | **BE** | data_length | Payload size in bytes (0 for `END `). Big-endian in section-framed formats (RGM, PVO, ROB, TEXBSI). |
+| 0x00 | 4 | `[u8; 4]` | — | section_name | ASCII section tag (for example `RAHD`, `MPOB`, `MPSO`) |
+| 0x04 | 4 | `u32` | **BE** | data_length | Payload size in bytes. Big-endian in section-framed formats (RGM, PVO, ROB, TEXBSI). |
 
 For count-prefixed sections (`MPOB`, `MPSO`, `MPRP`, and several others), section payload begins with:
 
@@ -19,7 +19,8 @@ Little-endian.
 |---|---|---|---|---|
 | +0x00 | 4 | `u32` | record_count | Number of fixed-size records in this section |
 
-Sections are parsed sequentially until `END `.
+Data sections are followed by the four-byte terminal marker `END `. The terminal
+marker has no length word or payload and is not an eight-byte section header.
 
 ## MPOB (Object Instances)
 
