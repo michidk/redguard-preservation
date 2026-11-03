@@ -5317,3 +5317,19 @@ byte is the low byte of that pointer. The copy does not append a terminator.
 The comparison therefore uses that ninth byte as well as the name bytes; this
 is not a fixed-width comparison of eight bytes. The list traversal has no cycle
 check or iteration bound.
+
+### ReloadPosition
+
+`ReloadPosition()` is a zero-argument function. It copies the receiver's
+current local logical XYZ unchanged to previous-position history. For each
+axis, it then shifts the signed logical component arithmetically right by
+eight and stores that integer as a single-precision floating-point model
+coordinate. Negative fractional coordinates therefore round down before
+conversion rather than truncating toward zero.
+
+The shifted signed 32-bit input lies between -8388608 and 8388607 inclusive.
+Every integer in that range is exactly representable in single precision,
+so the conversion itself does not discard additional precision. Current
+logical coordinates remain unchanged. The function returns zero and does
+not invoke position registration, attachment resolution or environmental
+model-position adjustments.
