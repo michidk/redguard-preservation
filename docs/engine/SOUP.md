@@ -6295,7 +6295,7 @@ scratch buffer is shared between calls.
 `HoldAnimation` is a zero-argument function. A null receiver returns zero
 without reading receiver state. Otherwise it reads the receiver's
 animation/control pointer. A null pointer returns zero. A nonnull pointer
-causes the a single control-record byte to be set to 255 and is also the
+causes a single control-record byte to be set to 255 and is also the
 function's residual return value.
 
 The store replaces the entire byte, including when the previous value is
