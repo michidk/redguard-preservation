@@ -5297,3 +5297,15 @@ blocked-ahead probe.
 one, not multiplied by 256; the step-counter adjustment and frame scaling then apply as for
 MoveBackward.
 
+
+### SetStartPosition
+
+`SetStartPosition(x, y, z)` restores selected components of the receiving actor's
+current local position from its saved start position. Each argument is an
+independent flag: zero leaves that component unchanged, and any nonzero 32-bit
+value copies the corresponding saved coordinate unchanged. The arguments are
+not coordinate values. The saved start coordinates remain unchanged.
+
+The native returns zero. It performs no helper calls and writes only the
+selected current-position components. When all three flags are zero, it does
+not access the receiver's coordinates.
