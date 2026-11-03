@@ -313,6 +313,10 @@ candle health, frees the temporary item list, restores the saved text state
 and resumes the clock, in that order. Restoring the saved frame copies its
 pixel values directly; it does not select a renderer palette.
 
+The optional rectangle drawn during display finalization uses black RGB vertex
+colour. Its colour setup and rectangle drawing do not select an indexed
+renderer palette.
+
 View (`key_c`) opens the cursor item's examine view with its
 `inventory_object_file` model. When that view returns a nonzero result, the
 inventory screen closes without changing the selection.
