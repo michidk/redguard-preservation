@@ -27,6 +27,7 @@ synthetic `NullFunction`; authored entries start at index 1. See
 | `RotateToAxis`, `sRotateToAxis` | [Absolute rotation](#absolute-axis-rotation), [elapsed rotation](#elapsed-axis-rotation) |
 | `MoveObjectAxis` | [Move along the actor's orientation](#actor-local-axis-movement) |
 | `MoveByAxis`, `sMoveByAxis`, `MoveAlongAxis` | [Relative movement](#relative-axis-movement) |
+| `TrueFunction` | [Return constant true](#truefunction) |
 | `Rnd`, `QuickRnd` | [Draw from the shared random stream](#random-functions) |
 | `HideMe`, `ShowMe` | [Change model visibility](#object-visibility) |
 | `PlayerStand`, `Fighting` | [Standing query](#playerstand-query), [combat query](#fighting-query) |
@@ -36,6 +37,11 @@ synthetic `NullFunction`; authored entries start at index 1. See
 
 Shared actor setup, navigation, family transforms, and model admission are
 specified alongside the functions that use them below.
+
+### TrueFunction
+
+`TrueFunction()` takes no script arguments and returns `1`. It does not change
+world or actor state.
 
 ## Script Data Sources
 
