@@ -5660,6 +5660,24 @@ one, not multiplied by 256; the step-counter adjustment and frame scaling then a
 MoveBackward.
 
 
+### SetObjectLocation
+
+`SetObjectLocation(location, x, y, z)` selects coordinates from the receiving
+actor's location table. A nonnegative location at or below the table's signed
+upper bound selects its coordinate triple. An absent table, negative location,
+or location above that bound selects the actor's saved start coordinates.
+The three remaining arguments are independent flags. A nonzero flag copies
+the selected X, Y or Z coordinate unchanged into the actor's matching current
+local-position component; zero leaves that component unchanged.
+
+After the selected coordinate writes, the native registers the receiving
+actor in a shared pending-position list. It does so even when all three flags
+are zero. An existing occurrence suppresses a second insertion. An empty list
+receives its first entry before the helper checks the capacity field. A
+nonempty list appends an absent actor only while its signed count is below
+the signed capacity. Otherwise it reports an error after the coordinate
+writes. Normal completion returns zero. The native removes the fourth
+argument from the caller's stack.
 ### SetStartPosition
 
 `SetStartPosition(x, y, z)` restores selected components of the receiving actor's
