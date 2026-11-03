@@ -7450,3 +7450,20 @@ A missing item records its diagnostic location and requests copying of its
 error text into the shared error buffer before invoking the error service.
 No item record has changed at that copy request boundary. The copy and error
 services govern progress beyond the request.
+
+### PushAllItems indexed iteration
+
+`PushAllItems(value)` is a function with one argument. Disabled item processing
+returns zero without invoking `PushItem`. With processing enabled, it starts a
+local index at zero and repeats while that signed index is less than the shared
+signed item count. Each iteration invokes the exact `PushItem` native with the
+original receiver, the index as the item identifier and the supplied `value`.
+It increments the index after the call returns and rereads the shared count for
+the next comparison. A zero or negative count executes no iterations.
+
+The loop returns zero when it finishes, independently of the per-item return
+values. It enumerates integer identifiers rather than traversing each linked
+item record. A missing identifier therefore reaches `PushItem`'s diagnostic
+path after any earlier items have already changed. There is no wrapper-level
+rollback before that diagnostic request. The missing-item copy and error
+services determine whether iteration can continue.
