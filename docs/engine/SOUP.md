@@ -7102,3 +7102,30 @@ The native negates the planar angle, masks it to 2047, writes it directly to the
 receiver's yaw field, and returns zero. It does not delegate to `TurnToAngle`,
 request animation, or update a transform matrix. Existing yaw does not contribute
 to the result. The shared pointing target is distinct from a script argument.
+
+### SendMessage channel entry write
+
+`SendMessage(value)` returns zero. When the messaging context is absent, it
+requests the missing-context diagnostic before testing the argument. A zero
+argument returns without reading the recipient's channel, the entry-array
+pointer or global limit, and without changing entries or channel indices.
+
+For a nonzero argument, the recipient's subrecord supplies an unsigned channel
+byte. That channel selects both a pointer in the context table and a global
+no-selection index byte. Entries contain three 32-bit words. At the selected
+channel index, the function stores the receiver token as sender, the recipient
+token and the argument as value, in that order. It does not dereference the
+sender token or inspect the destination entry's previous contents.
+
+It increments the channel index as an 8-bit value, wrapping 255 to zero. The
+new byte is zero-extended and compared with the global limit as signed 32-bit
+integers. A value below the limit is retained; otherwise the index is reset
+to zero. The function reads the channel's context-table pointer again. At the
+updated index it stores zero as sender, the recipient token as recipient and
+zero as value, in that order.
+
+The initial entry stores precede the index increment, any reset and the final
+entry stores. If both indices name the same slot, the final stores replace the
+new sender and value with zero while retaining the recipient. The recipient's
+message selection and other channels are unchanged. The function does not
+allocate an entry or release one.
