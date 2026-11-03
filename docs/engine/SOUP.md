@@ -5417,3 +5417,22 @@ Changing to the same nonzero user still removes the first match before
 registration. With a single matching entry this moves the receiver to the
 head. A remaining duplicate prevents a replacement allocation. Lookup follows
 next links, stops at the first match and has no cycle check or iteration limit.
+
+
+### KillSlaves entry and family lookup
+
+`KillSlaves()` is a zero-argument function returning zero for finite acyclic
+runtime family structures. It first reads the receiver's master byte. A zero
+byte returns immediately without searching the family registry.
+
+For a nonzero master byte, it calls the recursive family lookup with the
+receiver and the registry head. That lookup visits each entry's child chain
+before its next sibling, recording each visited entry in shared scratch state.
+It never compares an entry with the receiver or assigns a matching entry.
+An exhausted chain returns null, so every completed recursive lookup returns
+null and `KillSlaves` returns zero.
+
+The later action calls and recursive `KillSlaves` call are unreachable through
+this lookup result. The reachable path does not change actors or family links;
+only the lookup scratch pointer changes. Lookup has no cycle check or traversal
+bound.
