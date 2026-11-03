@@ -158,6 +158,26 @@ for these blended fragments.
 
 ## Draw-flag ownership
 
+### Special flat lighting bypass
+
+Flat submission flag `0x80` selects a constant-color drawing path. The three
+inputs otherwise used for face brightness, constant alpha and geometry size
+instead supply red, green and blue. They are truncated to integers and packed
+as `0x00RRGGBB`. The queued instance uses draw flags `0x0c`, constant alpha
+255 and face brightness 255. Submission flags `0x100` and `0x200` still add
+their corresponding depth flags.
+
+This path clears the retained face-vertex RGB source and cursor, the selected
+local-light count and the transformed directional-light vector before polygon
+preparation. It does not shade the flat through the ordinary retained-color,
+directional or local-light calculation. Its texture-coordinate extents use
+twice the source dimensions times the texture coordinate scales, independently
+of the three color inputs.
+
+Actor-flat drawing adds submission flag `0x200` to this special path and supplies
+red, green and blue values of 200. Those values are a constant tint, rather than
+a request for a geometry scale of 200 or a constant alpha of 200.
+
 A newly initialized render instance has zero draw flags and constant alpha 255.
 Animated actor group loading checks the first group's name against the loaded
 ROB model lists. When that lookup succeeds, it copies the segment attribute
