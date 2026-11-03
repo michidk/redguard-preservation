@@ -1814,6 +1814,13 @@ Resets the active cursor to the script base and returns from the current invocat
 
 ## Function Dispatch
 
+### Spare0Parm7 diagnostic
+
+`Spare0Parm7(first, second, third, fourth, fifth, sixth, seventh)` takes seven
+script arguments and ignores all seven. It sends a diagnostic containing the
+receiving actor pointer to the diagnostic writer and returns zero. The handler
+does not dereference the receiver or modify actor state.
+
 ### Call Types
 
 Active tasks reevaluate their encoded operands on every task invocation. A task therefore observes changes to locals, global flags, and queried values while it is active. Literal arguments are a special case of this rule.
