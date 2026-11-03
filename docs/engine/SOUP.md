@@ -5417,3 +5417,23 @@ Changing to the same nonzero user still removes the first match before
 registration. With a single matching entry this moves the receiver to the
 head. A remaining duplicate prevents a replacement allocation. Lookup follows
 next links, stops at the first match and has no cycle check or iteration limit.
+
+
+### GetBroadcastSenderId query
+
+`GetBroadcastSenderId()` is a zero-argument function. It uses the receiver's
+unsigned broadcast-selection byte and the broadcast system's no-selection byte.
+Equal bytes return zero without reading a broadcast entry or sender.
+
+For a selection different from the sentinel, it indexes the broadcast entry
+array with a stride of 12 bytes, takes the entry's first pointer as the sender,
+and returns that actor's stored runtime identifier as a signed 16-bit value,
+using the same extraction as `MyId()`. The result is an identifier, not the
+sender pointer or the entry index. The query does not consume the selection,
+alter the entry or change the sender.
+
+The native calls the broadcast-availability helper and then checks the
+selection against the sentinel again before indexing. The index is the full
+unsigned byte; there is no additional bounds or null-sender check on this path.
+An absent broadcast context requests a runtime error before the availability
+query. The availability helper also requests an error if the context is absent.
