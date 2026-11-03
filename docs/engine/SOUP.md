@@ -6479,3 +6479,12 @@ The query does not consume the selection or modify receiver, channel-table,
 message-entry, or sender state. Both the query and its availability helper
 request the missing-context diagnostic when the message context is absent.
 The lookup path does not check entry bounds or validate the returned pointer.
+
+### IsInLava query
+
+`IsInLava()` is a zero-argument function. It returns one when the supplied
+receiver's liquid-state byte equals 5 and zero for every other byte value.
+The result is Boolean. The receiver is dereferenced without a null check.
+
+The function does not read the ordinary native-enable or shared mode words,
+call other services, or modify receiver or shared state.
