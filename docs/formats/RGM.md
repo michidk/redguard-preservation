@@ -457,8 +457,11 @@ including each RAAN frame-source model. The engine keeps one copy of a frame-sou
 model per texture set and shares it between actors with the same set. Each face
 texture word of the copy is `bank << 7 | image`; words whose bank is greater than 1
 take the actor's texture set as their bank and keep their image index. Words with
-bank 0 or 1 are unchanged. Geometry, frame data and normals are those of the source
-model.
+bank 0 or 1 are unchanged. For v4.0 frame-source models, loading a solid-colour
+face converts its colour descriptor to retained RGB and explicitly sets its
+runtime texture word to zero. The virtual copy therefore keeps that face solid;
+it does not replace it with image zero of the actor's texture set. Geometry,
+frame data and normals are those of the source model.
 
 ## RAAT (Attribute Data)
 
