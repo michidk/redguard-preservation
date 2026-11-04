@@ -1987,6 +1987,16 @@ on the stack after those three register arguments, the final slot remains on
 the caller's stack. Preserve the declaration's eight-argument count separately
 from the handler's four-slot stack cleanup.
 
+### Spare1Parm6 diagnostic
+
+`Spare1Parm6(first, second, third, fourth, fifth, sixth)` takes six script
+arguments and ignores all six. It sends a diagnostic containing the receiving
+actor pointer to the diagnostic writer and returns zero. The handler does not
+dereference the receiver or modify actor state.
+
+The native receives three argument values in registers and removes three
+argument slots from the stack on return, matching its six-argument declaration.
+
 ### Spare1Parm5 diagnostic
 
 `Spare1Parm5(first, second, third, fourth, fifth)` takes five script arguments
