@@ -5037,6 +5037,23 @@ clears the second image slot and stays active. The invocation at counter `count 
 discards the image, clears the drawn-image pointer and completes, so the image is drawn
 for `count - 1` frames (the same completion test as `Wait`). The main loop draws the pending image after the world frame.
 
+### DisplayHandItem
+
+`DisplayHandItem(item, x, y, z)` is declared as a four-argument function. Its
+native boundary receives an actor receiver, the item identifier and all three
+offset words. The fourth argument is passed on the stack and removed on return.
+The native uses the ordered item lookup: lookup disabled, an empty list, an
+absent identifier or an earlier greater unsigned identifier produces no match.
+A missing match requests a diagnostic before any hand-model operation.
+
+For a matched item, the native reads its hand-model pointer and forwards the
+receiver, that pointer and the three offset words to the hand-model helper.
+The helper first clears the shared temporary-model pointer. A null receiver
+or null hand-model pointer then returns zero without allocating a temporary
+model or changing the item. With both pointers nonnull, the next dependency is
+the temporary-model allocator. The lookup and these initial helper branches
+leave the item records and actor contents unchanged.
+
 ### AnimateGXA
 
 `AnimateGXA(name, first, cycle, count)` is a four-argument task. The native
