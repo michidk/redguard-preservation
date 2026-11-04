@@ -5305,6 +5305,11 @@ The backing heap's existing-free-block allocation operation updates block and
 free-list metadata. It does not clear the light record's RGB payload bytes,
 whether it splits the free block or consumes the whole block.
 
+The allocation tracking context is requested separately as a 300-byte block.
+Its allocation service zero-fills its allocated block before optional guard
+registration. This context request is distinct from the 41-byte light-record
+allocation request.
+
 Map loading gives a type-4 object a record of its own: locked and enabled, with the placement's intensity
 and radius as both current and starting values and colour zero (the placement's colour is not copied, unlike
 for a type-6 object), so those objects' first light call updates an existing record.
