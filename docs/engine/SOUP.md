@@ -5331,6 +5331,9 @@ record, the first call creates one: disabled and unlocked, offsets zero, intensi
 radius 100 (each current value equal to its starting value), flicker fields zero. `LightOff` does
 not create a record.
 
+The explicit light-record field assignments cover the control flags, offsets, current and
+starting intensity and radius, and modulation fields. They do not include the RGB colour channels.
+
 The backing heap's existing-free-block allocation operation updates block and
 free-list metadata. It does not clear the light record's RGB payload bytes,
 whether it splits the free block or consumes the whole block.
