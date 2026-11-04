@@ -1937,6 +1937,26 @@ script can write any byte through `extra_flag`.
 | 33 | Lighting a torch | [HUD](hud.md) |
 | 34 | Dousing a torch | HUD |
 
+### Jump motion values
+
+The queued-motion byte (`jump_flag`) and the falling byte (`fall_flag`) share
+one code. Its low seven bits name the jump; bit `0x80` selects the
+raised-arms groups in [queued motion arbitration](#queued-motion-arbitration)
+and forces group 58 when queued motion transfers to falling. The engine copies
+the queued byte to the falling byte when the jump peaks, and starts a plain
+fall as falling 1. It preserves bit `0x80` in these transfers but never sets
+it; a script can write any byte through `jump_flag` and `fall_flag`.
+
+| Value | Meaning | Written by |
+|---|---|---|
+| 0 | None | |
+| 1 | Standing jump, or a plain fall | [Ordinary jump entry](#ordinary-jump-entry), fall starts |
+| 2 | Forward jump | Leap links ([SOUP](SOUP.md#phase-twelve-leap-link)) |
+| 3 | Backward jump | Jump key while moving backward |
+| 8 | Running jump | Ordinary jump entry from group 18 or 30 |
+| 9 | Running jump, left lead | Ordinary jump entry from group 18 or 30 for requested motion 9 |
+| 24 | Rope jump | Nonzero runtime jump selector |
+
 The overlap pass visits its retained actor-style candidate list in order. Later
 queries read the positions left by earlier responses. If any weighted
 separation occurred and the loop completes, the forward obstacle response
