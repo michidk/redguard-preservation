@@ -247,11 +247,11 @@ A record is fourteen little-endian 32-bit values:
 | 0 | Current world number. |
 | 1 | Marker number. |
 | 2-4 | Player position X, Y, Z in runtime units (256 per map unit), unscaled. |
-| 5-7 | Player orientation, three values. |
-| 8-10 | First camera triple. |
-| 11-13 | Second camera triple. |
+| 5-7 | Player rotation angles about X, Y and Z, in the engine's 0 through 2047 angle units. |
+| 8-10 | Camera position X, Y, Z in runtime units, from the camera position variables. |
+| 11-13 | Camera angles in the same 0 through 2047 units, from the camera angle variables. |
 
-Both commands leave the file untouched without a player. `setmarker` creates the file when it is missing, and also rewrites it from scratch when its magic or tag does not match, losing any records it held. An existing record with the same world and marker number is overwritten in place. Otherwise the new record replaces the trailer, the trailer is written again after it and the size field grows by 56. `getmarker` reads the file and scans its records in order for the first one whose world and number both match the current world and requested number. A wrong magic or tag reports a file error and restores nothing, and a missing record restores nothing. A match sets the player position, copies it to the previous-position fields, applies the stored orientation and camera values, and refreshes the view.
+Both commands leave the file untouched without a player. `setmarker` creates the file when it is missing, and also rewrites it from scratch when its magic or tag does not match, losing any records it held. An existing record with the same world and marker number is overwritten in place. Otherwise the new record replaces the trailer, the trailer is written again after it and the size field grows by 56. `getmarker` reads the file and scans its records in order for the first one whose world and number both match the current world and requested number. A wrong magic or tag reports a file error and restores nothing, and a missing record restores nothing. A match sets the player position, copies it to the previous-position fields, sets the player rotation angles (each masked to 0 through 2047, copied to the previous-angle fields, and the rotation matrix rebuilt), writes the camera position and angle values, and refreshes the view. The camera values are the same position and angle variables that the camera update rewrites each frame: before any camera has published, the position starts at 10000 map units on every axis and the angles at zero, and one camera mode publishes the player position plus a rotated offset together with the negated player angles masked to 0 through 2047.
 
 `getmapmarker number` reads the loaded map's own marker table instead of the file. A marker is valid when its index is below the table's count and its valid byte is 1; positions are stored in map units and multiplied by 256 to give the runtime position, which is also copied to the previous-position fields. An index outside the table or an invalid marker restores nothing. When no map table is loaded, the built-in table of 128 slots is used in the same way.
 
