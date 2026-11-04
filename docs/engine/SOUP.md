@@ -1750,6 +1750,13 @@ using that state before the falling state when both are present.
 
 ### Reference Name Encoding
 
+The `address` reference returns the resolved actor reference itself. It does not
+read a field from the actor or convert the reference to a runtime identifier.
+Used directly as a native parameter, an object-property read passes that
+reference value to the native handler. `WaitLineUp` can therefore receive an
+actor reference through an `address` property operand.
+
+
 Object-property operands carry a little-endian `u16` reference ID after the object encoding. Property reads use the full reference ID to index the global references table loaded from the `[refs]` section of `SOUP386.DEF`. The high byte is not discarded. With native validation enabled, a reference outside the table enters the invalid-reference error path.
 
 ### Local pose properties
