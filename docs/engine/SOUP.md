@@ -7616,3 +7616,31 @@ current angle; otherwise the target is stored directly. After these stores, the
 task requests the receiver's orientation refresh. If that service returns, the
 task returns one. The diagnostic and orientation-refresh services are separate
 dependencies of the native.
+
+### PlayerTiltRevx orientation targets
+
+`PlayerTiltRevx(angle, strength, divisor)` is a three-argument multitask. A
+nonzero receiver attribute 26 starts its actor diagnostic path. When the
+selected player's retained actor association is not the receiver, target pitch
+and roll are both zero.
+
+For an associated receiver, the task computes the bearing from the player's
+local X/Z to the receiver's effective X/Z and sets `a = (bearing + angle) & 2047`.
+The receiver's heading is not added. On the ordinary attribute-zero path, an
+active linked record supplies effective position; otherwise local position is
+used. The unscaled targets are:
+
+- Pitch: `512 - a` when `a < 1024`, otherwise `a - 1536`.
+- Roll: `-a` when `a < 512`, `a - 1024` when `512 <= a < 1536`, otherwise `2048 - a`.
+
+Horizontal distance for strength uses the receiver's local position rather
+than its effective position. The distance limit, fixed-point strength scaling,
+signed wrapped angle differences, divisor handling, shared integer update
+multiplier and per-axis snap-or-add rules are those described for
+[PlayerTilt](#playertilt-receiver-orientation). These rules act on the targets
+above, including the negated roll component.
+
+Both angles already at target return one without refreshing orientation.
+Otherwise the task stores its axis updates and requests orientation refresh;
+if that service returns, the task returns one. Diagnostic processing and
+orientation refresh remain separate service dependencies.
