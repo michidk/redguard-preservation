@@ -56,6 +56,20 @@ The candle shows the player's health. Maximum health is a fixed 100 (no INI
 key). Health is `attr_health` (attribute index 3 in SOUP386.DEF), always
 clamped to `0..100`.
 
+### Admission and lifetime
+
+The common candle routine requires a loaded candle bitmap, a separate enabled
+flag, and rendering to be enabled. It checks these conditions before servicing
+F8, advancing the candle animation, or processing its show timer. A failed
+condition skips all of that work, independently of candle mode and lockout.
+The console's [render on/off](console.md#render) control supplies the rendering
+condition.
+
+Candle initialization releases any previous candle bitmap, loads the requested
+bitmap, sets the enabled flag, and resets the shown level and animation step.
+The HUD initializes it with `SYSTEM\SNUFF.GXA`. Candle teardown releases the
+bitmap and clears both its reference and the enabled flag.
+
 ### Level
 
 With integer arithmetic and truncating division:
