@@ -5528,6 +5528,12 @@ and repeated modifier requirements have the same effect as one. The native
 preserves the incoming general registers other than the result and argument
 registers and leaves argument-stack cleanup to its caller.
 
+Releasing an ordinary key clears its held-state word without clearing the
+latest-event byte. The normal world loop clears the latest event during its
+clock update, after the keyboard-text handler and before the shell, object
+and code-object stages. The latest event is therefore separate from a
+per-frame held-key sample.
+
 ### SpacePressed
 
 `SpacePressed()` is a function without arguments. It returns one when the
