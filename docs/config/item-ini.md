@@ -135,8 +135,10 @@ Object file paths reference `3DART\` assets, which are the software-renderer mod
 ## Initialization and acquisition
 
 The item database path comes from SYSTEM.INI's `item_ini` setting. Initialization
-first closes the previous item system. Each loaded item's initial owned count is
-`player_total[x]`. The ordered `start_item_list` then requests acquisition of one
+first closes the previous item system. For each new item record, it requests a
+zero-fill of the entire record before assigning its identifier and linking it
+into the ordered item list. Authored item fields are loaded after this step.
+Each loaded item's initial owned count is `player_total[x]`. The ordered `start_item_list` then requests acquisition of one
 unit per entry, including repeated entries. Starting items therefore add to the
 configured counts rather than replacing them.
 
