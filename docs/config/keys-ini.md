@@ -124,6 +124,36 @@ which run at the start of each update:
 | 138 | Joystick Y reading is more than `joy_tolerance` below the calibrated center. |
 | 139 | Joystick Y reading is more than `joy_tolerance` above the calibrated center. |
 
+### Joystick polling
+
+The joystick is enabled only when the DOS joystick BIOS service reports a
+nonzero axis value for stick A or stick B at startup. When enabled, one axis
+reading taken at startup becomes the calibrated center for X and Y; it is never
+recalibrated. When disabled, codes 132 through 139 always read zero.
+
+An axis reading is a loop count, not a calibrated unit. The poll starts the
+gameport one-shot timers with a write to port `0x201`, then re-reads that port
+up to 6144 times. Each axis reads as the number of iterations completed when its
+timer bit (bit 0 for X, bit 1 for Y) dropped. A poll that times out reports 0 for
+both axes, including an axis that had already finished. The count therefore
+scales with the stick's resistance and with the CPU's port-read time. Only the
+first stick's axes are used. Each poll also records the change of each axis
+reading since the previous poll.
+
+Per update, with `tolerance` = `joy_tolerance`, `x` and `y` the readings and
+`cx` and `cy` the calibrated centers, each comparison strict:
+
+| Code | Reads 1 when |
+|---|---|
+| 136 | `x < cx - tolerance` |
+| 137 | `x > cx + tolerance` |
+| 138 | `y < cy - tolerance` |
+| 139 | `y > cy + tolerance` |
+
+Buttons 1 through 4 (codes 132 through 135) are the inverted high nibble of the
+gameport port, bit 4 upward: buttons 1 and 2 of stick A, then buttons 1 and 2 of
+stick B.
+
 For an ordinary keyboard key that passes the interrupt handler's special-key
 handling, a make event writes 1 to its 16-bit state slot and a break event
 writes 0. A make writes the slot even when the key was already held.

@@ -193,12 +193,18 @@ its initialized values when loading; it has no record in `SVIT`.
 | Offset | Size | Type | Name | Description |
 |---|---|---|---|---|
 | `0x00` | 1 | `u8` | hide | Current item visibility field. |
-| `0x01` | 1 | `u8` | unknown_01 | Retained item-state byte. |
+| `0x01` | 1 | `u8` | pushed | Nonzero while a pushed value is retained. |
 | `0x02` | 4 | `i32` | total | Current item total limit. |
 | `0x06` | 4 | `i32` | player_max | Current player ownership limit. |
 | `0x0A` | 4 | `i32` | player_total | Current owned count. |
 | `0x0E` | 4 | `u32` | unknown_0e | Retained item-state word. |
-| `0x12` | 4 | `u32` | unknown_12 | Retained item-state word. |
+| `0x12` | 4 | `u32` | saved_player_total | Count saved by the first push and restored by a pop. |
+
+The pushed byte and saved count are restored directly, without normalizing the
+byte or replacing the saved count with the current count.
+[PushItem and PopItem](../engine/SOUP.md#pushitem-saved-value-replacement) use
+these fields: the first push saves the current count, later pushes retain that
+saved count, and a pop clears the pushed byte and restores the saved count.
 
 The selected-item value `-1` means no selection. Other values are looked up as
 full item IDs after the records have been restored. An absent ID leaves no

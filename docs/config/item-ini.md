@@ -135,8 +135,10 @@ Object file paths reference `3DART\` assets, which are the software-renderer mod
 ## Initialization and acquisition
 
 The item database path comes from SYSTEM.INI's `item_ini` setting. Initialization
-first closes the previous item system. Each loaded item's initial owned count is
-`player_total[x]`. The ordered `start_item_list` then requests acquisition of one
+first closes the previous item system. For each new item record, it requests a
+zero-fill of the entire record before assigning its identifier and linking it
+into the ordered item list. Authored item fields are loaded after this step.
+Each loaded item's initial owned count is `player_total[x]`. The ordered `start_item_list` then requests acquisition of one
 unit per entry, including repeated entries. Starting items therefore add to the
 configured counts rather than replacing them.
 
@@ -151,6 +153,11 @@ requesting removal of one unit from each listed item. It then processes
 each entry. These lists run once per acquisition request, independent of the
 quantity admitted. Active-item fallback selection runs next; the acquired item's
 owned count increases last. The quantity is not recalculated after list effects.
+
+The authored `player_total[x]` assignment and the final acquisition increment
+write the current owned count only. Neither direct count write replaces the
+separate pushed-value flag or saved count used by
+[PushItem and PopItem](../engine/SOUP.md#pushitem-saved-value-replacement).
 
 An absent `start_item_select` selects the first loaded item record. A supplied
 value selects its matching record. This initialization selection does not filter
