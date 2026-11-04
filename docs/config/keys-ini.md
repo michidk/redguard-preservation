@@ -124,6 +124,15 @@ which run at the start of each update:
 | 138 | Joystick Y reading is more than `joy_tolerance` below the calibrated center. |
 | 139 | Joystick Y reading is more than `joy_tolerance` above the calibrated center. |
 
+For an ordinary keyboard key that passes the interrupt handler's special-key
+handling, a make event writes 1 to its 16-bit state slot and a break event
+writes 0. A make writes the slot even when the key was already held.
+
+Consumers can clear a key's slot, as the [candle mode key](../engine/hud.md#mode-key)
+does when it changes mode. The slot can therefore be zero while the physical
+key remains held. A later accepted make event sets it again without requiring
+an intervening release; a release clears an unconsumed make.
+
 Controls capture reads the same table: it accepts a keyboard scancode, a mouse
 button release (128 or 129) or a joystick button (132 through 135).
 
