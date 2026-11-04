@@ -2449,6 +2449,16 @@ has finished (called flags set); otherwise it turns to the final heading (return
 arrival (called flags set, default animation requested, return zero) and otherwise takes the close step that the
 relative bearing selects, as in close alignment, returning one unless the collision response is stale.
 
+### Shell execution context transitions
+
+The shell-context enter operation does nothing when the shell system is disabled
+or the context word is already one. Otherwise it writes one and saves three
+shared execution words. The leave operation does nothing when the shell system
+is disabled or the context word is already zero. Otherwise it writes zero,
+clears the current-shell reference and restores those three execution words.
+These transition guards are distinct from `IsShellScript` returning the context
+word unchanged when its enabled, nonempty-list and nonnull-receiver gates pass.
+
 ### ObjectParallelLineUp target binding
 
 `ObjectParallelLineUp(angle, x_offset, z_offset)` moves its receiving actor
