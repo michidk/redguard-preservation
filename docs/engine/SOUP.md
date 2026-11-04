@@ -2126,6 +2126,19 @@ has no defined function result. An already registered call skips that initial
 reset and argument evaluation. Its task encoding is therefore distinct from
 a direct function statement that simply discards the result.
 
+When an existing `ResetAllAction` task is unpaused, the task pass reevaluates
+its encoded arguments and invokes the reset again. The handler leaves the
+receiving actor in the native result register, so a non-null receiver retains
+the slot. This task does not complete merely because the reset effect has
+finished. Its invocation counter advances with unsigned 16-bit wrapping, and
+a blocking slot continues to contribute to the task pass's blocking result.
+A paused slot does not evaluate arguments, reset action words, or advance its
+counter. The action timer remains unchanged by these reset invocations.
+
+The later task pass tests the native result directly. A zero result removes
+the slot and its blocking contribution; a nonzero result retains the slot and
+saves its native context. This test is separate from initial task registration.
+
 ### Call Encoding
 
 ```
