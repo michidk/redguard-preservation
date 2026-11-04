@@ -146,6 +146,14 @@ name, copying its initial local variables; names compare without case. A world
 without the script reports an error. A record created during an iteration first
 runs in the next one.
 
+The `OpenShell` native forwards the supplied name unchanged to shell-record
+creation. Its receiver is used in diagnostic arguments and is not passed to
+that creation service. Entry diagnostics precede the native's availability
+check. The unavailable-system path records its source information and requests
+fatal error 192 before attempting creation. Within shell-record creation,
+name resolution precedes the check that shell records are enabled, so disabling
+shell records does not bypass name resolution.
+
 ### Ordinary update gates
 
 `SYSTEM.INI`'s `[system] task_system` enables the ordinary entry, task, and main
