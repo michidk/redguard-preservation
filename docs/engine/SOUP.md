@@ -5485,6 +5485,14 @@ key's state word is nonzero or the key is the latest key event the keyboard hand
 debug shell reads it for the letters `p`, `c` and `d` and for Alt+`q`, and a few bridge and door
 scripts read `r`.
 
+`InKey` leaves the key state words and latest-event byte unchanged, including
+on a successful query. Its receiver is unused. The character lookup receives
+only the low argument byte and runs once before modifier checks; an unmapped
+character returns zero before those checks. Unknown modifier bytes are ignored
+and repeated modifier requirements have the same effect as one. The native
+preserves the incoming general registers other than the result and argument
+registers and leaves argument-stack cleanup to its caller.
+
 ### SpacePressed
 
 `SpacePressed()` is a function without arguments. It returns one when the
