@@ -1987,6 +1987,16 @@ on the stack after those three register arguments, the final slot remains on
 the caller's stack. Preserve the declaration's eight-argument count separately
 from the handler's four-slot stack cleanup.
 
+The native dispatcher uses the argument-count byte in the encoded call record.
+An eight-argument record evaluates all eight operands from last to first, places
+three argument values in registers, and pushes five argument words. The dispatcher
+restores its saved registers immediately after the native returns; it does not
+repair a discrepancy between the pushed words and the native's stack cleanup.
+For an eight-argument record targeting `Spare1Parm7`, the handler leaves the eighth
+argument in front of those saved registers, so the dispatcher restores and returns
+from shifted stack positions. A seven-argument record pushes four words and is
+balanced by this handler's four-word cleanup.
+
 ### Diagnostic writer
 
 The diagnostic writer can suppress a request before formatting. A separate
@@ -6549,6 +6559,22 @@ The gate does not test the payload pointer assigned by `LoadStatic`.
 changes no other receiver bytes and makes no calls to release or modify the
 payload. Nonzero control words are treated alike, including values with only
 the sign bit set.
+
+The control word is the actor's animation-group record pointer. On the
+file-based group-loading path, a missing frame table or a static selection
+byte equal to one skips record creation. Otherwise the loader releases any
+existing group record, stores a newly allocated 749-byte record in this word,
+zeros that record and initializes its first signed group word to minus one
+before reading the group data. A group request also requires this pointer
+and rejects a static selection byte equal to one. Other nonzero selection
+byte values do not satisfy that equality test.
+
+The file-based loader installs and initializes the new group record before
+opening its group-data file. A zero open result records the input name as
+error context and requests system error 58. The loader performs no rollback
+of the group pointer or static selection byte before that request. If the
+error service returns, the loader passes the same zero file handle to the
+next section lookup; it does not return a recoverable load-failure result.
 
 ### GetBroadcastSenderId query
 
