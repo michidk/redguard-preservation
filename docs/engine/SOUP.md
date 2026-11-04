@@ -2100,9 +2100,31 @@ SOUP386 distinguishes three call types, encoded in the opcode byte:
 
 Self-calls use opcodes `0x00`/`0x01`/`0x02`. Object-targeted calls use `0x19`/`0x1A` with an additional dispatch-type byte (`0x00` = task, `0x01` = multitask, `0x02` = function) when used as a top-level statement. In non-MAIN modes, the dispatch-type byte is absent and the call is always treated as a function.
 
-The runtime function table keeps only each function's handler; the `task`, `function` or `multitask` keyword in `SOUP386.DEF` is parsed and discarded. A call therefore runs the handler of whatever function it names, whichever call type the script uses, and a handler that returns zero completes a task or multitask call at once. Shipped scripts use this for `FlatAnimate` and `FlatSound` (both return zero) in multitask form.
+The runtime function table keeps only each function's handler; the `task`, `function` or `multitask` keyword in `SOUP386.DEF` is parsed and discarded. A call therefore runs the handler of whatever function it names, whichever call type the script uses. Existing-task processing removes a task when its handler returns zero. Initial self-task registration is a separate step and does not use that native result as an immediate-completion test. Shipped scripts use `FlatAnimate` and `FlatSound` in multitask form even though both handlers return zero.
 
 Object-targeted task dispatch differs from a self task statement. The receiver owns the task slot, and the calling body continues immediately. The self task statement checks the active result and yields when blocking. Both encodings must remain distinguishable even when the explicit object selector resolves to the current actor.
+
+For a self task statement, the task-start wrapper first searches the receiver's
+six task slots for the address of that statement's function-index operand.
+An existing match skips the encoded operands without evaluating them or calling
+the native handler, advances to the following statement, and returns inactive
+from this start attempt. It does not remove the existing slot.
+
+With no match and a non-null receiver, the wrapper calls the native and advances
+over the encoded operands. The statement helper restores the receiver as its
+result, so the initial start attempts registration even when the native returned
+zero. Registration searches for the first empty slot. The
+slot stores the function-index operand address, starts its invocation counter
+at one, clears its pause flag, and records the call's blocking flag and saved
+native context. A full slot array leaves all slot entries unchanged; the
+start wrapper still reports active.
+
+`ResetAllAction` in self task form with two numeric operands evaluates both
+operands and clears both action words on an initial invocation. This path
+reports active and attempts task registration, even though the reset handler
+has no defined function result. An already registered call skips that initial
+reset and argument evaluation. Its task encoding is therefore distinct from
+a direct function statement that simply discards the result.
 
 ### Call Encoding
 
