@@ -33,6 +33,14 @@ as terrain filtering. The book menu selects a separate interface palette and
 restores the world palette when closing. Sky drawing temporarily selects its
 own palette and restores the previously selected table afterward.
 
+The world-palette adjustment path adds a separate signed offset to each input
+channel, then multiplies by that channel's fixed-point scale. Addition and
+multiplication retain the low 32 bits. The signed product is shifted right by
+eight bits with sign extension, then clamped to `0..63`. A scale of 256 is unity
+when the arithmetic does not overflow. The adjusted channels are expanded by
+multiplication by four; palette index zero is forced to black. The resulting
+table is installed and selected before the adjustment routine returns.
+
 Indexed solid-color model faces resolve their color index through the selected
 palette when the runtime model is prepared. The resolved RGB is stored in the
 runtime face, rather than looked up again for every draw. Direct packed-color
