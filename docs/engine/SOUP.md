@@ -7571,3 +7571,48 @@ receiver is the selected player, the two assignments retain the existing X/Z.
 The rotation helper still executes before the copy, including its table reads
 and floating-point operations. Discarding its temporary results does not remove
 that dependency or its floating-point exception behavior.
+
+### PlayerTilt receiver orientation
+
+`PlayerTilt(angle, strength, divisor)` is a three-argument multitask. A nonzero
+receiver attribute 26 starts the actor diagnostic path before tilt calculation.
+The task uses half the larger receiver X/Z extent, converted to the local
+coordinate scale by a left shift of eight followed by division by two toward
+zero, as its distance limit.
+
+When the selected player's retained actor association is not the receiver, the
+target pitch and roll are both zero. Otherwise, the task computes a bearing
+from the player's local X/Z to the receiver's effective X/Z. Effective position
+on the ordinary attribute-zero path uses the linked record's position when the receiver has an active linked record,
+and the receiver's local position otherwise. The bearing, receiver heading and
+`angle` are added and masked to 2048 units, producing `a`. The unscaled targets
+are:
+
+- Pitch: `512 - a` when `a < 1024`, otherwise `a - 1536`, then negated.
+- Roll: `a` when `a < 512`, `1024 - a` when `512 <= a < 1536`, otherwise `a - 2048`.
+
+The distance used for strength is the horizontal integer distance between the
+receiver's local position and the player's local position. This is distinct
+from the effective position used for bearing. Distance is capped at the limit.
+The associated-receiver branch divides by the limit without a zero guard.
+The fixed-point distance factor is
+`(trunc(16777216 / limit) * capped_distance) >> 16`. The supplied strength is
+multiplied by that factor and arithmetically shifted right by eight. Each
+unscaled target is multiplied by the resulting strength, arithmetically shifted
+right by eight and masked to 2048 units. Multiplication and intermediate integer
+arithmetic wrap at 32 bits.
+
+If both current angles already equal their targets, the task returns one
+without requesting an orientation refresh. Otherwise, each axis uses the
+shortest signed wrapped difference from its current angle to its target. The
+exact half-turn difference retains the sign of target minus current. With a
+zero `divisor`, the step starts as that difference. With a nonzero divisor, it
+is the signed quotient truncated toward zero, clamped to a minimum of one.
+The shared integer update multiplier then multiplies the step with 32-bit
+wrapping.
+
+For each axis, a signed difference greater than its step adds the step to the
+current angle; otherwise the target is stored directly. After these stores, the
+task requests the receiver's orientation refresh. If that service returns, the
+task returns one. The diagnostic and orientation-refresh services are separate
+dependencies of the native.
