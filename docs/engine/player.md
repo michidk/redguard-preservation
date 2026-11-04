@@ -1881,6 +1881,62 @@ actor: 114 when the actor holds a weapon (attribute 110,
 `attr_holding_weapon`, nonzero, or the drawn-weapon test), otherwise 66 when its
 burning-torch byte is nonzero, else 65.
 
+A landed actor then bounces off its support through living states 27, 28 and
+29. Each update returns zero without moving the actor when the support
+reference is empty, the support has no animation or model link, or the
+support's attribute 98 is zero; it then clears the support reference and the
+living state. Otherwise:
+
+- In state 27, while the support's current group is 10 in the first half of
+  its frames, the actor's sliding, falling and queued-motion bytes and its two
+  retained motion words are cleared and the update reports handled. After that
+  half the state becomes 28 with a lift of `attribute_32 × factor[0] × 16`.
+- In states 27 to 29, once past the wait above, the actor moves forward along
+  its heading by `(128 − support attribute 99) × 256 / 3`, frame-scaled.
+- In state 28 the lift, frame-scaled, is subtracted from Y and decays by
+  `(256 − support attribute 98) × 16`, frame-scaled. While lift remains the
+  actor requests group 112 with a weapon held, 38 with a burning torch,
+  otherwise 39, clears its sliding, falling and queued-motion bytes and the
+  update reports handled. When the lift is spent the fall origin becomes
+  `Y + attribute_32 × factor[30]`, the fall timer 30 and the falling byte 1;
+  the actor forces group 113 with a weapon held (unless the current group
+  is 115), 57 with a burning torch, otherwise 56, and the state becomes 29.
+- A zero falling byte after these steps (the actor has landed) clears the
+  living state and the support reference.
+
+States 30 and 31 belong to [`BounceObject`](SOUP.md#bounceobject) and report
+handled here; state 32 reports unhandled.
+
+### Living states
+
+The living-state byte (`extra_flag`) holds the actor's current special
+action. Zero is ordinary movement. The engine writes the values below; a
+script can write any byte through `extra_flag`.
+
+| State | Meaning | Owner |
+|---|---|---|
+| 0 | Ordinary | |
+| 10 | Turning to a high ledge | [Ledge transition](#ledge-transition) |
+| 11 | High climb | Ledge transition |
+| 12 | Turning to a low ledge | Ledge transition |
+| 13 | Low climb | Ledge transition |
+| 14 | Catching a hang | Ledge transition |
+| 15 | Hanging | Ledge transition |
+| 16 | Climb from hang | Ledge transition |
+| 17 | Dropping | Ledge transition |
+| 18 | Climb finished | Ledge transition |
+| 19 | Entering a ledge | Ledge transition |
+| 20 | Drawing a sword | [Animation](animation.md) |
+| 21 | Sheathing a sword | [Animation](animation.md) |
+| 27 | Landed on a bouncing actor | Actor bounce, above |
+| 28 | Bouncing up from an actor | Actor bounce |
+| 29 | Falling from an actor bounce | Actor bounce |
+| 30 | Bounce entry requested | [`BounceObject`](SOUP.md#bounceobject) |
+| 31 | Bounce rising | `BounceObject` |
+| 32 | Bounce falling | `BounceObject` |
+| 33 | Lighting a torch | [HUD](hud.md) |
+| 34 | Dousing a torch | HUD |
+
 The overlap pass visits its retained actor-style candidate list in order. Later
 queries read the positions left by earlier responses. If any weighted
 separation occurred and the loop completes, the forward obstacle response

@@ -1987,6 +1987,15 @@ on the stack after those three register arguments, the final slot remains on
 the caller's stack. Preserve the declaration's eight-argument count separately
 from the handler's four-slot stack cleanup.
 
+### Diagnostic writer
+
+The diagnostic writer can suppress a request before formatting. A separate
+presentation setting can suppress storage after formatting. When storage is
+enabled, the writer limits the formatted message to 255 characters and copies it
+into the first empty slot of a 66-slot diagnostic buffer. A full buffer discards
+the message. These paths return normally; issuing a diagnostic does not guarantee
+that the message enters the buffer.
+
 ### Spare1Parm6 diagnostic
 
 `Spare1Parm6(first, second, third, fourth, fifth, sixth)` takes six script
@@ -2439,6 +2448,27 @@ movement-distance check permits it, and completes once the backward step fails a
 has finished (called flags set); otherwise it turns to the final heading (returning one while turning), snaps on
 arrival (called flags set, default animation requested, return zero) and otherwise takes the close step that the
 relative bearing selects, as in close alignment, returning one unless the collision response is stale.
+
+### Shell execution context transitions
+
+The shell-context enter operation does nothing when the shell system is disabled
+or the context word is already one. Otherwise it writes one and saves three
+shared execution words. The leave operation does nothing when the shell system
+is disabled or the context word is already zero. Otherwise it writes zero,
+clears the current-shell reference and restores those three execution words.
+These transition guards are distinct from `IsShellScript` returning the context
+word unchanged when its enabled, nonempty-list and nonnull-receiver gates pass.
+
+### ObjectParallelLineUp target binding
+
+`ObjectParallelLineUp(angle, x_offset, z_offset)` moves its receiving actor
+relative to the current task-target actor. It reads that target through the
+position and orientation accessors. The destination is target X plus `x_offset`,
+target Y unchanged, and target Z plus `z_offset`. The destination heading is the
+target heading plus `angle`, wrapped to 2048. The coordinate additions use
+32-bit wrapping arithmetic. The wrapper forwards these values to the parallel
+mover and returns its result unchanged. It does not update the shared
+player-lineup result. The wrapper provides no unavailable-target fallback.
 
 ### Alignment distance thresholds
 
@@ -5303,6 +5333,15 @@ not create a record.
 
 The explicit light-record field assignments cover the control flags, offsets, current and
 starting intensity and radius, and modulation fields. They do not include the RGB colour channels.
+
+The backing heap's existing-free-block allocation operation updates block and
+free-list metadata. It does not clear the light record's RGB payload bytes,
+whether it splits the free block or consumes the whole block.
+
+The allocation tracking context is requested separately as a 300-byte block.
+Its allocation service zero-fills its allocated block before optional guard
+registration. This context request is distinct from the 41-byte light-record
+allocation request.
 
 Map loading gives a type-4 object a record of its own: locked and enabled, with the placement's intensity
 and radius as both current and starting values and colour zero (the placement's colour is not copied, unlike
