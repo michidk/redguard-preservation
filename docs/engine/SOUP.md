@@ -6526,6 +6526,13 @@ before reading the group data. A group request also requires this pointer
 and rejects a static selection byte equal to one. Other nonzero selection
 byte values do not satisfy that equality test.
 
+The file-based loader installs and initializes the new group record before
+opening its group-data file. A zero open result records the input name as
+error context and requests system error 58. The loader performs no rollback
+of the group pointer or static selection byte before that request. If the
+error service returns, the loader passes the same zero file handle to the
+next section lookup; it does not return a recoverable load-failure result.
+
 ### GetBroadcastSenderId query
 
 `GetBroadcastSenderId()` is a zero-argument function. It uses the receiver's
