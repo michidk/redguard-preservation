@@ -245,6 +245,12 @@ rows using the source stride; capturing it does not select a renderer palette.
 The clock resumes on exit. Each screen update waits for the next 18.2 Hz BIOS
 tick.
 
+Each admitted update draws the candle with its show timer pinned to 50 and
+advances its existing [animation state](#animation) once. Lockout can hide the
+candle without stopping that state update. The clock wait admits a drawing
+pass when the sampled tick changes; a jump of several ticks still produces
+one pass, without catching up the skipped ticks.
+
 ### Inventory bitmap resources
 
 Inventory bitmap initialization releases the previous mask, border and arrow
