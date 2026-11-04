@@ -2124,6 +2124,15 @@ also returns zero for this null slot before reading the parameter count or
 writing the argument buffer. These are null-slot dispatch paths, rather than a
 named zero-argument native handler.
 
+For a non-null handler, the dispatcher takes the argument count from the call
+record, without comparing it to the declaration in `SOUP386.DEF`. Its dispatch
+paths cover counts zero through eight. Supplied operands are evaluated from
+last to first; the handler receives the first three arguments in registers
+and any remaining arguments on the stack, in authored order. A count of zero
+evaluates no operands and does not initialize argument registers to zero.
+This dispatch rule does not define a value for an argument the handler expects
+but the call does not supply.
+
 ### Parameter Type Overrides
 
 When a Numeric (`0x07`) or NumericAlt (`0x16`) opcode appears in PARAMETER mode, the 4-byte value may be reinterpreted based on the calling function:
