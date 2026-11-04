@@ -101,6 +101,15 @@ during cursor-offset initialization. In the Glide path, bitmap preparation
 replaces decoded pixel storage with texture identifiers before cursor-offset
 initialization reads that storage.
 
+In the software path, bitmap preparation retains the decoded pixel buffer.
+Cursor loading supplies a palette destination, which bypasses pixel remapping.
+The second frame of each pair is scanned in row order, from left to right.
+Every pixel with palette index 16 stores its column and row as the cursor
+offset, so the last matching pixel supplies the final offset. If no pixel
+matches, this scan does not write the offset fields. These pixel semantics
+apply to the software path; Glide preparation replaces the pixel buffer with
+texture identifiers as described above.
+
 Initialization creates `(frame_count - 1) / 2` cursor descriptors, with integer
 division rounded toward zero, in a table of 64 slots. The 30-frame cursor
 archive therefore supplies 14 cursors; its last two frames are not admitted.
