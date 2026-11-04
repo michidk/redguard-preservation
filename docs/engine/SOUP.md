@@ -1987,6 +1987,16 @@ on the stack after those three register arguments, the final slot remains on
 the caller's stack. Preserve the declaration's eight-argument count separately
 from the handler's four-slot stack cleanup.
 
+The native dispatcher uses the argument-count byte in the encoded call record.
+An eight-argument record evaluates all eight operands from last to first, places
+three argument values in registers, and pushes five argument words. The dispatcher
+restores its saved registers immediately after the native returns; it does not
+repair a discrepancy between the pushed words and the native's stack cleanup.
+For an eight-argument record targeting `Spare1Parm7`, the handler leaves the eighth
+argument in front of those saved registers, so the dispatcher restores and returns
+from shifted stack positions. A seven-argument record pushes four words and is
+balanced by this handler's four-word cleanup.
+
 ### Spare1Parm6 diagnostic
 
 `Spare1Parm6(first, second, third, fourth, fifth, sixth)` takes six script
