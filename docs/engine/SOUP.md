@@ -2215,15 +2215,17 @@ and do nothing when synchronization is disabled, that channel is zero, or the
 caller has no member entry there. `ResetGroupSync` uses the equivalent guards
 and current byte 29 for its group member entry.
 
-`ResetGroupSync` takes no arguments. It reads byte 29 through the receiver's
-control record before testing whether synchronization is enabled. It does not
-validate the receiver or control pointer and does not use the selected player.
-Its member lookup searches the current channel's list in link order and stops
-at the first matching actor identity. If duplicate entries exist, only the
-first matching member's posted byte is cleared. The other member fields, links,
-channel heads, enable word and actor data remain unchanged. The native does
-not assign a defined success result. It preserves the incoming non-result
-general registers and leaves argument-stack cleanup to its caller.
+`ResetGroupSync` and `ResetUserSync` take no arguments. They read bytes 29
+and 30 respectively through the receiver's control record before testing
+whether synchronization is enabled. Neither validates the receiver or control
+pointer or uses the selected player. Each member lookup searches its own
+current channel's list in link order and stops at the first matching actor
+identity. The user reset uses the user-channel heads independently of the
+group-channel heads. If duplicate entries exist, only the first matching
+member's posted byte is cleared. The other member fields, links, channel
+heads, enable word and actor data remain unchanged. Neither native assigns
+a defined success result. Both preserve the incoming non-result general
+registers and leave argument-stack cleanup to their callers.
 
 <a id="animation-task-ownership-and-stopping"></a>
 
