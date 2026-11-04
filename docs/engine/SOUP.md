@@ -154,6 +154,21 @@ fatal error 192 before attempting creation. Within shell-record creation,
 name resolution precedes the check that shell records are enabled, so disabling
 shell records does not bypass name resolution.
 
+Name resolution removes one configured script-directory prefix when the name
+starts with that prefix, comparing ASCII letters without case. It performs no
+separator conversion. It copies the remaining name into shared scratch storage
+and converts ASCII lowercase letters to uppercase. If the resulting name is
+longer than three bytes and ends in `.AI`, it removes that one suffix. The
+three-byte name `.AI` itself remains unchanged.
+
+The resolver searches the current world's script records in order and returns
+the first name matching without ASCII case. Duplicate names select the first
+record. An empty name can match an empty record name. A nonpositive script
+count performs no comparisons. If no record matches, the resolver records the
+normalized and original names, emits a diagnostic and requests fatal error 107.
+The supplied name and script records are unchanged; normalization uses the
+shared scratch string.
+
 ### Ordinary update gates
 
 `SYSTEM.INI`'s `[system] task_system` enables the ordinary entry, task, and main
