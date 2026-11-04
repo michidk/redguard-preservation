@@ -106,7 +106,7 @@ Each row is one command. The alias invokes the same handler from the interactive
 | `break` | `b` | `break`. Enters the engine error path with the critical-drive-error code. Not a general-purpose script breakpoint. |
 | `poke` | `p` | `poke address,byte[,byte...]`. Validates an address and byte values, then displays one line of memory. Contains no memory write. Values outside -128 through 255 are rejected. |
 | `restart` | `rs` | `restart video / xngine`. Restarts the video subsystem or the rendering engine. Does not start a new game. |
-| `delay` | `dl` | `delay [number]`. Sets an artificial delay in the main loop; omission or zero clears it. |
+| `delay` | `dl` | `delay [number]`. Sets a wait of that many milliseconds, taken once per main-loop pass while the value is nonzero, as a busy wait calibrated at startup against the system clock. The number is read as decimal digits up to the first other byte, so omission, zero or a non-number clears it. |
 
 ### State and scripts
 
