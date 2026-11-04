@@ -111,6 +111,11 @@ subtraction wraps to a signed 16-bit value before the image is drawn. Drawing
 requires the cursor archive to be loaded, the mouse driver to be initialized,
 cursor drawing to be enabled, and the selected descriptor to be present.
 
+Initialization requests cursor zero. Selecting a cursor requires an initialized
+mouse driver and enables cursor drawing. The interactive modes entered by
+`object select`, `scene`, `fxselect`, and `pvoaddpatch` initialize the cursor
+resources and call the cursor draw routine.
+
 ## External References
 
 - [Miles DOS driver interfaces](https://github.com/swfans/swars/blob/master/bfsoundlib/include/mssal.h)
