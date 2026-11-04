@@ -7553,3 +7553,21 @@ returns zero, including when the word is already zero. It retains the saved
 value and pushed-value flag. The native does not invoke item selection,
 dependent-item removal or a presentation service. The receiver does not alter
 the lookup or clearing operation.
+
+### PlayerSnap local-position copy
+
+`PlayerSnap(angle, x_offset, z_offset)` is a function with three arguments. It
+forms a temporary heading from the receiver's heading plus `angle`, masked to
+2048 heading units, and passes temporary copies of the two offsets to the
+planar rotation helper. It adds the receiver's local X/Z to those temporaries.
+
+The selected player's stored local X/Z are then copied directly from the
+receiver's local X/Z. The computed temporary coordinates are discarded. The
+three arguments therefore do not supply a positional offset to the player.
+The function returns zero, retains both actors' Y and heading fields, and does
+not invoke the ordinary position-update or collision services. When the
+receiver is the selected player, the two assignments retain the existing X/Z.
+
+The rotation helper still executes before the copy, including its table reads
+and floating-point operations. Discarding its temporary results does not remove
+that dependency or its floating-point exception behavior.
