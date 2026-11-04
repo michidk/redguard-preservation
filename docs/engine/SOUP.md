@@ -6533,6 +6533,14 @@ of the group pointer or static selection byte before that request. If the
 error service returns, the loader passes the same zero file handle to the
 next section lookup; it does not return a recoverable load-failure result.
 
+Startup reads `debug.console_error` and `debug.attempt_recover` from
+`SYSTEM.INI`. A nonzero `attempt_recover` setting forces `console_error` to
+one. The system-error recovery branch requires `console_error` to equal
+one before notification and tests the stored `attempt_recover` word again
+after notification returns. It does not use the notification routine's
+numeric return value for that test. These settings do not bypass the
+other system-error phase and display-status gates.
+
 ### GetBroadcastSenderId query
 
 `GetBroadcastSenderId()` is a zero-argument function. It uses the receiver's
