@@ -96,17 +96,17 @@ profiles and setup files.
 
 The `[system] pointers` setting in `SYSTEM.INI` supplies the cursor archive
 path. Cursor initialization consumes consecutive frame pairs. The first frame
-of each pair supplies the displayed image. The second supplies the hotspot:
-the loader scans its indexed pixels in row order and records the column and
-row of each pixel whose index is 16. When several pixels match, the last one
-in that order supplies the hotspot.
+of each pair supplies the displayed image. The second supplies storage read
+during cursor-offset initialization. In the Glide path, bitmap preparation
+replaces decoded pixel storage with texture identifiers before cursor-offset
+initialization reads that storage.
 
 Initialization creates `(frame_count - 1) / 2` cursor descriptors, with integer
 division rounded toward zero, in a table of 64 slots. The 30-frame cursor
 archive therefore supplies 14 cursors; its last two frames are not admitted.
 
 The cursor draw routine uses the selected pair's first frame and places its
-top-left corner at the pointer position minus the hotspot. Each coordinate
+top-left corner at the pointer position minus the stored cursor offset. Each coordinate
 subtraction wraps to a signed 16-bit value before the image is drawn. Drawing
 requires the cursor archive to be loaded, the mouse driver to be initialized,
 cursor drawing to be enabled, and the selected descriptor to be present.
