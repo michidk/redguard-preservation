@@ -1987,6 +1987,15 @@ on the stack after those three register arguments, the final slot remains on
 the caller's stack. Preserve the declaration's eight-argument count separately
 from the handler's four-slot stack cleanup.
 
+### Diagnostic writer
+
+The diagnostic writer can suppress a request before formatting. A separate
+presentation setting can suppress storage after formatting. When storage is
+enabled, the writer limits the formatted message to 255 characters and copies it
+into the first empty slot of a 66-slot diagnostic buffer. A full buffer discards
+the message. These paths return normally; issuing a diagnostic does not guarantee
+that the message enters the buffer.
+
 ### Spare1Parm6 diagnostic
 
 `Spare1Parm6(first, second, third, fourth, fifth, sixth)` takes six script
