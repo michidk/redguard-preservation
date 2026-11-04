@@ -6560,6 +6560,15 @@ changes no other receiver bytes and makes no calls to release or modify the
 payload. Nonzero control words are treated alike, including values with only
 the sign bit set.
 
+The control word is the actor's animation-group record pointer. On the
+file-based group-loading path, a missing frame table or a static selection
+byte equal to one skips record creation. Otherwise the loader releases any
+existing group record, stores a newly allocated 749-byte record in this word,
+zeros that record and initializes its first signed group word to minus one
+before reading the group data. A group request also requires this pointer
+and rejects a static selection byte equal to one. Other nonzero selection
+byte values do not satisfy that equality test.
+
 ### GetBroadcastSenderId query
 
 `GetBroadcastSenderId()` is a zero-argument function. It uses the receiver's
