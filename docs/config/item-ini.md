@@ -154,6 +154,11 @@ each entry. These lists run once per acquisition request, independent of the
 quantity admitted. Active-item fallback selection runs next; the acquired item's
 owned count increases last. The quantity is not recalculated after list effects.
 
+The authored `player_total[x]` assignment and the final acquisition increment
+write the current owned count only. Neither direct count write replaces the
+separate pushed-value flag or saved count used by
+[PushItem and PopItem](../engine/SOUP.md#pushitem-saved-value-replacement).
+
 An absent `start_item_select` selects the first loaded item record. A supplied
 value selects its matching record. This initialization selection does not filter
 by owned count or visibility.
