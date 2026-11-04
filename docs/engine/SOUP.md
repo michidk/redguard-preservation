@@ -2449,7 +2449,6 @@ has finished (called flags set); otherwise it turns to the final heading (return
 arrival (called flags set, default animation requested, return zero) and otherwise takes the close step that the
 relative bearing selects, as in close alignment, returning one unless the collision response is stale.
 
-<<<<<<< HEAD
 ### Shell execution context transitions
 
 The shell-context enter operation does nothing when the shell system is disabled
@@ -2459,7 +2458,7 @@ is disabled or the context word is already zero. Otherwise it writes zero,
 clears the current-shell reference and restores those three execution words.
 These transition guards are distinct from `IsShellScript` returning the context
 word unchanged when its enabled, nonempty-list and nonnull-receiver gates pass.
-=======
+
 ### ObjectParallelLineUp target binding
 
 `ObjectParallelLineUp(angle, x_offset, z_offset)` moves its receiving actor
@@ -2470,7 +2469,6 @@ target heading plus `angle`, wrapped to 2048. The coordinate additions use
 32-bit wrapping arithmetic. The wrapper forwards these values to the parallel
 mover and returns its result unchanged. It does not update the shared
 player-lineup result. The wrapper provides no unavailable-target fallback.
->>>>>>> origin/main
 
 ### Alignment distance thresholds
 
