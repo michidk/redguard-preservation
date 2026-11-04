@@ -413,6 +413,12 @@ View (`key_c`) opens the cursor item's examine view with its
 `inventory_object_file` model. When that view returns a nonzero result, the
 inventory screen closes without changing the selection.
 
+Each loop latches View before waiting for the next tick. It updates the cursor
+and draws the inventory before servicing the pending View request. With a valid
+cursor, that request is handled before ordinary exit keys are tested, including
+when View and an exit key are sampled together. After the view returns, the exit
+test uses the controls remaining after the view's release wait.
+
 On the screen update that opens View, the inventory drawing pass omits the
 cursor item's bitmap, quantity and description. Other visible cells keep their
 ordinary drawing behavior. The inventory background and health candle are still
