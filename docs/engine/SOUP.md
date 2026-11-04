@@ -2440,6 +2440,17 @@ has finished (called flags set); otherwise it turns to the final heading (return
 arrival (called flags set, default animation requested, return zero) and otherwise takes the close step that the
 relative bearing selects, as in close alignment, returning one unless the collision response is stale.
 
+### ObjectParallelLineUp target binding
+
+`ObjectParallelLineUp(angle, x_offset, z_offset)` moves its receiving actor
+relative to the current task-target actor. It reads that target through the
+position and orientation accessors. The destination is target X plus `x_offset`,
+target Y unchanged, and target Z plus `z_offset`. The destination heading is the
+target heading plus `angle`, wrapped to 2048. The coordinate additions use
+32-bit wrapping arithmetic. The wrapper forwards these values to the parallel
+mover and returns its result unchanged. It does not update the shared
+player-lineup result. The wrapper provides no unavailable-target fallback.
+
 ### Alignment distance thresholds
 
 Alignment position tests use local Q8 X/Z and the shared integer distance
