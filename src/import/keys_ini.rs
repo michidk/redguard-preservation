@@ -19,6 +19,9 @@ pub const PLAYER_KEYS: [&str; 8] = ["up", "down", "left", "right", "a", "b", "c"
 pub struct KeysIni {
     /// Keyboard slot, in [`PLAYER_KEYS`] order, before user overrides.
     pub keyboard: [u8; 8],
+    /// Joystick slot (`key_*[1]`), in [`PLAYER_KEYS`] order; zero when absent. Active
+    /// alongside the keyboard slot: an action reads its keyboard OR joystick code.
+    pub joystick: [u8; 8],
     /// Optional user overrides; zero or missing means no override.
     pub user: [u8; 8],
     /// Inventory, sword, health, map, log, next, previous.
@@ -38,6 +41,7 @@ impl KeysIni {
     pub fn parse(content: &str) -> Result<Self, String> {
         let mut keyboard = [None; 8];
         let mut user = [0; 8];
+        let mut joystick = [0; 8];
         let mut section = String::new();
         let mut extra = [0; 7];
         let mut names = vec![None; 140];
@@ -82,6 +86,20 @@ impl KeysIni {
                     .ok_or_else(|| format!("KEYS.INI [input] {key}: expected code 0..139"))?;
             }
             for (index, name) in PLAYER_KEYS.iter().enumerate() {
+                if key == format!("key_{name}[1]") {
+                    joystick[index] = value
+                        .trim()
+                        .parse::<u8>()
+                        .ok()
+                        .filter(|code| *code <= 139)
+                        .ok_or_else(|| {
+                            format!(
+                                "KEYS.INI [input] {key}, line {}: expected input code 0..139, got {value:?}",
+                                line_number + 1
+                            )
+                        })?;
+                    continue;
+                }
                 let is_keyboard = key == format!("key_{name}[0]");
                 if !is_keyboard && key != format!("user_key_{name}") {
                     continue;
@@ -97,6 +115,7 @@ impl KeysIni {
         }
         let mut result = Self {
             keyboard: [0; 8],
+            joystick,
             user,
             extra,
             names,
@@ -121,6 +140,12 @@ impl KeysIni {
                 self.extra[i - 8]
             }
         })
+    }
+
+    /// Installed joystick-slot codes, in [`PLAYER_KEYS`] order; zero is unbound.
+    #[must_use]
+    pub fn joystick_codes(&self) -> [u8; 8] {
+        self.joystick
     }
 
     /// Keyboard codes after applying nonzero user overrides.
@@ -151,6 +176,20 @@ mod tests {
             KeysIni::parse(&text).unwrap().keyboard_codes(),
             [72, 31, 30, 32, 42, 57, 56, 18]
         );
+    }
+
+    #[test]
+    fn reads_the_joystick_slot_and_rejects_bad_codes() {
+        let text = format!(
+            "{INPUT}key_up[1]=138\nkey_down[1]=139\nkey_left[1]=136\nkey_right[1]=137\nkey_a[1]=135\nkey_b[1]=133\nkey_c[1]=134\nkey_d[1]=132\n"
+        );
+        assert_eq!(
+            KeysIni::parse(&text).unwrap().joystick_codes(),
+            [138, 139, 136, 137, 135, 133, 134, 132]
+        );
+        assert_eq!(KeysIni::parse(INPUT).unwrap().joystick_codes(), [0; 8]);
+        let bad = format!("{INPUT}key_up[1]=140\n");
+        assert!(KeysIni::parse(&bad).unwrap_err().contains("key_up[1]"));
     }
 
     #[test]
