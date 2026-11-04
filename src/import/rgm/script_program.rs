@@ -207,10 +207,15 @@ impl Decoder<'_> {
             _ => return Err(format!("unsupported assignment opcode {opcode}")),
         })
     }
-    fn call(&mut self, target: Object, kind: CallKind) -> Result<Call, String> {
+    fn call(
+        &mut self,
+        target: Object,
+        kind: CallKind,
+        self_statement: bool,
+    ) -> Result<Call, String> {
         let id = self.word()?;
         let count = if id == 0 { 0 } else { self.byte()? };
-        self.call_arguments(id, count, target, kind)
+        self.call_arguments(id, count, target, kind, self_statement)
     }
     fn call_arguments(
         &mut self,
@@ -218,13 +223,20 @@ impl Decoder<'_> {
         count: u8,
         target: Object,
         kind: CallKind,
+        self_statement: bool,
     ) -> Result<Call, String> {
         let function = self
             .definition
             .functions
             .get(usize::from(id))
             .ok_or_else(|| format!("SOUP386.DEF function {id} absent"))?;
-        if count != function.param_count {
+        let encoded_reset_task = self_statement
+            && target == Object::Me
+            && kind == CallKind::Task
+            && function.name.eq_ignore_ascii_case("ResetAllAction")
+            && function.param_count == 0
+            && count == 2;
+        if count != function.param_count && !encoded_reset_task {
             return Err(format!(
                 "function {} requires {} arguments, found {count}",
                 function.name, function.param_count
@@ -234,6 +246,13 @@ impl Decoder<'_> {
         let mut arguments = Vec::with_capacity(usize::from(count));
         for _ in 0..count {
             arguments.push(self.value(Mode::Parameter)?);
+        }
+        if encoded_reset_task
+            && !arguments
+                .iter()
+                .all(|value| matches!(value, Value::Integer { .. }))
+        {
+            return Err("ResetAllAction extra operands require evidenced numeric literals".into());
         }
         Ok(Call {
             function_id: id,
@@ -311,12 +330,12 @@ impl Decoder<'_> {
                 }
             }
             2 => Value::Call {
-                call: Box::new(self.call(Object::Me, CallKind::Function)?),
+                call: Box::new(self.call(Object::Me, CallKind::Function, false)?),
             },
             25 | 26 => {
                 let target = self.object()?;
                 Value::ObjectCall {
-                    call: Box::new(self.call(target, CallKind::Function)?),
+                    call: Box::new(self.call(target, CallKind::Function, false)?),
                 }
             }
             _ => return Err(format!("unsupported value opcode {opcode}")),
@@ -343,7 +362,7 @@ impl Decoder<'_> {
                 let kind =
                     [CallKind::Task, CallKind::Multitask, CallKind::Function][usize::from(opcode)];
                 Operation::Call {
-                    call: self.call(Object::Me, kind)?,
+                    call: self.call(Object::Me, kind, true)?,
                 }
             }
             3 => {
@@ -404,7 +423,7 @@ impl Decoder<'_> {
                 let target = self.object()?;
                 let kind = self.kind()?;
                 Operation::ObjectCall {
-                    call: self.call(target, kind)?,
+                    call: self.call(target, kind, false)?,
                 }
             }
             27 => Operation::TaskStop {
@@ -504,7 +523,8 @@ pub fn decode_native_hook(
             .checked_add(usize::from(count) * 5)
             .ok_or("RAHK record end overflow")?;
         decoder.bytes = bytes.get(..end).ok_or("RAHK arguments truncated")?;
-        let call = decoder.call_arguments(function, count, Object::Me, CallKind::Function)?;
+        let call =
+            decoder.call_arguments(function, count, Object::Me, CallKind::Function, false)?;
         if decoder.cursor != end {
             return Err("RAHK arguments do not occupy five bytes each".into());
         }
