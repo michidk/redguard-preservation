@@ -256,8 +256,10 @@ screen pauses the game clock and captures the current frame before waiting
 for the key to be released. It then installs the inventory text settings.
 The saved frame contains tightly packed 16-bit pixels copied from the display
 rows using the source stride; capturing it does not select a renderer palette.
-The clock resumes on exit. Each screen update waits for the next 18.2 Hz BIOS
-tick.
+The clock resumes on exit. Each screen update polls input once and then waits
+for the next 18.2 Hz BIOS tick; the navigation and exit checks read that poll.
+A [mouse binding](../config/keys-ini.md) therefore reads the button release
+between two successive updates.
 
 Each admitted update draws the candle with its show timer pinned to 50 and
 advances its existing [animation state](#animation) once. Lockout can hide the
