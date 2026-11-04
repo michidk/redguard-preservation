@@ -228,6 +228,33 @@ world configuration, and chooses a new random scrolling direction.
 | `fxwavespeed` | `wsp` | `fxwavespeed value`. Sets the current world's wave speed. |
 | `fxwavefreq` | `wfrq` | `fxwavefreq value`. Sets the current world's wave frequency. |
 
+## Marker file
+
+`setmarker` and `getmarker` keep user markers in `REDGUARD.MRK`, opened by that bare name in the working directory. The marker number is a console expression, so a hexadecimal, decimal, binary or character literal, a console variable or a name from the installed tables are all accepted.
+
+| Offset | Size | Contents |
+|---|---|---|
+| 0 | 4 | Magic `UMRK`. |
+| 4 | 4 | Size field, little-endian: 4 plus 56 per record. It counts the tag and the records, not the magic, the size field or the trailer. |
+| 8 | 4 | Format tag, always zero. |
+| 12 | 56 each | Records, in insertion order. |
+| end - 4 | 4 | Trailer `END `. |
+
+A record is fourteen little-endian 32-bit values:
+
+| Index | Contents |
+|---|---|
+| 0 | Current world number. |
+| 1 | Marker number. |
+| 2-4 | Player position X, Y, Z in runtime units (256 per map unit), unscaled. |
+| 5-7 | Player orientation, three values. |
+| 8-10 | First camera triple. |
+| 11-13 | Second camera triple. |
+
+Both commands leave the file untouched without a player. `setmarker` creates the file when it is missing, and also rewrites it from scratch when its magic or tag does not match, losing any records it held. An existing record with the same world and marker number is overwritten in place. Otherwise the new record replaces the trailer, the trailer is written again after it and the size field grows by 56. `getmarker` reads the file and scans its records in order for the first one whose world and number both match the current world and requested number. A wrong magic or tag reports a file error and restores nothing, and a missing record restores nothing. A match sets the player position, copies it to the previous-position fields, applies the stored orientation and camera values, and refreshes the view.
+
+`getmapmarker number` reads the loaded map's own marker table instead of the file. A marker is valid when its index is below the table's count and its valid byte is 1; positions are stored in map units and multiplied by 256 to give the runtime position, which is also copied to the previous-position fields. An index outside the table or an invalid marker restores nothing. When no map table is loaded, the built-in table of 128 slots is used in the same way.
+
 ## Subcommands
 
 Comma-separated names in the first column denote separate alternatives unless the row shows an argument form such as `add,id`.
