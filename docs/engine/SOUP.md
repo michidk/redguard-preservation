@@ -2476,6 +2476,15 @@ it by the [support-response turn rules](player.md#ordinary-slope-response): zero
 heading already matches or the turn snaps to it, otherwise nonzero. A zero result clears the
 alignment flag and a nonzero one sets it, and the task reports that result.
 
+### IsOnEdge receiver query
+
+`IsOnEdge()` is a zero-argument function. A null actor receiver returns zero.
+Otherwise it reads the receiving actor's unsigned state byte and returns one
+for values 10 through 19 inclusive, zero for every other byte value. It reads
+the receiver directly rather than selecting the player, consulting a control
+record or querying collision geometry. The query leaves actor state unchanged
+and has no ordinary script/task enable gate.
+
 ### Receiver AI type query
 
 `MyAiType()` returns the receiving actor's lifecycle selector as an unsigned byte
