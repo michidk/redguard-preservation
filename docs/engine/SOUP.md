@@ -2498,6 +2498,16 @@ the receiver pointer.
 from 0 through 255. It reads the mode rather than the adjacent lifecycle
 selector, does not query the selected player and leaves actor state unchanged.
 
+### Receiver AI mode setter
+
+`SetAiMode(value)` is a one-argument function that replaces the receiving
+actor's AI-mode byte with the low eight bits of `value` and returns zero. It
+writes the byte queried by `MyAiMode`, leaving the adjacent lifecycle selector
+and other actor fields unchanged. The native writes directly into the receiver
+without reading a separate control-record pointer, invoking an AI service or
+testing ordinary script/task enable state. It does not validate the receiver
+pointer.
+
 <a id="attribute-reads-and-writes"></a>
 
 ### GetAttribute, SetAttribute, GetMyAttr, and SetMyAttr
