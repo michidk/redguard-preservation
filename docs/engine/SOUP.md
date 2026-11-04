@@ -5054,6 +5054,25 @@ model or changing the item. With both pointers nonnull, the next dependency is
 the temporary-model allocator. The lookup and these initial helper branches
 leave the item records and actor contents unchanged.
 
+### DisplayHandModel
+
+`DisplayHandModel(name, x, y, z)` is a four-argument function. It resolves
+`name` before testing the actor receiver or entering the hand-model helper.
+For ordinary single-byte names, lookup extracts at most eight characters of
+the base filename without its directory, drive or extension, uppercases ASCII
+letters and compares the resulting string with stored resource names. It
+searches the first resource list in order, then the second; the first match
+wins. Stored names are compared as stored rather than normalized during the
+comparison.
+
+A missing resource records the original name pointer and requests error 33.
+A matched resource of type 2 records the name pointer and requests error 34.
+For an accepted resource, the resolver returns its embedded model record.
+The wrapper then clears the shared temporary-model pointer and forwards the
+actor receiver, resolved model and all three offset words to the hand-model
+helper used by `DisplayHandItem`. Name resolution also runs for a null actor
+receiver. The fourth argument is passed on the stack.
+
 ### DisplayHiltItem
 
 `DisplayHiltItem(item, x, y, z)` is declared as a four-argument function. It
