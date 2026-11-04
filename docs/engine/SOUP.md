@@ -5301,6 +5301,9 @@ record, the first call creates one: disabled and unlocked, offsets zero, intensi
 radius 100 (each current value equal to its starting value), flicker fields zero. `LightOff` does
 not create a record.
 
+The light-record initializer assigns the control flags, offsets, current and starting
+intensity and radius, and modulation fields. It does not assign the RGB colour channels.
+
 Map loading gives a type-4 object a record of its own: locked and enabled, with the placement's intensity
 and radius as both current and starting values and colour zero (the placement's colour is not copied, unlike
 for a type-6 object), so those objects' first light call updates an existing record.
