@@ -6792,6 +6792,22 @@ receiver metadata before any receiver-null protection, so a null receiver is
 not a safe input.
 
 
+### Messaging context lifecycle
+
+The messaging context contains 256 channel-array pointers. Each channel array
+contains the configured number of 12-byte entries and is cleared on allocation.
+Broadcast operations use channel zero. Each channel has a shared no-selection
+byte; receivers retain their own selection bytes separately.
+
+Context initialization first releases the previous context. Releasing an active
+context clears all channel no-selection bytes, releases the channel arrays and
+then releases the pointer table. Releasing an absent context skips the channel
+loop. Both release paths leave the context absent and its capacity zero.
+
+Separate map object updates copy the broadcast-selection byte from the separate
+record into the temporary actor before task processing and copy it back after
+processing. The selection therefore survives those temporary actor conversions.
+
 ### Broadcast availability query
 
 `IsBroadcastWaiting()` takes no arguments. It returns zero when the receiver's
