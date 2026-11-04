@@ -110,6 +110,12 @@ matches, this scan does not write the offset fields. These pixel semantics
 apply to the software path; Glide preparation replaces the pixel buffer with
 texture identifiers as described above.
 
+Glide preparation allocates a table of six 32-bit texture identifiers per
+frame. Cursor-offset initialization still scans a byte count equal to the
+frame width times its height. For the shipped cursor pairs, that scan exceeds
+the table's 24-byte payload and reads beyond it. The scan therefore does not
+define an offset derived from the decoded marker image in the Glide path.
+
 Initialization creates `(frame_count - 1) / 2` cursor descriptors, with integer
 division rounded toward zero, in a table of 64 slots. The 30-frame cursor
 archive therefore supplies 14 cursors; its last two frames are not admitted.
