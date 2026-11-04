@@ -5037,6 +5037,31 @@ clears the second image slot and stays active. The invocation at counter `count 
 discards the image, clears the drawn-image pointer and completes, so the image is drawn
 for `count - 1` frames (the same completion test as `Wait`). The main loop draws the pending image after the world frame.
 
+### AnimateGXA
+
+`AnimateGXA(name, first, cycle, count)` is a four-argument task. The native
+handler does not use its actor receiver. It shares the image task counter,
+loaded resource and animation progress. When the counter and cached resource
+are both zero, its first dependency is the image loader, called with `name`
+and a zero second parameter. Otherwise it uses the cached resource. When
+`counter >= count - 1`, using signed comparison, its first dependency is
+resource release with that cached resource.
+
+On the initialized active path, the handler publishes two image slots. Both
+are centered on a 640 by 480 screen using signed resource width and height:
+`x = floor((640 - width) / 2)` and
+`y = floor((480 - height) / 2)`. The first slot uses frame `first`. The second
+uses `first + progress + 1` when that index is below the signed resource frame
+count, and `first + 1` otherwise. The pointers come directly from the resource
+frame-pointer table; the native does not decode or draw those frames.
+
+After selecting both pointers, it adds the shared update increment to
+animation progress. With a positive `cycle`, it repeatedly subtracts `cycle`
+while progress is strictly greater than `cycle`; equality is retained. It
+returns one on this active path. Slot selection uses progress before this
+update. The native writes neither the actor receiver nor the cached resource
+contents on this path.
+
 ### DropAllItems
 
 `DropAllItems` takes no arguments and returns zero. When the task system is enabled it
