@@ -297,9 +297,8 @@ first visible row is retained between openings.
 
 The screen begins closing when `inventory_key`, Activate (`key_d`), the
 walk/run modifier (`key_a`), Escape or Enter is held. Closing first waits for
-the inventory key to release, then for Escape to release. It clears the candle
-show timer to zero, then samples Activate and Enter once. If either is held and
-the cursor is valid, the cursor
+the inventory key to release, then for Escape to release. It then samples
+Activate and Enter once. If either is held and the cursor is valid, the cursor
 item becomes the HUD [active item](#active-item); otherwise selection is
 unchanged. A confirmation released during those first waits does not select,
 and a confirmation first pressed during them can select.
@@ -314,8 +313,8 @@ ownership. A texture whose last group is released is freed even when repeated
 lookups had raised its reference count.
 
 The saved 16-bit frame is copied back using the destination display stride,
-then its buffer is freed. Exit calls display finalization, clears the cached
-candle health, frees the temporary item list, restores the saved text state
+then its buffer is freed. Exit calls display finalization, clears the candle
+show timer, frees the temporary item list, restores the saved text state
 and resumes the clock, in that order. Restoring the saved frame copies its
 pixel values directly; it does not select a renderer palette.
 
