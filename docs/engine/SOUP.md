@@ -5073,6 +5073,18 @@ actor receiver, resolved model and all three offset words to the hand-model
 helper used by `DisplayHandItem`. Name resolution also runs for a null actor
 receiver. The fourth argument is passed on the stack.
 
+### DisplayHiltModel
+
+`DisplayHiltModel(name, x, y, z)` is a four-argument function. It uses the same
+resource-name resolver as `DisplayHandModel`, including the missing-resource
+and type-2 error requests. Resolution runs even for a null actor receiver and
+precedes clearing the shared temporary-model pointer.
+
+After successful resolution, the native clears that pointer and forwards the
+receiver, resolved embedded model record and all three offset words to the
+distinct hilt-model helper used by `DisplayHiltItem`. It does not route to the
+hand-model helper. The fourth argument is passed on the stack.
+
 ### DisplayHiltItem
 
 `DisplayHiltItem(item, x, y, z)` is declared as a four-argument function. It
