@@ -2482,6 +2482,16 @@ alignment flag and a nonzero one sets it, and the task reports that result.
 value from 0 through 255. It does not query the selected player or the adjacent
 AI mode, and does not change the actor's state.
 
+### Receiver AI type setter
+
+`SetAiType(value)` is a one-argument function that replaces the receiving
+actor's lifecycle-selector byte with the low eight bits of `value` and returns
+zero. It writes the same byte queried by `MyAiType`, leaving the adjacent AI
+mode and other actor fields unchanged. The native writes directly into the
+receiver; it does not require or read a separate control-record pointer, invoke
+an AI service or test ordinary script/task enable state. It does not validate
+the receiver pointer.
+
 ### Receiver AI mode query
 
 `MyAiMode()` returns the receiving actor's AI mode as an unsigned byte value
