@@ -7762,3 +7762,12 @@ Both angles already at target return one without refreshing orientation.
 Otherwise the task stores its axis updates and requests orientation refresh;
 if that service returns, the task returns one. Diagnostic processing and
 orientation refresh remain separate service dependencies.
+
+### Selected-player health query
+
+`PlayerHealth` takes no script arguments. It reads attribute 3 as an unsigned
+byte through the selected player's control record and returns that value as
+a zero-extended integer. The script receiver is unused. The native performs
+no selected-player or control-record null check, makes no service calls, and
+does not change actor or control-record memory. It preserves the incoming
+non-result general registers and leaves argument-stack cleanup to its caller.
