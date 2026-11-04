@@ -5054,6 +5054,22 @@ model or changing the item. With both pointers nonnull, the next dependency is
 the temporary-model allocator. The lookup and these initial helper branches
 leave the item records and actor contents unchanged.
 
+### DisplayHiltItem
+
+`DisplayHiltItem(item, x, y, z)` is declared as a four-argument function. It
+clears the shared temporary-model pointer before looking up `item`, including
+when lookup is disabled or no item matches. The ordered lookup compares the
+complete unsigned identifier and stops at an earlier greater identifier. A
+missing match requests a diagnostic before entering the hilt-model helper.
+
+For a match, the native reads the same item hand-model pointer used by
+`DisplayHandItem`. It forwards that pointer, the actor receiver and all three
+offset words to a distinct hilt-model helper. The helper clears the shared
+temporary pointer again. A null receiver or null model pointer returns zero;
+with both nonnull, its next dependency is the temporary-model allocator. These
+initial branches leave item records and actor contents unchanged. The fourth
+argument is passed on the stack and removed on return.
+
 ### AnimateGXA
 
 `AnimateGXA(name, first, cycle, count)` is a four-argument task. The native
