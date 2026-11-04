@@ -295,12 +295,17 @@ first visible row is retained between openings.
 
 ### Exit
 
-The screen closes when `inventory_key`, Activate (`key_d`), the walk/run
-modifier (`key_a`), Escape or Enter is held. Activate and Enter select the
-item under the cursor, making it the HUD [active item](#active-item). The
-other keys close without changing the selection. The screen then waits until
-the inventory key, Escape, the walk/run modifier, Activate and Enter are all
-released.
+The screen begins closing when `inventory_key`, Activate (`key_d`), the
+walk/run modifier (`key_a`), Escape or Enter is held. Closing first waits for
+the inventory key to release, then for Escape to release. It then samples
+Activate and Enter once. If either is held and the cursor is valid, the cursor
+item becomes the HUD [active item](#active-item); otherwise selection is
+unchanged. A confirmation released during those first waits does not select,
+and a confirmation first pressed during them can select.
+
+After that selection test, closing waits for the walk/run modifier, Activate
+and Enter to release, in that order. Each wait completes once; a key pressed
+again after its wait has completed does not restart that earlier wait.
 
 Exit selects resource group 31 and releases group 28, then processes deferred
 texture residency changes. A texture also owned by another group retains that
