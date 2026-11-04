@@ -2133,6 +2133,17 @@ evaluates no operands and does not initialize argument registers to zero.
 This dispatch rule does not define a value for an argument the handler expects
 but the call does not supply.
 
+After a direct function statement returns, the statement reader advances past
+the two-byte function index and one-byte argument count, then skips five bytes
+per encoded operand. It uses the encoded count for this cursor advance, rather
+than the declaration's parameter count. The statement discards the native
+function's result.
+
+For a direct function statement invoking `ResetAllAction` with two numeric
+operands, both operands are evaluated, both action words are cleared, the timer
+is unchanged, and execution continues after both encoded operands. The reset
+handler ignores these values and supplies no defined function result.
+
 ### Parameter Type Overrides
 
 When a Numeric (`0x07`) or NumericAlt (`0x16`) opcode appears in PARAMETER mode, the 4-byte value may be reinterpreted based on the calling function:
