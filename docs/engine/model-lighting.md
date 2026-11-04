@@ -41,6 +41,9 @@ when the arithmetic does not overflow. The adjusted channels are expanded by
 multiplication by four; palette index zero is forced to black. The resulting
 table is installed and selected before the adjustment routine returns.
 
+Startup initializes all three palette channel offsets to zero. World entry resets
+all three fixed-point scales to 256 before installing its destination palette.
+
 Indexed solid-color model faces resolve their color index through the selected
 palette when the runtime model is prepared. The resolved RGB is stored in the
 runtime face, rather than looked up again for every draw. Direct packed-color
