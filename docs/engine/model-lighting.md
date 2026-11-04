@@ -44,6 +44,13 @@ table is installed and selected before the adjustment routine returns.
 Startup initializes all three palette channel offsets to zero. World entry resets
 all three fixed-point scales to 256 before installing its destination palette.
 
+World fade opacity is separate from the indexed palette table. The fade setter
+negates its signed fade input, clamps the result to `0..256`, and stores the
+black-overlay opacity without reading the supplied palette or selecting a table.
+When the initial world-view fade completes, the world loop applies the
+world-palette adjustment again before clearing the overlay. Intermediate fade
+opacity values therefore do not specify different palette RGB values.
+
 Indexed solid-color model faces resolve their color index through the selected
 palette when the runtime model is prepared. The resolved RGB is stored in the
 runtime face, rather than looked up again for every draw. Direct packed-color
