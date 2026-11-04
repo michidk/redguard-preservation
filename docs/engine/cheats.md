@@ -47,7 +47,7 @@ For example, after `oddjob = 2`, entering `oddjob` in the console stores one; en
 | 5 | `magiccarpet` | Fly mode — disables gravity and falling, allowing the player to walk horizontally through the air at current altitude |
 | 6 | `savecheats` | Writes all cheat states to `REDGUARD.CHT` so they persist across sessions |
 | 7 | `drevil` | Prevents player death — suppresses death handling when health reaches zero and bypasses some player damage application paths |
-| 8 | `drno` | Disables part of the non-player actor update path, reducing/skipping some NPC behavior processing |
+| 8 | `drno` | Disables part of the non-player actor update path, reducing/skipping some NPC behavior processing. While the state is nonzero, the per-actor update returns early for every actor except the selected player and the actor the camera setup was given, skipping the rest of that update. |
 | 9 | `goldfinger` | Retains a burning torch. During ordinary actor updates, a nonzero selected-player torch counter becomes 100 when the world frame is divisible by eight and living state is not 34. A zero counter remains zero. The refresh takes the place of the burn rules on that update: the counter is set to 100 without the water branches and without the countdown. |
 | 10 | `neversaydie` | Makes SOUP `PlayerDistance()` return `9999999` instead of calculating distance. |
 | 11 | `oddjob` | Recognized state slot: accepts toggles and explicit console values, appears in `oracle`, and persists in `REDGUARD.CHT`. |
