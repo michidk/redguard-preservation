@@ -1255,6 +1255,9 @@ attribute 105 equal to one, all water surfaces 1 through 4 refuse admission.
 After admission, clear the stable-position-valid flag. Living state 15 runs
 hang release and returns. Otherwise run selected-player edge entry; a handled
 entry returns before initializing queued motion.
+For a nonselected actor in living state 15, hang release does nothing. The
+native still returns zero after clearing stable-position validity, without
+changing motion state, position or animation.
 
 Ordinary initialization records current local Q8 Y as fall origin, clears the
 fall timer and accumulated sliding distance, then chooses the queued motion and
