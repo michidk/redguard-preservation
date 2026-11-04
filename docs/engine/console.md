@@ -164,7 +164,7 @@ match in the shared matcher, although flag commands require a nonempty pattern.
 
 | Command | Alias | Arguments and behavior |
 |---|---|---|
-| `render` | `rd` | `render on / off / static`. Enables/disables rendering or toggles static-object rendering. |
+| `render` | `rd` | `render on / off / static`. `on` and `off` clear and set a render-disable flag that starts clear; while it is set the main render pass is skipped. `static` toggles the static-object rendering flag, which starts set, and clears a related redraw variable. Any other word prints usage. |
 | `scene` | `sn` | `scene`. Enters an interactive scene inspection mode with information under the pointer. |
 | `pvotreeinfo` | `pvoi` | `pvotreeinfo`. Reports the loaded potentially-visible-object tree, lists, and patch count. |
 | `pvoaddpatch` | `pvoa` | `pvoaddpatch`. Interactively picks an object to add to the PVO patch list. |
@@ -253,7 +253,7 @@ A record is fourteen little-endian 32-bit values:
 
 Both commands leave the file untouched without a player. `setmarker` creates the file when it is missing, and also rewrites it from scratch when its magic or tag does not match, losing any records it held. An existing record with the same world and marker number is overwritten in place. Otherwise the new record replaces the trailer, the trailer is written again after it and the size field grows by 56. `getmarker` reads the file and scans its records in order for the first one whose world and number both match the current world and requested number. A wrong magic or tag reports a file error and restores nothing, and a missing record restores nothing. A match sets the player position, copies it to the previous-position fields, sets the player rotation angles (each masked to 0 through 2047, copied to the previous-angle fields, and the rotation matrix rebuilt), writes the camera position and angle values, and refreshes the view. The camera values are the same position and angle variables that the camera update rewrites each frame: before any camera has published, the position starts at 10000 map units on every axis and the angles at zero, and one camera mode publishes the player position plus a rotated offset together with the negated player angles masked to 0 through 2047.
 
-`getmapmarker number` reads the loaded map's own marker table instead of the file. A marker is valid when its index is below the table's count and its valid byte is 1; positions are stored in map units and multiplied by 256 to give the runtime position, which is also copied to the previous-position fields. An index outside the table or an invalid marker restores nothing. When no map table is loaded, the built-in table of 128 slots is used in the same way.
+`getmapmarker number` reads the loaded map's own marker table instead of the file. A marker is valid when its index is below the table's count and its valid byte is 1; positions are stored in map units and multiplied by 256 to give the runtime position, which is also copied to the previous-position fields. An index outside the table or an invalid marker restores nothing. When no map table is loaded, the built-in table of 128 slots is used in the same way; it starts with every slot unused and is filled only by the legacy marker registration routine, which stores three position values for one index at a time.
 
 ## Subcommands
 
