@@ -6792,6 +6792,17 @@ receiver metadata before any receiver-null protection, so a null receiver is
 not a safe input.
 
 
+### Broadcast availability query
+
+`IsBroadcastWaiting()` takes no arguments. It returns zero when the receiver's
+broadcast-selection byte equals the global broadcast no-selection byte, and one
+otherwise. It does not consume the selection or modify messaging state.
+
+The function requests the missing-context diagnostic when the broadcast context
+is absent. It checks only whether that context is present; it does not dereference
+the context or inspect a broadcast entry or sender. The receiver's storage is
+read without pointer validation.
+
 ### GetBroadcastSender query
 
 `GetBroadcastSender()` is a zero-argument function returning the sender pointer
