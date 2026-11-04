@@ -101,6 +101,10 @@ the loader scans its indexed pixels in row order and records the column and
 row of each pixel whose index is 16. When several pixels match, the last one
 in that order supplies the hotspot.
 
+Initialization creates `(frame_count - 1) / 2` cursor descriptors, with integer
+division rounded toward zero, in a table of 64 slots. The 30-frame cursor
+archive therefore supplies 14 cursors; its last two frames are not admitted.
+
 The cursor draw routine uses the selected pair's first frame and places its
 top-left corner at the pointer position minus the hotspot. Each coordinate
 subtraction wraps to a signed 16-bit value before the image is drawn. Drawing
