@@ -368,3 +368,16 @@ Otherwise accepted bit zero selects running motion eight before bit one can
 select motion nine; consumption clears the low two bits in both words before
 jump admission. All higher bits remain unchanged. Promotion merges the entire
 pending word into the accepted word before these gates and consumption.
+
+## Runtime script-control property
+
+`disable_script` is the receiver actor's runtime script-control byte, shared by
+the enable and disable control natives. Property reads are unsigned and writes
+retain the low eight bits. The masks retain the independent script, hook, task,
+object and combat meanings documented in SOUP.md. The descriptor is distinct
+from `sflags` and from the actor's attribute table.
+
+Actor allocation clears this byte, including pooled reuse, and the saved actor
+body retains it. A raw property write stores the complete byte; control natives
+modify only their own mask and preserve the other bits. Ordinary stage admission
+reads this same byte.
