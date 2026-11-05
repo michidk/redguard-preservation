@@ -6110,6 +6110,29 @@ with the shared nominal tick count. This refresh does not request an animation
 or invoke path selection. Arrival leaves the location word, delay, mode and
 `attr_collide` unchanged.
 
+### AI destination clearance
+
+Before its mode dispatch, the AI progress service tests direct destination
+clearance only when the receiver's AI mode is not 11 and `ai_delay` is zero.
+A clear result releases
+the receiver's held walk nodes and sets AI mode to 11. It then continues the
+same progress invocation; clearance does not itself complete the movement.
+
+The clearance query resolves the receiver's query position and measures rounded
+three-dimensional distance to the supplied Q8 destination. A distance greater
+than 131072 rejects the destination before collision queries. Equality proceeds.
+Both endpoints are then arithmetic-shifted right by eight into whole map units.
+The query consumes the retained candidate-model array in order without gathering
+a new array. Type-16 entries owned by the receiver or the selected player, and
+type-16 entries whose model is the receiver's embedded model, are skipped.
+
+Each remaining model receives the segment with polygon sidedness disabled.
+A null or failure-sentinel result does not block. A returned result blocks
+unless that candidate's owner is the receiver. The first blocking result
+returns false; reaching the end of the array returns true. The clearance
+query does not change the receiver's location, mode, delay or node reservations.
+Those state changes belong to the enclosing progress service.
+
 ### MovePos
 
 `MovePos(x, y, z)` is a three-argument function that returns a horizontal
