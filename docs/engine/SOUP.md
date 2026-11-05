@@ -856,11 +856,13 @@ request precedes the living-state clear. Other combinations retain state 17.
 
 The admitted state-17 transition sets the retained action-transition counter to
 six. Ordinary actor updates leave a zero counter unchanged. For a nonzero
-counter, if either of the first two directional bytes is zero and the signed
+counter, if either the queued-motion byte or falling-motion byte is zero and the signed
 counter is less than three, the counter clears immediately. This test does not
-depend on living state. Otherwise the update clears the high bit of both
-bytes, subtracts the low byte of the shared tick count with byte wrapping, and
-clamps a negative signed-byte result to zero.
+depend on living state. Otherwise the update clears the raised-arms bit of both motion
+bytes before subtracting the low byte of the shared tick count with byte wrapping, and
+clamps a negative signed-byte result to zero. The zero-counter and early-clear
+paths retain both motion bytes. Directional action words are not changed by this
+counter stage.
 
 ### Replenishing health
 
