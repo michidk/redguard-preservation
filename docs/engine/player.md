@@ -934,7 +934,10 @@ After collision attribute bit `0x04` ground response, an actor with queued
 motion, falling and sliding all zero marks its stable-position record valid
 and copies all three current local Q8 coordinates into that record. An update
 with any of those motion states nonzero retains the existing stable record and
-validity. This record is distinct from the position saved at update entry.
+validity. The caller of the [ground-support probe](#terrain-sink-recovery) ignores
+the probe's answer and applies this rule after it returns on every path,
+including the early exits for a handled bounce update or queued motion. This
+record is distinct from the position saved at update entry.
 Jump admission clears its validity before initializing queued motion.
 
 ### Ordinary slope response
