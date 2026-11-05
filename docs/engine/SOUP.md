@@ -859,7 +859,7 @@ six. Ordinary actor updates leave a zero counter unchanged. For a nonzero
 counter, if either the queued-motion byte or falling-motion byte is zero and the signed
 counter is less than three, the counter clears immediately. This test does not
 depend on living state. Otherwise the update clears the raised-arms bit of both motion
-bytes before subtracting the low byte of the shared tick count with byte wrapping, and
+bytes, subtracts the low byte of the shared tick count with byte wrapping, and
 clamps a negative signed-byte result to zero. The zero-counter and early-clear
 paths retain both motion bytes. Directional action words are not changed by this
 counter stage.
