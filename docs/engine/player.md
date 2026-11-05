@@ -1527,8 +1527,9 @@ samples the [terrain](#terrain-support-sampling) at the integer X and Z,
 truncating the height toward zero, and compares it with the query Y shifted
 right by eight plus the actor's positive Y extent. When the sample is smaller
 and the difference exceeds half of `post_collide_height`, the actor's local
-position takes its retained stable position, `move_counter` clears and the
-fall start runs:
+position takes its retained stable position (whether or not the
+[stable position](#stable-ordinary-position) is marked valid, leaving the mark
+unchanged), `move_counter` clears and the fall start runs:
 
 - Living state 15 leaves the actor unchanged.
 - Living states 27 to 32, or queued motion 24, first set queued motion to one,
