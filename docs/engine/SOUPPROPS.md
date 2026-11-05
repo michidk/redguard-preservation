@@ -276,3 +276,20 @@ requesting animation. After animation admission it advances that phase, preservi
 the other bits. Phase three keeps the full amount and remains saturated.
 The byte clears with actor allocation, including reuse, and remains part of
 the saved actor body.
+
+## Vertical-motion timer
+
+`origin_time` is the receiver actor's retained queued/falling vertical-motion
+timer byte. Property reads are unsigned and writes retain the low eight bits.
+The vertical-motion consumers interpret that same byte as signed: queued motion
+uses it as the factor index and advances it with byte wrapping, while falling
+uses factor zero when the signed timer is nonpositive. A positive falling timer
+selects its factor and decreases by the sum of the two fine-tick increments,
+with byte wrapping. Model-controlled vertical motion skips these arithmetic
+updates. A property write does not initialize a fall or move the actor.
+
+Actor allocation clears the byte, including reused pooled records. Jump entry
+initializes it to zero; ordinary fall entry initializes it to 30 when it records
+the fall origin. The timer remains part of the saved actor body, independently
+of playback allocation. It is distinct from the rope regrab countdown and
+`extra_time`.
