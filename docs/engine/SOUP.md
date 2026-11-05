@@ -6395,7 +6395,9 @@ direction.
 
 ### FxLightSize
 
-`FxLightSize(first, second)` is declared as a two-argument multitask. Its
+`FxLightSize(first, second)` configures the same radius-modulation channel as
+`LightSize(first, second)`. It does not enable the record or alter its lock flag.
+It is declared as a two-argument multitask. Its
 native handler resolves the receiver's auxiliary record, writes the low
 16 bits of `first` to one word and the low 16 bits of `second` to another,
 and clears the intervening word. It returns zero. The arguments are not
