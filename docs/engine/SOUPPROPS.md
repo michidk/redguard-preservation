@@ -381,3 +381,17 @@ Actor allocation clears this byte, including pooled reuse, and the saved actor
 body retains it. A raw property write stores the complete byte; control natives
 modify only their own mask and preserve the other bits. Ordinary stage admission
 reads this same byte.
+
+## Collision-metadata property
+
+`sflags` is the receiver actor's retained collision-metadata byte. Reads are
+unsigned and writes retain the low eight bits. It is independent of the runtime
+script-control byte `disable_script` and the actor's attribute table.
+
+Allocation clears the byte, including reuse of pooled actors, and the saved actor
+body retains it. On the static model-load path, a matching named ROB segment
+supplies its collision byte. The MPOB static-model fallback performs the same
+copy. Without a matching segment, that copy is skipped rather than assigning a
+new value. Live static face candidates retain this actor byte as support
+metadata. See [actor model initialization](animation.md) for the model-load
+lifecycle.
