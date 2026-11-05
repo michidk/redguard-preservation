@@ -5456,6 +5456,12 @@ actor's current model, rounded to the nearest integer, or 200 when the actor has
 collector keeps at most 64 entries. Queries made later in the same update (the in-sight test and the
 nonplayer movement probes) read this list without collecting again.
 
+The face-model list stores static placements and ordinary live actors with type
+`0x20`. Static entries have no actor owner; live entries retain their actor owner.
+Transient model entries have type `0x80` and no actor owner. This collector does
+not emit type `0x10`, even though some consumers have special exclusions for
+that type. Such exclusions do not change the types of entries this collector emits.
+
 ### Nonplayer blocked-ahead probe
 
 The movement helpers used by the combat decision ask whether the space ahead of the receiver is
@@ -5465,9 +5471,9 @@ X zero, Y equal to `(positive Y extent of the actor's body - SYSTEM.INI post_col
 in eight-fractional-bit units, and Z equal to `-14336`; rotates it by the actor's matrix; and adds the
 actor's query position. The resulting single point (radius zero) is tested against each model in the
 actor's [candidate list](#candidate-collection-for-an-ordinary-update): any contact blocks. Candidates are
-typed by source: static placements and the secondary list carry type `0x20`, actor-owned models carry type
-`0x80`. While the actor's queued-motion byte is `0x18` (24), actor-owned candidates are skipped, so
-only static models can block.
+typed by source: static placements and ordinary live actors carry type `0x20`, while transient models
+carry type `0x80`. While the actor's queued-motion byte is `0x18` (24), transient candidates are
+skipped; static placements and ordinary live actors remain eligible.
 
 ### QueueMovie
 
