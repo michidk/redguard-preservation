@@ -422,3 +422,23 @@ Actor allocation clears the byte, including pooled reuse, and the saved actor
 body retains it. `endCombat` clears this mode while setting the lifecycle
 selector to one. See [AI mode query and setter](SOUP.md#receiver-ai-mode-query)
 and [AI lifecycle-selector property](#ai-lifecycle-selector-property).
+
+## AI delay property
+
+`ai_delay` is the receiver actor's unsigned AI-delay byte. Reads return values
+from zero through 255 and writes retain the low eight bits. It is separate
+from the adjacent AI mode and lifecycle selector and from `extra_time`. Actor
+allocation clears it, including pooled reuse, and the saved actor body retains it.
+
+The AI delay update retains zero and 255. For any other value, it compares the
+unsigned byte with the shared nominal tick count. A smaller value becomes zero;
+otherwise the low byte of the tick count is subtracted. The update then
+continues into lifecycle-selector dispatch even when the delay was zero or 255.
+`GoToLocation` invokes this update after selecting lifecycle state four and
+storing the requested location word.
+
+One AI admission branch requires delay zero as well as a mode other than eleven
+before invoking its candidate service. In the successful path-selection branch,
+a delay of 255 becomes 64; other delay values remain unchanged. The temporary
+AI-state save and restore pair retains this byte alongside the mode, length and
+AI-variable state. Raw property writes invoke none of those services.
