@@ -3051,9 +3051,13 @@ that delay.
 Native task resumption separately loads command scratch from the actor's six
 native task slots. Each slot retains four 32-bit values, including the pause
 delay and packed command word/phase/counter. Saving a task copies those values
-back to the same slot. The point-navigation actor fields and the native task
-continuation are therefore distinct retained owners of values used during the
-same command invocation.
+back to the same slot. Two of these words hold general native continuation
+values; `FxPhase` uses them for its accumulator and direction. The point command's
+separate 32-bit value is outside these four saved words. Active task resumption
+replaces that separate value with the task call count times frame scale, shifted
+right by eight, before evaluating its operands. The point-navigation actor fields
+and the native task continuation are therefore distinct retained owners of values
+used during the same command invocation.
 
 Before evaluating native operands, a statement call clears all four retained
 scratch words. A direct function expression also clears all four. An
@@ -6374,8 +6378,11 @@ therefore occur even on this return path.
 A nonzero span adds the shared step value to a shared 32-bit accumulator.
 If the signed accumulator is strictly greater than the signed span, the
 accumulator resets to zero and the shared direction becomes
-`(direction + 1) & 1`. Equality does not reset it. Both values are shared
-between receivers and advance on each call.
+`(direction + 1) & 1`. Equality does not reset it. The accumulator and direction
+are native execution scratch. Statement-call setup clears them before operand
+evaluation. Each active task slot saves and restores its own pair, so concurrent
+phase tasks advance independently. Direct native hooks inherit the current
+scratch without the statement setup reset.
 
 A nonzero direction interpolates from `(a, b, c)` toward `(d, e, f)`; zero
 interpolates in the reverse direction. For each pair of start and end values,
@@ -6383,8 +6390,8 @@ the handler subtracts their independently left-shifted-by-eight values with
 32-bit wrapping arithmetic. It divides that signed difference by the signed
 span, truncating toward zero, multiplies the quotient by the accumulator
 with 32-bit wrapping, then arithmetically shifts right by eight and adds the
-start value. The low 16 bits are stored in the corresponding output word.
-There is no output clamp. The handler returns one and removes four stack
+start value. The low 16 bits are stored in the receiver's corresponding current
+RGB channel. There is no output clamp. The handler returns one and removes four stack
 arguments. Signed division overflow is not guarded.
 
 The receiver resolver reuses an existing record. For a missing record it
