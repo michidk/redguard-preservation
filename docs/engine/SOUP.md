@@ -4924,8 +4924,9 @@ the receiver is neither drawing nor sheathing a sword (the `IsDrawingSword` and
 `IsSheathingSword` predicates), and `IsHoldingWeapon` is true. Otherwise it changes
 nothing.
 
-When it acts, the lifecycle byte becomes 21 (sheathing), the companion motion byte is
+When it acts, the lifecycle byte becomes 21 (sheathing), `extra_time` is
 cleared, bit `0x04` of the combat flags is cleared, and the combat cooldown becomes 24.
+The independent `rope_wait` companion motion byte is retained.
 For the selected player it additionally sets the HUD health-display timer to 25 and selects
 camera slot zero.
 
