@@ -1270,7 +1270,7 @@ otherwise queued 8 and request 34. Current group 30 similarly requests 37 or
 queued 3 and request 49 (50), copies the heading into the motion vector and sets the controller
 countdown to 6, as the script Jump rows do; the walking backward groups jump standing. Other current groups select queued 1 and request 32 without a burning torch,
 or 33 with a burning torch. A nonzero runtime jump selector instead selects
-queued 24 and forces group 85. Set motion direction to 2 after the request.
+queued 24 and forces group 85. Set motion classification to 2 after the request.
 
 The controller itself reads no surface state: water and lava surfaces change its
 behavior only through the movement helpers and the support response it calls.
@@ -1311,7 +1311,7 @@ selecting queued motion 24 and forcing group 85.
 | Other, no held weapon or combat flag, no burning torch | 1 | 32 | None |
 
 All non-forced rows use the ordinary animation request with reverse zero.
-After the request, set motion direction to 2. The script native does not select
+After the request, set motion classification to 2. The script native does not select
 the backward queued state 9 used by the parameterized ordinary jump entry.
 
 ### Jump-key arbitration
