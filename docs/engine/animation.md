@@ -104,6 +104,11 @@ a group without a table has a zero pointer. The upper sixteen bits of the first
 word of a group's table are its command count, and its commands take three bytes
 each. `anim.stop_flag` is the animation's exit flag: a forward `GoToFuture` with
 no loop countdown takes its target when the flag is set, and taking the exit sets it.
+A forced group request for the group that is already current only cancels the
+pending request while the flag is clear. With the flag set it restarts the group,
+resetting the command cursor and clearing the flag. A taken selected-player mask-8
+transition sets the flag before its request, so that request restarts a current
+group of the same number.
 
 Current and pending group values are signed sixteen-bit values compared with
 the full script integer argument. The frame threshold also remains a full
