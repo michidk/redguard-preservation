@@ -1514,6 +1514,22 @@ returned actor height to Y. It preserves the translated X/Z and the saved
 previous position. This is a discrete support-height assignment, not vertical
 interpolation toward the terrain surface.
 
+### Terrain sink recovery
+
+The ground-support probe of an actor begins with a terrain check, before the
+bounce update and the queued-motion resolution. It applies in a world with
+terrain to an actor in an airborne state (a nonzero falling, sliding or
+queued-motion byte, or living state 27, 28 or 29) while the shared camera
+transition word is zero. The actor's query position supplies X, Y and Z: the
+attached position when byte `0x1a` of the actor's model record is nonzero, otherwise the linked
+position when the actor has one, otherwise the local position. The check
+samples the [terrain](#terrain-support-sampling) at the integer X and Z and
+compares it with the query Y shifted right by eight plus the actor's positive
+Y extent. When the sample is smaller and the difference exceeds half of
+`post_collide_height`, the actor's local position takes its retained stable
+position, `move_counter` clears and the fall start runs (living state 15 is
+left unchanged), converting a pending queued motion into falling.
+
 ### Terrain support sampling
 
 The ground query converts actor coordinates to integer map units by arithmetic
