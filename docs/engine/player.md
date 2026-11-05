@@ -864,9 +864,9 @@ collision-transition byte; the fourth is only cleared. The byte
 
 | Bit | Name | Set by |
 |---|---|---|
-| `0x1` | `cf_slide_off_wall` | Forward segment response turning along a wall |
-| `0x2` | `cf_hit_wall` | Forward segment response restoring the previous X/Z |
-| `0x4` | `cf_polygon_push_out` | Forward segment response pushing out of a polygon |
+| `0x1` | `cf_slide_off_wall` | Primary body response, projected wall contact with heading adjustment (result bit 1) |
+| `0x2` | `cf_hit_wall` | Primary body response, other projected contact or rollback (result bit 2) |
+| `0x4` | `cf_polygon_push_out` | Residual face-contact separation (result bit 4) |
 | `0x8` | `cf_last_valid_set` | Not set |
 | `0x10` | `cf_validate_slope_fail` | Not set |
 | `0x20` | `cf_check_left_fail` | [Left step refusal](SOUP.md#directional-step-refusal-marks) |
@@ -1888,8 +1888,11 @@ updating actor moves away from the other origin; a movable other actor moves
 in the opposite direction. Coordinate addition is stored at single precision
 and then truncated toward zero, using the shared heading-translation rule.
 
-Overlap marks share the body-response byte used by primary, residual, bounds
-and forward response. They do not write the separate rollback-result byte.
+Overlap marks share the body-response byte with the bounds and forward
+responses. The primary and residual responses write their result bits to the
+step-status byte instead (see the
+[collision-response word](#collision-response-word-last_collide)). None of them
+write the collision-transition byte.
 
 An actor-pair overlap with a separation of three or more takes a landing branch
 before any weighted separation when the updating actor's falling state is
