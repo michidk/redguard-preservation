@@ -6103,6 +6103,13 @@ updates the state-four action attribute and countdown before the sentinel
 check. Countdown values zero and 255 are preserved; other values decrease by
 the engine countdown step, clamping to zero when smaller than that step.
 
+The movement-state writes are the `ai_type` lifecycle-selector byte, and the
+retained location is a signed 16-bit word independent of `ai_mode` and
+`ai_delay`. State four writes `attr_collide` to four after updating `ai_delay`
+with the shared nominal tick count. This refresh does not request an animation
+or invoke path selection. Arrival leaves the location word, delay, mode and
+`attr_collide` unchanged.
+
 ### MovePos
 
 `MovePos(x, y, z)` is a three-argument function that returns a horizontal
