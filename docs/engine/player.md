@@ -1954,7 +1954,8 @@ living state. Otherwise:
 - In state 27, while the support's current group is 10 in the first half of
   its frames, the actor's sliding, falling and queued-motion bytes and its two
   retained motion words are cleared and the update reports handled. After that
-  half the state becomes 28 with a lift of `attribute_32 × factor[0] × 16`.
+  half the state becomes 28 with a lift of `attribute_32 × factor[0] × 16`,
+  kept in the fall-origin dword.
 - In states 27 to 29, once past the wait above, the actor moves forward along
   its heading by `(128 − support attribute 99) × 256 / 3`, frame-scaled.
 - In state 28 the lift, frame-scaled, is subtracted from Y and decays by
