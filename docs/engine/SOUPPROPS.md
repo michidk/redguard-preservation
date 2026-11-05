@@ -326,3 +326,16 @@ accepted word, clears the pending word and resets `action_time` to zero. A resul
 of 36 does not promote. This timer update precedes the queued-motion and current
 animation gates that clear the directional low bits and decide jump entry. A
 raw property write does not perform promotion or start a jump.
+
+## Arms timer
+
+`arms_time` is the receiver actor's unsigned byte action-transition counter.
+Property reads are unsigned and writes retain the low eight bits. Allocation
+clears it, including pooled reuse, and the saved actor body retains it. The
+admitted state-17 transition assigns six after requesting its transition group.
+
+The ordinary actor update consumes this byte using the signed-byte action-counter
+rule in SOUP.md: zero is unchanged; the early-clear test precedes wrapping tick
+subtraction and negative-result clamping. A raw property write does not request
+a transition group or change living state. This field is separate from the
+pending-action promotion timer `action_time`.
