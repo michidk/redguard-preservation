@@ -293,3 +293,21 @@ initializes it to zero; ordinary fall entry initializes it to 30 when it records
 the fall origin. The timer remains part of the saved actor body, independently
 of playback allocation. It is distinct from the rope regrab countdown and
 `extra_time`.
+
+## Accumulated displacement
+
+`origin_accum` is the receiver actor's signed 32-bit accumulated displacement,
+shared by sliding and the pre-script queued/falling jump displacement. Property
+access retains the entire word and does not itself move the actor. Allocation
+clears it, including pooled reuse, and the saved actor body retains it. Jump
+initialization clears it; the first slide also clears it before adding the slide
+distance. Later slide responses add their distance with 32-bit wrapping.
+
+The pre-script jump displacement compares this accumulator with its motion's cap
+as a signed value. Below the cap, the candidate sum of accumulator and step wraps
+at 32 bits before the signed cap comparison. A clamped step is the cap minus the
+accumulator with 32-bit wrapping. When model-controlled motion does not suppress
+displacement, the selected step is added to the accumulator with 32-bit wrapping;
+only a positive step translates the actor. At or above the cap, the step is zero.
+Slide termination compares this same signed accumulator with the slide-hurt
+distance threshold.
