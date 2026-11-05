@@ -395,3 +395,17 @@ copy. Without a matching segment, that copy is skipped rather than assigning a
 new value. Live static face candidates retain this actor byte as support
 metadata. See [actor model initialization](animation.md) for the model-load
 lifecycle.
+
+## AI lifecycle-selector property
+
+`ai_type` is the receiver actor's lifecycle-selector byte, shared by
+`MyAiType` and `SetAiType`. Reads are unsigned and writes retain the low eight
+bits. A raw property write replaces only this byte; it does not change the
+adjacent AI mode, health, the killed flag, or script-control masks.
+
+Actor allocation clears the byte, including pooled reuse, and the saved actor
+body retains it. Combat entry uses selector six, while the ordinary `IsDead`
+predicate tests selector eight. The selected player's independent death override
+can also make `IsDead` succeed. The selector is distinct from the `dead` property.
+See [receiver AI type](SOUP.md#receiver-ai-type-query) and
+[dead actor default selection](animation.md#dead-actor-default-selection).
