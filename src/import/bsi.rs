@@ -17,7 +17,7 @@ pub struct BsiImage {
     pub y_offset: i16,
     pub frame_count: u16,
     /// Animation frame duration in milliseconds (BHDR offset 16).
-    /// Converted at runtime to DOS PIT timer ticks: round(ms × 18.2 / 1000).
+    /// Converted at runtime to DOS PIT timer ticks: trunc(ms × 18.2 / 1000).
     /// Clamped to minimum 1. Range 0–500, typically 71.
     pub anim_delay: i16,
     /// `8.8` fixed-point texture coordinate scale factor (BHDR offsets 22–23, LE u16).
