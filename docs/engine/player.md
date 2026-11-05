@@ -1952,9 +1952,8 @@ support's attribute 98 is zero; it then clears the support reference and the
 living state. Otherwise:
 
 - In state 27, while the support's current group is 10, its `anim.stop_flag`
-  is zero and its `anim.frame` is below half of the integer part of the first
-  word of the table that its animation record's link (offset `0x4d`) refers to
-  (shifted right by sixteen, halved and truncated toward zero), the
+  is zero and its `anim.frame` command cursor is below half of the group's
+  command count (halved and truncated toward zero), the
   actor's sliding, falling and queued-motion bytes and its two
   retained motion words are cleared and the update reports handled. After that
   half the state becomes 28 with a lift of `attribute_32 × factor[0] × 16`,

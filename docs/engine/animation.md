@@ -99,6 +99,12 @@ advance that cursor without incrementing `anim.real_frame`; a `GoToPrevious`
 backward jump assigns its command target without resetting the counter.
 Combat timing queries read this signed cursor, rather than `anim.real_frame`.
 
+The animation record keeps one pointer per group at offset `0x25 + 4 × group`;
+a group without a table has a zero pointer. The upper sixteen bits of the first
+word of a group's table are its command count, and its commands take three bytes
+each. `anim.stop_flag` is the animation's exit flag: a forward `GoToFuture` with
+no loop countdown takes its target when the flag is set, and taking the exit sets it.
+
 Current and pending group values are signed sixteen-bit values compared with
 the full script integer argument. The frame threshold also remains a full
 script integer; neither argument is narrowed before comparison. These tasks
