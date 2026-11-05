@@ -658,7 +658,7 @@ The retained timer is a byte; falling tests it as signed.
 
 The vertical factor sequence at indices 0 through 29 is exactly represented by
 integer division of `256 * (900 - (29 - index)^2)` by 900. Indices 30 through 69
-have factor 256. The next entries belong to adjacent engine state. A queued
+have factor 256. The sequence is constant initialized data that no code writes. The next entries belong to adjacent engine state. A queued
 update reads the entry at its current timer before advancing, then reads the
 entry at the advanced timer to decide whether it transfers to falling.
 A falling update uses entry zero when the signed timer is nonpositive.
@@ -1535,7 +1535,7 @@ fall start runs:
   clear the living state and zero `move.vx`, `move.vy` and `move.vz`.
 - With queued motion nonzero, bit `0x10` of byte `0x1ce` is set, the falling
   byte becomes one with the queued motion's high bit kept, queued motion
-  clears, the fall origin becomes the local Y plus `attribute_32 × factor[0]`
+  clears, the fall origin becomes the local Y plus `attribute_32 × factor[30]`
   and the fall timer becomes 30. The actor
   requests group 58 when the kept high bit is set, otherwise group 113 with a
   weapon held (unless the current group is 115), otherwise group 56.
