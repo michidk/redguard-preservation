@@ -311,3 +311,18 @@ displacement, the selected step is added to the accumulator with 32-bit wrapping
 only a positive step translates the actor. At or above the cap, the step is zero.
 Slide termination compares this same signed accumulator with the slide-hurt
 distance threshold.
+
+## Pending-action timer
+
+`action_time` is the receiver actor's unsigned byte timer for pending-action
+promotion, separate from the state-17 action-transition counter. Property reads
+are unsigned and writes retain the low eight bits. Allocation clears it, including
+pooled reuse, and the saved actor body retains it. The pending-action branch of
+`SetAction` clears it when it sets the pending directional bits.
+
+The late jump-window stage adds the low byte of the nominal-tick increment with
+byte wrapping. A result greater than 36 merges the pending action word into the
+accepted word, clears the pending word and resets `action_time` to zero. A result
+of 36 does not promote. This timer update precedes the queued-motion and current
+animation gates that clear the directional low bits and decide jump entry. A
+raw property write does not perform promotion or start a jump.
