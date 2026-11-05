@@ -1749,8 +1749,14 @@ outer-border attribute filter to separate records.
 
 ### Initial ordinary motion state
 
-Fresh ordinary allocation clears the complete actor record before applying
-loader defaults. Its sliding state, falling state, queued-motion state, body
+Ordinary actor allocation clears the complete actor record before applying
+loader defaults. The reusable pool clears each selected free slot on every
+allocation, including reuse; standalone allocation clears the newly allocated
+record too. CYRUS and GREMLIN use the same pool allocator. Their `last_direction`
+byte therefore starts at zero at allocation, as it does for ordinary actors,
+regardless of the previous contents of the storage.
+
+Its sliding state, falling state, queued-motion state, body
 response flags and collision-transition flags therefore start at zero. These
 runtime bytes are separate from the installed attributes and current animation
 group. The ordinary update invokes queued motion when its state is nonzero,
