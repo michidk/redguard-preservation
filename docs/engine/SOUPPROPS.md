@@ -265,3 +265,14 @@ animation-control initialization also sets it to zero. The word belongs to the
 actor record even when no playback allocation exists. Object save records retain
 it in the packed actor image, and object restoration copies it back independently
 of the optional playback trailer.
+
+## Packed movement counter
+
+`move_counter` is the actor's unsigned packed movement-counter byte. Raw property
+writes retain the low eight bits and do not themselves request or advance
+animation or translate the actor. The forward startup phase occupies bits 4 and
+5. A forward amount query below phase three performs its support admission before
+requesting animation. After animation admission it advances that phase, preserving
+the other bits. Phase three keeps the full amount and remains saturated.
+The byte clears with actor allocation, including reuse, and remains part of
+the saved actor body.
