@@ -861,9 +861,10 @@ receiver check and is distinct from the ordinary retained collision list.
 ### Collision-response word (`last_collide`)
 
 An actor's collision responses are marks in a 32-bit word, the `last_collide`
-field (its property descriptor reads the low byte). Its first byte is the
-step-status (auxiliary) byte, its second the body-response byte, its third the
-collision-transition byte; the fourth is only cleared. The byte
+field (its property descriptor reads the low byte). The low byte contains the
+primary body-response marks, including wall slide and wall hit. The following
+byte contains collision-transition marks. The remaining bytes are retained
+independently and participate in the packed response test and clear. The byte
 `last_collide_count` that follows is the collision-response age. Bits carry the
 `SOUP386.DEF` `cf_*` names:
 
