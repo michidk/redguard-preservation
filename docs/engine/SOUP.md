@@ -6326,6 +6326,18 @@ The call uses the ordinary drawing path. It does not derive a position from
 `AddLightEffect`'s first three arguments or initialize the descriptor's remaining
 fields.
 
+The descriptor is shared with actor-light submission and other local-light
+callers. Resetting the renderer's accumulated light lists does not clear it.
+Actor-light submission replaces all three descriptor color words. Type-two
+submission preserves those words, so it inherits the descriptor's current
+color, including across a light-list reset when no caller replaces that color.
+
+The ordinary local-light consumer converts retained XYZ from signed 32-bit
+integers and the three color words from signed 16-bit integers to single
+precision. It takes the low word of the `d`-derived channel as a signed radius.
+The `f`-derived descriptor word does not participate in that local-light
+submission. Neither channel supplies fresh RGB values.
+
 ### ReloadPosition
 
 `ReloadPosition()` is a zero-argument function. It copies the receiver's
