@@ -5,6 +5,9 @@ use delharc::decode::{Decoder, Lh1Decoder};
 pub struct GxaFrame {
     pub width: u16,
     pub height: u16,
+    /// Original palette indices in top-to-bottom row order, one per pixel.
+    /// Contains exactly `width * height` entries, including transparent index zero.
+    pub indices: Vec<u8>,
     pub rgba: Vec<u8>,
 }
 
@@ -13,6 +16,53 @@ pub struct GxaFile {
     pub title: String,
     pub frame_count: u16,
     pub frames: Vec<GxaFrame>,
+}
+
+/// One cursor image admitted by software cursor initialization.
+#[derive(Debug, Clone)]
+pub struct SoftwareCursorFrame {
+    pub image: GxaFrame,
+    /// Last index-16 pixel coordinate in the paired frame, or unknown when absent.
+    /// Coordinates are image pixels. This does not describe Glide preparation.
+    pub hotspot: Option<[i16; 2]>,
+}
+
+/// Reads frame pairs using the software engine cursor initialization rules.
+///
+/// Admission and scan rules follow `docs/formats/BUNDLED-RESOURCES.md`.
+/// Glide replaces pixel storage before scanning, so this API does not model it.
+/// A missing marker leaves the original offset fields unwritten and returns
+/// `None`; callers must not replace that unknown value with a default.
+/// Archives exceeding the descriptor table return a contextual error.
+pub fn parse_software_cursor_file(data: &[u8]) -> Result<Vec<SoftwareCursorFrame>> {
+    let archive = parse_gxa_file(data)?;
+    let count = usize::from(archive.frame_count).saturating_sub(1) / 2;
+    if count > 64 {
+        return Err(Error::Parse(format!(
+            "GXA cursor archive requires {count} descriptors; capacity is 64"
+        )));
+    }
+    let mut frames = archive.frames.into_iter();
+    let mut cursors = Vec::with_capacity(count);
+    for index in 0..count {
+        let image = frames
+            .next()
+            .ok_or_else(|| Error::Parse(format!("GXA cursor {index}: display frame missing")))?;
+        let marker = frames
+            .next()
+            .ok_or_else(|| Error::Parse(format!("GXA cursor {index}: hotspot frame missing")))?;
+        let hotspot = marker
+            .indices
+            .iter()
+            .rposition(|&pixel| pixel == 16)
+            .map(|position| {
+                let width = usize::from(marker.width);
+                // GXA dimensions are positive signed words, so coordinates fit i16.
+                [(position % width) as i16, (position / width) as i16]
+            });
+        cursors.push(SoftwareCursorFrame { image, hotspot });
+    }
+    Ok(cursors)
 }
 
 fn read_i16_le(data: &[u8], offset: usize) -> Result<i16> {
@@ -338,6 +388,7 @@ pub fn parse_gxa_file(data: &[u8]) -> Result<GxaFile> {
                             .map_err(|_| Error::Parse("GXA width > u16::MAX".to_string()))?,
                         height: u16::try_from(height)
                             .map_err(|_| Error::Parse("GXA height > u16::MAX".to_string()))?,
+                        indices: pixels,
                         rgba,
                     });
                 }
