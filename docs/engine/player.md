@@ -853,6 +853,35 @@ acceptance does not write the actor position. With no animation receiver the
 probe accepts before those segment tests. Candidate preparation precedes that
 receiver check and is distinct from the ordinary retained collision list.
 
+### Collision-response word (`last_collide`)
+
+An actor's collision responses are marks in a 32-bit word, the `last_collide`
+field (its property descriptor reads the low byte). Its first byte is the
+step-status (auxiliary) byte, its second the body-response byte, its third the
+collision-transition byte; the fourth is only cleared. The byte
+`last_collide_count` that follows is the collision-response age. Bits carry the
+`SOUP386.DEF` `cf_*` names:
+
+| Bit | Name | Set by |
+|---|---|---|
+| `0x1` | `cf_slide_off_wall` | Forward segment response turning along a wall |
+| `0x2` | `cf_hit_wall` | Forward segment response restoring the previous X/Z |
+| `0x4` | `cf_polygon_push_out` | Forward segment response pushing out of a polygon |
+| `0x8` | `cf_last_valid_set` | Not set |
+| `0x10` | `cf_validate_slope_fail` | Not set |
+| `0x20` | `cf_check_left_fail` | [Left step refusal](SOUP.md#directional-step-refusal-marks) |
+| `0x40` | `cf_check_right_fail` | Right step refusal |
+| `0x80` | `cf_check_forward_fail` | Forward step refusal |
+| `0x100` | `cf_check_backward_fail` | Backward step refusal |
+| `0x200` | `cf_check_run_forward_fail` | Forward-speed destination refusal |
+| `0x400` | `cf_managed_collision` | Overlap mark (body-response `0x04`) |
+| `0x800` | `cf_validate_forward_failed` | Hit mark (body-response `0x08`) |
+| `0x1000` | `cf_premeture_jump_end` | Queued-motion transition (body-response `0x10`) |
+| `0x2000` | `cf_premeture_fall` | Falling transition (body-response `0x20`) |
+| `0x4000` | `cf_cross_polygon_push` | Bounds response (body-response `0x40`) |
+| `0x8000` | | Landing on another actor (body-response `0x80`) |
+| `0x10000` | | Stable recovery and water rollback (collision-transition bit `0x01`) |
+
 ### Stable recovery response
 
 The ordinary script wrapper retains a byte collision-response age. After its

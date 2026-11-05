@@ -5744,11 +5744,12 @@ The selected player runs the same test, except that it reports no hazard while t
 
 ### Directional step refusal marks
 
-A refused directional destination check retains a mark in the receiver's packed
-collision-response word. Forward refusal sets body-response bit `0x80`, left
-sets body-response bit `0x20`, and right sets body-response bit `0x40`.
-Backward refusal sets collision-transition bit `0x01`. The writes preserve
-other response bits and do not use the two auxiliary response bytes.
+A refused directional destination check retains a mark in the receiver's
+[collision-response word](player.md#collision-response-word-last_collide).
+Forward refusal sets `cf_check_forward_fail` (`0x80`), left
+`cf_check_left_fail` (`0x20`) and right `cf_check_right_fail` (`0x40`), all in
+the word's first byte; backward refusal sets `cf_check_backward_fail`
+(`0x100`, body-response bit `0x01`). The writes preserve the other bits.
 
 These marks participate in the `0x01e2` mask used by player alignment's
 fallback decision. The response-record maintenance counts their age and clears
