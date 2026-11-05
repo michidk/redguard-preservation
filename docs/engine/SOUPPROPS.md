@@ -250,3 +250,18 @@ reach this countdown stage.
 Successful torch-lighting and torch-dousing entry request their animation first,
 then assign their living state and clear `extra_time`. A refused entry leaves
 it unchanged.
+
+## Stored playback default
+
+`panic_group` is the receiver actor's stored playback default, separate from
+the installed `PanicGroup` attribute. Reads sign-extend its 16-bit word; writes
+retain the low 16 bits. A property write changes only the stored default. It
+does not request a group, replace the current or pending group, advance commands
+or dispatch animation sounds. Later request fallback and default comparisons
+consume the changed word. Ordinary default selection can overwrite it.
+
+Actor allocation clears this word, including reuse of pooled records. Actor
+animation-control initialization also sets it to zero. The word belongs to the
+actor record even when no playback allocation exists. Object save records retain
+it in the packed actor image, and object restoration copies it back independently
+of the optional playback trailer.
