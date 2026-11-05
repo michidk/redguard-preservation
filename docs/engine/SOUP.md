@@ -5787,8 +5787,12 @@ for MoveBackward.
 Fight spacing's forward amount query shares the forward startup counter and
 step-called state with actual movement. It refuses nonzero rope attachment,
 sliding, falling, queued-motion or living-state values. Below startup counter
-three, it requires the forward step check to pass. It then stores motion
-direction 2.
+three, it requires the forward step check to pass. It then stores movement
+classification 2 in `last_direction`, before selecting or requesting the animation
+group. A refusal before that store preserves the previous classification. The
+store remains when the animation request leaves another group current; it does
+not wait for the startup counter or forward-called flag to advance. This retained
+classification is distinct from the later displacement direction.
 
 A held weapon or combat flag `0x04` selects group 106 and attribute 16 for action
 selector 4, or group 92 and attribute 17 otherwise. Outside combat stance it
