@@ -6327,7 +6327,8 @@ The call uses the ordinary drawing path. It does not derive a position from
 fields.
 
 The descriptor is shared with actor-light submission and other local-light
-callers. Resetting the renderer's accumulated light lists does not clear it.
+callers. Its three color words initially contain zero. Resetting the renderer's
+accumulated light lists does not clear it.
 Actor-light submission replaces all three descriptor color words. Type-two
 submission preserves those words, so it inherits the descriptor's current
 color, including across a light-list reset when no caller replaces that color.
