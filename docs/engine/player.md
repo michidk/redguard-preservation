@@ -1541,7 +1541,7 @@ unchanged), `move_counter` clears and the fall start runs:
   byte becomes one with the queued motion's high bit kept, queued motion
   clears, the fall origin becomes the local Y plus `attribute_32 × factor[30]`
   and the fall timer becomes 30. The actor
-  requests group 58 when the kept high bit is set, otherwise group 113 with a
+  forces group 58 when the kept high bit is set, otherwise group 113 with a
   weapon held (unless the current group is 115), otherwise group 56.
 - With queued motion zero and a nonzero falling byte, bit `0x20` of byte
   `0x1ce` is set and the falling byte becomes one with its high bit kept.
@@ -1965,12 +1965,14 @@ living state. Otherwise:
   its heading by `(128 − support attribute 99) × 256 / 3`, frame-scaled.
 - In state 28 the lift, frame-scaled, is subtracted from Y and decays by
   `(256 − support attribute 98) × 16`, frame-scaled. While lift remains the
-  actor requests group 112 with a weapon held, 38 with a burning torch,
-  otherwise 39, clears its sliding, falling and queued-motion bytes and the
+  actor requests group 112 with a weapon held or the combat stance bit `0x04`
+  set, 38 with a burning torch, otherwise 39, clears its sliding, falling and
+  queued-motion bytes and the
   update reports handled. When the lift is spent the fall origin becomes
   `Y + attribute_32 × factor[30]`, the fall timer 30 and the falling byte 1;
-  the actor forces group 113 with a weapon held (unless the current group
-  is 115), 57 with a burning torch, otherwise 56, and the state becomes 29.
+  the actor forces group 113 with a weapon held or the combat stance bit
+  `0x04` set (unless the current group is 115), 57 with a burning torch,
+  otherwise 56, and the state becomes 29.
 - A zero falling byte after these steps (the actor has landed) clears the
   living state and the support reference.
 
