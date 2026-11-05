@@ -1521,14 +1521,26 @@ bounce update and the queued-motion resolution. It applies in a world with
 terrain to an actor in an airborne state (a nonzero falling, sliding or
 queued-motion byte, or living state 27, 28 or 29) while the shared camera
 transition word is zero. The actor's query position supplies X, Y and Z: the
-attached position when byte `0x1a` of the actor's model record is nonzero, otherwise the linked
+attached position when `attr_slave` is nonzero, otherwise the linked
 position when the actor has one, otherwise the local position. The check
-samples the [terrain](#terrain-support-sampling) at the integer X and Z and
-compares it with the query Y shifted right by eight plus the actor's positive
-Y extent. When the sample is smaller and the difference exceeds half of
-`post_collide_height`, the actor's local position takes its retained stable
-position, `move_counter` clears and the fall start runs (living state 15 is
-left unchanged), converting a pending queued motion into falling.
+samples the [terrain](#terrain-support-sampling) at the integer X and Z,
+truncating the height toward zero, and compares it with the query Y shifted
+right by eight plus the actor's positive Y extent. When the sample is smaller
+and the difference exceeds half of `post_collide_height`, the actor's local
+position takes its retained stable position, `move_counter` clears and the
+fall start runs:
+
+- Living state 15 leaves the actor unchanged.
+- Living states 27 to 32, or queued motion 24, first set queued motion to one,
+  clear the living state and zero `move.vx`, `move.vy` and `move.vz`.
+- With queued motion nonzero, bit `0x10` of byte `0x1ce` is set, the falling
+  byte becomes one with the queued motion's high bit kept, queued motion
+  clears, the fall origin becomes the local Y plus `attribute_32 × factor[0]`
+  and the fall timer becomes 30. The actor
+  requests group 58 when the kept high bit is set, otherwise group 113 with a
+  weapon held (unless the current group is 115), otherwise group 56.
+- With queued motion zero and a nonzero falling byte, bit `0x20` of byte
+  `0x1ce` is set and the falling byte becomes one with its high bit kept.
 
 ### Terrain support sampling
 
