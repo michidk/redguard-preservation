@@ -97,7 +97,7 @@ All fields are little-endian.
 | 9 | 1 | `u8` | export_flags | Export-tool metadata. Values: 0, 1, or 9. Packed into the same u16 as `has_cmap` during export. |
 | 10 | 4 | — | reserved | Always 0 |
 | 14 | 2 | `i16` | frame_count | 1 = static, 2–16 = animated |
-| 16 | 2 | `i16` | anim_delay | **Read at runtime.** Animation frame duration in milliseconds. Converted to DOS PIT timer ticks via `round(anim_delay × 18.2 / 1000)`; clamped to minimum 1. Typical value 71 → 1 tick (~55 ms); value 500 → 9 ticks (~495 ms). Range: 0–500. |
+| 16 | 2 | `i16` | anim_delay | **Read at runtime.** Animation frame duration in milliseconds. Converted to DOS PIT timer ticks via `trunc(anim_delay × 18.2 / 1000)`; clamped to minimum 1. Typical value 71 → 1 tick (~55 ms); value 500 → 9 ticks (~495 ms). Range: 0–500. |
 | 18 | 4 | — | reserved | Always 0 |
 | 22 | 2 | `u16` | tex_scale | 8.8 fixed-point scale, `tex_scale / 256.0`; zero defaults to `0x0100` (1.0). Model UV normalization uses `16 × texture_dimension` independently of this field. |
 | 24 | 2 | `i16` | data_encoding | Pixel data encoding mode. Selects which compression method the DATA subrecord uses. Known values: 0 = raw uncompressed, 4 = animated offset table. Values 1–3 are engine-supported but unused. |

@@ -14,7 +14,7 @@ the image's frame delay. The first automatic request therefore selects frame
 zero, even if its previous deadline lies in the future.
 
 The delay comes from the TEXBSI header's `anim_delay`: milliseconds multiplied
-by 18.2 and divided by 1000, rounded to an integer tick count. A result of zero
+by 18.2 and divided by 1000, truncated toward zero to an integer tick count. A result of zero
 becomes one tick. See the [TEXBSI header](../formats/TEXBSI.md#bhdr--image-header-26-bytes).
 
 A late request advances only once. It does not catch up through all frames
