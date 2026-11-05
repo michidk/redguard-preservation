@@ -409,3 +409,16 @@ predicate tests selector eight. The selected player's independent death override
 can also make `IsDead` succeed. The selector is distinct from the `dead` property.
 See [receiver AI type](SOUP.md#receiver-ai-type-query) and
 [dead actor default selection](animation.md#dead-actor-default-selection).
+
+## AI mode property
+
+`ai_mode` is the receiver actor's unsigned AI-mode byte, shared by `MyAiMode`
+and `SetAiMode`. Writes retain the low eight bits and replace only this byte.
+The adjacent `ai_type` lifecycle selector, the independent `dead` property,
+health, and script-control masks are unchanged. A raw mode write does not
+invoke a lifecycle transition.
+
+Actor allocation clears the byte, including pooled reuse, and the saved actor
+body retains it. `endCombat` clears this mode while setting the lifecycle
+selector to one. See [AI mode query and setter](SOUP.md#receiver-ai-mode-query)
+and [AI lifecycle-selector property](#ai-lifecycle-selector-property).
