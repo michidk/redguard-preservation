@@ -51,7 +51,7 @@ For example, after `oddjob = 2`, entering `oddjob` in the console stores one; en
 | 9 | `goldfinger` | Retains a burning torch. During ordinary actor updates, a nonzero selected-player torch counter becomes 100 when the world frame is divisible by eight and living state is not 34. A zero counter remains zero. The refresh takes the place of the burn rules on that update: the counter is set to 100 without the water branches and without the countdown. |
 | 10 | `neversaydie` | Makes SOUP `PlayerDistance()` return `9999999` instead of calculating distance. |
 | 11 | `oddjob` | Recognized state slot: accepts toggles and explicit console values, appears in `oracle`, and persists in `REDGUARD.CHT`. |
-| 12 | `yeahbaby` | Vertical surface bypass — while active, **Page Up** moves the player upward through surfaces and **Page Down** clips below the current surface. The collision bypass only engages while one of these keys is held; normal surface collision applies otherwise. Not a permanent noclip — horizontal collision is unaffected. |
+| 12 | `yeahbaby` | Vertical surface bypass — while active, **Page Up** moves the player upward through surfaces and **Page Down** clips below the current surface. The collision bypass only engages while one of these keys is held; normal surface collision applies otherwise. Not a permanent noclip — horizontal collision is unaffected. In the player's per-update handler, each held key moves the player's Y position by 4096 (16 map units) per pass, Page Up subtracting and Page Down adding. |
 
 The cheat names are themed after James Bond films (Moonraker, Dr. No, Goldfinger, Oddjob, Never Say Never Again) and Austin Powers ("Yeah Baby").
 
