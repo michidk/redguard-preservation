@@ -5451,8 +5451,9 @@ task or multitask completion result for other operands or receiver states.
 When ordinary traversal reaches an actor whose collection flag is set, it fills the engine's
 retained candidate model list before running that actor's update (native hook, combat decision and
 script stages included). The list holds the models inside a sphere centred on the actor's
-position, with the actor's own model excluded. The sphere radius is twice the stored radius of the
-actor's current model, rounded to the nearest integer, or 200 when the actor has no model. The
+local position, with the actor's own model excluded. The sphere radius is twice the stored radius of the
+actor's current model, truncated toward zero, or 200 when the actor has no model. A zero collection
+flag leaves the previous retained list unchanged and proceeds to the actor's update. The
 collector keeps at most 64 entries. Queries made later in the same update (the in-sight test and the
 nonplayer movement probes) read this list without collecting again.
 
