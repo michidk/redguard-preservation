@@ -1546,6 +1546,13 @@ unchanged), `move_counter` clears and the fall start runs:
 - With queued motion zero and a nonzero falling byte, bit `0x20` of byte
   `0x1ce` is set and the falling byte becomes one with its high bit kept.
 
+The bounce update follows the terrain check; an actor with no bounce state then
+runs the queued-motion resolution, which reports zero without queued motion.
+When the bounce update or the queued-motion resolution reports handled, the
+probe ends before the cheat bypasses and before any support query, so a handled
+queued update applies no support result. An unhandled result continues into the
+support probing with the actor as the resolution left it.
+
 ### Terrain support sampling
 
 The ground query converts actor coordinates to integer map units by arithmetic
