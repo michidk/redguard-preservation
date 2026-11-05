@@ -1049,6 +1049,14 @@ direction byte is zero): when the rope amplitude is below 6 and `|m|` is below `
 to `−j`. Otherwise, with the direction byte flipped when type bit 0x1 is set and the actor's heading differs from the rope heading by more than 16, a byte of 1 sets the word to
 `j + (|m| << 8) / frame scale` and a byte of 0 sets it to `−j − (|m| << 8) / frame scale`.
 
+The rope-countdown jump entry queues motion 24 and forces animation group 85 before
+storing movement classification 2 in `last_direction`. During the later motion-24
+displacement, attachment to a rope refuses the update before classification changes.
+Otherwise, a negative speed word stores classification 3 and marks backward movement
+bits `0xc0`; a nonnegative word stores classification 2 and marks forward movement
+bits `0x30`. These writes precede translation suppression and the positive-distance
+test, so zero speed and suppressed translation retain them.
+
 Destroying an entire rope uses a separate path. It unlinks the rope from the
 rope list, walks and releases its attachment nodes, and clears each retained
 actor's attachment link, even when that link names a different attachment. It
