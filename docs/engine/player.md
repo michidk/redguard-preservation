@@ -678,8 +678,9 @@ Every other ordinary support query, including every static-model one, uses
 Queued motion writes `origin_Y - attribute_32 * factor[timer]`, then advances
 the timer by the sum of the fine-tick increment and its additional increment,
 wrapping as a byte. After that advance, a factor greater than 255 transfers the
-queued byte to falling and clears queued motion. A transferred high-bit motion
-forces animation group 58 when the torch-burning counter is zero.
+queued byte to falling. A transferred high-bit motion forces animation group 58
+when the torch-burning counter is zero; queued motion clears after that request.
+The vertical writer retains motion classification.
 
 Falling limits its vertical value by `post_collide_height * 512 - 256`, with
 signed comparison. With a positive signed timer, it writes origin Y plus the
@@ -814,7 +815,8 @@ Other falling states request 65 without a burning torch or 66 with one when
 the landing actor is unarmed. A weapon-holding actor requests 114 unless its
 current group is 115 or 116. All these landing requests use ordinary animation
 arbitration and clear falling after dispatch. The retained death-response byte
-is set to 8 by the actor death notification service.
+is set to 8 by the actor death notification service. Ordinary landing retains
+motion classification.
 
 ### Nonplayer health mutation
 
