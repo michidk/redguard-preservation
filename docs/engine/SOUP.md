@@ -6333,6 +6333,13 @@ Actor-light submission replaces all three descriptor color words. Type-two
 submission preserves those words, so it inherits the descriptor's current
 color, including across a light-list reset when no caller replaces that color.
 
+The separate object-light drawing path traverses its retained spatial list
+before drawing the shared effect pool. A record without a light is skipped.
+Its actor-light submission is also skipped when the light is disabled or its
+signed radius is below one. Each admitted light replaces all three descriptor
+color words in traversal order. The last admitted light's color therefore
+reaches subsequent type-two submissions unless another caller replaces it.
+
 The ordinary local-light consumer converts retained XYZ from signed 32-bit
 integers and the three color words from signed 16-bit integers to single
 precision. It takes the low word of the `d`-derived channel as a signed radius.
