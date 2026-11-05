@@ -1951,10 +1951,11 @@ reference is empty, the support has no animation or model link, or the
 support's attribute 98 is zero; it then clears the support reference and the
 living state. Otherwise:
 
-- In state 27, while the support's current group is 10, byte `0x0a` of its
-  animation state is zero and the integer part of its current frame is below
-  half of its frame count (the count's integer part divided by two, truncating
-  toward zero), the actor's sliding, falling and queued-motion bytes and its two
+- In state 27, while the support's current group is 10, its `anim.stop_flag`
+  is zero and its `anim.frame` is below half of the integer part of the first
+  word of the table that its animation record's link (offset `0x4d`) refers to
+  (shifted right by sixteen, halved and truncated toward zero), the
+  actor's sliding, falling and queued-motion bytes and its two
   retained motion words are cleared and the update reports handled. After that
   half the state becomes 28 with a lift of `attribute_32 × factor[0] × 16`,
   kept in the fall-origin dword.
