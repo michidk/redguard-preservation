@@ -5767,7 +5767,9 @@ pass: it passes when the lifecycle byte is 7 and attribute 1 has bit 0 clear; ot
 receiver's attribute 1 has bit 1 set and the [step hazard](#nonplayer-step-hazard)
 at the destination reports a hazard, where the destination is the receiver's position moved forward by
 half of attribute byte 8 (whole units, times the frame scale, arithmetic shift right eight). A failed check
-completes the call. Admission then stores motion direction 2.
+completes the call. Admission then stores movement classification 2 in
+`last_direction`, before combat selection and animation admission. A later
+missing animation group or pending request does not undo this store.
 
 **Combat stance** (the receiver holds a weapon or its combat flag `0x04` is set). The call completes
 without moving when the receiver already has a selected combat move. Otherwise the group is 92 and the
@@ -5856,7 +5858,10 @@ and third ranges, requests no movement; the actor still walks on through the con
 `WalkForward(duration)` delegates to `MoveForward(duration)` in deep water before
 checking its own admission state. For a nonplayer receiver outside deep water,
 a rope attachment, sliding state, falling state or queued motion refuses the
-call. The walk-forward step check must pass before motion direction 6 is stored.
+call. The walk-forward step check must pass before movement classification 6 is
+stored in `last_direction`. This precedes walking-group selection and the
+animation request gate. Both classifications are distinct from the direction
+assigned by [directional ordinary displacement](player.md#directional-ordinary-displacement).
 
 The walk-forward step check refuses a rope attachment. It passes immediately for
 a receiver whose lifecycle selector is 7 and whose attribute 1 has bit zero clear.
