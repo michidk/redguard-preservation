@@ -234,3 +234,19 @@ Several descriptors name state that other documents describe by function: `fall_
 | `size.msize.vx` | `0x25` | `Z` | 4 |
 | `size.msize.vy` | `0x29` | `Z` | 4 |
 | `size.msize.vz` | `0x2d` | `Z` | 4 |
+
+## Extra-time counter
+
+`extra_time` is a receiver-owned unsigned byte. Script reads return values from
+0 through 255; writes retain the low eight bits and change only that field.
+Actor allocation clears it with the rest of the actor record.
+
+An admitted ordinary actor update leaves zero and 255 unchanged. Other values
+lose the nominal tick count, saturating at zero. This stage follows the early
+action and ledge work and precedes the ordinary motion-vector clear and the
+subsequent animation advance. Actors excluded from ordinary processing do not
+reach this countdown stage.
+
+Successful torch-lighting and torch-dousing entry request their animation first,
+then assign their living state and clear `extra_time`. A refused entry leaves
+it unchanged.
