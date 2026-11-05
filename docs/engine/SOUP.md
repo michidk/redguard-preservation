@@ -6143,6 +6143,27 @@ returns false; reaching the end of the array returns true. The clearance
 query does not change the receiver's location, mode, delay or node reservations.
 Those state changes belong to the enclosing progress service.
 
+### AI mode eleven progress
+
+Mode 11 of the AI progress service sets `attr_collide` to 15. If the receiver's
+`slide_flag` is nonzero, it sets `ai_mode` to zero and `ai_delay` to 255 before
+continuing the same invocation.
+
+The service steers toward the supplied destination's X and Z coordinates.
+Steering first applies its horizontal arrival test. Otherwise it turns toward
+the destination and returns the signed heading difference from before that
+turn. Only an absolute difference strictly less than 256 proceeds to the
+`MovePos` predicate. A nonzero predicate result requests forward movement and
+then refreshes the receiver's spatial state. A difference of 256 or greater,
+or a zero predicate result, skips both operations.
+
+After steering and any movement, the service repeats the destination-clearance
+query against the retained candidate array. It retains the current mode and
+delay only when clearance succeeds and the receiver's entire collision-response
+word is zero. Refused clearance or any nonzero bit in that word sets `ai_mode`
+to zero and `ai_delay` to 255. These outcomes return the progress result one;
+none completes the enclosing movement task.
+
 ### MovePos
 
 `MovePos(x, y, z)` is a three-argument function that returns a horizontal
