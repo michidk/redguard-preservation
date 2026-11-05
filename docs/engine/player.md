@@ -349,7 +349,10 @@ byte is one: it needs its authored slot and an empty pending word, and consumes 
 The lunge (move 4) first moves the player: when its lifecycle byte is zero and no rope, sliding, falling
 or queued motion is set, it takes one [`MoveForward`](SOUP.md#moveforward) step of attribute byte 16
 (whole units times 256) along the local Y heading, with the same forward step check below startup
-counter three, the same startup ramp and frame scaling, but no animation request. The move also needs
+counter three, the same startup ramp and frame scaling, but no animation request. After admission and
+the startup step check pass, the step stores movement classification 2 in `last_direction` before
+marking forward movement called or advancing the startup counter. Earlier refusal preserves the
+previous classification; translation suppression does not undo the store. The move also needs
 its authored slot, a zero cooldown and no drawing or sheathing state before this step is taken.
 Before any of these moves (0 to 4 and 6) starts, a reach test runs over the ordinary actor list, with
 the move number selecting the attack slot and the slot's first motion supplying `arc`, `arc_center`,

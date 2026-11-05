@@ -5847,6 +5847,15 @@ their motion direction before the step check. A swimming actor (deep water) cont
 needs the deep-water edge probe along its motion direction first and moves half the distance,
 except for the backward steps.
 
+The retained movement classifications are distinct from the displacement-direction field. The forward
+continuation stores classification 2 after its startup support check and before the deep-water edge
+refusal. The backward continuation stores 3 after its combat blocked-ahead refusal and before the
+deep-water edge refusal. Walking stores 6 or 7 after any deep-water edge refusal but before its
+forward or backward support check. Ordinary sidesteps store 4 or 5 before both the deep-water edge
+refusal and lateral support check. Combat circling differs from its native task: the left or right
+lateral support check runs first, then stores classification 25 or 5 respectively. A refusal before a
+store preserves the previous classification; a later refusal retains the newly stored value.
+
 Because it requests no group, an idle group requested earlier in the same update (a spacing
 pass that requested no movement, for example) stays pending until the playing group finishes
 and the actor keeps walking forward until then. A spacing pass for an actor in combat
