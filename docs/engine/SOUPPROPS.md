@@ -352,3 +352,19 @@ jump-window promotion merges the entire pending word into the accepted `action`
 word, then clears the pending word. The later motion and animation gates clear
 only the low two directional bits, retaining the other bits. These words are
 separate from the queued-motion and falling-motion bytes.
+
+## Accepted directional action word
+
+`action` is the receiver actor's accepted directional action word, separate from
+pending `action_flag`. Property access preserves all 32 bits through the script
+integer's bit pattern. Allocation clears it, including pooled reuse, and the
+saved actor body retains it. A raw write does not execute an action or reset
+the promotion timer.
+
+The late jump-window stage consumes accepted low bits independently of whether
+the pending word was promoted on that update. A queued motion or a current group
+other than running or torch-running clears the low two bits of both words.
+Otherwise accepted bit zero selects running motion eight before bit one can
+select motion nine; consumption clears the low two bits in both words before
+jump admission. All higher bits remain unchanged. Promotion merges the entire
+pending word into the accepted word before these gates and consumption.
