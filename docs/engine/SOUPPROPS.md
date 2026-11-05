@@ -339,3 +339,16 @@ rule in SOUP.md: zero is unchanged; the early-clear test precedes wrapping tick
 subtraction and negative-result clamping. A raw property write does not request
 a transition group or change living state. This field is separate from the
 pending-action promotion timer `action_time`.
+
+## Pending directional action word
+
+`action_flag` is the receiver actor's pending directional action word. Property
+access preserves all 32 bits; the script integer carries the same bit pattern.
+Allocation clears the word, including pooled reuse, and the saved actor body
+retains it. A raw write does not reset `action_time` or execute an action.
+
+The pending-action branch of `SetAction` sets its low two bits. The late
+jump-window promotion merges the entire pending word into the accepted `action`
+word, then clears the pending word. The later motion and animation gates clear
+only the low two directional bits, retaining the other bits. These words are
+separate from the queued-motion and falling-motion bytes.
