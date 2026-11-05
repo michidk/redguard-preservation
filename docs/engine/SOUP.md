@@ -5899,7 +5899,10 @@ receiver's local Y heading, masked to 2047. Duration completion follows
 
 `MoveLeft(duration)` and `MoveRight(duration)` are tasks that strafe the receiver. They share
 [MoveBackward](#movebackward)'s admission, result and movement rules except as listed here. Admission is
-identical. A call stores motion direction 4 (left) or 5 (right) once admitted.
+identical except that lifecycle byte 15 is also admitted. A call stores movement classification 4
+(left) or 5 (right) once admitted, before the lateral or edge checks, current-group refusal, group
+lookup and animation request. Later refusal retains this classification. The displacement direction
+is a separate field.
 
 **Combat stance** (the receiver holds a weapon or its combat flag `0x04` is set). The call completes
 without moving when the receiver's current group is already the strafe group (94 for left, 95 for right,
@@ -5954,7 +5957,9 @@ invocation returns zero (complete) or one (continue); it reads the task's elapse
 
 **Admission.** The call does nothing, completing immediately, when the receiver's rope attachment,
 sliding state, falling state or queued-motion byte is nonzero, or its lifecycle byte is not 0 (byte 15
-is refused too, unlike the strafes). Otherwise it sets the receiver's motion-direction byte to 7.
+is refused too, unlike the strafes). Otherwise it sets the receiver's movement classification to 7,
+before the combat blocked-ahead probe, group lookup and animation request. Later refusal retains
+this classification. The displacement direction is a separate field.
 
 **Animation.** The receiver is in the combat stance when it is holding a weapon or its combat flag
 `0x04` is set. In combat stance the [blocked-ahead probe](#nonplayer-blocked-ahead-probe) runs with
@@ -6006,7 +6011,10 @@ result rules with these differences.
 queued-motion byte is nonzero or its lifecycle byte is not 0. For the selected player it also completes
 immediately while a retained player-mode word equals one and the queued-motion and falling bytes are
 both zero. It then runs the backward form of the ordinary directional step check, which uses attribute
-byte 13, and completes when that check refuses. Only then does it set the motion-direction byte to 7.
+byte 13, and completes when that check refuses. Only then does it set the movement classification to
+7, before group lookup and animation request.
+A rejected step check leaves the classification unchanged; a later missing group or pending request
+retains 7. The displacement direction is a separate field.
 
 **Animation.** In combat stance the group is 93 and the step length is attribute byte 20. Otherwise the
 group is 23 while a torch burns and 22 otherwise, with step length attribute byte 13. There is no
