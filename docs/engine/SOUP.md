@@ -6417,7 +6417,9 @@ handler resolves the receiver's auxiliary record, then draws one bounded
 random value. A nonzero draw leaves the record unchanged. A zero draw clears
 a selected word when it is nonzero; when that word is zero, it copies the
 paired word into it. Copying a zero paired word therefore leaves it zero.
-The handler returns one.
+The handler returns one. The selected word is the current radius and the paired
+word is the starting radius. Toggling does not change the enabled or lock flags;
+normal light maintenance can subsequently clamp an enabled record's radius.
 
 The bound is passed directly to the random generator, without an absolute
 value conversion. For positive bounds the generator advances its shared
