@@ -6449,7 +6449,10 @@ handler obtains the receiver's auxiliary record and takes the wrapping
 32-bit absolute value of `amount` as a random bound. It draws one random
 value and subtracts that same value from each of three unsigned base words.
 Each result is truncated to 16 bits before being interpreted as signed.
-Results below -255 are replaced by -255. The handler returns one.
+Results below -255 are replaced by -255. The outputs are the receiver's current
+RGB channels. The three base words are its starting RGB channels, initialized
+from the authored placement for a type-six object. Phase interpolation changes
+current channels without changing these starting channels. The handler returns one.
 
 The random generator advances its shared 32-bit seed by multiplying by
 1103515245 and adding 12345, with wrapping arithmetic. It takes bits 16
