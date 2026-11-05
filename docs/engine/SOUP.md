@@ -6296,6 +6296,36 @@ are set to one and two companion words to zero. These assignments do not
 read the receiver or calculate a position from `a`, `b` or `c`. Record bytes
 outside the assigned fields retain their previous values.
 
+#### Type-two lifetime and modulation
+
+The type-two update subtracts nominal ticks from the signed lifetime initialized
+by `h`, using wrapping 32-bit arithmetic. A remaining lifetime at or below zero
+ends the record before either modulation channel advances.
+
+The `f`/`g` channel advances before the `d`/`e` channel. Each channel retains its
+starting value, current value, modulation amplitude, period and phase. Creation
+sets each period to one and each phase to zero. A zero amplitude leaves that
+channel unchanged. For a positive amplitude, the phase adds nominal ticks with
+wrapping 32-bit arithmetic. When the resulting signed phase is at least the
+signed period, the phase resets to zero and the current value becomes
+`starting + Rnd(amplitude) - (amplitude >> 1)`, with wrapping 32-bit arithmetic.
+Each triggered channel consumes its own shared random draw.
+
+#### Type-two scene submission
+
+The shared scene-draw pass visits retained records when the effect system is
+enabled and its free count differs from its capacity. Its alternate-movement
+flag applies the same `nominal_ticks + 2` upward Y step before type admission,
+including records whose type is no longer active.
+
+A type-two record submits only when its current `d`-derived channel is strictly
+positive as a signed 32-bit value. Submission copies the record's retained XYZ
+and the low sixteen bits of its current `d`- and `f`-derived channels into the
+shared drawing descriptor. Other descriptor fields retain their previous values.
+The call uses the ordinary drawing path. It does not derive a position from
+`AddLightEffect`'s first three arguments or initialize the descriptor's remaining
+fields.
+
 ### ReloadPosition
 
 `ReloadPosition()` is a zero-argument function. It copies the receiver's
