@@ -91,6 +91,9 @@ axes, and normalizes their horizontal projections independently. Ordinary MPSF
 submission cannot select this flag: its base flag is `1`, combined with the
 byte-sized drawing flags from a matching FLAT attribute.
 
+Flat submission does not test drawing flags `0x02`, `0x04`, `0x08` or `0x10`.
+A FLAT attribute that sets any of them draws the same as one that clears them.
+
 These flats retain depth writes and the less-than depth test. Textured RGB
 uses the ordinary vertex-light modulation path. Their submitted face brightness
 is 255 when the alpha input is below 254; otherwise it comes from the current
