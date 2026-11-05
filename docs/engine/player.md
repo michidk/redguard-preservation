@@ -1046,6 +1046,8 @@ queued motion, hang from it, move along it and climb onto it. It uses the
 living-state byte, the sliding, falling and queued-motion bytes, the retained
 ledge-support actor reference, a retained ledge point and ledge heading, and the
 global action-inhibition countdown. Ledge living states are 10 through 19.
+The edge service, ledge transition, hang release and climb request retain motion
+classification, including when they clear sliding, falling or queued motion.
 Coordinates use Y increasing downward. The positive Y extent reaches from the
 actor origin down to its feet; the negative Y extent reaches up to its head.
 
