@@ -5853,8 +5853,9 @@ refusal. The backward continuation stores 3 after its combat blocked-ahead refus
 deep-water edge refusal. Walking stores 6 or 7 after any deep-water edge refusal but before its
 forward or backward support check. Ordinary sidesteps store 4 or 5 before both the deep-water edge
 refusal and lateral support check. Combat circling differs from its native task: the left or right
-lateral support check runs first, then stores classification 25 or 5 respectively. A refusal before a
-store preserves the previous classification; a later refusal retains the newly stored value.
+lateral support check runs first, then stores classification 25 or 5 respectively. Circling then
+joins the final distance scaling directly, without a separate deep-water edge probe. A refusal before
+a store preserves the previous classification; a later refusal retains the newly stored value.
 
 Because it requests no group, an idle group requested earlier in the same update (a spacing
 pass that requested no movement, for example) stays pending until the playing group finishes
