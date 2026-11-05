@@ -1956,7 +1956,10 @@ living state. Otherwise:
   retained motion words are cleared and the update reports handled. After that
   half the state becomes 28 with a lift of `attribute_32 × factor[0] × 16`,
   kept in the fall-origin dword.
-- In states 27 to 29, once past the wait above, the actor moves forward along
+- In states 27 to 29, once past the wait above, an actor that is the selected
+  player with a support whose attribute 100 (`attr_bounce_turn`) is nonzero
+  first subtracts the ground-turn delta of [`BounceObject`](SOUP.md#bounceobject)
+  from its heading, modulo 2048. The actor then moves forward along
   its heading by `(128 − support attribute 99) × 256 / 3`, frame-scaled.
 - In state 28 the lift, frame-scaled, is subtracted from Y and decays by
   `(256 − support attribute 98) × 16`, frame-scaled. While lift remains the
