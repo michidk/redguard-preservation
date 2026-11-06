@@ -6949,6 +6949,13 @@ including its sign bit. It does not convert that word to a Boolean, check the
 item's type or quantity, or change the item. The supplied receiver is not
 dereferenced.
 
+New item records start with a zero used-state word. A completed `UseItem`
+increments that word with 32-bit wrapping after the use script admission,
+drop-use list, conditional self-drop and remove-after-use flag. Compass use
+also reaches this common completion path. Refused attempts and the burning-
+torch dousing path do not increment it. A script instance limit can suppress
+a new shell without suppressing the remaining completion effects or increment.
+
 A failed lookup updates the shared error context, copies the handler's source-name
 text into the shared error buffer, and requests runtime error 179. The native
 contains a zero-result continuation after that request. The runtime error
