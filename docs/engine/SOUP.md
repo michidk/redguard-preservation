@@ -7711,6 +7711,20 @@ new sender and value with zero while retaining the recipient. The recipient's
 message selection and other channels are unchanged. The function does not
 allocate an entry or release one.
 
+The native takes the receiver, then a recipient actor, then the value: a call that
+supplies two arguments, the recipient and the value, writes sender equal to the
+receiver, the recipient argument and the value argument on the channel of the
+recipient's attribute 125. The definition declares only one argument, and the
+value word is read from the third operand, so a call that supplies one argument
+passes it as the recipient and leaves the value word at the receiver token.
+That call also reads the channel byte through the recipient operand, so an
+integer there selects an arbitrary channel. A zero value, which can only be
+supplied explicitly, returns before the recipient is read. Observed in the original with a
+synthetic statement in a live actor: two arguments (own token, 777) wrote the
+sender, recipient and value on the receiver's own channel and advanced its index; one
+argument (1234) wrote the receiver token as sender and as value and 1234 as
+recipient on an unrelated channel. No installed script calls `SendMessage`.
+
 ### LineUp task entry and phase boundaries
 
 `LineUp(angle, x_offset, z_offset)` is declared as a task with three arguments.
