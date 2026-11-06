@@ -6106,6 +6106,13 @@ The target Y then subtracts the receiver's vertical offset shifted left eight
 bits and adds the shared vertical adjustment. These integer operations wrap
 at 32 bits.
 
+The shared source actor reference names the actor whose script is executing the call; it is set
+when the script interpreter is entered for that actor, so a call routed to another object keeps the
+calling actor as the source while the named object is the receiver. The shared vertical adjustment
+is the `[system]` `standing_height` value from `SYSTEM.INI` shifted left eight bits, read once when
+the settings load. The alternate-position predicate tests the source's `slave` attribute for a
+nonzero value, the same attribute that makes position resolution select the alternate position.
+
 For the selected-player receiver, the function sets the pending-position flag
 to one, stores target XYZ in the pending-player coordinates, and stores the
 angle argument unchanged in the pending angle. It does not directly write the
