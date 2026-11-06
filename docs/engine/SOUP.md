@@ -229,6 +229,15 @@ diagnostic output, and returns `1`. It reports the receiver's identifier,
 optional name, and script name when its script handle resolves in the script
 registry. An absent or unresolved handle uses the no-script diagnostic.
 
+All output goes through the console text writer that `PrintParms` uses. The three lines are the
+banner `Header Hook:` (preceded by a line break), one description line, and the AI line. The
+description line is `Unnamed object (id N) at P no script attached`, `Unnamed object (id N) at P
+using "script"`, `Object "name"(id N) at P no script attached` or `Object "name"(id N) at P using
+"script"`, chosen by whether the receiver's name field is null and whether its script handle
+resolves; `N` is the signed high word of the identifier field and `P` the receiver's address. The
+AI line is `Node n, dnode d, ai_type t, ai_mode m, ai_delay y, ai_length l, ai_var1 v1, ai_var2
+v2`.
+
 The following diagnostic reports the receiver's `node`, `dnode`, AI type,
 mode, delay, length, and two AI variables. The AI variables are printed as signed
 16-bit values. The function does not change the receiver or execute its RAHK

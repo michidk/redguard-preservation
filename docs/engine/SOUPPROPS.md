@@ -442,3 +442,17 @@ before invoking its candidate service. In the successful path-selection branch,
 a delay of 255 becomes 64; other delay values remain unchanged. The temporary
 AI-state save and restore pair retains this byte alongside the mode, length and
 AI-variable state. Raw property writes invoke none of those services.
+
+## AI record properties
+
+`ai_var1` and `ai_var2` are two-byte fields, `ai_length`, `node`, `dnode` and `fdnode` four-byte
+fields, in the actor record's AI block next to `ai_delay`. A property read sign-extends a two-byte
+field and returns a four-byte field whole; a write keeps the low sixteen bits of a two-byte field
+and all of a four-byte one. Actor allocation zeroes the record and then sets `ai_var1`, `node`,
+`dnode` and `fdnode` to minus one (`ai_var1` as the word `0xffff`), leaving `ai_var2` and
+`ai_length` zero, including for pooled reuse. `GoToLocation` stores the low sixteen bits of its
+location argument in `ai_var1`, and its sentinel test reads that word back as a signed value.
+
+The `HeaderHook` diagnostic prints `node`, `dnode`, `ai_length` as signed integers and both
+variables as signed sixteen-bit values. The temporary AI-state save and restore pair retains
+`ai_length` and `ai_var1` with the mode and delay. Raw property writes invoke no AI service.
