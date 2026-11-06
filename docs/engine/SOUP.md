@@ -8128,12 +8128,14 @@ that dependency or its floating-point exception behavior.
 
 `PlayerTilt(angle, strength, divisor)` is a three-argument multitask. A nonzero
 receiver attribute 26 starts the actor diagnostic path before tilt calculation.
-The task uses half the larger receiver X/Z extent, converted to the local
+The task uses half the larger receiver total X/Z extent, converted to the local
 coordinate scale by a left shift of eight followed by division by two toward
 zero, as its distance limit.
 
-When the selected player's retained actor association is not the receiver, the
-target pitch and roll are both zero. Otherwise, the task computes a bearing
+The retained actor association is the supporting-actor reference also read by
+`PlayerStand`, distinct from the retained ledge-support reference. When this
+reference on the selected player is not the receiver, the target pitch and roll
+are both zero. Otherwise, the task computes a bearing
 from the player's local X/Z to the receiver's effective X/Z. Effective position
 on the ordinary attribute-zero path uses the linked record's position when the receiver has an active linked record,
 and the receiver's local position otherwise. The bearing, receiver heading and
@@ -8160,14 +8162,18 @@ shortest signed wrapped difference from its current angle to its target. The
 exact half-turn difference retains the sign of target minus current. With a
 zero `divisor`, the step starts as that difference. With a nonzero divisor, it
 is the signed quotient truncated toward zero, clamped to a minimum of one.
-The shared integer update multiplier then multiplies the step with 32-bit
-wrapping.
+The shared integer update multiplier is the whole nominal-tick increment of
+the current update, including zero-tick updates. It multiplies the step with
+32-bit wrapping.
 
 For each axis, a signed difference greater than its step adds the step to the
 current angle; otherwise the target is stored directly. After these stores, the
 task requests the receiver's orientation refresh. If that service returns, the
-task returns one. The diagnostic and orientation-refresh services are separate
-dependencies of the native.
+task returns one. Orientation refresh rebuilds the local matrix from identity
+with negated yaw, pitch and roll, each masked to 2048 units, except that rotation
+mode one selects the alternate Euler builder. It then copies all three current
+angles to angle history. The diagnostic and orientation-refresh services are
+separate dependencies of the native.
 
 ### PlayerTiltRevx orientation targets
 
