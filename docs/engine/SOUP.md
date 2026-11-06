@@ -3559,6 +3559,21 @@ roll. The function does not update the other angle components, the effective
 angles, or the orientation matrix. It reads the existing group-angle table
 directly without a family-tree lookup.
 
+The group-angle table holds one entry of three 32-bit angles (pitch, yaw,
+roll) per group number, indexed by the group byte. The family update writes an
+entry for each master, indexed by that master's `attr_master`, so a slave's
+group names the entry its master wrote:
+
+- Normally the entry is the entry of the master's own `attr_slave` group plus the
+  master's local angles, each masked to 11 bits. A master that is not itself a
+  slave adds to entry zero.
+- When the master's `attr_no_slave_rot` is nonzero, the entry is the master's
+  local angles masked to 11 bits, without the parent group's angles.
+
+The entry therefore follows the master's accumulated angles as of its latest
+update; a slave group no master has written reads whatever the table holds for
+that index.
+
 ### DetachSlaves
 
 `DetachSlaves()` takes no arguments and returns zero. It does not change
