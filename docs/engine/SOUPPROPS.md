@@ -443,6 +443,17 @@ a delay of 255 becomes 64; other delay values remain unchanged. The temporary
 AI-state save and restore pair retains this byte alongside the mode, length and
 AI-variable state. Raw property writes invoke none of those services.
 
+## Message selection properties
+
+`message_index` and `broadcast_index` are the receiver actor's unsigned selection bytes for its
+message channel and for the broadcast channel: the cursors the message natives (`ReceiveMessage`,
+`DeleteMessage`, `IsMessageWaiting`, `GetMessageSender` and its identifier form) and the broadcast
+natives (`ReceiveBroadcast`, `DeleteBroadcast`, `IsBroadcastWaiting`, `GetBroadcastSender` and
+its identifier form, `ReplyBroadcastSender`) read and advance. Property reads are unsigned and
+writes retain the low eight bits, with no clamp to the entry count: a stored value outside the
+queue is used unchecked by the natives. Actor allocation clears both bytes, including pooled reuse.
+A raw write moves no cursor service and changes no entry.
+
 ## AI record properties
 
 `ai_var1` and `ai_var2` are two-byte fields, `ai_length`, `node`, `dnode` and `fdnode` four-byte
