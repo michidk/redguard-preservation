@@ -8158,8 +8158,9 @@ arithmetic wrap at 32 bits.
 
 If both current angles already equal their targets, the task returns one
 without requesting an orientation refresh. Otherwise, each axis uses the
-shortest signed wrapped difference from its current angle to its target. The
-exact half-turn difference retains the sign of target minus current. With a
+shortest signed wrapped difference from its current angle to its target. Both
+inputs are masked to 2048 units before subtraction. The exact half-turn
+difference retains the sign of target minus current. With a
 zero `divisor`, the step starts as that difference. With a nonzero divisor, it
 is the signed quotient truncated toward zero, clamped to a minimum of one.
 The shared integer update multiplier is the whole nominal-tick increment of
@@ -8167,7 +8168,8 @@ the current update, including zero-tick updates. It multiplies the step with
 32-bit wrapping.
 
 For each axis, a signed difference greater than its step adds the step to the
-current angle; otherwise the target is stored directly. After these stores, the
+current angle without masking the stored sum; otherwise the target is stored
+directly. After these stores, the
 task requests the receiver's orientation refresh. If that service returns, the
 task returns one. Orientation refresh rebuilds the local matrix from identity
 with negated yaw, pitch and roll, each masked to 2048 units, except that rotation
