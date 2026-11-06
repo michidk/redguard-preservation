@@ -7493,6 +7493,27 @@ native-enable or shared-mode gate. Its numerical result follows the helper's
 incoming floating-point settings. It reads receiver position before the speed
 query's missing-record guards.
 
+### Changed-actor list
+
+The changed-actor list holds the actors whose map-cell membership must be refreshed before the
+next regional selection. Its capacity is the `[system]` key `max_remap_objects`; the engine reads
+a missing key as zero and raises any value below 32 to 32, so the capacity is at least 32. The
+list is allocated and emptied when a world's map structures are built, and again when they are
+released.
+
+Registration appends the actor unless the count is zero (an empty list appends without a capacity
+test), the actor is already in the list (the list is searched by actor identity and left
+unchanged), or the count has reached the capacity, which raises runtime error 196 after the
+caller's position stores. Entries stay in first-registration order.
+
+Once per main-loop frame, after the actor updates and input and before the map list is built
+around the viewer, the loop first removes actors flagged for deletion (their list slot is zeroed
+and the actor leaves its cell) and then flushes the list. The flush visits the slots in order,
+refreshes the cell membership of every nonzero entry, zeroes the slot and sets the count to zero.
+A savegame write and read flush the list first, so a saved world never carries pending entries.
+`AtPos`, `GotoLocation`, `MoveAboveMe` and the other natives that write an actor's position
+directly register it here.
+
 ### ReplyBroadcastSender entry write
 
 `ReplyBroadcastSender(value)` returns zero. It requests the missing-context
