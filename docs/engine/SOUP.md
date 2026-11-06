@@ -7816,7 +7816,14 @@ not affect this entry abort decision.
 Otherwise it runs the pitch adjustment described for `LineUp`, sets mask `2` in
 the alignment flag byte, and queries the receiver's state before querying the
 target or constructing the offset position. This entry uses the shared pointing
-target even when a separate retained lineup target exists.
+target even when a separate retained lineup target exists. The shared pointing
+target is the shared source actor reference described under `PointAt`: the actor
+whose script last ran an interpreter entry. It stays that actor while the receiver's
+own task stage later polls the task, so a receiver-owned task keeps aligning to the
+actor that called it (the object-targeted call returns to its caller at once).
+Observed in the original with a synthetic object-targeted call in a live actor: the
+selected player took the task slot and set its alignment flag, and the shared
+reference kept changing between actor pointers as other actors' entries ran.
 
 After the receiver and target queries, the task computes the heading
 `(target yaw + angle) & 2047` and rotates the X and Z arguments by that heading
