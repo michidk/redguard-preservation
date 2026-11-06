@@ -7754,8 +7754,26 @@ not affect this entry abort decision.
 Otherwise it runs the pitch adjustment described for `LineUp`, sets mask `2` in
 the alignment flag byte, and queries the receiver's state before querying the
 target or constructing the offset position. This entry uses the shared pointing
-target even when a separate retained lineup target exists. Target validity and
-the later geometry and movement services determine further progress.
+target even when a separate retained lineup target exists.
+
+After the receiver and target queries, the task computes the heading
+`(target yaw + angle) & 2047` and rotates the X and Z arguments by that heading
+with the offset-rotation service. The destination is the rotated offsets added to
+the target's X and Z; Y is not used. The destination test is the alignment
+arrival test on the receiver. The final heading is `(heading + 1024) & 2047`.
+
+When the arrival test returns one, the task turns the receiver to the final heading
+with `TurnToAngle`. A nonzero turning result returns one. A zero result calls the
+receiver's animation-completion service: a nonzero result clears mask `2` of the
+alignment flag byte and returns zero, a zero result returns one.
+
+When the arrival test does not return one, the facing helper runs on the destination;
+a nonzero result returns one. Otherwise the movement-admission helper runs with the
+destination X, zero and the destination Z. When it returns exactly one, the step helper
+runs on the destination; a zero result from the step helper takes the same final-heading
+turn and completion sequence as arrival. In every other case the entry abort test runs
+again: a nonzero condition word with a state byte above eight writes six to the shared
+lineup phase byte, clears mask `2` and returns zero; otherwise the task returns one.
 
 ### PlayerForceTalk positioning
 
