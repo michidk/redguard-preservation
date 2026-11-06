@@ -7094,6 +7094,15 @@ contains the configured number of 12-byte entries and is cleared on allocation.
 Broadcast operations use channel zero. Each channel has a shared no-selection
 byte; receivers retain their own selection bytes separately.
 
+The channel byte every message native reads for a receiver is attribute 125
+(`attr_mess_group`), the same attribute that selects a combat message queue. The
+engine has one messaging context: startup and combat reset each initialize it
+with eight entries per channel, so the combat queues and the message natives share
+channels, entries and the global entry limit. An entry holds sender, recipient and
+value words; a combat message's code is its value word. A receiver's selection
+byte is its retained read cursor, and a channel's no-selection byte is the index
+the next send writes.
+
 Context initialization first releases the previous context. Releasing an active
 context clears all channel no-selection bytes, releases the channel arrays and
 then releases the pointer table. Releasing an absent context skips the channel
