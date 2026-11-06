@@ -800,6 +800,12 @@ as the shared native-command source before entry continuation or the existing-ta
 gate. It establishes this source even when an unpaused task prevents the main body.
 The separate task-actor update uses the same interpreter entry.
 
+In the ordinary actor update, and in the separate-record update, the per-actor RAHK native hook
+runs before the interpreter entry of the same actor. The hook therefore reads the actor of the
+previous interpreter entry as the shared native-command source, and the entry replaces it. Nothing
+else writes the shared source; it keeps its value across the rest of the frame, so natives called
+from a task polled later still read the actor that last entered the interpreter.
+
 The alternate entry/main path selected by script-control mask `0x04` does not
 replace that source actor. It retains the source from the previous assigning
 entry while bypassing the existing-task pass. Both entry paths capture the
