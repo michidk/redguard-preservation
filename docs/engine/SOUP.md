@@ -7800,6 +7800,28 @@ as unsigned integers. A smaller value snaps pitch to zero; otherwise it writes
 of pitch with the step selects either zero or `(pitch - step) & 2047`. Nonpositive
 pitch is left unchanged. The pitch helper changes no transform matrix itself.
 
+### LineUp mover
+
+`LineUp` is the close-alignment mover that `PlayerLineUp` runs in close mode,
+registered directly as the native handler, so its moving actor is the receiver
+rather than the selected player. It reads the retained lineup target (copied
+from the shared source actor on the first invocation, then kept in the task's
+native state) as the reference actor. The handler performs none of
+`PlayerLineUp`'s mode selection or debug marker work and does not store its
+result in the shared player-lineup result. A reference equal to the receiver
+requests the self-target diagnostic.
+
+With the retained fallback flag set, it turns the receiver to the reference
+heading plus `angle` plus a half turn; a nonzero turn returns one, a zero turn
+with an incomplete default-animation request also returns one, and otherwise it
+writes six to the shared lineup phase byte, clears mask `2` of the alignment flag
+and returns zero. Without the flag it levels roll, sets mask `2`, rotates the
+offsets by the reference heading plus `angle`, adds the reference X/Z, and runs
+the same arrival, turning, bearing-selected step and fallback rules as
+`PlayerLineUp` close alignment: completion clears mask `2` without writing
+phase six, and a rejected step or a collision-response mark sets the fallback
+flag.
+
 ### WaitLineUp argument actor flag
 
 `WaitLineUp(actor)` is declared as a task with one argument. It tests mask `2`
