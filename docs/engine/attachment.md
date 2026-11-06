@@ -132,7 +132,7 @@ Loading a registry replaces its previous contents.
 
 | Item Struct Offset | Source | Description |
 |---|---|---|
-| `+0x10` | Item type | Type discriminator: `1` = weapon/hand-object, `3` = general item |
+| `+0x10` | Item type | `ITEM.INI` `type`: `1` = weapon, `3` = torch |
 | `+0x4a` | ROB handle | 3D model handle for the item |
 | `+0x77` | ROB handle (type 1 only) | **Hand model** — the 3D model shown when weapon is drawn |
 | `+0x7b` | ROB handle (type 1 only) | **Hilt model** — the 3D model shown when weapon is sheathed |

@@ -38,7 +38,7 @@ Paths, script names, and RTX labels retain their spelling and capitalization.
 
 | Field | Description |
 |---|---|
-| `type[x]` | Item type: `0` = general item, `1` = sword/weapon (can be drawn and sheathed, has both drawn and sheathed 3D files), `2` = hand object (may override a weapon, e.g. torch). |
+| `type[x]` | Item type: `0` = general item, `1` = sword/weapon (can be drawn and sheathed, has both drawn and sheathed 3D files), `2` = hand object (may override a weapon, e.g. torch), `3` = torch (used by the shipped torch; the file's comment block does not list it). |
 | `flags[x]` | Bit-field of misc flags. `1` = remove on drop regardless of player total; `2` = drop item after use; `4` = remove item after use. Add values together to combine. |
 | `hide[x]` | When `1`, the item is hidden from screen and inventory but still exists. Scripts may still call `UseItem()` on it; the player cannot select or use it directly. |
 | `total[x]` | Total number of this item in the game world. |
@@ -272,7 +272,7 @@ select the configured default weapon.
 | 42 | silver ship | 0 (general) |
 | 43 | shovel | 0 (general) |
 | 44 | aloe | 0 (general) |
-| 45 | torch | 3 (hand object) |
+| 45 | torch | 3 (torch) |
 | 46 | monocle | 0 (general) |
 | 47 | red flag | 0 (general) |
 | 48 | silver locket that talks of lakene | 0 (general) |

@@ -78,8 +78,9 @@ ini_section! {
 }
 
 ini_enum! {
-    /// Item type codes. The shipped torch's undocumented code 3 is `Unknown(3)`.
-    ItemType { General = 0, Weapon = 1, HandObject = 2 }
+    /// Item type codes. The file's comment block documents 0 to 2; the shipped torch uses code 3,
+    /// which `UseItem` treats as the torch.
+    ItemType { General = 0, Weapon = 1, HandObject = 2, Torch = 3 }
 }
 
 ini_section! {

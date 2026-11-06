@@ -117,7 +117,7 @@ fn item_settings_preserve_ids_lists_paths_and_empty_fields() {
     assert_eq!(ini.items[&7].add_item_list, Some(vec![0, 1]));
     assert_eq!(ini.items[&7].game_object_file, None);
     let torch = &ini.items[&45];
-    assert_eq!(torch.item_type, Some(ItemType::Unknown(3)));
+    assert_eq!(torch.item_type, Some(ItemType::Torch));
     assert_eq!(torch.name.as_deref(), Some("?xTo"));
     assert_eq!(torch.script_instances, Some(-1));
     assert_eq!(torch.drop_use_item_list, Some(vec![2, 4]));
@@ -304,7 +304,7 @@ fn parses_installed_configs_and_matches_existing_player_settings() {
     assert_eq!(items.items.len(), 87);
     assert_eq!(items.settings.start_item_list, Some(vec![1, 2, 4, 18]));
     assert_eq!(items.items[&2].player_total, Some(52));
-    assert_eq!(items.items[&45].item_type, Some(ItemType::Unknown(3)));
+    assert_eq!(items.items[&45].item_type, Some(ItemType::Torch));
     assert_eq!(items.items[&69].use_script.as_deref(), Some("inouse"));
     assert_eq!(items.items[&74].use_script, None);
     assert_eq!(items.items[&86].name.as_deref(), Some("?xsw"));
