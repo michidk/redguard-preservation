@@ -5316,12 +5316,19 @@ argument is passed on the stack and removed on return.
 ### AnimateGXA
 
 `AnimateGXA(name, first, cycle, count)` is a four-argument task. The native
-handler does not use its actor receiver. It shares the image task counter,
-loaded resource and animation progress. When the counter and cached resource
-are both zero, its first dependency is the image loader, called with `name`
-and a zero second parameter. Otherwise it uses the cached resource. When
-`counter >= count - 1`, using signed comparison, its first dependency is
-resource release with that cached resource.
+handler does not use its actor receiver. Its image task counter, loaded
+resource and animation progress are words of the running task slot's native
+state: the counter is the shared elapsed word, the loaded resource is the
+first native continuation word and the progress is the second. They are
+loaded before the handler runs and stored back after it, so each task slot
+keeps its own and a saved task retains them. When the counter and cached
+resource are both zero, the image loader is called with `name` and a zero
+second parameter, its result becomes the cached resource and the progress
+is set to zero. Otherwise the handler uses the cached resource. When
+`counter >= count - 1`, using signed comparison, it releases the cached
+resource, clears both image slot pointers and returns zero, which completes
+the task; it publishes nothing on that path and leaves the progress word
+as it was.
 
 On the initialized active path, the handler publishes two image slots. Both
 are centered on a 640 by 480 screen using signed resource width and height:
@@ -5337,6 +5344,12 @@ while progress is strictly greater than `cycle`; equality is retained. It
 returns one on this active path. Slot selection uses progress before this
 update. The native writes neither the actor receiver nor the cached resource
 contents on this path.
+
+The main loop draws the published slots after the world frame: slot 1, then
+slot 2 when its pointer is nonzero, each as an ordinary image frame at its own
+position, so slot 2 lies over slot 1. It then clears both slot pointers, so a
+slot is drawn only for the update that published it and the active task
+republishes both every update. No installed script calls `AnimateGXA`.
 
 ### DropAllItems
 
