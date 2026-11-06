@@ -7950,6 +7950,14 @@ at or below the threshold, and zero for a greater distance. Equality is admitted
 It writes no actor or shared camera state and makes no direction, visibility or
 occlusion query.
 
+The receiver's position-selection byte is its `attr_slave`: a nonzero value
+selects the attached (effective) position, so an attached receiver is measured
+at its composed position and a free one at its local position. The view-distance
+threshold is written once, when the actor system is initialized, as the absolute
+difference of the `[xngine]` `back_plane` and `front_plane` settings of
+`SYSTEM.INI`, each held shifted left by eight bits, shifted back right by eight
+after the subtraction. With the documented defaults (3800 and 7) it is 3793.
+
 ### swordAI initial terrain request
 
 `swordAI()` is declared as a task with no arguments. Its native retains the
