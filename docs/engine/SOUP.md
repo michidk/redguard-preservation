@@ -7854,24 +7854,40 @@ The native returns zero. It makes no dialogue, animation, matrix-update,
 collision-query or position-processing registration call. Its coordinate writes
 are direct; the selected-player pointer and receiver matrix must already exist.
 
-### PlayerFaceTalk target construction boundary
+### PlayerFaceTalk
 
-`PlayerFaceTalk(distance)` is a task with one argument. It obtains the selected
-player separately from its receiver. It initializes a local vector to
-`(0, 0, distance)`, transforms it through the receiver's stored orientation
-matrix using the integer-to-float matrix helper described for `PlayerForceTalk`,
-and adds receiver X and Z to the transformed X and Z with wrapping integer
-arithmetic. This constructs a local target position; it does not immediately
-write that position to the player.
+`PlayerFaceTalk(distance)` is a task with one argument that walks the selected player in front of the
+receiving actor and turns it to face the receiver. The receiver and the selected player may be the same actor.
+It returns zero when done and one while continuing.
 
-It then applies the pitch adjustment described for `LineUp` to the selected
-player, and queries that player's state before proceeding to alignment and
-movement. Receiver and selected player may identify the same actor. Target
-construction still precedes the player's pitch adjustment. At this boundary,
-the native has changed only player pitch where the pitch helper requires a
-write; receiver/player X, Y, Z and yaw are retained. No dialogue or animation
-request has occurred before the player-state query. Later alignment and movement
-services govern progress beyond that query.
+The target is built from `(0, 0, distance)`: the vector is transformed through the receiver's stored
+orientation matrix using the integer-to-float matrix helper described for `PlayerForceTalk`, and the
+receiver's X and Z are added to the transformed X and Z with wrapping integer arithmetic. The target stays
+local; nothing is written to the player directly. The final heading is the receiver's yaw masked to 2047
+turned by a half turn (`+ 1024`, masked again).
+
+Each invocation, in order:
+
+1. The selected player's roll is leveled, as for `LineUp`. A nonzero player attribute 26 then starts the actor
+   diagnostic path (error 137); if the diagnostic services return, the invocation continues.
+2. The [facing-arrival test](#alignment-distance-thresholds) runs against the target. On arrival the player
+   turns to the final heading with the support-response turn rules; while it is still turning the task
+   returns one. Otherwise all four called flags are set, the default animation is requested, and on completion
+   (the request always reports it) the player's alignment flag is cleared and the task returns zero.
+3. Away from the target, the player first turns to the final heading; while it is still turning the task
+   returns one.
+4. A nonzero packed collision-response word with an age above 8 abandons the task: return state 6, the
+   alignment flag cleared, return zero.
+5. The relative bearing (the player's heading minus the heading of the displacement to the target, wrapped to
+   2048) selects the close step as in close alignment: right from 257 through 768, backward from 769 through
+   1280, left from 1281 through 1792, forward otherwise. When the movement-distance check does not permit
+   movement, or the step is kept, the task returns one.
+6. A rejected step has restored the saved state and put the player's X/Z on the target. The task then turns to
+   the final heading (returning one while turning), requests the default animation and, on completion, clears
+   the alignment flag and returns zero.
+
+The task never sets the player's alignment flag, unlike `PlayerLineUp`; it only clears it. It does not store
+the shared player-lineup result.
 
 ### Guard native request boundary
 
