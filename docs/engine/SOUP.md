@@ -6106,11 +6106,14 @@ The target Y then subtracts the receiver's vertical offset shifted left eight
 bits and adds the shared vertical adjustment. These integer operations wrap
 at 32 bits.
 
-The shared source actor reference names the actor whose script is executing the call; it is set
-when the script interpreter is entered for that actor, so a call routed to another object keeps the
-calling actor as the source while the named object is the receiver. The shared vertical adjustment
-is the `[system]` `standing_height` value from `SYSTEM.INI` shifted left eight bits, read once when
-the settings load. The alternate-position predicate tests the source's `slave` attribute for a
+The shared source actor reference is the shared native-command source: the ordinary
+entry, task and main interpreter entry writes its executing actor there before the entry
+continuation, and nothing else writes it. The RAHK native hook and the alternate entry/main path
+selected by script-control mask `0x04` do not, so a native they run reads the actor of the most
+recent ordinary interpreter entry, and a call routed to another object keeps that source while
+the named object is the receiver. The shared vertical adjustment is the `[system]`
+`standing_height` value from `SYSTEM.INI` shifted left eight bits, read once when the settings
+load. The alternate-position predicate tests the source's `slave` attribute for a
 nonzero value, the same attribute that makes position resolution select the alternate position.
 
 For the selected-player receiver, the function sets the pending-position flag
@@ -7708,11 +7711,12 @@ within the signed conversion range, this discards the fractional component
 before selecting the angle.
 
 The shared pointing target is the shared source actor reference described under
-[MoveAboveMe](#moveaboveme): the actor whose script is executing the call, so a call routed to
-another object turns that object toward the calling actor, and a call on the running actor
-itself yields zero differences. The floating-point coordinates are the actors' stored model
-coordinates (map units); their lifetime is described with the model presentation record. The
-planar angle is the shared query bearing of the integer X and Z differences.
+[MoveAboveMe](#moveaboveme): the actor of the most recent ordinary interpreter entry. A call made
+from that actor's own script on itself therefore yields zero differences, and a call routed to
+another object turns that object toward the source. The floating-point coordinates are the actors'
+stored model coordinates (map units); their lifetime is described with the model presentation
+record. The planar angle is the original's bearing helper on the integer X and Z differences,
+negated and masked to 2047.
 
 The native negates the planar angle, masks it to 2047, writes it directly to the
 receiver's yaw field, and returns zero. It does not delegate to `TurnToAngle`,
