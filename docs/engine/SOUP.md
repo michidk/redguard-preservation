@@ -5318,8 +5318,8 @@ argument is passed on the stack and removed on return.
 `AnimateGXA(name, first, cycle, count)` is a four-argument task. The native
 handler does not use its actor receiver. Its image task counter, loaded
 resource and animation progress are words of the running task slot's native
-state: the counter is the shared elapsed word, the loaded resource is the
-first native continuation word and the progress is the second. They are
+state: the loaded resource is the first native continuation word and the
+progress is the second, beside the counter word. They are
 loaded before the handler runs and stored back after it, so each task slot
 keeps its own and a saved task retains them. When the counter and cached
 resource are both zero, the image loader is called with `name` and a zero
