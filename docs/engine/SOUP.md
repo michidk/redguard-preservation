@@ -7520,7 +7520,10 @@ released.
 Registration appends the actor unless the count is zero (an empty list appends without a capacity
 test), the actor is already in the list (the list is searched by actor identity and left
 unchanged), or the count has reached the capacity, which raises runtime error 196 after the
-caller's position stores. Entries stay in first-registration order.
+caller's position stores. The runtime error service shuts the engine down unless the
+`attempt_recover` setting is nonzero and the console-error gate permits recovery; with the
+installed `attempt_recover=no`, the call never returns to its caller or to the interrupted script.
+Entries stay in first-registration order.
 
 Once per main-loop frame, after the actor updates and input and before the map list is built
 around the viewer, the loop first removes actors flagged for deletion (their list slot is zeroed
