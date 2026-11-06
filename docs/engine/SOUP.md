@@ -7707,6 +7707,13 @@ as a signed integer before planar angle conversion. For finite differences
 within the signed conversion range, this discards the fractional component
 before selecting the angle.
 
+The shared pointing target is the shared source actor reference described under
+[MoveAboveMe](#moveaboveme): the actor whose script is executing the call, so a call routed to
+another object turns that object toward the calling actor, and a call on the running actor
+itself yields zero differences. The floating-point coordinates are the actors' stored model
+coordinates (map units); their lifetime is described with the model presentation record. The
+planar angle is the shared query bearing of the integer X and Z differences.
+
 The native negates the planar angle, masks it to 2047, writes it directly to the
 receiver's yaw field, and returns zero. It does not delegate to `TurnToAngle`,
 request animation, or update a transform matrix. Existing yaw does not contribute
