@@ -62,7 +62,10 @@ Paths, script names, and RTX labels retain their spelling and capitalization.
 1) or in an edge state (10 through 19), after another use attempt in the same
 world-loop iteration, in shell context, with the inventory closed, in deep water,
 while holding a weapon, or while lighting or dousing a torch. An unknown or unowned
-item is an error, and so is a receiver other than the selected player. Item zero
+item is an error, and so is a receiver other than the selected player. Ownership
+requires the current count to be greater than zero as a signed 32-bit value.
+Counts with the high bit set are rejected before the item-specific action, use
+script, or drop-list effects. Item zero
 toggles the compass. Weapon items (type 1) set the weapon attribute and draw the
 sword, and torch items (code 3) light or put out the torch. A general item starts
 its `use_script` as a shell when `script_instances` is zero or negative or fewer
