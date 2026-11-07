@@ -30,15 +30,15 @@ Names follow UESP where available.
 | **3** | GoToFuture | 20-bit | target_frame | Jump forward to a later frame. Conditional — checks animation state flags and pending transitions. |
 | **4** | PlaySound | 10 + 10 | effect, rate_offset | Play SFX positioned at the animated object. Both fields are signed. `effect` is the effect index after [SURFACE.INI](../config/surface-ini.md#sound-remap-records) remapping; `rate_offset × 64` Hz is added to the effect's sample rate (result clamped to 512..44000 Hz). Volume and pan come from the [positional sound](sound.md#animation-playsound) rules, not from this command. Same bit layout as opcode 0 but params are NOT handle/vertex. |
 | **5** | BreakPoint | 20-bit | (unused, always 0) | Set the animation breakpoint flag. Often the target of GoToFuture jumps. |
-| **6** | SetRotationXYZ | 6 + 6 + 6 | rot_x, rot_y, rot_z | Set 3-axis rotation (each param × 256). Actor orientation override. |
-| **7** | SetRotationAxis | 2 + 18 | axis (0=X, 1=Y, 2=Z), value | Set rotation on a single axis. Finer precision than opcode 6. |
-| **8** | SetPositionXYZ | 6 + 6 + 6 | pos_x, pos_y, pos_z | Set 3-axis position offset (each param × 8). |
-| **9** | SetPositionAxis | 2 + 18 | axis (0=X, 1=Y, 2=Z), value | Set position offset on a single axis. |
+| **6** | SetPositionXYZ | 6 + 6 + 6 | pos_x, pos_y, pos_z | Store the three operands, each shifted left by 8, in the animation record's position words. |
+| **7** | SetPositionAxis | 2 + 18 | axis (0=X, 1=Y, any other value Z), value | Store the value, unshifted, in one position word. |
+| **8** | SetRotationXYZ | 6 + 6 + 6 | rot_x, rot_y, rot_z | Store the three operands, each shifted left by 3, in the animation record's rotation words. |
+| **9** | SetRotationAxis | 2 + 18 | axis (0=X, 1=Y, any other value Z), value | Store the value, unshifted, in one rotation word. |
 | **10** | ChangeAnimGroup | 10 + 10 | target_group, target_frame | Jump to a different animation group and frame. Same bit layout as opcode 0, but writes to anim control fields, not attachment. |
 | **11** | ActorEvent (exported as Rumble) | 20-bit | event_bitmask | Bit set passed to the [actor-event service](animation.md#actor-events): bits 0 to 3 request the environmental effects `0x2580`, `0x2500`, `0x2500` and `0x2700` when the actor's stored sound surface is lava, water, water and sand, and bit 4 adds a screen-shake impulse. Cyrus's commands use 0; the Golem's two stomp groups in DRINT use 16. |
 | **12** | DelayCounter | 20-bit | counter_value | Set frame delay counter; pause animation until counter expires. |
-| **13** | ConditionalDelay | 20-bit | counter_value | Set conditional delay; direction-dependent counter. |
-| **14** | LoopControl | 20-bit | target_frame | Decrement loop counter; jump to target frame if counter > 0. |
+| **13** | ConditionalDelay | 20-bit | counter_value | Store the operand in the animation record's repeat byte and continue; reverse playback steps over it. |
+| **14** | LoopControl | 20-bit | target_frame | With a zero repeat byte continue with the next command; otherwise decrement the repeat byte and continue at the target command. Reverse playback steps over it. |
 | **15** | Transition | 6 + 7 + 7 | trigger_mask, start_frame, target_group | Mid-animation transition to another group. trigger_mask bits: 0=jump right, 1=jump left, 2=anim trigger (0x2500), 3=anim trigger (0x2700), 4=counter increment, 5=unused. Used by 8 combat actors. |
 
 Opcodes 6–10 and 12–14 are implemented in the engine but do not appear in any

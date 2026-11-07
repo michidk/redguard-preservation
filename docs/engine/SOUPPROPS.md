@@ -562,8 +562,10 @@ the repetition byte, sets the sound slot to 255 and the countdown to the reload 
 write therefore changes only the written field: a script that writes `anim.speed_count` to zero
 makes the next tick with nonzero input advance the cursor and count one frame, and writing
 `anim.hold_flag` to 255 stops all playback until it is cleared. `anim.max_group` is a byte read from
-the animation file header when the record is built, and `anim.pos` and `anim.angle` are the
-retained translation and rotation words of the current frame step.
+the animation file header when the record is built. `anim.rep_count` is the repeat byte of the
+[`ConditionalDelay` and `LoopControl`](animation.md#translation-rotation-and-repeat-commands) commands, and
+`anim.pos.*` and `anim.angle.*` are the 16-bit translation and rotation words those and the
+translation commands retain until the next frame step; they are read sign-extended.
 
 ## Killed and weapon-drawn properties
 

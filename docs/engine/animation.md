@@ -772,6 +772,22 @@ already moved past the delay command; the usual countdown and frame-skip rules
 still apply when the delay expires. `ConditionalDelay` and `LoopControl` use
 separate state from `DelayCounter`.
 
+## Translation, rotation and repeat commands
+
+Opcodes 6 and 7 store a translation and opcodes 8 and 9 a rotation in the animation record. The
+record keeps three 16-bit position words and three 16-bit rotation words. Opcode 6 stores its three
+operands shifted left by eight in the position words; opcode 8 stores its three operands shifted
+left by three in the rotation words. Opcodes 7 and 9 store one unshifted value in the word their
+axis operand selects: zero the first, one the second and any other value the third. Each command
+then moves the cursor on. Every cursor step that clears the `BreakPoint` marker also zeroes all six
+words, so they hold their values only until the next frame is selected.
+
+Opcode 13 stores its operand, narrowed to a byte, in the record's repeat byte and moves on. Opcode
+14 moves on when the repeat byte is zero; otherwise it decrements the byte and sets the cursor to its
+operand. A group that stores N and then reaches the loop command N times therefore runs the block
+between them N more times. Selecting a group clears the repeat byte. In reverse playback these
+commands only step the cursor back. The shipped game contains none of them.
+
 ## Breakpoints and walking translation
 
 `BreakPoint`, opcode five, sets a marker in the current animation state and
