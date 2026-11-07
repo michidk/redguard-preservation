@@ -8128,6 +8128,14 @@ receiver gates of the object natives are those of the generic health services: a
 120 returns first, then a nonzero attribute 97 needs a held weapon or combat flag four. None of
 the four natives applies the early selected-player feedback update that `AdjustHealth` performs.
 
+When `ZapObject` leaves a nonplayer receiver at zero health it ends the receiver with a death
+dispatch. A receiver holding a weapon force-starts group 122 when it has that group and group 121
+otherwise, releases its held walk nodes, stores death default 124 or 123, resets its combat action
+selector to -1 and takes death selector eight; the dispatch dereferences the combat record, so a
+receiver without one faults. Any other receiver force-starts group 74 when its current group is
+114, 116, 130 or 131 or its falling byte is nonzero, group 134 otherwise, and takes death selector
+eight with no death default or selector reset.
+
 ### lookCyrus target forwarding boundary
 
 `lookCyrus(frames)` is declared as a task with one argument. Its wrapper saves
