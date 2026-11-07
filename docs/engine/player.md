@@ -1635,6 +1635,21 @@ script write to an extent therefore changes every such query on the next
 evaluation. The sphere list is rebuilt only by the sphere builder at actor
 creation and model changes, so a write does not alter spheres already built.
 
+The center offset is read by two routines. The residual body response sets the origin of the
+first working record to the actor's query position plus the offset, unrotated; the primary contact
+collection reads the selected shape record's own origin and applies no offset. The selected player's
+fallback support sphere adds the offset to its center. Sphere construction and the vertical ground
+probe ignore it. Shipped files carry a zero offset, so only a script write to `size.pos` moves it.
+
+#### Query position
+
+Ground, prevalidation, terrain-check, stable-recovery, body and obstacle queries take their position
+from one selector: the composed attached position when `attr_slave` is nonzero, otherwise the
+linked record's cached position while the actor's link record names an owner, otherwise the local
+position. The obstacle query's start point uses the matching previous-position selector (previous
+attached position, the link record's previous cached position, previous local position). The
+queued-motion vertical clearance and the blocked-ahead probe also start from the selector's position.
+
 ### Living animation bounds selection
 
 An ordinary actor with combat and living-animation records refreshes its spatial
