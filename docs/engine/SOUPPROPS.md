@@ -456,13 +456,20 @@ A raw write moves no cursor service and changes no entry.
 
 ## AI record properties
 
-`ai_var1` and `ai_var2` are two-byte fields, `ai_length`, `node`, `dnode` and `fdnode` four-byte
-fields, in the actor record's AI block next to `ai_delay`. A property read sign-extends a two-byte
-field and returns a four-byte field whole; a write keeps the low sixteen bits of a two-byte field
-and all of a four-byte one. Actor allocation zeroes the record and then sets `ai_var1`, `node`,
-`dnode` and `fdnode` to minus one (`ai_var1` as the word `0xffff`), leaving `ai_var2` and
-`ai_length` zero, including for pooled reuse. `GoToLocation` stores the low sixteen bits of its
-location argument in `ai_var1`, and its sentinel test reads that word back as a signed value.
+`ai_var1` and `ai_var2` are two-byte fields and `ai_length` a four-byte field in the actor record's
+AI block next to `ai_delay`. A property read sign-extends a two-byte field and returns a four-byte
+field whole; a write keeps the low sixteen bits of a two-byte field and all of a four-byte one.
+Actor allocation zeroes the record and then sets `ai_var1` to minus one (the word `0xffff`),
+leaving `ai_var2` and `ai_length` zero, including for pooled reuse. `GoToLocation` stores the low
+sixteen bits of its location argument in `ai_var1`, and its sentinel test reads that word back as a
+signed value.
+
+`node`, `dnode` and `fdnode` are the actor's held current, next and final-destination walk-node
+indices, and `node_map` the walk map they index; the previous-next record sits between `dnode` and
+`fdnode`. Allocation sets the three indices to minus one and `node_map` to null. Assigning the
+current node first copies a held next node into the previous-next record; the next-node assignment
+and the walk code move the held values between the fields. A raw property write stores the value
+without claiming or releasing a node reservation.
 
 The `HeaderHook` diagnostic prints `node`, `dnode`, `ai_length` as signed integers and both
 variables as signed sixteen-bit values. The temporary AI-state save and restore pair retains
