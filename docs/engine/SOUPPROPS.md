@@ -478,6 +478,21 @@ for a non-player receiver, negative for a backward jump) and queued motion 24 re
 magnitude to displace the actor, so a script write to `move.vz` while that motion runs changes the
 jump. A property write moves no actor and runs no service.
 
+## Slave pose properties
+
+`slave_pos.vx`, `slave_pos.vy` and `slave_pos.vz` are the actor's attached position and
+`slave_angle.vx`, `slave_angle.vy` and `slave_angle.vz` its attached angles, the pose the family
+update composes for an actor attached to a master; `last_slave_pos.*` and `last_slave_angle.*` hold
+the values the previous family update published. Each is a four-byte field read and written whole,
+without a matrix refresh.
+
+Every family update copies the current attached position and angles into the `last_slave_*` fields,
+then stores the new composed position and the composed angles (masked to 0 through 2047) in the
+`slave_*` fields. An actor with a nonzero `attr_slave` takes its effective position and angles for
+queries from `slave_pos` and `slave_angle` and every other actor from its local position and angles,
+so a property write changes what distance and placement queries see for an attached actor until the
+next family update replaces it, and changes nothing for an unattached one.
+
 ## Message selection properties
 
 `message_index` and `broadcast_index` are the receiver actor's unsigned selection bytes for its
