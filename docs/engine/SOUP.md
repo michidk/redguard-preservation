@@ -5278,39 +5278,15 @@ request. The handlers perform no display and read no inventory state.
 
 #### Item viewer
 
-After the world frame is drawn, the main loop runs the item viewer for a pending request
-with the item identifier and the two request words, then clears the pending flag. The viewer
-does nothing for an identifier absent from the item list. The `ShowItem` text argument is not
-used. Every installed script call passes zero for both request words; that form shows the
-item over the frozen world frame (a non-zero first word embeds the viewer in the inventory
-screen with its own layout).
-
-The model is the item's `inventory_object_file` object. Its three bounding extents give
-`m`, the largest, and `ez`, the third. Angles use 2048 units per turn and start at zero.
-The model's depth starts at `ez + 180`, with pan `(0, 0)`. Depth is limited to `[ez, 8m + ez + 180]`
-and defines the scale `s = (depth - ez) / (8m + 180) + 0.1`. Pan is limited to `±2m·s`
-horizontally and `±2m·s·(screen height / screen width)` vertically. The model rotates about the
-vertical axis by the first angle, then the horizontal axis by the second and the view axis by
-the third, each applied to the identity orientation.
-
-The viewer advances once per BIOS-timer update. Its controls are the configured `key_up`,
-`key_down`, `key_left`, `key_right`, `key_a`, `key_b`, `key_c` and `key_d` actions (each with its
-keyboard and joystick binding), read through the same action flags the player controller uses:
-
-| Held | Left / right | Up / down |
-| --- | --- | --- |
-| none | first angle +80 / -80 | second angle -80 / +80 |
-| `key_b` (no `key_a`) | third angle -80 / +80 | depth `+80·s` / `-80·s` |
-| `key_a` | pan x `-40·s` / `+40·s` | pan y `-40·s` / `+40·s` |
-
-The scale, depth and pan limits are re-derived after every change, and angles are masked to
-11 bits. The entry fade factor `f` starts at 1 and falls by 0.15 per update to 0. The drawn
-position is the pan and depth plus `f` times the entry offset `(0, 0, 1490)`, and the angles
-are held at zero while `f` is above zero. Any of `key_c`, `key_d` or either mouse button
-starts the exit once all of them have been seen released: the exit speech sample stops, `f`
-rises by 0.15 per update (the angles interpolate back to zero along the shorter way and the
-model flies back out along the entry offset), and the viewer ends when `f` exceeds 1. The no-text
-flag is cleared when the viewer ends.
+After the world frame is drawn, the main loop runs the [examine view](hud.md#examine-view) in
+mode 0 for a pending request with the item identifier and the two request words, then clears the
+pending flag. The view does nothing for an identifier absent from the item list. The `ShowItem` text
+argument is not used. Every installed script call passes zero for both request words; that form
+shows the item over the frozen world frame with the model flying in from `(0, 0, 1490)` of its
+resting offset (a non-zero first word gives the inventory screen's cell-position form). Pose,
+controls, fade and the close rule are those of the examine view, whose close requests are View,
+Activate, Enter and Escape. When it closes, the model flies from its current pan and depth to
+`(0, 0, 1490)` and the no-text flag is cleared.
 
 Description lines are RTX records looked up by a four-character label (longer text is cut to
 four characters), played as speech with the label's text as the subtitle unless the no-text flag

@@ -455,8 +455,8 @@ drawn before Examine opens.
 
 The view shows the item's `inventory_object_file` model (loaded from `INVENTRY.ROB`) over the
 frozen screen. The inventory screen opens it with mode 1 and the cursor cell's screen position. The world loop
-also contains a mode 0 entry gated by a request flag, item and position words; no code in the
-executable writes those words, so no gameplay path reaches it. It pauses the game
+also contains a mode 0 entry gated by a request flag, item and position words; the
+[`ShowItem` and `ShowItemNoRtx`](SOUP.md#item-viewer) natives write those words, so scripts reach it. It pauses the game
 clock for its duration, plays sound effect 61 when it opens and 60 when it begins to close, and
 waits for the next BIOS tick each update. It returns 0 when the item is not in the list.
 
