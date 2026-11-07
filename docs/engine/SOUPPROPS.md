@@ -469,6 +469,15 @@ this triple before it rebuilds the matrix; [`ResetRotation`](SOUP.md#resetrotati
 component from it. `SetRotation` does not change it. A property write stores the whole value with
 no matrix refresh.
 
+## Motion triple properties
+
+`move.vx`, `move.vy` and `move.vz` are the actor's retained motion components, three four-byte fields
+read and written whole. The fall start and obstacle interruption clear them. The rope release service
+stores the jump-off speed in `move.vz` (the installed jump-off speed, plus the node's measured speed
+for a non-player receiver, negative for a backward jump) and queued motion 24 reads its sign and
+magnitude to displace the actor, so a script write to `move.vz` while that motion runs changes the
+jump. A property write moves no actor and runs no service.
+
 ## Message selection properties
 
 `message_index` and `broadcast_index` are the receiver actor's unsigned selection bytes for its
