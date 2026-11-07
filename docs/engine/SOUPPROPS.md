@@ -595,8 +595,9 @@ zero when no item was ever assigned. A script write replaces the whole byte, so 
 reads back as its low eight bits, zero-extended; the weapon draw and item-use checks test the byte for
 zero and for the item numbers they name.
 
-`surface_time` is a plain byte: no engine routine reads or writes it, so it is zero until a script stores
-to it and then keeps the low eight bits of the stored value.
+`surface_time`, `jump_time`, `jump_height` and `anchor` are plain bytes: no engine routine reads or
+writes the actor-record bytes they name (the `jump_time` and `jump_height` attributes are separate
+fields). Each is zero until a script stores to it and then keeps the low eight bits of the stored value.
 
 ## Message selection properties
 
