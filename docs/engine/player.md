@@ -1617,6 +1617,23 @@ sphere centered at zero with radius 12. This bypasses the usual sphere builder.
 This initialization precedes the type-one placed-model fallback; loading a
 placement model afterward does not rerun collision-shape initialization.
 
+#### Bounds record fields
+
+The bounds record lives inside the actor record: an orientation byte followed by
+the total, center-offset, positive and negative extents, each three signed
+32-bit values in X, Y, Z order. The `size.*` script properties address these
+fields: `size.orientation`, `size.size.v*` (totals), `size.pos.v*` (center
+offsets), `size.psize.v*` (positive extents) and `size.msize.v*` (negative
+extents). Actor creation fills the record from the model bounds and the sphere
+builder then replaces the orientation byte.
+
+Queries read the positive and negative extents from the record each time they
+run: the ground and hazard probes, the combat bounds and the actor box center
+(positive extent minus negative extent, halved, around the actor position). A
+script write to an extent therefore changes every such query on the next
+evaluation. The sphere list is rebuilt only by the sphere builder at actor
+creation and model changes, so a write does not alter spheres already built.
+
 ### Living animation bounds selection
 
 An ordinary actor with combat and living-animation records refreshes its spatial
