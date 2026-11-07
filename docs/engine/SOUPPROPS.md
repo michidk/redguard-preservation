@@ -588,6 +588,16 @@ read sign-extends it to the script integer width. The identifier is the key name
 ownership and the saved-actor identity check use, so a script that stores to it changes which actor
 those services find.
 
+## Held-item and surface-time properties
+
+`hand_item` is the byte `HandItem` assigns (see [held-item assignment](attachment.md#held-item-assignment)),
+zero when no item was ever assigned. A script write replaces the whole byte, so a stored value
+reads back as its low eight bits, zero-extended; the weapon draw and item-use checks test the byte for
+zero and for the item numbers they name.
+
+`surface_time` is a plain byte: no engine routine reads or writes it, so it is zero until a script stores
+to it and then keeps the low eight bits of the stored value.
+
 ## Message selection properties
 
 `message_index` and `broadcast_index` are the receiver actor's unsigned selection bytes for its
