@@ -5322,6 +5322,18 @@ transformed vertex added to the actor's map position. Both also store the first 
 vertex plus the actor position as the actor's retained attachment point and the record's
 pitch, heading and roll as the actor's retained attachment angles. Both return zero.
 
+### hand_pos and hand_angle properties
+
+`hand_pos.vx`, `hand_pos.vy` and `hand_pos.vz` (offsets `0x201`, `0x205`, `0x209`) and
+`hand_angle.vx`, `hand_angle.vy` and `hand_angle.vz` (`0x20d`, `0x211`, `0x215`) are the six signed
+dwords the [hand and hilt model helpers](#hand-and-hilt-model-helpers) store in the actor. The
+equipped-weapon routines (the drawn, sheathing and stowed placements) call the same two helpers,
+so they store the same words: `hand_pos` is the first transformed attachment vertex plus the actor's
+map position in Q8 and `hand_angle` is the placed model's pitch, heading and roll in 1/2048 turns.
+A property read returns the stored dword and a property write replaces it without masking, so a
+script can store any 32-bit value. The words are plain actor storage: nothing clears them, the
+helpers overwrite them on every call, and the actor keeps them across the frame.
+
 ### DisplayHiltModel
 
 `DisplayHiltModel(name, x, y, z)` is a four-argument function. It uses the same
