@@ -513,6 +513,27 @@ and a property read shows the state saved by its last resumption. The words are:
 Each is read and written whole. A property write moves no handler and clears no slot; a slot that is
 empty or paused keeps whatever the resume pass last stored for it.
 
+## Task slot control properties
+
+`task_status[n]` and `task_pause[n]` are bytes and `task_timer[n]` a 16-bit word of the receiver's task
+slot n (n from 0 through 5), kept in parallel arrays beside the slot's call word. A property read
+zero-extends a byte and sign-extends the timer; a write keeps the low byte or word.
+
+- `task_status` is nonzero while the slot blocks its thread: allocation stores one for a blocking task
+  and zero for a multitask. The task pass adds the status of every unpaused occupied slot, so a status
+  of any nonzero value blocks.
+- `task_pause` pauses the slot while nonzero. `TaskPause` stores one, `TaskResume` zero, and the task
+  pass skips a paused slot without invoking its handler or advancing its timer.
+- `task_timer` is the invocation counter. Allocation stores one; each pass invocation derives its
+  elapsed input from the counter times the frame scale shifted right by eight, then increments it with
+  16-bit wrap.
+
+A slot whose call word is zero is empty and is skipped whatever its three bytes hold. Completion of a
+handler clears the call word and the status and leaves the pause byte and the timer as they are.
+`TaskStop` clears the call word, status and pause of every matching slot and leaves the timer.
+Allocation overwrites all three. A property write changes only the field: it removes no call, runs no
+handler and cancels no native state.
+
 ## Message selection properties
 
 `message_index` and `broadcast_index` are the receiver actor's unsigned selection bytes for its
