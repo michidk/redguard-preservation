@@ -63,7 +63,7 @@ The Glide engine does not apply one shared on/off rule to every cheat. The ordin
 |---|---|---|
 | `nodemarker`, `task`, `magiccarpet` | Value equals `1` | Does not enable the corresponding check |
 | `moonraker`, `drevil`, `drno`, `goldfinger`, `neversaydie`, `yeahbaby` | Value is nonzero | Enables the check, just like `1` |
-| `animation` | Some checks require `1`; others accept any nonzero value | Enables only the nonzero checks, so it is not equivalent to either ordinary on or off |
+| `animation` | The movement natives' wait for their requested group to become current requires `1`; the animation requests (including the default request and forced requests), advancement and the progress readout accept any nonzero value | Runs the animation system but skips the movement natives' wait: `MoveForward`, `MoveBackward`, `MoveLeft` and `MoveRight` (and the walk and jump variants that share it) then step without waiting for their group, so it is not equivalent to either ordinary on or off |
 
 `oracle` and `savecheats` execute commands instead of using these gameplay conditions. `oddjob` accepts and stores arbitrary values through the shared cheat-state handling described above.
 
