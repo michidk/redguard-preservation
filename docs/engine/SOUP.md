@@ -5300,6 +5300,28 @@ actor receiver, resolved model and all three offset words to the hand-model
 helper used by `DisplayHandItem`. Name resolution also runs for a null actor
 receiver. The fourth argument is passed on the stack.
 
+### Hand and hilt model helpers
+
+The hand-model helper (`DisplayHandModel`, `DisplayHandItem`) and the hilt-model helper
+(`DisplayHiltModel`, `DisplayHiltItem`) run the same routine over different actor words. Both
+clear the shared temporary-model pointer, return zero for a null actor or model, and otherwise
+allocate one record from the transient-model pool. The pool holds 900 records and is emptied
+once per world frame by the view setup, so a display call lasts for the frame it is made in.
+Allocation zero-fills the record; an allocation request with 900 records already in use
+requests runtime error 35 and the helper returns zero without publishing a record. A successful
+allocation is published as the shared temporary-model pointer and the record's model field is
+the supplied model.
+
+The helper then queries two vertices of the actor's current animated model: the signed grip
+vertex pair for the hand helper and the signed scabbard vertex pair for the hilt helper. The
+three offset arguments are added to both vertices before the actor's orientation matrix
+transforms them. The record's orientation is the pair's pitch and heading with the actor's roll,
+as for [equipped weapons](attachment.md). The hand helper places the record at the midpoint of
+the transformed pair added to the actor's map position; the hilt helper places it at the first
+transformed vertex added to the actor's map position. Both also store the first transformed
+vertex plus the actor position as the actor's retained attachment point and the record's
+pitch, heading and roll as the actor's retained attachment angles. Both return zero.
+
 ### DisplayHiltModel
 
 `DisplayHiltModel(name, x, y, z)` is a four-argument function. It uses the same
