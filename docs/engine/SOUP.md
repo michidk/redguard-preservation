@@ -8128,6 +8128,10 @@ receiver gates of the object natives are those of the generic health services: a
 120 returns first, then a nonzero attribute 97 needs a held weapon or combat flag four. None of
 the four natives applies the early selected-player feedback update that `AdjustHealth` performs.
 
+The generic nonplayer services behind `SetHealth` and `AdjustHealth` are these same two bodies: the
+health-with-death admission service of `SetHealth` and of `AdjustHealth` mode one is the `ZapObject`
+body, and the additive service of every other mode the `ZapObjectNoKill` body.
+
 When `ZapObject` leaves a nonplayer receiver at zero health it ends the receiver with a death
 dispatch. A receiver holding a weapon force-starts group 122 when it has that group and group 121
 otherwise, releases its held walk nodes, stores death default 124 or 123, resets its combat action
