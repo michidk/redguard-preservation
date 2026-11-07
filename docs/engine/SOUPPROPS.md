@@ -493,6 +493,26 @@ queries from `slave_pos` and `slave_angle` and every other actor from its local 
 so a property write changes what distance and placement queries see for an attached actor until the
 next family update replaces it, and changes nothing for an unattached one.
 
+## Task slot word properties
+
+`task_variable[n]`, `task_variable2[n]`, `task_variable3[n]` and `task_variable4[n]` (n from 0 through 5)
+are the four 32-bit words that task slot n of the receiver retains for its native handler. The task
+resume pass copies them into the shared native command scratch before the handler runs and copies the
+scratch back afterwards, so a property write to a slot is what the next resumption of that slot sees,
+and a property read shows the state saved by its last resumption. The words are:
+
+- `task_variable`: the first native continuation word (the loaded image resource of `AnimateGXA`).
+- `task_variable2`: the pause countdown in nominal ticks that point-walk handlers decrement before
+  doing any other work.
+- `task_variable3`: the third word, the second native continuation word of handlers such as
+  `FxPhase`; point-walk handlers also hold the 32-bit command value here, which the wrapper
+  copies to and from the actor's AI length.
+- `task_variable4`: the packed command word (low 16 bits), phase byte (bits 16 to 23) and counter
+  byte (bits 24 to 31).
+
+Each is read and written whole. A property write moves no handler and clears no slot; a slot that is
+empty or paused keeps whatever the resume pass last stored for it.
+
 ## Message selection properties
 
 `message_index` and `broadcast_index` are the receiver actor's unsigned selection bytes for its
