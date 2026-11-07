@@ -565,6 +565,15 @@ makes the next tick with nonzero input advance the cursor and count one frame, a
 the animation file header when the record is built, and `anim.pos` and `anim.angle` are the
 retained translation and rotation words of the current frame step.
 
+## Killed and weapon-drawn properties
+
+`dead` and `weapon_drawn` are bytes of the receiver's actor record. `dead` is the killed marker:
+[`KillMe`](SOUP.md#killme-and-resurrect) sets it, [`Resurrect`](SOUP.md#killme-and-resurrect) clears it, and the
+ordinary update loops test it before running a receiver, so a script that writes it nonzero is no
+longer updated. It is distinct from the `ai_type` lifecycle selector. `weapon_drawn` is the byte the
+equipped-weapon draw and cleanup routines set and clear and that the weapon predicates test. A property read
+returns the unsigned byte and a write keeps the low eight bits, without running any of those routines.
+
 ## Message selection properties
 
 `message_index` and `broadcast_index` are the receiver actor's unsigned selection bytes for its
