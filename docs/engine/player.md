@@ -1629,7 +1629,8 @@ builder then replaces the orientation byte.
 
 Queries read the positive and negative extents from the record each time they
 run: the ground and hazard probes, the combat bounds and the actor box center
-(positive extent minus negative extent, halved, around the actor position). A
+(per axis, the position plus the positive extent minus the negative extent in
+map units, halved). A
 script write to an extent therefore changes every such query on the next
 evaluation. The sphere list is rebuilt only by the sphere builder at actor
 creation and model changes, so a write does not alter spheres already built.
