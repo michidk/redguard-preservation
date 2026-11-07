@@ -788,6 +788,14 @@ operand. A group that stores N and then reaches the loop command N times therefo
 between them N more times. Selecting a group clears the repeat byte. In reverse playback these
 commands only step the cursor back. The shipped game contains none of them.
 
+Opcode 10 changes the group in the middle of playback. Its operands name a group and a command
+index. When that group has no command table, or no command at that index, the engine reports a
+fatal animation error. Otherwise the record's current-group word becomes the group and the cursor
+the index, the command table in use becomes the new group's, and interpretation continues in the same
+call. Every other byte of the record keeps its value: the countdown and its reload byte, the loop and
+repeat bytes, the wait byte, the frame-progress byte and the exit and `BreakPoint` markers. In reverse
+playback the command only steps the cursor back.
+
 ## Breakpoints and walking translation
 
 `BreakPoint`, opcode five, sets a marker in the current animation state and

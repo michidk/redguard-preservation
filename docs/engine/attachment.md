@@ -34,7 +34,7 @@ Names follow UESP where available.
 | **7** | SetPositionAxis | 2 + 18 | axis (0=X, 1=Y, any other value Z), value | Store the value, unshifted, in one position word. |
 | **8** | SetRotationXYZ | 6 + 6 + 6 | rot_x, rot_y, rot_z | Store the three operands, each shifted left by 3, in the animation record's rotation words. |
 | **9** | SetRotationAxis | 2 + 18 | axis (0=X, 1=Y, any other value Z), value | Store the value, unshifted, in one rotation word. |
-| **10** | ChangeAnimGroup | 10 + 10 | target_group, target_frame | Jump to a different animation group and frame. Same bit layout as opcode 0, but writes to anim control fields, not attachment. |
+| **10** | ChangeAnimGroup | 10 + 10 | target_group, target_frame | Make the target group current at the given command index, keeping the other record bytes, and continue in the same call; a missing group or index is a fatal error. Reverse playback steps over it. |
 | **11** | ActorEvent (exported as Rumble) | 20-bit | event_bitmask | Bit set passed to the [actor-event service](animation.md#actor-events): bits 0 to 3 request the environmental effects `0x2580`, `0x2500`, `0x2500` and `0x2700` when the actor's stored sound surface is lava, water, water and sand, and bit 4 adds a screen-shake impulse. Cyrus's commands use 0; the Golem's two stomp groups in DRINT use 16. |
 | **12** | DelayCounter | 20-bit | counter_value | Set frame delay counter; pause animation until counter expires. |
 | **13** | ConditionalDelay | 20-bit | counter_value | Store the operand in the animation record's repeat byte and continue; reverse playback steps over it. |
