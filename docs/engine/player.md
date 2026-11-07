@@ -776,7 +776,7 @@ falling byte is cleared and nothing else changes.
 
 ### Ordinary landing decision
 
-On support regained while falling, clear the runtime jump selector and compare
+On support regained while falling, clear the rope countdown and compare
 the absolute wrapping difference between current local Q8 Y and retained fall
 origin. Resolve and store the landing surface before this comparison; surfaces
 1 through 4 replace the compared distance with zero.
@@ -1016,13 +1016,15 @@ a fall. Without that marker, record the ordinary fall origin and timer, set
 falling to one and force 59 without a burning torch or 60 with one.
 These entry branches are distinct from continuation of an existing fall.
 
-### Jump selector at a support miss
+### Rope countdown at a support miss
 
-An animated actor that misses support without falling first tests the runtime jump selector. A
-selector whose distance from 24 is below four (and nonzero) starts the
+An animated actor that misses support without falling first tests its rope countdown, which
+[rope attachment removal](SOUP.md#rope-attachment-removal) sets to 24 and the
+[rope attachment test](SOUP.md#rope-attachment) lowers by the elapsed ticks. A
+countdown whose distance from 24 is below four (and nonzero) starts the
 [ordinary jump entry](#ordinary-jump-entry) for it, which selects queued motion 24 and forces group
 85, and the support miss ends there: the walk-off recovery, the fall start and the edge service do
-not run. Other selectors leave the miss to those services.
+not run. Other countdown values leave the miss to those services.
 
 ### Falling animation continuation
 
@@ -1268,13 +1270,13 @@ ordinary initialization.
 
 For ordinary initialization, clear the stable-position-valid flag, record
 current local Q8 Y as fall origin, set the byte fall timer to zero and clear
-accumulated sliding distance. With the runtime jump selector zero, current
+accumulated sliding distance. With the rope countdown zero, current
 group 18 selects queued 9 and request 36 when the requested motion is 9,
 otherwise queued 8 and request 34. Current group 30 similarly requests 37 or
 35. For the selected player's jump key, current group 19 (or 23 with a burning torch) instead selects
 queued 3 and request 49 (50), copies the heading into the motion vector and sets the controller
 countdown to 6, as the script Jump rows do; the walking backward groups jump standing. Other current groups select queued 1 and request 32 without a burning torch,
-or 33 with a burning torch. A nonzero runtime jump selector instead selects
+or 33 with a burning torch. A nonzero rope countdown instead selects
 queued 24 and forces group 85. Set motion classification to 2 after the request.
 
 The controller itself reads no surface state: water and lava surfaces change its
@@ -1301,7 +1303,7 @@ changing motion state, position or animation.
 
 Ordinary initialization records current local Q8 Y as fall origin, clears the
 fall timer and accumulated sliding distance, then chooses the queued motion and
-animation request below. A nonzero runtime jump selector overrides all rows,
+animation request below. A nonzero rope countdown overrides all rows,
 selecting queued motion 24 and forcing group 85.
 
 | Current group | Queued motion | Requested group | Additional writes |
@@ -2042,7 +2044,7 @@ it; a script can write any byte through `jump_flag` and `fall_flag`.
 | 3 | Backward jump | Jump key while moving backward |
 | 8 | Running jump | Ordinary jump entry from group 18 or 30 |
 | 9 | Running jump, left lead | Ordinary jump entry from group 18 or 30 for requested motion 9 |
-| 24 | Rope jump | Nonzero runtime jump selector |
+| 24 | Rope jump | Nonzero rope countdown |
 
 The overlap pass visits its retained actor-style candidate list in order. Later
 queries read the positions left by earlier responses. If any weighted
