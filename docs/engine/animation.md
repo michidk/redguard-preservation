@@ -826,6 +826,15 @@ Restoring a remembered sample slot does not stop channels started after the
 snapshot or restart a channel that has already stopped. A later animation stop
 uses the restored reusable slot, including a replacement sound occupying it.
 
+## Initialization with the animation system off
+
+The request routines return before touching the animation record while the animation switch is
+zero. A placed animation-table model initialized in that state therefore keeps the record built from
+the group tables with no current or pending group and no selected model frame. The per-update model
+refresh draws an animation-table actor only when it has a selected frame, so such an actor is not
+drawn; scripts and the other stages still run. Turning the switch on later lets the ordinary default
+request select a group and frame.
+
 ## Group type byte
 
 The group header's type byte is tested only for the values one and two, by the advance routine's
