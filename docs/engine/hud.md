@@ -478,7 +478,7 @@ and then each offset is clamped to `±2·M·s` (the Y offset's range is scaled b
 height over its width).
 The view opens by interpolating a factor from 1 to 0 in steps of 0.15 per tick: the model's
 offset is the target offset plus the fly-in offset times that factor. The screen position that
-mode 1 supplies is the cell the item sits in, so the model flies from its cell to the centre. The view
+mode 1 supplies is the cell the item sits in, so the model flies from its cell to the centre: for the cursor cell at visible row `r` and column `c` the entry offset is `(388c - 582, 378r - 432, 1490 - (z extent + 180))` and the close flies the model to `(388c - 582, 378r - 432, 1490)`. The view
 ignores close requests until Activate, View, Enter and Escape are all released after opening.
 Pressing View, Activate, Enter or Escape then closes it: the factor rises by 0.15 per tick back
 to 1 with the angles interpolating to zero by the shortest way round, and the view returns once it

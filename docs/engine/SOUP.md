@@ -5281,12 +5281,11 @@ request. The handlers perform no display and read no inventory state.
 After the world frame is drawn, the main loop runs the [examine view](hud.md#examine-view) in
 mode 0 for a pending request with the item identifier and the two request words, then clears the
 pending flag. The view does nothing for an identifier absent from the item list. The `ShowItem` text
-argument is not used. Every installed script call passes zero for both request words; that form
-shows the item over the frozen world frame with the model flying in from `(0, 0, 1490)` of its
-resting offset (a non-zero first word gives the inventory screen's cell-position form). Pose,
+argument is not used. Every installed script call passes zero for both request words. The model
+flies in from the offset `(first, second, 1490)` from its resting place and, when the view closes,
+flies to `(second, first, 1490)` in the same coordinates (the exit swaps the two words). Pose,
 controls, fade and the close rule are those of the examine view, whose close requests are View,
-Activate, Enter and Escape. When it closes, the model flies from its current pan and depth to
-`(0, 0, 1490)` and the no-text flag is cleared.
+Activate, Enter and Escape. When it closes the no-text flag is cleared.
 
 Description lines are RTX records looked up by a four-character label (longer text is cut to
 four characters), played as speech with the label's text as the subtitle unless the no-text flag
