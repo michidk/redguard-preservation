@@ -826,6 +826,12 @@ Restoring a remembered sample slot does not stop channels started after the
 snapshot or restart a channel that has already stopped. A later animation stop
 uses the restored reusable slot, including a replacement sound occupying it.
 
+## Group type byte
+
+The group header's type byte is tested only for the values one and two, by the advance routine's
+replacement and `GoToFuture` rules above. Every other value, including values above two, plays as
+type zero. Only the low byte of the header's type field is read.
+
 ## Animation group classes
 
 The engine keeps a table of one class value per animation group number (0 through 177), consulted
