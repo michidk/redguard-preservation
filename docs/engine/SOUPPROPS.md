@@ -567,14 +567,19 @@ the animation file header when the record is built. `anim.rep_count` is the repe
 `anim.pos.*` and `anim.angle.*` are the 16-bit translation and rotation words those and the
 translation commands retain until the next frame step; they are read sign-extended.
 
-## Killed and weapon-drawn properties
+## Killed, weapon-drawn and invisible properties
 
-`dead` and `weapon_drawn` are bytes of the receiver's actor record. `dead` is the killed marker:
+`dead`, `weapon_drawn` and `invisible` are bytes of the receiver's actor record. `dead` is the killed marker:
 [`KillMe`](SOUP.md#killme-and-resurrect) sets it, [`Resurrect`](SOUP.md#killme-and-resurrect) clears it, and the
 ordinary update loops test it before running a receiver, so a script that writes it nonzero is no
 longer updated. It is distinct from the `ai_type` lifecycle selector. `weapon_drawn` is the byte the
 equipped-weapon draw and cleanup routines set and clear and that the weapon predicates test. A property read
 returns the unsigned byte and a write keeps the low eight bits, without running any of those routines.
+
+`invisible` is a separate byte that only the draw stage reads. The world render loop still updates the
+frame and refreshes the model of an actor whose `invisible` byte is nonzero, and skips the calls that
+draw its body, so scripts, animation and collision continue while the body is not drawn. The `hide`
+byte, by contrast, removes the actor from the whole block.
 
 ## Message selection properties
 
