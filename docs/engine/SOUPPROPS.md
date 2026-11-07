@@ -534,6 +534,37 @@ handler clears the call word and the status and leaves the pause byte and the ti
 Allocation overwrites all three. A property write changes only the field: it removes no call, runs no
 handler and cancels no native state.
 
+## Animation record properties
+
+The `anim.*` properties address the receiver's animation record. A property read extends a byte with
+zeros and a word with its sign; a write keeps the low byte or word, runs nothing and validates
+nothing until playback uses the value. An actor without an animation record reads zero. The
+fields the playback routines keep there are:
+
+| Property | Contents |
+|---|---|
+| `anim.current` | current group, signed word, -1 for none |
+| `anim.next` | pending group, signed word, -1 for none |
+| `anim.next_speed` | pending request's countdown byte: the request's speed modifier plus the pending group's own countdown byte |
+| `anim.frame` | signed command cursor of the current group |
+| `anim.speed` | countdown reload byte, taken from `anim.next_speed` when the group is selected |
+| `anim.speed_count` | frame countdown byte; the cursor advances when a tick finds it zero, and it reloads from `anim.speed` before dropping once |
+| `anim.stop_flag` | exit marker |
+| `anim.halt_flag` | `BreakPoint` translation suppression: one after a `BreakPoint`, cleared again by every cursor step |
+| `anim.hold_flag` | wait byte: zero runs, 255 holds indefinitely, other values lose the tick input per update before playback resumes |
+| `anim.loop_count` | finite loop countdown byte |
+| `anim.rewind_flag` | reverse playback when the byte is one |
+| `anim.sound_handle` | remembered sound slot, 255 for none |
+| `anim.real_frame` | wrapping frame-progress byte |
+
+Selecting a group clears the cursor, progress byte, stop, halt, hold, loop and rewind bytes and
+the repetition byte, sets the sound slot to 255 and the countdown to the reload byte. A property
+write therefore changes only the written field: a script that writes `anim.speed_count` to zero
+makes the next tick with nonzero input advance the cursor and count one frame, and writing
+`anim.hold_flag` to 255 stops all playback until it is cleared. `anim.max_group` is a byte read from
+the animation file header when the record is built, and `anim.pos` and `anim.angle` are the
+retained translation and rotation words of the current frame step.
+
 ## Message selection properties
 
 `message_index` and `broadcast_index` are the receiver actor's unsigned selection bytes for its
