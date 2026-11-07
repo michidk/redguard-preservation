@@ -3770,6 +3770,31 @@ family refresh occurs.
 
 <a id="relative-axis-rotation"></a>
 
+### Move, sMove, Rotate and sRotate: direct increments
+
+`Move`, `sMove`, `Rotate` and `sRotate` are tasks taking `(x, y, z, duration)`. Each handler treats an
+operand of zero as no change for its axis and returns "continue" while `duration - 1` is greater than the
+signed task elapsed input, so the task completes on the invocation whose elapsed input reaches
+`duration - 1`. None of them performs collision, matrix refresh or position restoration, and the
+first invocation changes the pose.
+
+`Move` multiplies each nonzero operand by the shared whole nominal-tick increment and adds the product
+to the local position word of its axis, with wrapping 32-bit arithmetic. `sMove` instead adds
+`((operand << 8) / duration) >> 8` to each word, using signed division and an arithmetic shift, on every
+invocation whatever the tick increment; a zero duration is a division fault.
+
+`Rotate` and `sRotate` are the same routine. For each nonzero operand it computes
+`(((|operand| << 8) / duration) * elapsed) >> 8` with signed division and an arithmetic shift, gives the
+result the operand's sign, and adds it to the local angle word of the axis. The sum is stored as the
+handler leaves it, without masking to 2047; later orientation builds mask the angle when they read it,
+so the stored word can exceed one turn. The elapsed input is zero on the first invocation, which
+therefore changes no angle. A zero duration is a division fault.
+
+`sMoveAlongAxis(axis, delta, duration)` converts the duration to frames, `(duration << 8)` divided by the
+shared frame scale, and adds `((delta << 8) / frames) >> 8` on the axis (zero X, one Y, any other value Z)
+to the position after rotating that vector by the receiver's angles. It returns "continue" while
+`duration - 1` is greater than the elapsed input. A zero frame count or step division is a fault.
+
 ### RotateByAxis: relative rotation
 
 `RotateByAxis(axis, delta, duration)` modifies the receiver's local angles.
