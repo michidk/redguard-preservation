@@ -453,6 +453,22 @@ written whole, without a matrix refresh or any movement service; a write to `sta
 changes what `DistanceFromStart` reports, and a write to `last_pos` or `last_angle` changes only the
 retained history.
 
+## Stable-position and creation-angle properties
+
+`last_valid_flag` is a byte and `last_valid_pos.vx`, `last_valid_pos.vy` and `last_valid_pos.vz` are
+three four-byte fields: the actor's [stable ordinary position](player.md#stable-ordinary-position)
+record, a validity byte followed by the Q8 local position it holds. The stable recovery runs only
+while the byte is nonzero and restores the position from the record. Raw writes change only the
+fields, so a script can arm a recovery by setting the position and then the flag, or disarm it by
+clearing the flag.
+
+`start_angle.vx`, `start_angle.vy` and `start_angle.vz` are the actor's creation angles, four-byte
+fields. The orientation setter that actor creation, the player placement and the player swap use
+masks the angles to 0 through 2047 and stores them in the current angles, the angle history and
+this triple before it rebuilds the matrix; [`ResetRotation`](SOUP.md#resetrotation) restores a
+component from it. `SetRotation` does not change it. A property write stores the whole value with
+no matrix refresh.
+
 ## Message selection properties
 
 `message_index` and `broadcast_index` are the receiver actor's unsigned selection bytes for its
