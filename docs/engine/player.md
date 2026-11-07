@@ -1650,6 +1650,26 @@ position. The obstacle query's start point uses the matching previous-position s
 attached position, the link record's previous cached position, previous local position). The
 queued-motion vertical clearance and the blocked-ahead probe also start from the selector's position.
 
+### Armed nonplayer wall avoidance
+
+After the late collision passes, a nonplayer actor that holds a weapon or is in combat stance and has
+a combat record runs a wall-avoidance pass. The pass is skipped unless a hold timer is running or the
+collision-response word has one of the bits `0x10bef`. A corner probe returns a four-bit mask: bit 1
+the front point, 4 the back, 2 the right and 8 the left. Each point is the body's corner at
+`(0, 0, positive_z - half)`, `(0, 0, -(negative_z - half))`, `(positive_x - half, 0, 0)` and
+`(-(negative_x - half), 0, 0)`, rotated by the actor matrix and added to the actor's map-unit X and Z,
+where the radius is `(total_y - post_collide_height) / 4` and `half` is that radius halved. Each point
+holds four stacked spheres of that radius, centered at `-(negative_y - radius / 3)` plus multiples of
+the radius, tested with an identity orientation at the actor's integer map Y. A nonzero mask is stored
+and restarts the hold timer at 16; a zero mask lets the timer fall by the nominal ticks (clearing the
+stored mask at zero) and the stored mask keeps steering meanwhile.
+
+The pass starts a zero side at 2. Each set bit moves X and Z by `frame_scale * 0xa00 >> 8` along the
+heading (the translate-forward rule): bit 2 along heading plus `0x200` and sets the side to 8; bit 8
+along heading minus `0x200` and sets the side to 2; bits 1 and 4, when neither bit 2 nor bit 8 is set,
+first move along heading plus `0x200` when the side is 8 and minus `0x200` otherwise, then bit 1 along
+heading plus `0x400` and bit 4 along the heading itself.
+
 ### Living animation bounds selection
 
 An ordinary actor with combat and living-animation records refreshes its spatial
