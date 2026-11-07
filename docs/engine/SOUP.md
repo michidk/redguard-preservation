@@ -8116,6 +8116,18 @@ The byte and shared result have already been written at this request boundary;
 the retained selection, gate and clock have not yet been cleared by this path.
 Further service processing controls progress beyond that request.
 
+### Zap natives and the selected-player health services
+
+The selected-player services the Zap natives call are the two `AdjustHealth`
+uses. `ZapPlayerNoKill` and the selected-receiver branch of `ZapObjectNoKill` are the additive
+service; `ZapPlayer` and the selected-receiver branch of `ZapObject` are the death-owning service.
+The service takes a damage source actor. `ZapPlayer` passes its own receiver, which the service
+treats as absent when it is the selected player, so the receiver's attribute 109 selects the death
+animation only when a different actor calls it; `ZapObject`'s selected branch passes none. The
+receiver gates of the object natives are those of the generic health services: a nonzero attribute
+120 returns first, then a nonzero attribute 97 needs a held weapon or combat flag four. None of
+the four natives applies the early selected-player feedback update that `AdjustHealth` performs.
+
 ### lookCyrus target forwarding boundary
 
 `lookCyrus(frames)` is declared as a task with one argument. Its wrapper saves
