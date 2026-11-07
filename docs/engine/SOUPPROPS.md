@@ -581,6 +581,13 @@ frame and refreshes the model of an actor whose `invisible` byte is nonzero, and
 draw its body, so scripts, animation and collision continue while the body is not drawn. The `hide`
 byte, by contrast, removes the actor from the whole block.
 
+## Runtime identifier property
+
+`id` is the receiver's low-word runtime identifier, the signed 16-bit value `MyId` returns. A property
+read sign-extends it to the script integer width. The identifier is the key name lookup, route-node
+ownership and the saved-actor identity check use, so a script that stores to it changes which actor
+those services find.
+
 ## Message selection properties
 
 `message_index` and `broadcast_index` are the receiver actor's unsigned selection bytes for its
