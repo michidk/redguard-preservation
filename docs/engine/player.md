@@ -1478,6 +1478,14 @@ Water surfaces are values 1 through 4; lava is value 5. When both the previous
 and current actor surfaces are outside water and lava, this wrapper does not
 produce water/lava transition effects.
 
+#### Ledge point storage
+
+The entering state's scan selects one record by class (class 1, 2 or 3 starts living states 12, 10 and 14). The
+selection copies the record's ledge point into the actor's `ov.vx`, `ov.vy` and `ov.vz`, the record's heading
+into the second word of the motion triple (`move.vy`), and the record's ledge-support actor into the actor's
+linked field. The later ledge states read the point and heading from these fields, not from a rescanned record,
+so a script reading `ov` or `move.vy` while the player holds a ledge sees the held point and heading.
+
 #### Water and lava transition effects
 
 The effects below run only for the selected player, only when the surface updater ran (collision
