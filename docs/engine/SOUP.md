@@ -6449,6 +6449,20 @@ The comparison therefore uses that ninth byte as well as the name bytes; this
 is not a fixed-width comparison of eight bytes. The list traversal has no cycle
 check or iteration bound.
 
+### AddFlatEffect
+
+`AddFlatEffect(x, y, z, spread, descriptor, speed)` is a six-argument function returning zero. It
+allocates a flat-effect record and returns without effect when the effect pool is disabled or has no
+free record. The descriptor's low sixteen bits select an installed image; an unknown image is a fatal
+error. The record keeps the descriptor in its high word and the image's frame count minus one, and
+`speed` as its animation speed; its two retained motion words start at zero.
+
+Placement depends on `spread`. With zero, the Y argument is lowered by the image height times 128
+and each coordinate is stored shifted right by eight. With a nonzero spread no lowering happens, and each
+coordinate (X, then Y, then Z) is stored as its argument shifted right by eight plus `Rnd(spread >> 7)`
+minus `spread >> 8`, one draw of the shared random stream per axis, after the record and image were found.
+A spread below 128 gives a bound of zero or less, which the reduction behind `Rnd` never leaves.
+
 ### AddLightEffect
 
 `AddLightEffect(a, b, c, d, e, f, g, h)` is an eight-argument function. Its
