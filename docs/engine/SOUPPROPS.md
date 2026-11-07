@@ -443,6 +443,16 @@ a delay of 255 becomes 64; other delay values remain unchanged. The temporary
 AI-state save and restore pair retains this byte alongside the mode, length and
 AI-variable state. Raw property writes invoke none of those services.
 
+## Position and angle history properties
+
+`last_pos.vx`, `last_pos.vy` and `last_pos.vz` are the actor's previous local position (the triple
+`SetPosition` writes alongside the current position), `start_pos.*` its saved start position (the
+triple `SetStartPosition` restores from and `DistanceFromStart` measures against) and `last_angle.*`
+the angle history that `SetRotation` stores with the local angles. Each is a four-byte field read and
+written whole, without a matrix refresh or any movement service; a write to `start_pos` therefore
+changes what `DistanceFromStart` reports, and a write to `last_pos` or `last_angle` changes only the
+retained history.
+
 ## Message selection properties
 
 `message_index` and `broadcast_index` are the receiver actor's unsigned selection bytes for its
