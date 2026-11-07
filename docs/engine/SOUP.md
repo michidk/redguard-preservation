@@ -5346,6 +5346,14 @@ receiver, resolved embedded model record and all three offset words to the
 distinct hilt-model helper used by `DisplayHiltItem`. It does not route to the
 hand-model helper. The fourth argument is passed on the stack.
 
+### Item display models
+
+Both item natives place the item record's hand-model pointer, the model the equipped-weapon hand
+placement uses (`hand_object_file` in `ITEM.INI`); an item without one has a null pointer.
+`DisplayHiltItem` also takes this hand-model pointer and passes it to the hilt
+helper, which places it at the actor's scabbard vertex pair, rather than using the item's
+`hilt_object_file` model. A null pointer returns zero before any record is allocated.
+
 ### DisplayHiltItem
 
 `DisplayHiltItem(item, x, y, z)` is declared as a four-argument function. It
