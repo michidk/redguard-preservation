@@ -485,6 +485,14 @@ to 1 with the angles interpolating to zero by the shortest way round, and the vi
 exceeds 1. The return value is 1 when Activate or Enter was held at the close request and 0
 otherwise. The caller waits for View, Activate, Enter and Escape to release before continuing.
 
+The view draws the model with the Glide viewport's camera at the origin looking along +Z, so
+camera-space `(x, y, z)` projects to `(320 + 320*x/(0.788*z), 240 + 320*y/(0.788*z))` at 640 by 480.
+Before each draw it registers three local lights in camera space, each with radius 6400:
+`(0, 42768, 65535)` with RGB `(180, 180, 180)`, `(0, -256, -200)` with RGB `(255, 255, 255)` and
+`(0, 256, -200)` with RGB `(255, 255, 255)`. The ambient and directional model lighting are the
+loaded world's. Textures and solid colors resolve through the palette selected at that time (the
+world's), not through an interface palette.
+
 A cursor item without `bitmap[x]` draws no artwork.
 
 ### Layout
