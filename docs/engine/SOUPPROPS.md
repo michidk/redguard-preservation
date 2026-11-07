@@ -561,7 +561,10 @@ Selecting a group clears the cursor, progress byte, stop, halt, hold, loop and r
 the repetition byte, sets the sound slot to 255 and the countdown to the reload byte. A property
 write therefore changes only the written field: a script that writes `anim.speed_count` to zero
 makes the next tick with nonzero input advance the cursor and count one frame, and writing
-`anim.hold_flag` to 255 stops all playback until it is cleared. `anim.max_group` is a byte read from
+`anim.hold_flag` to 255 stops all playback until it is cleared. `anim.current` is the group whose command table the playback interprets: each advance reads the
+table and the type byte of the group the word names, so a write switches both while the cursor, countdowns,
+loop, repeat and markers stay, like a `ChangeAnimGroup` that keeps the cursor. The word -1 leaves no current
+group, and the next advance selects any pending request. A group without a table is dereferenced at the next advance. `anim.max_group` is a byte read from
 the animation file header when the record is built. `anim.rep_count` is the repeat byte of the
 [`ConditionalDelay` and `LoopControl`](animation.md#translation-rotation-and-repeat-commands) commands, and
 `anim.pos.*` and `anim.angle.*` are the 16-bit translation and rotation words those and the
