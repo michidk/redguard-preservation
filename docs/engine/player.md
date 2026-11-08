@@ -993,6 +993,10 @@ override group 74 (no animation request) and takes the health change through its
 The sliding byte then clears. The selected player also takes the hurt branch whenever its
 steep-landing flag (the controller's pending action flag) is set, whatever the slide distance.
 
+### Support response in the ledge states
+
+The ordinary support response starts no fall while the actor is in living states 10 through 19 (turning to or climbing a ledge, catching, hanging, climbing from a hang, dropping, finishing a climb, entering a ledge). It only ends its query; a missed support, a falling byte and queued motion are left as they are, for static-model and animated actors alike. The bounce states 27 through 32 have no branch of their own in this response: a support miss in them takes the ordinary fall start below. Jump entry in state 15 dispatches the hang release for the selected player only; any other actor in state 15 clears its stable-position-valid flag and changes nothing else.
+
 ### Initial falling bookkeeping
 
 When the ordinary support response misses and starts a fall, it records local
