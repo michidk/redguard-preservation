@@ -564,8 +564,7 @@ makes the next tick with nonzero input advance the cursor and count one frame, a
 `anim.hold_flag` to 255 stops all playback until it is cleared. `anim.current` is the group whose command table the playback interprets: each advance reads the
 table and the type byte of the group the word names, so a write switches both while the cursor, countdowns,
 loop, repeat and markers stay, like a `ChangeAnimGroup` that keeps the cursor. The word -1 leaves no current
-group, and the next advance selects any pending request. A group without a table is dereferenced at the next advance. `anim.max_group` is a byte read from
-the animation file header when the record is built. `anim.rep_count` is the repeat byte of the
+group, and the next advance selects any pending request. A group without a table is dereferenced at the next advance. `anim.max_group` is the low byte of the RAHD `anim_control_prefix` field, stored when the animation record is built. `anim.rep_count` is the repeat byte of the
 [`ConditionalDelay` and `LoopControl`](animation.md#translation-rotation-and-repeat-commands) commands, and
 `anim.pos.*` and `anim.angle.*` are the 16-bit translation and rotation words those and the
 translation commands retain until the next frame step; they are read sign-extended.

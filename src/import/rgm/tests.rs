@@ -104,6 +104,7 @@ fn actor_metadata_preserves_model_loader_branch_conditions() {
         };
         let metadata = export_rgm_metadata_json(&rgm, None);
         assert_eq!(metadata["actors"][0]["model_load_path"], expected);
+        assert_eq!(metadata["actors"][0]["anim_control_prefix"], prefix);
         assert_eq!(metadata["actors"][0]["ravc_offset"], 18);
         assert_eq!(metadata["actors"][0]["ravc_count"], 3);
         assert_eq!(metadata["sections"][0]["tag"], "RAHD");

@@ -737,6 +737,11 @@ pub(super) fn export_rgm_metadata_json_impl(
                 );
             }
 
+            actor.insert(
+                "anim_control_prefix".into(),
+                read_i32_le(item, 0x2D).unwrap_or(-1).into(),
+            );
+
             // Actor-loader branch conditions, documented in engine/animation.md.
             let model_path = match read_i32_le(item, 0x21) {
                 Some(0) => "none",
