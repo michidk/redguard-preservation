@@ -569,6 +569,10 @@ the animation file header when the record is built. `anim.rep_count` is the repe
 [`ConditionalDelay` and `LoopControl`](animation.md#translation-rotation-and-repeat-commands) commands, and
 `anim.pos.*` and `anim.angle.*` are the 16-bit translation and rotation words those and the
 translation commands retain until the next frame step; they are read sign-extended.
+`anim.last_angle.*` are the three rotation words the model refresh copied from `anim.angle.*` the last time it ran for the
+actor: the refresh applies the difference of the two to the model's orientation and then stores the current words as the
+history, whenever the record has a current or a pending group. A script write replaces a history word like any other
+field.
 
 ## Killed, weapon-drawn and invisible properties
 
