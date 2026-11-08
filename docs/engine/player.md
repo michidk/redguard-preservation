@@ -993,6 +993,10 @@ override group 74 (no animation request) and takes the health change through its
 The sliding byte then clears. The selected player also takes the hurt branch whenever its
 steep-landing flag (the controller's pending action flag) is set, whatever the slide distance.
 
+### Late collision stage in the ledge states
+
+An animated actor in living states 10 through 19 skips the forward obstacle wrapper and, at the ground response, runs the ledge transition instead of the ordinary support response; the overlap pass and the support query still run, and the support query takes the falling probe distance when the falling byte is nonzero. A nonzero falling byte in these states therefore has no rule of its own: the ledge transition leaves it unchanged for an actor other than the selected player. The primary body response runs in living states 0, 15 and 27 through 32 only.
+
 ### Support response in the ledge states
 
 The ordinary support response starts no fall while the actor is in living states 10 through 19 (turning to or climbing a ledge, catching, hanging, climbing from a hang, dropping, finishing a climb, entering a ledge). It only ends its query; a missed support, a falling byte and queued motion are left as they are, for static-model and animated actors alike. The bounce states 27 through 32 have no branch of their own in this response: a support miss in them takes the ordinary fall start below. Jump entry in state 15 dispatches the hang release for the selected player only; any other actor in state 15 clears its stable-position-valid flag and changes nothing else.
