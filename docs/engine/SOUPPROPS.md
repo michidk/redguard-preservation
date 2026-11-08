@@ -574,6 +574,13 @@ actor: the refresh applies the difference of the two to the model's orientation 
 history, whenever the record has a current or a pending group. A script write replaces a history word like any other
 field.
 
+## Frame properties
+
+`frame` is the frame index the last selected `ShowFrame` command names inside its model (the second of the two fields the
+loader patches into the command), a signed word that is -1 until a group selection reaches its first frame. `last_frame` is
+the same word as it stood when the actor's last ordinary update began. The word that precedes them, `handle`, is the
+runtime model handle from the command's first patched field.
+
 ## Killed, weapon-drawn and invisible properties
 
 `dead`, `weapon_drawn` and `invisible` are bytes of the receiver's actor record. `dead` is the killed marker:
