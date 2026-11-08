@@ -1648,12 +1648,14 @@ therefore changes no query.
 
 #### Query position
 
-Ground, prevalidation, terrain-check, stable-recovery, body and obstacle queries take their position
-from one selector: the composed attached position when `attr_slave` is nonzero, otherwise the
+Ground, prevalidation, terrain-check, stable-recovery, residual-body and obstacle queries take their
+position from one selector: the composed attached position when `attr_slave` is nonzero, otherwise the
 linked record's cached position while the actor's link record names an owner, otherwise the local
 position. The obstacle query's start point uses the matching previous-position selector (previous
 attached position, the link record's previous cached position, previous local position). The
 queued-motion vertical clearance and the blocked-ahead probe also start from the selector's position.
+The primary contact collection does not: the shape preparation sets the selected shape record's origin
+to the local position and the angles to the negated local angles, and the query reads that record.
 
 ### Armed nonplayer wall avoidance
 
