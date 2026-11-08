@@ -574,6 +574,13 @@ actor: the refresh applies the difference of the two to the model's orientation 
 history, whenever the record has a current or a pending group. A script write replaces a history word like any other
 field.
 
+## Rope wait property
+
+`rope_wait` is the byte at record offset `0x1b0`. A rope attachment clears it; a rope release sets it to 24. The per-update
+rope grab check counts it down by the update's nominal ticks, and when the count reaches zero it also clears the byte that
+names the last rope (`rope_id`); while it is nonzero the grab skips the rope that byte names. The late collision stage reads it
+as a recovery window (values within 3 of 24) and the fall clears it. The weapon routines leave it as it is.
+
 ## Heading change property
 
 `yangle_change` is a signed word the model refresh stores for an actor that is not attached to a rope: the Y angle minus the
