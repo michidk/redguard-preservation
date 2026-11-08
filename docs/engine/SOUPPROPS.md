@@ -545,7 +545,7 @@ fields the playback routines keep there are:
 |---|---|
 | `anim.current` | current group, signed word, -1 for none |
 | `anim.next` | pending group, signed word, -1 for none |
-| `anim.next_speed` | pending request's countdown byte: the request's speed modifier plus the pending group's own countdown byte |
+| `anim.next_speed` | pending-speed byte: every request stores its speed modifier, then adds the countdown byte of the group it selected (a request that finds no group leaves just the modifier). Selecting the group reads it into `anim.speed` and leaves it in place, so it stays readable with no request pending; writing `anim.next` changes only the pending group, which a later selection then runs with the stored byte |
 | `anim.frame` | signed command cursor of the current group |
 | `anim.speed` | countdown reload byte, taken from `anim.next_speed` when the group is selected |
 | `anim.speed_count` | frame countdown byte; the cursor advances when a tick finds it zero, and it reloads from `anim.speed` before dropping once |
