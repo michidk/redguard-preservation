@@ -1641,6 +1641,11 @@ collection reads the selected shape record's own origin and applies no offset. T
 fallback support sphere adds the offset to its center. Sphere construction and the vertical ground
 probe ignore it. Shipped files carry a zero offset, so only a script write to `size.pos` moves it.
 
+The orientation byte's only reader is the per-update shape copy, which fills two working records and
+gives the second one extra sphere when the byte is zero (upright). No stage reads the second record:
+its pointer is used only to allocate, free and fill it. A script write to `size.orientation`
+therefore changes no query.
+
 #### Query position
 
 Ground, prevalidation, terrain-check, stable-recovery, body and obstacle queries take their position
