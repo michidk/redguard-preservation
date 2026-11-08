@@ -1692,6 +1692,11 @@ initial bounds, then replaces secondary and tertiary bounds for nonnegative
 second and third RAHD MPSZ indices. An index of -1 leaves the corresponding
 shape absent.
 
+The refresh runs at the start of every ordinary update, before the scripts, and overwrites the whole
+bounds record (extents, totals, center offset), so a script write to a `size.*` field of an actor with
+combat and animation records lasts only until its next update; an actor without those records keeps the
+written value.
+
 Refreshing spatial bounds copies the bounds record without rebuilding the
 ordinary collision spheres. Support height and forward clearance therefore use
 the current animation's extents while ordinary body contacts retain their
