@@ -574,6 +574,13 @@ actor: the refresh applies the difference of the two to the model's orientation 
 history, whenever the record has a current or a pending group. A script write replaces a history word like any other
 field.
 
+## Heading change property
+
+`yangle_change` is a signed word the model refresh stores for an actor that is not attached to a rope: the Y angle minus the
+Y angle the ordinary update saved when it began (the `last_angle` history), truncated to sixteen bits. The family composition
+of an attached actor stores its composed history angle instead. Nothing in the executable reads the word; scripts may read
+and write it like any other field.
+
 ## Frame properties
 
 `frame` is the frame index the last selected `ShowFrame` command names inside its model (the second of the two fields the
