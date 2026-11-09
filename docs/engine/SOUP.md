@@ -4201,6 +4201,8 @@ Actor-following also consumes the retained actor support owner.
 
 The loader maps `BOOL`, `FLIPFLOP`, `COUNTER`, and `NUMBER` to runtime kinds zero through three. Initializing a flag stores its authored numeric value and clears the latch. A BOOL set toggles its numeric value only when unlatched, then latches it. FLIPFLOP toggles on every set. COUNTER decrements a nonzero value and latches it; a zero value remains unchanged. NUMBER sets the latch without changing the numeric value. The SOUP `SetGlobalFlag` and `ResetGlobalFlag` wrappers return zero. `TestGlobalFlag` returns one or zero according to the latch.
 
+The flag store is two arrays indexed by flag number and sized by the number of `[flags]` entries: 32-bit signed numeric values, and one byte per flag that holds the runtime kind and the latch. Both are allocated when the flags are loaded, zeroed, and then initialized entry by entry from `SOUP386.DEF`, so the store holds exactly one value per declared flag (369 on the installed definition). Bytecode reads a flag's numeric value directly from the value array, and writing that array changes what scripts read without touching the latch.
+
 Native flag functions maintain a separate latch in addition to the numeric flag value. `TestGlobalFlag` reads that latch; `ResetGlobalFlag` clears it. `SetGlobalFlag` dispatches according to the runtime type bits and can toggle, decrement, or latch a flag. It is not a generic assignment of one to the numeric flag.
 
 Flags are declared in the `[flags]` section of `SOUP386.DEF` and accessed by bytecode via `SetGlobalFlag`, `TestGlobalFlag`, and `ResetGlobalFlag` (which use the NumericAlt opcode `0x16` for their flag-ID parameter).
