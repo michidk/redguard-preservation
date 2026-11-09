@@ -13,10 +13,16 @@ How sound effects from [MAIN.SFX](../formats/SFX.md) and speech from
 
 ## Listener
 
-The listener is the render camera, not the player: its position is the view
-position and its heading is the view yaw. In third person, distances are
-therefore measured from behind Cyrus. Only the yaw enters the calculation;
-camera pitch and roll do not.
+The listener uses the camera's published position in signed Q8 coordinates
+and its published yaw. In third person, distances are therefore measured
+from behind Cyrus. Only yaw enters the calculation; camera pitch and roll do
+not.
+
+Rendering retains a separate floating-point position for camera gliding.
+Sound distance and pan read the published position, not that gliding position.
+A camera pose update replaces these listener coordinates immediately. Render
+preparation smooths the published angles before object updates; a later camera
+pose update replaces those angles again.
 
 ## Radius and divisor
 
