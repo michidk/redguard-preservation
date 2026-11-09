@@ -5305,7 +5305,10 @@ four characters), played as speech with the label's text drawn by the
 | 55 | `cikj` | `ny01` through `ny11` |
 | other | the item's `description[x]` label | none |
 
-A later line starts when the current line's speech ends; a line without speech advances after twice its text length in updates.
+With `[system] sound` on, each line plays as speech and the next line starts when that speech
+ends; a line whose record has no speech shows its text and the sequence stops there until the
+view returns. With sound off, no speech plays and each line lasts twice its text length in
+updates. A label without an RTX record ends the sequence.
 
 ### ViewGXA
 

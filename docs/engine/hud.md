@@ -505,8 +505,8 @@ is centred on x = 320 with its top at `10 + trunc(0.9 × n × line_height)`. The
 when the line has a record, the text does not start with byte 0x9E, the no-text flag is clear and
 `[dialog] dialog_print_text` is nonzero. It is not a [dialogue subtitle](subtitles.md): it takes no
 subtitle slot and does not use the subtitle position. Stopping the line's speech when the view
-begins to close does not remove the text; it then stays for up to twice its text length in
-updates, which outlasts the close for any line of four or more characters.
+begins to close does not remove the text: the line continues as a line without speech, which
+with sound on stays until the view returns.
 
 A cursor item without `bitmap[x]` draws no artwork.
 
