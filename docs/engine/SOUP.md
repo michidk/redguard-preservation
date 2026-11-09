@@ -169,6 +169,10 @@ normalized and original names, emits a diagnostic and requests fatal error 107.
 The supplied name and script records are unchanged; normalization uses the
 shared scratch string.
 
+### Task start with no free slot
+
+An actor has six task slots. Starting a task scans them in order for a free one; when none is free the start returns without starting the task, running its native or changing any slot, and the calling script continues with the next instruction. A script that starts more tasks on one actor than it has slots (for example one `rtxAnim` per dialogue line on the same actor while earlier ones still run) therefore loses the later ones silently.
+
 ### Ordinary update gates
 
 `SYSTEM.INI`'s `[system] task_system` enables the ordinary entry, task, and main
