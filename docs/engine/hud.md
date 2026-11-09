@@ -446,10 +446,10 @@ cursor, that request is handled before ordinary exit keys are tested, including
 when View and an exit key are sampled together. After the view returns, the exit
 test uses the controls remaining after the view's release wait.
 
-On the screen update that opens View, the inventory drawing pass omits the
-cursor item's bitmap, quantity and description. Other visible cells keep their
-ordinary drawing behavior. The inventory background and health candle are still
-drawn before Examine opens.
+From the screen update that opens View until the examine view returns, the
+inventory drawing pass omits the cursor item's bitmap, quantity and description.
+Other visible cells keep their ordinary drawing behavior. The inventory
+background and health candle are still drawn.
 
 ### Examine view
 
@@ -492,6 +492,21 @@ Before each draw it registers three local lights in camera space, each with radi
 `(0, 256, -200)` with RGB `(255, 255, 255)`. The ambient and directional model lighting are the
 loaded world's. Textures and solid colors resolve through the palette selected at that time (the
 world's), not through an interface palette.
+
+Each update draws the backdrop, then the model, then the description text. In mode 0 the
+backdrop is a copy of the screen taken when the view opens, which is restored when it returns; no
+frame, candle or inventory artwork is drawn. In mode 1 the backdrop is the inventory screen
+drawing pass described above: the inventory's copy of the world frame, the candle, the shaded
+quad, `INVBORDR.GXA`, the arrows and the other visible cells.
+
+The current description line's RTX text is drawn in REDSEL, the inventory screen's font. It is
+split into lines by the [inventory name wrap](#layout) with a 30-byte step instead of 13. Line `n`
+is centred on x = 320 with its top at `10 + trunc(0.9 × n × line_height)`. The text is drawn only
+when the line has a record, the text does not start with byte 0x9E, the no-text flag is clear and
+`[dialog] dialog_print_text` is nonzero. It is not a [dialogue subtitle](subtitles.md): it takes no
+subtitle slot and does not use the subtitle position. Stopping the line's speech when the view
+begins to close does not remove the text; it then stays for up to twice its text length in
+updates, which outlasts the close for any line of four or more characters.
 
 A cursor item without `bitmap[x]` draws no artwork.
 

@@ -5294,8 +5294,8 @@ controls, fade and the close rule are those of the examine view, whose close req
 Activate, Enter and Escape. When it closes the no-text flag is cleared.
 
 Description lines are RTX records looked up by a four-character label (longer text is cut to
-four characters), played as speech with the label's text as the subtitle unless the no-text flag
-is set. The first line depends on the item identifier:
+four characters), played as speech with the label's text drawn by the
+[examine view](hud.md#examine-view) unless the no-text flag is set. The first line depends on the item identifier:
 
 | Item | First line | Later lines |
 | --- | --- | --- |
