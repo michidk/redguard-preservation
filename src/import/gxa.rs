@@ -9,6 +9,8 @@ pub struct GxaFrame {
     /// Contains exactly `width * height` entries, including transparent index zero.
     pub indices: Vec<u8>,
     pub rgba: Vec<u8>,
+    /// Frame's BPAL colors expanded from six-bit VGA components by shifting left two.
+    pub palette: [[u8; 3]; 256],
 }
 
 #[derive(Debug, Clone)]
@@ -390,6 +392,7 @@ pub fn parse_gxa_file(data: &[u8]) -> Result<GxaFile> {
                             .map_err(|_| Error::Parse("GXA height > u16::MAX".to_string()))?,
                         indices: pixels,
                         rgba,
+                        palette,
                     });
                 }
             }
