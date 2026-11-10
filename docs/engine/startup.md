@@ -183,7 +183,7 @@ own palette. New-game entry uses `start_world` and `start_marker` from the
 At the 640 by 480 logical viewport, the progress bar's track covers columns 32
 through 608 and rows 448 through 454 (577 by 7 pixels, inclusive edges). The
 track darkens the picture behind it to about a third of its brightness rather
-than painting opaque black; the fill is VGA RGB `(63,0,0)` and reaches the
+than painting opaque black; the fill requests VGA RGB `(63,0,0)` but is drawn with the nearest palette colour (the system palette block's entry 147, `(54,5,4)`, on screens whose picture palette lacks an exact match; captures show it dithered around `(218,21,14)` in 8-bit) and reaches the
 column `32 + width` for a nearest-integer fill width of 576 times the completed
 fraction (a full bar ends at column 608). The displayed integer percentage also
 rounds to nearest. Percentage updates advance monotonically; a zero-percent
