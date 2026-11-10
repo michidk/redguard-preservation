@@ -78,6 +78,11 @@ stored `BODY` pixels. A `CRNG` payload is eight bytes:
 | `+0x06` | 1 | `u8` | low | First palette index in the range |
 | `+0x07` | 1 | `u8` | high | Last palette index in the range |
 
+`gui.lbm` has sixteen `CRNG` chunks. Four are populated with zero rate and zero
+flags and the ranges `0x10`-`0x1f`, `0x20`-`0x2f`, `0x60`-`0x6f` and
+`0x90`-`0x9f`; the other twelve are all zero. No installed LBM or
+[ANM](ANM.md#header-and-palette) defines an active palette cycle.
+
 The static image uses the stored palette. See also [PCX images](PCX.md) and
 [COL palettes](COL.md).
 

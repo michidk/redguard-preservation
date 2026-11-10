@@ -8,6 +8,12 @@ frames. Its first chunk is `BMHD`, despite the filename's `.bmp` extension.
 The cursor sprite sheet `system/pointers.bmp` also uses this chunked format.
 Its `.bmp` extension does not describe a Windows bitmap.
 
+In ordinary play the shipped game draws no cursor: with the pointer moved across
+the game window during gameplay at several positions, the framebuffer shows no
+sprite at the pointer. The archive is used only by the interactive editor modes
+(object select, scene, fxselect and pvoaddpatch), which the shipped game does not
+enter.
+
 ## Overall Structure
 
 ```
