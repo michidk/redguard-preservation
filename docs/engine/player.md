@@ -982,6 +982,25 @@ replaces local actor-origin Y. The first slide clears accumulated sliding
 distance, then every class-2 response adds the computed distance, including
 nonpositive values, and sets sliding state to one.
 
+### Slide-group movement
+
+Every actor's update, the selected player's included, runs a group-driven movement stage after
+its script and the movement natives. The stage reads the current animation group and, when no
+rope node is attached and the sliding byte is clear, requests the directional displacement the
+group implies unless a displacement of that direction was already requested earlier in the same
+update. Slide groups 75 and 77 request forward displacement (direction 2) and groups 76 and 78
+backward displacement (direction 3). The displacement uses the ordinary startup counters in the
+movement bits (forward bits 4-5, backward bits 6-7) and the slide-group speeds of the movement
+natives (attribute 8 shifted left seven).
+
+The slope response sets the sliding byte on every class-2 update, so the stage is idle while an
+actor slides. It resumes in the update after the ground response finds non-steep support and clears
+the sliding byte: the slide group keeps playing until its animation ends and moves the actor
+along its heading (or heading plus 1024 for groups 76 and 78) for those updates, without
+the slope response, changes to the accumulated sliding distance or support-height changes. An
+actor that lands on a flat surface while sliding therefore keeps travelling for the rest of the
+slide animation.
+
 ### Slide termination
 
 When the ground response finds support and the sliding-surface result is clear (or the native
