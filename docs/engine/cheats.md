@@ -66,6 +66,8 @@ The Glide engine does not apply one shared on/off rule to every cheat. The ordin
 | `moonraker`, `drevil`, `drno`, `goldfinger`, `neversaydie`, `yeahbaby` | Value is nonzero | Enables the check, just like `1` |
 | `animation` | The movement natives' wait for their requested group to become current requires `1`; the animation requests (including the default request and forced requests), advancement and the progress readout accept any nonzero value | Runs the animation system but skips the movement natives' wait: the natives that request a walking, backing or side-stepping group then step without waiting for it, so it is not equivalent to either ordinary on or off |
 
+With `animation` at zero the selected player still moves: holding the walk key and forward advances it by the walking startup distance each update (16 units per update at frame scale 512 once the startup ramp ends), holding forward alone runs it at the run speed (40 units per update at 512), and the current animation group stays at its value (group 0 when idle) because the request routines do nothing. Nothing stops or faults.
+
 `oracle` and `savecheats` execute commands instead of using these gameplay conditions. `oddjob` accepts and stores arbitrary values through the shared cheat-state handling described above.
 
 For example, `neversaydie = 2` still makes `PlayerDistance()` return `9999999`, but `magiccarpet = 2` does not enable its fly-mode check. Values above one are not additional strength levels. Use `0` and `1` for consistent on/off control.
