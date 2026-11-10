@@ -55,6 +55,8 @@ struct SubmeshDataEx {
     vertex_indices: Vec<usize>,
     /// Per-emitted-vertex face normal (for delta normal computation).
     face_normals_per_vertex: Vec<[f32; 3]>,
+    /// Source face index (into `Model3DFile::face_data`) for each emitted vertex.
+    face_indices: Vec<usize>,
 }
 
 pub(crate) fn serialize_model_3d(
@@ -129,6 +131,7 @@ pub(crate) fn serialize_model_3d(
                 )?);
                 submesh.vertex_indices.push(idx);
                 submesh.face_normals_per_vertex.push(face_normal);
+                submesh.face_indices.push(face_index);
             }
         }
 
@@ -267,7 +270,11 @@ pub(crate) fn serialize_model_3d(
                     .get(emit_idx)
                     .copied()
                     .unwrap_or([0.0, 0.0, 1.0]);
-                let (dnx, dny, dnz) = if let Some(fn_) = frame_face_normals.get(emit_idx) {
+                let (dnx, dny, dnz) = if let Some(fn_) = s
+                    .face_indices
+                    .get(emit_idx)
+                    .and_then(|&face_index| frame_face_normals.get(face_index))
+                {
                     let [fnx, fny, fnz] = transform_normal(fn_.x, fn_.y, fn_.z, SCENE_CONVENTION);
                     let ndx = fnx - base_fn[0];
                     let ndy = fny - base_fn[1];
