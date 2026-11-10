@@ -180,10 +180,13 @@ single-frame archive uses its only frame. The full-screen picture uses its
 own palette. New-game entry uses `start_world` and `start_marker` from the
 `[world]` section.
 
-At the 640 by 480 logical viewport, the progress bar starts at `(32,448)`,
-is 576 pixels wide and 6 pixels high. Its background is black and its fill
-is VGA RGB `(63,0,0)`. Fill width is the nearest-integer product of the bar
-width and the completed fraction. The displayed integer percentage also
+At the 640 by 480 logical viewport, the progress bar's track covers columns 32
+through 608 and rows 448 through 454 (577 by 7 pixels, inclusive edges). The
+track darkens the picture behind it to about a third of its brightness rather
+than painting opaque black; the fill is VGA RGB `(63,0,0)` and reaches the
+column `32 + width` for a nearest-integer fill width of 576 times the completed
+fraction (a full bar ends at column 608). The percentage label is drawn below
+the track, starting at row 456. The displayed integer percentage also
 rounds to nearest. Percentage updates advance monotonically; a zero-percent
 update does not draw the bar or label.
 
