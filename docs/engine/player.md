@@ -1950,6 +1950,14 @@ actors enter the actor-style list with their actor owner. A full destination
 list skips that entry. When both lists are full, traversal returns before
 processing later live actors or transient models.
 
+Whole-map preload links all rope records into the active transient list.
+When the clamped starting cell of the ordinary map window changes, the engine
+rebuilds that list. It admits a rope when the sum of the absolute X, Y, and Z
+differences between the published camera position and the rope base is strictly
+less than 4096 map units. The comparison uses signed Q8 positions and does not
+use the swung terminal position. Camera movement that leaves the starting cell
+unchanged retains the list.
+
 An active transient record with a loaded model and flag `0x10` enters the
 face-model list until that list is full. These entries have candidate type
 `0x80`, zero collision metadata, and neither a static-placement owner nor an
