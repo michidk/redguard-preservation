@@ -93,6 +93,8 @@ typedef struct RgmdVertex {         /* 32 bytes */
  * Add the deltas to the base submesh vertices to obtain the per-frame
  * positions and normals.
  */
+/* Deltas use the same scene axes as RgmdVertex. Adding the normal delta
+ * reconstructs the resolved frame normal; authored corner normals stay fixed. */
 typedef struct RgmdDeltaVertex {    /* 24 bytes */
     float dx;
     float dy;

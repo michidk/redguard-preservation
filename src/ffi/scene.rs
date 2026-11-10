@@ -53,8 +53,8 @@ struct SubmeshDataEx {
     inner: SubmeshData,
     /// Original vertex index (into `Model3DFile::vertex_coords`) for each emitted vertex.
     vertex_indices: Vec<usize>,
-    /// Per-emitted-vertex face normal (for delta normal computation).
-    face_normals_per_vertex: Vec<[f32; 3]>,
+    /// Source polygon-corner index into the model's normal indirection table.
+    corner_indices: Vec<usize>,
     /// Source face index (into `Model3DFile::face_data`) for each emitted vertex.
     face_indices: Vec<usize>,
 }
@@ -130,7 +130,7 @@ pub(crate) fn serialize_model_3d(
                     "submesh_vertex_index",
                 )?);
                 submesh.vertex_indices.push(idx);
-                submesh.face_normals_per_vertex.push(face_normal);
+                submesh.corner_indices.push(cumulative_fv_base + fv_idx);
                 submesh.face_indices.push(face_index);
             }
         }
@@ -232,11 +232,6 @@ pub(crate) fn serialize_model_3d(
     for frame_idx in 0..anim_frame_count {
         let posed = model.at_frame(frame_idx)?;
         let frame_verts = &posed.vertex_coords;
-        let frame_face_normals = model
-            .frame_normal_data
-            .get(frame_idx)
-            .map(|fnd| fnd.face_normals.as_slice())
-            .unwrap_or(&[]);
 
         for (_, s) in &populated_submeshes {
             let delta_count = s.inner.positions.len();
@@ -264,25 +259,24 @@ pub(crate) fn serialize_model_3d(
                 let dy = -(frame_coord.y - base_coord.y) / ENGINE_UNIT_SCALE;
                 let dz = (frame_coord.z - base_coord.z) / ENGINE_UNIT_SCALE;
 
-                // Normal delta: frame face normal - base face normal
-                let base_fn = s
-                    .face_normals_per_vertex
-                    .get(emit_idx)
-                    .copied()
-                    .unwrap_or([0.0, 0.0, 1.0]);
-                let (dnx, dny, dnz) = if let Some(fn_) = s
-                    .face_indices
-                    .get(emit_idx)
-                    .and_then(|&face_index| frame_face_normals.get(face_index))
-                {
-                    let [fnx, fny, fnz] = transform_normal(fn_.x, fn_.y, fn_.z, SCENE_CONVENTION);
-                    let ndx = fnx - base_fn[0];
-                    let ndy = fny - base_fn[1];
-                    let ndz = fnz - base_fn[2];
-                    (-ndx, ndy, ndz)
-                } else {
-                    (0.0, 0.0, 0.0)
-                };
+                // Resolve shading exactly as for the base mesh: authored corner
+                // normals stay fixed, while fallback face normals follow the pose.
+                let face_normal = posed
+                    .face_normals
+                    .get(s.face_indices[emit_idx])
+                    .map_or([0.0, 0.0, 1.0], |normal| {
+                        transform_normal(normal.x, normal.y, normal.z, SCENE_CONVENTION)
+                    });
+                let frame_normal = resolve_vertex_normal(
+                    &posed,
+                    model_idx,
+                    s.corner_indices[emit_idx],
+                    face_normal,
+                    SCENE_CONVENTION,
+                );
+                let base_normal = s.inner.normals[emit_idx];
+                let [dnx, dny, dnz] =
+                    std::array::from_fn(|axis| frame_normal[axis] - base_normal[axis]);
 
                 let delta = RgmdDeltaVertex {
                     dx,
@@ -942,6 +936,158 @@ mod tests {
     use crate::import::sfx::AudioType;
     use hound::WavReader;
     use std::io::Cursor;
+
+    #[test]
+    fn animation_deltas_reconstruct_resolved_normals_after_material_grouping() {
+        use super::serialize_model_3d;
+        use crate::ffi::types::{RgmdDeltaVertex, RgmdHeader, RgmdSubmeshHeader, RgmdVertex};
+        use crate::model3d::{
+            FaceData, FaceNormal, FaceVertex, FrameDataEntry, FrameNormalData, FrameType,
+            FrameVertexData, VertexCoord, VertexNormal,
+        };
+
+        fn read<T: bytemuck::Pod>(bytes: &[u8], offset: &mut usize) -> T {
+            let end = *offset + std::mem::size_of::<T>();
+            let value = bytemuck::pod_read_unaligned(&bytes[*offset..end]);
+            *offset = end;
+            value
+        }
+
+        for authored in [false, true] {
+            let mut model =
+                crate::model3d::parse_3d_file(include_bytes!("../../tests/fixtures/model_v40.3dc"))
+                    .unwrap();
+            model.header.num_frames = 2;
+            model.vertex_coords = (0..4)
+                .map(|x| VertexCoord {
+                    x: x as f32,
+                    y: 0.0,
+                    z: 0.0,
+                })
+                .collect();
+            // Material sorting emits face 1 before face 0; face 0 is a quad.
+            model.face_data = [(7, 4), (0, 3)]
+                .map(|(color, count)| FaceData {
+                    vertex_count: count,
+                    tex_hi: 0,
+                    texture_data: super::TextureData::SolidColor(color),
+                    face_vertices: (0..u32::from(count))
+                        .map(|vertex_index| FaceVertex {
+                            vertex_index,
+                            u: 0,
+                            v: 0,
+                        })
+                        .collect(),
+                })
+                .to_vec();
+            model.face_normals = vec![
+                FaceNormal {
+                    x: 1.0,
+                    y: 0.0,
+                    z: 0.0,
+                },
+                FaceNormal {
+                    x: 0.0,
+                    y: 1.0,
+                    z: 0.0,
+                },
+            ];
+            model.vertex_normals = if authored {
+                vec![
+                    VertexNormal {
+                        x: 0.0,
+                        y: 0.0,
+                        z: 0.0,
+                    },
+                    VertexNormal {
+                        x: 2.0,
+                        y: 3.0,
+                        z: 4.0,
+                    },
+                ]
+            } else {
+                vec![]
+            };
+            model.normal_indices = if authored {
+                vec![1, 0, 0, 0, 0, 0, 0]
+            } else {
+                vec![]
+            };
+            model.frame_data = vec![FrameDataEntry {
+                vertex_offset: 0,
+                normal_offset: 0,
+                reserved: 0,
+                frame_type: FrameType::AnimatedI32,
+            }];
+            model.frame_vertex_data = vec![
+                FrameVertexData {
+                    coords: model.vertex_coords.clone()
+                };
+                2
+            ];
+            model.frame_normal_data = vec![
+                FrameNormalData {
+                    face_normals: model.face_normals.clone(),
+                },
+                FrameNormalData {
+                    face_normals: vec![
+                        FaceNormal {
+                            x: -0.6,
+                            y: 0.0,
+                            z: 0.8,
+                        },
+                        FaceNormal {
+                            x: 0.8,
+                            y: 0.0,
+                            z: 0.6,
+                        },
+                    ],
+                },
+            ];
+            let bytes = serialize_model_3d(&model, None, None).unwrap();
+            let mut offset = 0;
+            let header: RgmdHeader = read(&bytes, &mut offset);
+            assert_eq!((header.submesh_count, header.total_vertex_count), (2, 9));
+            let mut base = Vec::new();
+            for count in [3, 6] {
+                let submesh: RgmdSubmeshHeader = read(&bytes, &mut offset);
+                assert_eq!(submesh.vertex_count, count);
+                for _ in 0..count {
+                    base.push(read::<RgmdVertex>(&bytes, &mut offset).normal);
+                }
+                offset += count as usize * 4;
+            }
+            for frame in 0..2 {
+                let mut vertex = 0;
+                for count in [3, 6] {
+                    assert_eq!(read::<i32>(&bytes, &mut offset), count);
+                    for _ in 0..count {
+                        let delta: RgmdDeltaVertex = read(&bytes, &mut offset);
+                        let expected = if authored && matches!(vertex, 3 | 6) {
+                            [-2.0, -3.0, 4.0]
+                        } else if frame == 0 {
+                            if vertex < 3 {
+                                [0.0, -1.0, 0.0]
+                            } else {
+                                [-1.0, 0.0, 0.0]
+                            }
+                        } else if vertex < 3 {
+                            [-0.8, 0.0, 0.6]
+                        } else {
+                            [0.6, 0.0, 0.8]
+                        };
+                        for (axis, change) in
+                            [delta.dnx, delta.dny, delta.dnz].into_iter().enumerate()
+                        {
+                            assert!((base[vertex][axis] + change - expected[axis]).abs() < 1e-6);
+                        }
+                        vertex += 1;
+                    }
+                }
+            }
+            assert_eq!(offset, bytes.len());
+        }
+    }
 
     #[test]
     fn pcm_to_wav_bytes_round_trips_unsigned_8bit_pcm() {
