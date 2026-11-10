@@ -185,8 +185,7 @@ through 608 and rows 448 through 454 (577 by 7 pixels, inclusive edges). The
 track darkens the picture behind it to about a third of its brightness rather
 than painting opaque black; the fill is VGA RGB `(63,0,0)` and reaches the
 column `32 + width` for a nearest-integer fill width of 576 times the completed
-fraction (a full bar ends at column 608). The percentage label is drawn below
-the track, starting at row 456. The displayed integer percentage also
+fraction (a full bar ends at column 608). The displayed integer percentage also
 rounds to nearest. Percentage updates advance monotonically; a zero-percent
 update does not draw the bar or label.
 
