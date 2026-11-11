@@ -158,6 +158,9 @@ typedef struct RgWorldDescriptor {  /* 204 bytes */
 /* ── GLB export ────────────────────────────────────────────────────── */
 
 ByteBuffer *rg_convert_model_from_path(const char *file_path, const char *assets_dir);
+/* Explicit palette for standalone models/ROBs, whose world cannot be inferred.
+ * All paths are required UTF-8 strings. Free the result with rg_free_buffer. */
+ByteBuffer *rg_convert_model_from_path_with_palette(const char *file_path, const char *assets_dir, const char *palette_path);
 ByteBuffer *rg_convert_rgm_from_path(const char *file_path, const char *assets_dir);
 ByteBuffer *rg_convert_wld_from_path(const char *file_path, const char *assets_dir);
 

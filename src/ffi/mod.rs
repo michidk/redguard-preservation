@@ -155,6 +155,33 @@ pub unsafe extern "C" fn rg_convert_model_from_path(
     file_path: *const c_char,
     assets_dir: *const c_char,
 ) -> *mut ByteBuffer {
+    unsafe { convert_model_from_path(file_path, assets_dir, ptr::null()) }
+}
+
+/// Exports a model using the caller's selected palette rather than world inference.
+///
+/// # Safety
+/// All arguments must be valid null-terminated UTF-8 strings. Free the result
+/// with `rg_free_buffer`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn rg_convert_model_from_path_with_palette(
+    file_path: *const c_char,
+    assets_dir: *const c_char,
+    palette_path: *const c_char,
+) -> *mut ByteBuffer {
+    if palette_path.is_null() {
+        return into_ffi_result(Err(crate::error::Error::Parse(
+            "palette_path must not be null".into(),
+        )));
+    }
+    unsafe { convert_model_from_path(file_path, assets_dir, palette_path) }
+}
+
+unsafe fn convert_model_from_path(
+    file_path: *const c_char,
+    assets_dir: *const c_char,
+    palette_path: *const c_char,
+) -> *mut ByteBuffer {
     let result = (|| -> crate::Result<Vec<u8>> {
         let file_path = unsafe { read_c_str(file_path, "file_path") }?;
         let assets_dir = unsafe { read_c_str(assets_dir, "assets_dir") }?;
@@ -169,7 +196,12 @@ pub unsafe extern "C" fn rg_convert_model_from_path(
         })?;
 
         let model_bytes = std::fs::read(&file_path)?;
-        let palette = auto_resolve_palette(&assets_dir, &file_path, file_type);
+        let palette = if palette_path.is_null() {
+            auto_resolve_palette(&assets_dir, &file_path, file_type)
+        } else {
+            let path = unsafe { read_c_str(palette_path, "palette_path") }?;
+            Some(Palette::parse(&std::fs::read(path)?)?)
+        };
 
         run_on_large_stack(move || {
             let models = match file_type {

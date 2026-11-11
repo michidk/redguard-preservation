@@ -8,6 +8,10 @@ The library builds as a C-compatible shared library (`cdylib`) alongside the CLI
 
 **C header:** [`rgpre.h`](rgpre.h) — all struct definitions and function signatures.
 
+For standalone model and ROB GLB exports, use `rg_convert_model_from_path_with_palette`
+with the active COL file. Models do not identify their world palette; the legacy
+`rg_convert_model_from_path` entry point cannot infer it from a model filename.
+
 ## Architecture
 
 ```
