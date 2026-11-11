@@ -27,6 +27,7 @@ the color pipeline, and links to the detailed rules.
 
 | Topic | Behavior |
 |---|---|
+| [Glide interface](glide.md) | Library binding, called entry points, window parameters, and initial render state. |
 | [Model lighting](model-lighting.md) | Face brightness, directional and local lighting, and retained instance colors. |
 | [Actor prelighting](actor-prelighting.md) | Retained map-light colors on eligible static-model actors. |
 | [Terrain lighting](terrain-lighting.md) | Ambient and directional RGB lighting and terrain normals. |
