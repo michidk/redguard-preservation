@@ -35,6 +35,8 @@ fn palette_aliases_preserve_cursor_marker_indices() -> rgpre::Result<()> {
         let frame = &decoded.frames[0];
         assert_eq!([frame.width, frame.height], [2, 2]);
         assert_eq!(frame.indices, [16, 17, 0, 16]);
+        assert_eq!(frame.palette[16], [4, 8, 12]);
+        assert_eq!(frame.palette[17], [4, 8, 12]);
         assert_eq!(
             frame.rgba,
             [4, 8, 12, 255, 4, 8, 12, 255, 0, 0, 0, 0, 4, 8, 12, 255]

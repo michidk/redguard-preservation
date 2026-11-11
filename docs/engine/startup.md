@@ -5,9 +5,11 @@ Glide startup presents the active Glide implementation's 3dfx splash and
 Redguard movie file.
 
 In final-version mode, a valid `SAVEGAME.SAV` opens the book-style main menu.
-`MENU.INI` `[general] ignore_autosave` bypasses that check. An absent or invalid
+`MENU.INI` `[general] ignore_autosave` bypasses autosave handling and enters the
+starting world without Introduction. With that flag off, an absent or invalid
 autosave follows the fresh-game path: startup plays the Introduction cinematic
-before loading the introductory game world. New Game from the book repeats this
+before loading the introductory game world. Non-final-version startup also
+enters the starting world without Introduction. New Game from the book repeats this
 movie-before-world sequence. A book opened from a running world uses the in-game
 entry context described in [Book menu](menu.md).
 
@@ -18,10 +20,27 @@ version and loading labels along its bottom edge.
 
 The title redraw selects the `[system] gui_low_font` entry from `SYSTEM.INI`.
 The GOG configuration points to `fonts\\arialvb.fnt`, a 9-pixel line-height
-font. The version label starts at `(10,467)` in RGB `(32,32,32)`. Its format is
+font. The version label starts at `(10,467)` and requests VGA colour
+`(32,32,32)`. Its format is
 `Version %s.%s`; the GOG release displays `Version 1.0.1.0`. Loading
-text is right-aligned to `(630,467)` in RGB `(50,0,0)`. The map-registration
+text is right-aligned to `(630,467)` and requests VGA colour `(50,0,0)`.
+The map-registration
 stage supplies `Loading Map %d`. Sound preparation supplies `Loading Sound`.
+
+The colour requests are six-bit palette searches, not direct eight-bit RGB.
+The search excludes index zero and returns the first exact match. Approximate
+matching excludes white. Per-channel difference is `request - candidate` when
+nonnegative and its bitwise complement otherwise. Candidates with all three
+differences at most eight compete by absolute weighted-brightness difference,
+using integer weights 19661, 38666 and 7209 for red, green and blue. A weighted
+difference at most 24 selects that result. Otherwise the search minimizes the
+sum of the three channel differences. Approximate ties select the last index.
+
+The low font replaces nonzero glyph pixels with palette index 161. The glyph
+texture retains those indices and uses the active palette when drawn. Its RGB
+multiplies the selected text tint component by component, divided by 255.
+Thus both the selected tint and entry 161 of the title palette determine the
+visible label colour; the font file's own entry one does not supply it.
 
 Glyph bitmaps use their FNT left and top offsets. Each active character
 advances by its bitmap width plus one pixel. Space additionally advances by
