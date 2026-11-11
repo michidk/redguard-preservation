@@ -74,6 +74,19 @@ Page Down move through retained output. Enter dispatches an editable command.
 The interactive console runs its own input and drawing loop before returning to
 the caller's game loop.
 
+Console presentation and interactive command entry are separate modes. During
+world gameplay, an F12 request without Alt selects interactive entry; holding
+Alt selects the nonmodal overlay. The overlay returns to the world loop without
+running the command editor.
+
+Appending a report while the console is closed also requests the nonmodal
+overlay and sets its timeout to 24 engine steps. This report path selects overlay
+mode even if an interactive request is pending. Reports submitted while the
+console is already active redraw it instead. A visible console background or
+report line therefore does not establish that the command editor is accepting
+input.
+
+
 With shadows enabled, the Glide glyph path draws a black glyph copy before the
 main glyph. The console selects a two-pixel offset in each axis at widths of at
 least 640 and one pixel below that threshold. The standard console font uses
