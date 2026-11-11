@@ -1051,6 +1051,12 @@ change this participation. The list build places the admitted ropes' links and a
 each admitted rope's amplitude service, then runs the rope update (swing step and attachment climbs), then the shell scripts, then
 the ordinary actors, whose update runs the [attachment test](#rope-attachment) and the [attached controls](#rope-control-while-attached).
 
+The link and terminal model transforms are published before the amplitude service and oscillator advance.
+Collision later in that iteration reads those published transforms, including the terminal's accumulated
+pitch from the incoming step angle. Advancing the oscillator does not rebuild the model transforms.
+The next active geometry pass publishes the new swing pose. Rendered links, terminal collision bounds
+and face transforms use this same publication; querying them does not advance or republish a rope.
+
 ### Rope attachment removal
 
 Ropes own doubly linked lists of attachment nodes. Each node retains its actor,
