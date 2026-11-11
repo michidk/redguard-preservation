@@ -963,6 +963,10 @@ the sum of their radii. Contact also records the lowest rope sphere index that t
 On contact the actor requests animation group 0x54, then attaches (below). For the selected player the
 rope's type bit 0x4 clears afterwards and a retained flag is set to one.
 
+Admission does not place the actor on its chosen link. Link and hand-offset
+placement run in the rope render-list service on a subsequent world update,
+using the animation group and frame progress current at placement time.
+
 Attach removes any attachment the actor already has (the removal above), allocates a 20-byte node,
 links it at the head of the rope's attachment list, stores the actor in the node and the node in the
 actor, copies the rope identifier into the actor and clears the countdown. The requested link index
