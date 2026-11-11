@@ -1044,8 +1044,11 @@ amplitude is then clamped to `0..maximum` by the next update.
 
 ### Rope update order
 
-Each world-loop iteration builds the map render lists first, which places every rope's links and attached actors and runs
-each rope's amplitude service, then runs the rope update (swing step and attachment climbs), then the shell scripts, then
+Each world-loop iteration builds the map render lists first. Only ropes in the retained active transient list participate
+in link and terminal placement, amplitude service, swing updates and attachment climbs. Ropes outside that list retain
+their dynamic state until admitted by a later window rebuild. Camera movement within the same starting cell does not
+change this participation. The list build places the admitted ropes' links and attached actors and runs
+each admitted rope's amplitude service, then runs the rope update (swing step and attachment climbs), then the shell scripts, then
 the ordinary actors, whose update runs the [attachment test](#rope-attachment) and the [attached controls](#rope-control-while-attached).
 
 ### Rope attachment removal
