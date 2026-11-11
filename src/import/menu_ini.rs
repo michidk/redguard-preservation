@@ -1,36 +1,46 @@
 //! Data-defined book-menu pages; see `docs/config/menu-ini.md`.
 use std::collections::BTreeMap;
 
-/// Global menu flags relevant to cinematic visibility.
+/// Global menu flags relevant to cinematics and startup entry.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct MenuGeneral {
     pub force_movies: bool,
+    /// Bypass autosave handling and enter the starting world without Introduction.
+    pub ignore_autosave: bool,
 }
 
 impl MenuGeneral {
-    /// Missing force_movies is zero; the first case-insensitive occurrence wins.
+    /// Missing flags are zero; the first case-insensitive occurrence of each wins.
     pub fn parse(content: &str) -> Result<Self, String> {
         let mut general = false;
-        let mut force_movies = false;
-        let mut seen = false;
+        let mut force_movies = None;
+        let mut ignore_autosave = None;
         for line in content.lines() {
             let line = line.split(';').next().unwrap_or_default().trim();
             if line.starts_with('[') {
                 general = line.eq_ignore_ascii_case("[general]");
-            } else if general
-                && let Some((key, value)) = line.split_once('=')
-                && key.trim().eq_ignore_ascii_case("force_movies")
-                && !seen
-            {
-                seen = true;
-                force_movies = match value.trim() {
-                    "0" => false,
-                    "1" => true,
-                    _ => return Err("MENU.INI [general] force_movies: expected 0 or 1".into()),
+            } else if general && let Some((key, value)) = line.split_once('=') {
+                let key = key.trim();
+                let field = if key.eq_ignore_ascii_case("force_movies") {
+                    &mut force_movies
+                } else if key.eq_ignore_ascii_case("ignore_autosave") {
+                    &mut ignore_autosave
+                } else {
+                    continue;
                 };
+                if field.is_none() {
+                    *field = Some(match value.trim() {
+                        "0" => false,
+                        "1" => true,
+                        _ => return Err(format!("MENU.INI [general] {key}: expected 0 or 1")),
+                    });
+                }
             }
         }
-        Ok(Self { force_movies })
+        Ok(Self {
+            force_movies: force_movies.unwrap_or(false),
+            ignore_autosave: ignore_autosave.unwrap_or(false),
+        })
     }
 }
 
@@ -188,6 +198,18 @@ mod tests {
         );
         assert!(!MenuGeneral::parse("").unwrap().force_movies);
         assert!(MenuGeneral::parse("[general]\nforce_movies=bad").is_err());
+    }
+
+    #[test]
+    fn startup_autosave_flag_is_independent_and_section_scoped() {
+        let flags = MenuGeneral::parse(
+            "[page0]\nignore_autosave=0\n[GENERAL]\nignore_autosave=1\nforce_movies=0\nIGNORE_AUTOSAVE=0",
+        ).unwrap();
+        assert!(flags.ignore_autosave);
+        assert!(!flags.force_movies);
+        assert!(!MenuGeneral::parse("").unwrap().ignore_autosave);
+        let error = MenuGeneral::parse("[general]\nignore_autosave=2").unwrap_err();
+        assert!(error.contains("MENU.INI [general] ignore_autosave"));
     }
 
     #[test]

@@ -5,9 +5,11 @@ Glide startup presents the active Glide implementation's 3dfx splash and
 Redguard movie file.
 
 In final-version mode, a valid `SAVEGAME.SAV` opens the book-style main menu.
-`MENU.INI` `[general] ignore_autosave` bypasses that check. An absent or invalid
+`MENU.INI` `[general] ignore_autosave` bypasses autosave handling and enters the
+starting world without Introduction. With that flag off, an absent or invalid
 autosave follows the fresh-game path: startup plays the Introduction cinematic
-before loading the introductory game world. New Game from the book repeats this
+before loading the introductory game world. Non-final-version startup also
+enters the starting world without Introduction. New Game from the book repeats this
 movie-before-world sequence. A book opened from a running world uses the in-game
 entry context described in [Book menu](menu.md).
 
