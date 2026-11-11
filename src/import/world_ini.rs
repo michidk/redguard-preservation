@@ -82,6 +82,25 @@ impl NewGameEntry {
     }
 }
 
+/// Destination loading artwork from `WORLD.INI`, preserving the first matching value.
+/// Section and key matching ignore case. Missing or empty values have no artwork.
+pub fn transition_artwork(content: &str, world: u32) -> Option<String> {
+    let key = format!("world_flash_filename[{world}]");
+    let mut in_world = false;
+    for line in content.lines() {
+        let line = line.split(';').next().unwrap_or_default().trim();
+        if line.starts_with('[') && line.ends_with(']') {
+            in_world = line[1..line.len() - 1].eq_ignore_ascii_case("world");
+        } else if in_world
+            && let Some((name, value)) = line.split_once('=')
+            && name.trim().eq_ignore_ascii_case(&key)
+        {
+            return (!value.trim().is_empty()).then(|| value.trim().to_string());
+        }
+    }
+    None
+}
+
 /// Read the terrain height-table offset in engine units, positive Y down.
 /// The world loader retains the low signed word. Missing or empty entries are
 /// zero. Section/key matching is case-insensitive and the first value wins.
@@ -539,4 +558,15 @@ mod effect_brightness_tests {
             .to_string();
         assert!(error.contains("world_ambientfx[7]") && error.contains("line 2"));
     }
+}
+
+#[test]
+fn transition_artwork_is_destination_specific_and_first_match_wins() {
+    let ini = "[other]\nworld_flash_filename[2]=wrong\n[WORLD]\nWORLD_FLASH_FILENAME[2] = system\\cave.gxa ; image\nworld_flash_filename[2]=ignored\nworld_flash_filename[3]=\nworld_flash_filename[3]=ignored";
+    assert_eq!(
+        transition_artwork(ini, 2).as_deref(),
+        Some("system\\cave.gxa")
+    );
+    assert_eq!(transition_artwork(ini, 3), None);
+    assert_eq!(transition_artwork(ini, 0), None);
 }
