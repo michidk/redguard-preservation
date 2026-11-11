@@ -180,6 +180,11 @@ single-frame archive uses its only frame. The full-screen picture uses its
 own palette. New-game entry uses `start_world` and `start_marker` from the
 `[world]` section.
 
+Completing the New Game Introduction, including leaving through its configured
+forward skip points, enters the starting marker with heading 1024 in the
+2048-unit turn. The direct world-entry path that bypasses Introduction uses
+heading zero. The marker supplies position, not orientation.
+
 At the 640 by 480 logical viewport, the progress bar's track covers columns 32
 through 608 and rows 448 through 454 (577 by 7 pixels, inclusive edges). The
 track darkens the picture behind it to about a third of its brightness rather
