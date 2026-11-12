@@ -997,7 +997,12 @@ the jump key) and C (`key_c`, the view key).
   with B up. With the latch clear and B held, the branch removes the attachment (the
   [removal](#rope-attachment-removal) with its detach motion), runs the ordinary jump entry (which, with the rope
   countdown now nonzero, requests group 85 and sets the second directional-state byte to 24), clears the
-  heading-turn rate below and sets the latch. Damage and a world change also remove the attachment.
+  heading-turn rate below and sets the latch. The ordinary movement and collision admission reads the
+  attachment after this control branch. A jump release therefore admits the newly queued motion on
+  the same ordinary update; it does not retain the attached movement bypass for that update.
+  The jump latch remains set after release. While falling with B held, that latch prevents
+  the controller from clearing the rope regrab countdown.
+  Damage and a world change also remove the attachment.
 - **Climb.** Without a held weapon and with C up, Up runs the climb-up helper and otherwise Down runs
   the climb-down helper. Climb up does nothing unless the attachment's node index is at least 2; it requests
   group 82 when the current group is not 82 and returns true, otherwise it requests group 82 again while
