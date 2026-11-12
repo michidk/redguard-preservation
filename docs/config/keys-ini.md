@@ -4,6 +4,36 @@ Input binding configuration mapping keyboard scancodes, mouse buttons, and joyst
 
 Shipped path: `KEYS.INI` (game root directory).
 
+## Fixed gameplay shortcuts
+
+These shortcuts are separate from the configurable action bindings in `[input]`.
+The function keys cannot be assigned through the book's Controls page.
+
+| Key | Gameplay function |
+|---|---|
+| F1 | Show the version-information dialog, including game, build, savegame and console versions. |
+| F2 | Open the book's Save page. |
+| F3 | Open the book's Load page. |
+| F4 | Open the book's Display page. |
+| F5 | Open the book's Sound page. |
+| F6 | Open the book's Controls page. |
+| F7 | Toggle auto-defend, save `SYSTEM.INI` `[CYRUS] AUTO_DEFEND`, and display the on/off notice. |
+| F8 | Cycle `SYSTEM.INI` `[SCREEN] CANDLE_MODE` through timed display, always visible, and always visible with the health number. The new mode is saved immediately. |
+| F9 | Request Quick Save. |
+| F10 | Play the credits scroll without the ending movie. |
+| F12 | Open or close the developer console. |
+| Tab | Toggle walk mode, save `SYSTEM.INI` `[CYRUS] WALK_MODE`, and display the on/off notice. |
+
+The F2–F6 book shortcuts and consumption of the F9 Quick Save request require
+`SYSTEM.INI` `[debug] final_version`. See [gameplay book shortcuts](../engine/menu.md#gameplay-book-shortcuts)
+and [save and load pages](../engine/menu.md#save-and-load-pages) for request timing
+and save behavior. F10 uses the [credits scroll](../engine/menu.md#credits-scroll).
+F7 and Tab show [toggle notices](../engine/hud.md#toggle-notices); F8 changes the
+[candle mode](../engine/hud.md#mode-key). F12 uses the [developer console](../engine/console.md).
+
+The [Controls page](../engine/menu.md) rejects Tab, Enter and
+F1 through F12 during key capture, including F11.
+
 ## Sections
 
 ### `[input]`
