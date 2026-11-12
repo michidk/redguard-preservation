@@ -974,12 +974,9 @@ is the lowest touching sphere index, clamped to `[0, link count − 1]`, then re
 nearest to the actor's hand height: starting at index − 8 (floor 0), the link whose stored Y (a
 single-precision value) is at or below the target height and closest to it wins. The hand point is
 grip vertex 0 (the RAEX `grip0` vertex) of the first `ShowFrame` of animation group 79, as the
-integer Q8 model vertex. The target is `(hand Y + actor Y + 2 × link length − 1) >> 8`, the link length
-in Q8 as stored on the rope. When its distance from the floor probe is less than the actor height limit
-plus the vertex's absolute Y, it becomes the floor probe minus that limit. With no group 79 frame the
+integer Q8 model vertex. The target is `(hand Y + actor Y) >> 8`, with both inputs in Q8. When its
+distance from the floor probe is less than the actor height limit plus the vertex's absolute Y, it becomes the floor probe minus that limit. With no group 79 frame the
 requested index stands. The node stores that chosen link index.
-
-node stores that chosen link index.
 
 Then, with type bit 0x1 clear the rope heading becomes the actor heading; with it set the actor
 heading adds the signed heading difference selected above. When either of the actor's directional
