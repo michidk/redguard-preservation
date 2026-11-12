@@ -975,6 +975,10 @@ turn also rebuilds the actor's orientation matrix from its angles (identity, the
 pitch and roll) and copies the angles to the angle history; it changes no camera state.
 
 The first slide forces its slide group; subsequent slides request it ordinarily.
+The slope response sets the packed direction counters without setting the shared
+direction-called flags. The ordinary update clears counters for directions whose
+movement natives did not run, so slope motion alone does not retain a saturated
+startup counter for the next update.
 Distance is the signed wrapping product `slide_speed * 128 * frame_scale`,
 shifted right by 8. Only a positive distance translates X/Z. Primary support
 is queried again with the original response probe distance; an available result
