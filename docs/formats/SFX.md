@@ -38,7 +38,7 @@ All fields little-endian unless noted.
 | 0x00 | 4 | `u32` | type_id | Audio type: 0 = 8-bit mono, 1 = 16-bit mono, 2 = 8-bit stereo (unused), 3 = 16-bit stereo |
 | 0x04 | 4 | `u32` | bit_depth | 0 = 8-bit, 1 = 16-bit |
 | 0x08 | 4 | `u32` | sample_rate | Always 11025 or 22050 Hz |
-| 0x0C | 1 | `u8` | base_volume | Always 64 (all 118 effects). Base volume (Miles 0..127 scale) of every start: the caller's volume is added and the sum clamped to 0..127. Positional callers pass the distance volume relative to this base; `FlatSound(e, 0, 0)` plays at 64. See [positional sound](../engine/sound.md). |
+| 0x0C | 1 | `u8` | base_volume | Base volume (Miles 0..127 scale) of every start: the caller's volume is added and the sum clamped to 0..127. Positional callers pass the distance volume relative to this base; `FlatSound(e, 0, 0)` plays at the header base volume. See [positional sound](../engine/sound.md). |
 | 0x0D | 1 | `u8` | loop_flag | 0 = play once. Non-zero enables looping; 0xFF loops forever, any other value is passed as the Miles loop count (see Loop Behavior). |
 | 0x0E | 4 | `u32` | loop_offset | Byte offset into PCM data for loop restart point (always 0) |
 | 0x12 | 4 | `u32` | loop_end | Sample count before looping (always 0xFFFFFFFF) |

@@ -263,7 +263,7 @@ Left and Right subtract or add one within the installed slider bounds without wr
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | Volume | 0 | 12 | 25 | 38 | 51 | 64 | 76 | 89 | 102 | 115 | 128 | 140 | 153 | 166 | 179 | 192 | 204 | 217 | 230 | 243 | 256 |
 
-The shipped `volume=255` opens at 19, not 20, and `redbook_volume=200` at 15. Because both directions truncate, most values reopen one notch lower (slider 1 writes 12, which reads back as 0). The Sound volume becomes the master volume of [positional sound](sound.md#starting-a-sound); the Music value is described in [music](music.md).
+The shipped `volume=255` opens at 19, not 20, and `redbook_volume=200` at 15. Initializing these displayed slider values does not update the engine volumes. The reverse conversion applies when a setting is updated. Because both directions truncate, most values reopen one notch lower (slider 1 writes 12, which reads back as 0). The Sound volume becomes the master volume of [positional sound](sound.md#starting-a-sound); the Music value is described in [music](music.md).
 
 Checkboxes use MM_CHECK.GXA frames indexed by the toggle value. Sound sliders use MM_SLIDE.GXA, selecting the rounded product of the value and `(frame_count - 1) / (slider_max - slider_min)`, clamped at the endpoints. Widgets paint at output coordinates; their labels retain normal text without a numeric suffix.
 
