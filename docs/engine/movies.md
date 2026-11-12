@@ -10,6 +10,14 @@ Subtitles begin at the start frame and end before the stop frame. Their always-d
 
 SYSTEM.INI [system] animation_drive prefixes movie filenames. The GOG configuration uses D:\, mapped to the supplied game.gog CD image. Its data track is MODE1/2352 and the eleven configured movies reside in the ISO 9660 root directory, not an ANIMS subdirectory. `import::cdrom::CdImage` reads root files without sector headers; it also accepts ordinary 2048-byte ISO images. No install data is modified.
 
+## Playback clock and drawing
+
+Movie playback advances its own decoded-frame ordinal; gameplay clock progress is not required while a movie is playing. Each iteration updates the palette, decodes the current frame, advances the decoder to the next frame, draws and presents the decoded image, then waits for the movie clock before continuing. At presentation, the decoder's advanced ordinal equals the one-based frame just drawn.
+
+The wait uses the selected movie audio stream's playback position when a sound track is active. Without an active audio track, it uses a timer deadline and the frame period from the Smacker header. Movie presentation and gameplay updates therefore have separate clock owners.
+
+The large-image Glide path splits source pixels into tiles of at most 256 by 256. Tile origins advance by 256 source pixels. Each destination rectangle extends one pixel beyond its calculated right and bottom edges; movie destination Y coordinates double the source height. Adjacent tiles overlap at their edges. A single whole-image resize does not reproduce those sampling coordinates.
+
 ## Unlock flags and queued playback
 
 The movie table holds fifteen records, each with an unlock flag (bit 0). The session initializer, which runs at launch and again at New Game, clears every flag and sets it to MENU.INI `[general] force_movies` (bit 0). Playing a movie by index sets that record's flag before playback and sets the stored queued-movie value to -1 afterwards. Save games store the fifteen flag bytes and loading restores them, so unlocks follow the loaded save rather than the process.
