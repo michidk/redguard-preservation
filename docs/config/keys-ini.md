@@ -25,10 +25,18 @@ The function keys cannot be assigned through the book's Controls page.
 | F12 | Open or close the developer console. |
 | Tab | Toggle walk mode, save `SYSTEM.INI` `[CYRUS] WALK_MODE`, and display the on/off notice. |
 
-The F2–F6 book shortcuts and consumption of the F9 Quick Save request require
+The F1 version dialog, F2–F6 book shortcuts and consumption of the F9 Quick Save request require
 `SYSTEM.INI` `[debug] final_version`. See [gameplay book shortcuts](../engine/menu.md#gameplay-book-shortcuts)
 and [save and load pages](../engine/menu.md#save-and-load-pages) for request timing
 and save behavior. F10 uses the [credits scroll](../engine/menu.md#credits-scroll).
+Both screens return to the suspended world. The version dialog draws
+`SYSTEM\MINIMENU.GXA` over the current frame, with centered text starting at
+screen position (320, 160). Its four lines show Redguard, build, savegame and
+console versions. The GOG release displays 1.0, 1.0, 1.31 and 2.0 respectively.
+The selected `OK` label is five font line heights below the first text line.
+Enter or configured action D confirms; both confirmation inputs must be released
+before gameplay resumes. Escape does not dismiss this dialog. The gameplay
+credits return on completion or Escape without showing the ending movie.
 F7 and Tab show [toggle notices](../engine/hud.md#toggle-notices); F8 changes the
 [candle mode](../engine/hud.md#mode-key). F12 uses the [developer console](../engine/console.md).
 
