@@ -21,6 +21,7 @@ The function keys cannot be assigned through the book's Controls page.
 | F8 | Cycle `SYSTEM.INI` `[SCREEN] CANDLE_MODE` through timed display, always visible, and always visible with the health number. The new mode is saved immediately. |
 | F9 | Request Quick Save. |
 | F10 | Play the credits scroll without the ending movie. |
+| F11 | No fixed gameplay action in the Glide executable. |
 | F12 | Open or close the developer console. |
 | Tab | Toggle walk mode, save `SYSTEM.INI` `[CYRUS] WALK_MODE`, and display the on/off notice. |
 
@@ -32,7 +33,9 @@ F7 and Tab show [toggle notices](../engine/hud.md#toggle-notices); F8 changes th
 [candle mode](../engine/hud.md#mode-key). F12 uses the [developer console](../engine/console.md).
 
 The [Controls page](../engine/menu.md) rejects Tab, Enter and
-F1 through F12 during key capture, including F11.
+F1 through F12 during key capture, including F11. F11 still enters the ordinary keyboard state and can satisfy
+generic any-key waits; the absence of a fixed gameplay action does not make it
+invisible to every input context.
 
 ## Sections
 
