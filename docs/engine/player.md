@@ -174,9 +174,10 @@ nonzero net amount then makes an ordinary animation request with modifier zero:
 | Left | Group 14 | Group 16 |
 | Right | Group 15 | Group 17 |
 
-No request is made while the actor is a swimmer (attribute 110 nonzero), holds a
-drawn weapon with a combat record, or stands on surface 2 or 4. Equal left and
-right amounts request nothing.
+No request is made while the weapon-holding predicate is true or the actor
+stands on deep-water surface 2 or 4. A nonzero `attr_holding_weapon` makes the
+weapon-holding predicate true before its ordinary gates. Equal left and right
+amounts request nothing.
 
 With the walk key held, turning applies only while forward or backward is held,
 the motion bytes at `+0x1b2` and `+0x1b3` are zero and the living state is outside 10 through
