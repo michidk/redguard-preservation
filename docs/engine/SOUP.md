@@ -934,13 +934,20 @@ attachment test before ordinary movement. When the test reports true the ordinar
 combat stages are skipped for that update. The test is false for every actor except the selected
 player, and false while the player is holding a weapon (see `IsHoldingWeapon`).
 
+The ordinary update applies displacement from the retained motion before the player's control
+hook, then runs attachment admission after that hook. A new jump or rope release queued by the
+hook participates in admission on that update. The rope countdown therefore advances on the
+release update. A directional release retains its new jump-off speed for the next update's
+carried displacement; it does not apply that speed in the earlier displacement pass.
+
 For the selected player the test returns true without further work when it already has an
 attachment. It returns false when its directional state bytes 0x1B2 and 0x1B3 are both zero, and when
 byte 0xC1 is zero while the actor has no animation record or that record's word at offset 0x161 is
 zero. A nonzero rope countdown (byte 0x1B0) then decrements by the low byte of the shared tick count;
 when it would reach zero, the stored rope identifier (byte 0x1AF) and the countdown both clear. The
 rope identifier is the byte at rope offset 0xC, so a rope the player just left is skipped until the
-countdown expires.
+countdown expires. The countdown does not advance while both directional state bytes are zero,
+including idle after a release, or while another earlier admission condition rejects the player.
 
 Ropes are tried in list order, head first. A rope is a candidate when it is not skipped by the
 identifier rule, it has a link array and more than one link, and it has a contact sphere list.
