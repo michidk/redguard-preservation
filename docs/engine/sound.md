@@ -191,6 +191,11 @@ including when they start or stop no channel.
 
 `Sound` returns zero as its SOUP scalar result, including when no sample starts.
 
+`StopAllSounds` does not assign an independent scalar result. With sound disabled,
+it leaves the incoming native value unchanged. With sound enabled, the final
+channel-stop path supplies the residual value. This is neither a count of stopped
+channels nor a Boolean success result.
+
 Each `AmbientSound` task retains its own sample handle in native task state.
 Whenever its elapsed input is zero, or the shared sample-reset flag is set,
 it discards that remembered handle before querying playback status. Discarding
