@@ -2675,7 +2675,11 @@ the BIOS-clock path above is the one that runs.
 The computed frame scale is accumulated in units of 1/256 nominal tick. Each
 update's whole-tick increment is the difference between the accumulated whole
 ticks after and before adding the new scale. The fractional remainder carries
-to the next update. A movement update can therefore receive zero animation
+to the next update. Accumulation precedes publication of the effective movement
+scale, and movement follows that publication. At the publication boundary, the
+accumulator already includes the forthcoming movement update. A clock origin
+for completed movement must exclude that pending increment. During startup,
+the accumulated calculated scale and exposed movement scale can differ. A movement update can therefore receive zero animation
 and script ticks while still having a nonzero movement scale. Rounding each
 update's scale independently, or forcing at least one animation tick per
 movement update, changes behavior.
