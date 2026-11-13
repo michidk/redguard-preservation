@@ -20,6 +20,41 @@ The large-image Glide path splits source pixels into tiles of at most 256 by 256
 
 Glyph drawing temporarily selects its upload palette and restores the movie palette afterwards. A palette sampled only after the complete presentation therefore need not be the palette used for subtitles.
 
+### Glide movie raster
+
+At the 640 by 480 viewport, a 640 by 240 movie uses three 256 by 256
+indexed texture backings, populated with source widths 256, 256 and 128.
+The source tile origins are 0, 256 and 512. Index zero fills unused backing
+texels. The destination rectangles have nominal widths one greater than the
+source width and nominal height 481. Rectangle clipping adjusts the source
+endpoint proportionally before triangle setup. The final tile is clipped to
+the viewport right edge, and every tile is clipped to the viewport bottom.
+
+Triangle setup normalizes the destination edge deltas by the triangle area
+before multiplying by source-coordinate deltas. Each operation is stored at
+single precision. For an axis-aligned clipped rectangle of destination extent
+`W,H` and source endpoint `S,T`, let `inverse_area = 1/(W*H)`. Its texture
+gradients are `S * (H * inverse_area)` and `T * (W * inverse_area)`.
+Reassociating these products into a single source/destination division can
+change texture filter thresholds. The starting source coordinate is anchored
+to the submitted vertex, including when it is the rectangle's right edge.
+
+The Voodoo texture raster samples at destination pixel centres and subtracts
+half a source texel before bilinear filtering. Its first-generation filter
+retains four fractional bits and wraps within the complete power-of-two
+backing. Both horizontal interpolation results are floored before the
+vertical interpolation is floored. The framebuffer stores RGB565 with the
+4 by 4 ordered dither matrix, then presentation expands the stored bits.
+These operations precede the final RGB capture format.
+
+Subtitle glyphs use point sampling and index zero transparency. For constant
+alpha `a`, the source term is `floor(source*(a+1)/256)` and the destination
+term is `floor(destination*(256-a)/256)`. The blend unit reads the stored
+RGB565 destination with zero low bits, applies framebuffer dither subtraction,
+and adds the independently floored terms before the next dithered RGB565
+store. Glyph shadow/main submission order and the selected upload palette
+remain significant when glyphs overlap.
+
 ## Unlock flags and queued playback
 
 The movie table holds fifteen records, each with an unlock flag (bit 0). The session initializer, which runs at launch and again at New Game, clears every flag and sets it to MENU.INI `[general] force_movies` (bit 0). Playing a movie by index sets that record's flag before playback and sets the stored queued-movie value to -1 afterwards. Save games store the fifteen flag bytes and loading restores them, so unlocks follow the loaded save rather than the process.
