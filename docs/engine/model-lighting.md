@@ -56,6 +56,11 @@ palette when the runtime model is prepared. The resolved RGB is stored in the
 runtime face, rather than looked up again for every draw. Direct packed-color
 faces follow their separate decoding path.
 
+Actor [texture-set substitution](../formats/RGM.md#actor-texture-sets) preserves
+this prepared solid RGB. It changes eligible texture-bank references, not solid
+colors. ROB draw flags select sampling and chroma rejection independently of
+the palette that supplied the retained solid RGB.
+
 World entry installs and selects the converted destination palette before
 preparing its ROB archive. Indexed solid faces in that archive therefore retain
 the converted world RGB, including black palette index zero, before model
