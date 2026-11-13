@@ -712,6 +712,11 @@ and its lower corners use source row one. The ordinary triangle interpolation ru
 there without a special refusal of the last row. The two triangles retain their
 usual diagonal selection; cell-row numbering alone does not indicate an
 out-of-array access.
+More generally, adding 256 to a cell column and one to its engine row preserves
+all selected source indices: `(256 - (j + 1)) * 256 + (i + 256)` equals
+`(256 - j) * 256 + i`. A cell row outside the rectangular grid can therefore
+still address height-array elements through a column carry. The combined linear
+source index determines whether a corner belongs to the array.
 A row past the north end of the array reads memory outside the array. Swimming straight north from the NECRISLE
 start (west of the island) keeps the swimming state through the last array row and the row beyond it, and the player
 enters animation group 18 with surface 0 within a few map units of crossing Z 0; the height then drops about 835 map
