@@ -164,6 +164,11 @@ that handle without issuing a stop. EndAnimation stops only the handle still
 remembered by that animation. Channel validity and completion are handled by
 the audio mixer independently.
 
+Animation advancement checks the remembered sample before interpreting commands.
+If the sample is no longer playing, the remembered slot is cleared.
+EndAnimation stops a sound only while its slot is still remembered; a completed
+sample does not receive a later stop through that animation.
+
 The metadata field historically named `volume_shift` contains the second
 signed ten-bit operand. It is a rate offset in units of 64 Hz, not a volume
 adjustment.
