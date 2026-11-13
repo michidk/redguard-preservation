@@ -179,6 +179,10 @@ On the outer border, actors with a nonzero attribute byte 113 are excluded.
 Debug and global object-processing switches can further restrict this list.
 Membership alone does not make an actor eligible for an update;
 its runtime exclusion, pause, state and script checks still apply.
+The world draw traversal walks the same combined list, so an ordinary cell
+actor outside the window is not drawn, whatever its visibility state. A
+placed actor whose script hides it on its first instruction is therefore never
+seen from outside the window before that instruction runs.
 
 Cells are visited in increasing X within increasing Z rows. Eligible actors
 retain their current per-cell linked-list order; the persistent actor list is
