@@ -107,7 +107,7 @@ calibration counts DOS time calls over one clock second), then redraws and swaps
 each swap waits for the next vertical retrace of the display: the scroll moves one pixel per display refresh. The Glide window is opened with the 60 Hz refresh setting, so a display that honours it scrolls 60 pixels per second. A line advances by the line height of the engine's
 menu font record. Every frame redraws the visible records, then covers the first line height at the
 top and the last line height at the bottom of the screen with black. The scroll ends when the first visible record
-index passes the record count. Escape ends it earlier and waits for its release. The CD plays track 2
+index passes the record count. Escape ends it earlier and waits for its release. During this wait, the last displayed frame stays fixed and credits music cleanup has not yet run. The CD plays track 2
 for the duration (see [music](music.md)).
 
 The menu inherits the current engine lighting and environment state. The default
