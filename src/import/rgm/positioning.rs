@@ -820,7 +820,9 @@ fn parse_rahd_texture_overrides(rahd_data: &[u8]) -> HashMap<String, u16> {
 
 /// Applies an actor texture set to a model, as placement does for RAHD/RAEX
 /// `texture_id`. Use it for every multi-frame model drawn by that actor, including
-/// RAAN frame sources; geometry, frames and normals are unchanged.
+/// RAAN frame sources. Solid colors and texture banks zero and one are retained;
+/// other banks change without changing their image index. Geometry, frames and
+/// normals are unchanged.
 pub fn apply_texture_override(model: &mut Model3DFile, texture_override: u16) {
     let mut solid_before = 0usize;
     let mut textured_before = 0usize;
@@ -841,12 +843,7 @@ pub fn apply_texture_override(model: &mut Model3DFile, texture_override: u16) {
                     *texture_id = texture_override;
                 }
             }
-            TextureData::SolidColor(_) => {
-                face.texture_data = TextureData::Texture {
-                    texture_id: texture_override,
-                    image_id: 0,
-                };
-            }
+            TextureData::SolidColor(_) => {}
         }
     }
 
