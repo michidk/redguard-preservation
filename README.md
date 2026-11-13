@@ -334,13 +334,10 @@ The CLI and Rust parsers focus on game assets. Hardware drivers, audio utilities
 
 ## Related projects
 
-[Cyrus](https://github.com/michidk/cyrus) is a modern, faithful Rust
-reimplementation of Redguard built on this project's research and the
-`redguard-preservation` crate. It ships an asset viewer that opens every file
-format documented here: models, worlds, textures, fonts, animations, scripts,
-and audio. Use it [in the browser](https://michidk.github.io/cyrus/viewer/) or
-download a native build from the
-[latest Cyrus release](https://github.com/michidk/cyrus/releases/latest).
+Two projects build on this research and work from the same game files.
+
+- **[Cyrus](https://github.com/michidk/cyrus)** ([site](https://michidk.github.io/cyrus/)) is a modern, faithful rebuild of Redguard in Rust and Bevy, built on this project's research and the `redguard-preservation` crate. It is two applications. The **asset viewer** opens every file format documented here (models, worlds, textures, fonts, animations, scripts and audio) [in the browser](https://michidk.github.io/cyrus/viewer/) or as a native build from the [latest Cyrus release](https://github.com/michidk/cyrus/releases/latest). The **game** is early in development.
+- **[Maiko](https://github.com/michidk/maiko)** ([site](https://michidk.github.io/maiko/)) runs the original game natively on Windows and Linux, without DOSBox, by translating the original executable and replacing its DOS services with native ones. It builds a runtime package from your own `RGFX.EXE` and reads the installed game files.
 
 [![Cyrus asset viewer showing a textured character model](https://raw.githubusercontent.com/michidk/cyrus/main/dev/pages/viewer-model.webp)](https://michidk.github.io/cyrus/viewer/)
 

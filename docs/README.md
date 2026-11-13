@@ -24,6 +24,11 @@ on-screen presentation combine, with links to each subsystem.
 | Reproduce menus and presentation | [Book menu](engine/menu.md), [HUD](engine/hud.md), [subtitles](engine/subtitles.md), and [cinematics](engine/movies.md) |
 | Inspect or convert assets | [CLI usage and library API](https://github.com/michidk/redguard-preservation/blob/main/README.md) |
 
+## Related projects
+
+- [Cyrus](https://github.com/michidk/cyrus) is a Rust and Bevy rebuild of Redguard that uses this documentation and the `redguard-preservation` parsers. Its [asset viewer](https://michidk.github.io/cyrus/viewer/) opens the formats described here in the browser.
+- [Maiko](https://github.com/michidk/maiko) ([site](https://michidk.github.io/maiko/)) runs the original game natively on Windows and Linux by translating the original executable.
+
 ## Engine lineage
 
 Redguard runs on Bethesda's XnGine, a DOS-based 3D engine. Battlespire used its own build of the engine, and Redguard added 3dfx Glide support.
