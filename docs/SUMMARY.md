@@ -26,6 +26,7 @@
   - [Book menu](engine/menu.md)
   - [Cinematic playback](engine/movies.md)
   - [Startup presentation](engine/startup.md)
+  - [Exit quotes](engine/exit-quotes.md)
 - [File formats](formats/README.md)
   - [3D models](formats/models/3d.md)
   - [3DC animated models](formats/models/3dc.md)

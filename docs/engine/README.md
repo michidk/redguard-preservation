@@ -48,3 +48,4 @@ the color pipeline, and links to the detailed rules.
 | [Book menu](menu.md) | Menu models, text placement, fonts, selection, and actions. |
 | [Cinematic playback](movies.md) | Movie selection, skip points, subtitles, and display rules. |
 | [Startup presentation](startup.md) | Splash assets, projection, lighting, and screen sequence. |
+| [Exit quotes](exit-quotes.md) | Console banner and the random film quote printed on quit. |
