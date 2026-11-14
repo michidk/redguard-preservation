@@ -86,7 +86,7 @@ and `linear_interlace`. All three have **no effect**.
 |---|---|---|
 | `volume` | `255` | Master sound-effect volume: every sample volume is scaled by `volume / 256`. Missing means silence. The menu Sound slider sets it. |
 | `sound` | `1` | Enables sound. `0` skips sound startup entirely: no effects, voices, or CD music, and subtitles are forced on with speech off. The `nosound` command-line option also disables it. |
-| `fast_sound` | `1` | `0` sets three extra Miles Sound System driver preferences before the driver opens (interrupt lock on, 50 ms latency, 250 Hz service rate). Nonzero leaves the Miles defaults. Output is 22050 Hz 16-bit stereo either way. |
+| `fast_sound` | `1` | Miles Sound System mixer timing. Nonzero keeps the Miles defaults: a 100 ms mixing buffer, mixer serviced at 200 Hz, interrupts enabled while mixing. `0` halves the buffer to 50 ms, services the mixer at 250 Hz, and disables interrupts while it mixes. Output is 22050 Hz 16-bit stereo either way. |
 | `fidelity` | `0` | Load-time quality reduction for sound effects and voice clips. See [Sound fidelity](#sound-fidelity). |
 | `redbook` | `on` | Enables [CD music](../engine/music.md). Requires `sound` on and `animation_drive` naming the CD drive. |
 | `redbook_volume` | `200` | CD music volume, clamped to 0–255 and halved to the Miles 0–127 range; the shipped `200` plays at 100 of 127. Applied when each CD track starts. The menu Music slider sets it. See [music volume](../engine/music.md#volume). |
