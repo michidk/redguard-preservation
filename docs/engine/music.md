@@ -82,9 +82,10 @@ therefore repeats indefinitely, with a short pause between repetitions.
 
 ## Volume
 
-`redbook_volume` from `SYSTEM.INI` is passed unscaled to the redbook volume
-call, which accepts only 0–127 and ignores any other value. The shipped value,
-`200`, is therefore ignored and the CD plays at its existing (default) level.
+Each track start applies `redbook_volume` from `SYSTEM.INI`. The engine clamps
+the value to 0–255 and halves it to the 0–127 range of the redbook volume call,
+so the shipped `200` plays at 100 of 127. The book menu's Music slider sets the
+value. On exit the engine sets the CD volume to 127.
 
 `redbook` (`SYSTEM.INI [system]`, shipped `on`) gates the redbook system;
 when it is disabled the CD is never opened and no music plays.

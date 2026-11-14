@@ -2737,7 +2737,7 @@ attributes, then applies these adjustments before registering its groups:
 | Attribute | Initial adjustment |
 |---|---|
 | 31, `attr_jump_time` | A signed byte value at or below zero is replaced by the low byte of the effective system jump time. Thus zero and byte values 128–255 use the fallback. |
-| 32, `attr_jump_height` | Zero is replaced by the low byte of the effective system jump height. |
+| 32, `attr_jump_height` | Zero is replaced by bits 8–15 of the effective system jump height. The shipped value, 80, therefore leaves the attribute at zero. |
 | 35, `attr_draw_frame` | Zero becomes 2. |
 | 34, `attr_sheath_frame` | Zero becomes 10. |
 | 25 and 26, `attr_master` and `attr_slave` | Both become zero when `[debug] disable_family` is exactly 1. |

@@ -135,14 +135,13 @@ just a world identifier. Other engine users also consume this stream.
 
 ## Global Engine Toggles
 
-The `[xngine]` section of `SYSTEM.INI` provides master controls that apply to all worlds:
+The `[xngine]` section of `SYSTEM.INI` provides one master control that applies to all worlds:
 
 | Key | Default | Description |
 |---|---|---|
-| `sky_disable` | `0` | Disable sky rendering entirely. `0` = enabled. |
-| `sky_move` | `1` | Enable sky scrolling. `0` = frozen. |
-| `sky_xrotate` | `3` | Global X-axis rotation speed |
-| `sky_yrotate` | `40` | Global Y-axis rotation speed |
+| `sky_disable` | `0` | `1` disables the sky in every world. Any other value leaves it enabled. |
+
+The same section also holds `sky_move`, `sky_xrotate`, and `sky_yrotate`. They have no effect.
 
 ## Sun disc
 

@@ -30,7 +30,7 @@ File access configuration flags:
 |---|---|---|
 | `use_registry` | `false` | Enable the Windows registry path lookup subsystem. |
 | `use_32bit` | `true` | Use 32-bit file I/O (DOS/4GW extended file access). |
-| `archive_file_first` | `false` | Check `.ZAP` archives before loose files. |
+| `archive_file_first` | `false` | Not read from this file. The Glide engine reads `archive_file_first` from [SYSTEM.INI](system-ini.md#system) `[system]`. |
 | `local_path` | `true` | Use local (relative) file paths. |
 | `ignore_registry_errors` | `false` | Suppress errors from registry path lookup failures. |
 | `registry_log` | `false` | Enable logging of registry system operations. |
