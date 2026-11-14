@@ -82,8 +82,8 @@ version information:
 - Build 5.0: "Fixed rope death-reattach bug.", "Fixed texture binding crash
   bug on certain object flats." and "Fixed run of edge fall 'stutter' bug."
 
-See [demo executable](../README.md#demo-executable) for the other
-differences of the build 5.0 executable.
+See [Demo release](../demo.md#executable) for the other differences of
+the build 5.0 executable.
 
 ## Splash variants
 

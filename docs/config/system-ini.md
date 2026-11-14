@@ -427,7 +427,7 @@ camera position/angle diagnostic keys and other developer display paths.
 ## Demo executable keys
 
 The demo's `RGFX.EXE` (build 5.0, see
-[demo executable](../README.md#demo-executable)) reads these keys in
+[Demo release](../demo.md#executable)) reads these keys in
 addition to the ones above. The CD and GOG executable does not read them.
 
 | Section | Key | Description |

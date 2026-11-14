@@ -1,6 +1,7 @@
 # Summary
 
 - [Redguard Preservation](README.md)
+- [Demo release](demo.md)
 - [Engine behavior](engine/README.md)
   - [SOUP scripting](engine/SOUP.md)
   - [Actor animation](engine/animation.md)
