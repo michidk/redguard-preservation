@@ -172,14 +172,19 @@ button release (128 or 129) or a joystick button (132 through 135).
 
 ## GOG release
 
-The GOG release runs the game in DOSBox, so the gameport is DOSBox's emulation.
-Its `joysticktype` setting in the `[joystick]` section of `dosbox_redguard.conf`
-selects the emulated device. GOG ships `joysticktype=none`, which disables the
-gameport emulation, so the game has no joystick input. `4axis` emulates one
-joystick with four buttons, all of which the game reads. `2axis` emulates two
-two-button joysticks, so one host controller provides only buttons 1 and 2.
-Further controller buttons reach the game only as keys assigned in DOSBox's
-keyboard mapper (`mapperfile=mapper.txt`, which GOG does not ship).
+The GOG release runs the game in DOSBox, so the gameport is DOSBox's emulation,
+selected by `joysticktype` in the `[joystick]` section of the DOSBox
+configuration. The game launch of the GOG `2.0.0.5` installer loads
+`dosbox_redguard.conf` and `dosbox_redguard_single.conf`; the first sets
+`joysticktype=none`, which disables the gameport emulation, so the game has no
+joystick input. The `joysticktype=auto` in `DOSBOX/dosbox.conf` is not part of
+that launch, and the Graphic Mode Setup tool changes only display settings.
+
+With `4axis`, DOSBox emulates one joystick with four buttons, all of which the
+game reads. With `2axis` it emulates two two-button joysticks, so one host
+controller provides only buttons 1 and 2. Further controller buttons reach the
+game only as keys assigned in DOSBox's keyboard mapper (`mapperfile=mapper.txt`,
+which the installer does not include).
 
 ## Action semantics
 
