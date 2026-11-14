@@ -2087,7 +2087,9 @@ and its two retained motion words, sets living state 27, requests animation
 group 10 on the other actor, and requests the landing animation group on the
 actor: 114 when the actor holds a weapon (attribute 110,
 `attr_holding_weapon`, nonzero, or the drawn-weapon test), otherwise 66 when its
-burning-torch byte is nonzero, else 65.
+burning-torch byte is nonzero, else 65. The support's group 10 need not exist
+for landing admission. Its request follows the ordinary animation fallback
+rules; catalogue membership does not replace the live model-link check.
 
 A landed actor then bounces off its support through living states 27, 28 and
 29. Each update returns zero without moving the actor when the support
