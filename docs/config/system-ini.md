@@ -424,6 +424,18 @@ starting world directly. In a world, Escape waits for its release and then
 exits the game instead of opening the book. Developer mode also enables the
 camera position/angle diagnostic keys and other developer display paths.
 
+## Demo executable keys
+
+The demo's `RGFX.EXE` (build 5.0, see
+[demo executable](../README.md#demo-executable)) reads these keys in
+addition to the ones above. The CD and GOG executable does not read them.
+
+| Section | Key | Description |
+|---|---|---|
+| `[debug]` | `demo_version` | Nonzero restricts play to world 1. Every world load becomes world 1 at marker 1, a load while world 1 is already loaded does nothing, and world-change requests are discarded. A missing key means `0`. |
+| `[RTX_PATCH]` | `bad[N]`, `good[N]` | RTX entry substitutions for `N` from 0 to 14. Each value is a four-character [RTX](../formats/RTX.md) entry name. A dialogue request for the `bad[N]` entry plays the `good[N]` entry instead. A pair takes effect only when both keys are present. |
+| `[3DFX]` | `warnings` | Nonzero prints Glide texture warnings: `Warning: Could not find match for texture '%s'!` and `Warning: Attempt to delete invalid texture! (Tex:%d)`. A missing key means `0`. The CD and GOG executable always keeps these warnings off. |
+
 ## External References
 
 - [UESP: Mod:SYSTEM.INI Info](https://en.uesp.net/wiki/Mod:SYSTEM.INI_Info)

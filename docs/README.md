@@ -137,6 +137,30 @@ are separate parts of edition compatibility.
 The CD places the DOS executables outside `DATA1.CAB`, so extracting that cabinet
 alone does not produce a runnable installation.
 
+### Demo executable
+
+The demo's `RGFX.EXE` is a later build of the same game version: its
+[version stamp](engine/startup.md#version-stamp) reads version `1.0`, build
+`5.0`, while the CD and GOG executable is build `1.0`. It runs the full game
+data. Compared with the CD and GOG executable it:
+
+- reads [`[debug] demo_version`](config/system-ini.md#demo-executable-keys),
+  which restricts play to world 1;
+- reads RTX entry-name substitutions from
+  [`[RTX_PATCH]`](config/system-ini.md#demo-executable-keys);
+- substitutes the RTX entry `cbu1` for a missing RTX entry and logs
+  `ERROR: GetRtx( %c%c%c%c ), RTX NOT found`, where the CD and GOG executable
+  stops with a fatal error;
+- reads [`[3DFX] warnings`](config/system-ini.md#demo-executable-keys);
+- prints `Missing Texture File: FXART\TEXBSI.%03d` before the fatal error for
+  a missing texture archive;
+- no longer has the fatal error `Bad Texture Index %d`;
+- resets `COMBAT.LOG` at startup along with the other log files. Nothing
+  writes to it.
+
+Its change notes list the rope death-reattach, object-flat texture binding,
+and edge-fall stutter fixes.
+
 ### Renderer-specific assets
 
 | Directory | Renderer | Model versions | Resources |

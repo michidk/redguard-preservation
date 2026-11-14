@@ -22,7 +22,9 @@ The title redraw selects the `[system] gui_low_font` entry from `SYSTEM.INI`.
 The GOG configuration points to `fonts\\arialvb.fnt`, a 9-pixel line-height
 font. The version label starts at `(10,467)` and requests VGA colour
 `(32,32,32)`. Its format is
-`Version %s.%s`; the GOG release displays `Version 1.0.1.0`. Loading
+`Version %s.%s`, filled from the executable's
+[version stamp](#version-stamp); the GOG release displays `Version 1.0.1.0`
+and the demo's `RGFX.EXE` displays `Version 1.0.5.0`. Loading
 text is right-aligned to `(630,467)` and requests VGA colour `(50,0,0)`.
 The map-registration
 stage supplies `Loading Map %d`. Sound preparation supplies `Loading Sound`.
@@ -47,6 +49,41 @@ advances by its bitmap width plus one pixel. Space additionally advances by
 the width of the next glyph, the exclamation mark. Text-width measurement
 uses the same advances. These rules follow the title caller, text-width
 routine, and glyph-drawing path, independently of the font-file fields.
+
+## Version stamp
+
+The version and build numbers are not compiled into the engine. At startup
+the engine opens its own executable and reads a 28-byte `XVER` trailer from
+the end of the file. All fields are little-endian.
+
+| Offset (from EOF) | Size | Type | Name | Description |
+|---|---|---|---|---|
+| -28 | 4 | `[u8; 4]` | magic | `XVER` |
+| -24 | 4 | `u32` | version_major | First number of the game version |
+| -20 | 4 | `u32` | version_minor | Second number of the game version |
+| -16 | 4 | `u32` | build_major | First number of the build |
+| -12 | 4 | `u32` | build_minor | Second number of the build |
+| -8 | 4 | `u32` | field_18 | Zero in the shipped executables |
+| -4 | 4 | `u32` | field_1c | Zero in the shipped executables |
+
+Each pair is formatted as `%d.%d`. The game version and the build fill the
+two `%s` fields of the title label, and the build is the `Build` value shown
+in the F1 version information. Without the trailer, both pairs stay `1.0`.
+
+| Executable | Version | Build | Title label |
+|---|---|---|---|
+| CD and GOG `RGFX.EXE` | `1.0` | `1.0` | `Version 1.0.1.0` |
+| Demo `RGFX.EXE` | `1.0` | `5.0` | `Version 1.0.5.0` |
+
+The executable also carries change notes for its build, shown with the
+version information:
+
+- Build 1.0: "Fixed camera reset bug, (see leaving the catacombs)."
+- Build 5.0: "Fixed rope death-reattach bug.", "Fixed texture binding crash
+  bug on certain object flats." and "Fixed run of edge fall 'stutter' bug."
+
+See [demo executable](../README.md#demo-executable) for the other
+differences of the build 5.0 executable.
 
 ## Splash variants
 
