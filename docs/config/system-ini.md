@@ -256,9 +256,9 @@ Developer diagnostics, logging, and display flags. Most are disabled in the ship
 
 | Key | Default Value | Description |
 |---|---|---|
-| `sheath_sword_delay` | `6` | **Not read.** |
-| `auto_defend` | `1` | **Not read.** |
-| `walk_mode` | `0` | **Not read.** |
+| `sheath_sword_delay` | `6` | **No effect.** Read at startup (`0` becomes 6) but not used. |
+| `auto_defend` | `1` | **No effect** on combat. F7 toggles the value, shows the RTX line `AUTO-DEFEND MODE ON` or `AUTO-DEFEND MODE OFF` (`#don`/`#dof`), and writes it back to this file. |
+| `walk_mode` | `0` | **No effect** on movement. Tab toggles the value, shows the RTX line `WALK MODE ON` or `WALK MODE OFF` (`#won`/`#wof`), and writes it back to this file. |
 | `turn_speed` | `12` | Turn acceleration: added to the held-direction turn rate each input update while the rate is below `turn_max_speed`. |
 | `turn_max_speed` | `48` | Turn rate limit in heading units per update at nominal frame scale. Acceleration stops once the rate reaches it. |
 | `mouse_turn` | `0` | Nonzero enables mouse turning: horizontal mouse motion plays the turn animation groups (14/15, or 16/17 with a burning torch). Only the low byte is used. |
