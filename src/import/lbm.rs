@@ -17,6 +17,32 @@ pub struct LbmFile<'a> {
     pub chunks: Vec<LbmChunk<'a>>,
 }
 
+impl LbmFile<'_> {
+    /// Require the zero-control palette ranges supported by static presentation.
+    /// Bitmap decoding retains all chunks; this check rejects malformed ranges and
+    /// controls whose animation behavior cannot be represented by a static image.
+    pub fn require_static_palette(&self) -> Result<()> {
+        for (index, chunk) in self
+            .chunks
+            .iter()
+            .filter(|chunk| chunk.tag == *b"CRNG")
+            .enumerate()
+        {
+            if chunk.data.len() != 8 {
+                return Err(Error::Parse(format!(
+                    "LBM: CRNG {index} must contain eight bytes"
+                )));
+            }
+            if chunk.data[..6].iter().any(|&byte| byte != 0) {
+                return Err(Error::Parse(format!(
+                    "LBM: CRNG {index} has unsupported nonzero palette controls"
+                )));
+            }
+        }
+        Ok(())
+    }
+}
+
 /// Decode an 8-bit PBM FORM with raw or ByteRun1 rows, retaining unknown chunks.
 /// Planar ILBM and mask planes are rejected. Images are limited to 16 Mi pixels.
 pub fn parse_lbm_file(data: &[u8]) -> Result<LbmFile<'_>> {

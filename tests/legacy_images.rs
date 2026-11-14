@@ -311,6 +311,7 @@ fn installed_legacy_images_match_reference_decodes() {
     let bytes = std::fs::read(system.join("gui.lbm")).unwrap();
     let lbm = parse_lbm_file(&bytes).unwrap();
     assert_eq!((lbm.image.width, lbm.image.height), (640, 480));
+    lbm.require_static_palette().unwrap();
     assert_eq!(fingerprint(&lbm.image.pixels), 0x6d48367899e31515);
     assert_eq!(lbm.chunks.iter().filter(|c| &c.tag == b"CRNG").count(), 16);
     let bytes = std::fs::read(system.join("gui.anm")).unwrap();
@@ -333,4 +334,42 @@ fn anm_does_not_silently_decode_nonstatic_palette_controls() {
     let mut disabled = animation();
     disabled[134..136].copy_from_slice(&[16, 31]);
     assert_eq!(parse_anm_file(&disabled).unwrap().frames.len(), 3);
+}
+
+#[test]
+fn lbm_static_presentation_refuses_nonzero_or_malformed_ranges_but_keeps_chunks() {
+    for payload in [
+        vec![0, 0, 0, 0, 0, 0, 16, 31],
+        vec![0; 7],
+        vec![0; 9],
+        vec![1, 0, 0, 0, 0, 0, 16, 31],
+        vec![0, 0, 0, 1, 0, 0, 16, 31],
+        vec![0, 0, 0, 0, 0, 1, 16, 31],
+    ] {
+        let mut bytes = lbm_bytes(false);
+        bytes.extend_from_slice(b"CRNG");
+        bytes.extend_from_slice(&(payload.len() as u32).to_be_bytes());
+        bytes.extend_from_slice(&payload);
+        if payload.len() % 2 != 0 {
+            bytes.push(0);
+        }
+        let size = (bytes.len() - 8) as u32;
+        bytes[4..8].copy_from_slice(&size.to_be_bytes());
+        let file = parse_lbm_file(&bytes).unwrap();
+        assert_eq!(file.chunks.last().unwrap().data, payload);
+        if payload == [0, 0, 0, 0, 0, 0, 16, 31] {
+            file.require_static_palette().unwrap();
+        } else {
+            assert!(
+                file.require_static_palette()
+                    .unwrap_err()
+                    .to_string()
+                    .contains("CRNG 0")
+            );
+        }
+    }
+    parse_lbm_file(&lbm_bytes(true))
+        .unwrap()
+        .require_static_palette()
+        .unwrap();
 }
