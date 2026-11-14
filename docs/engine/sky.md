@@ -96,7 +96,11 @@ per BIOS timer tick by dividing by 16. The timer runs at
 `1193182 / 65536` ticks per second. The initial scrolling direction is selected
 randomly from 2048 angle steps. Scroll offsets start at zero, advance with the
 shared engine sine/cosine table, and wrap at plus/minus 256 texels. A frame
-processes at most 36 elapsed ticks. The plane tilts around a camera-relative axis as described below.
+processes at most 36 elapsed ticks. After each tick, U subtracts 256 at or above
+256 and adds 256 strictly below -256. V subtracts 256 at or above 256 and adds
+256 at or below -256. Consequently a stationary U offset of exactly -256 is
+retained, while a stationary V offset of exactly -256 becomes zero on the next
+processed tick. The plane tilts around a camera-relative axis as described below.
 
 The `fxskyspeed` console command interprets its value as a signed integer. It
 sets the current sky speed to that full value divided by 16 and stores the low
