@@ -142,6 +142,9 @@ The `[xngine]` section of `SYSTEM.INI` provides one master control that applies 
 | `sky_disable` | `0` | `1` disables the sky in every world. Any other value leaves it enabled. |
 
 The same section also holds `sky_move`, `sky_xrotate`, and `sky_yrotate`. They have no effect.
+The Glide settings reader stores `sky_move`, but the Glide sky producer does
+not consult it. A value of zero does not freeze the BSI sky: scrolling continues
+on elapsed BIOS ticks using the current direction and speed.
 
 ## Sun disc
 
