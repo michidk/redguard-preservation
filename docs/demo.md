@@ -48,14 +48,96 @@ the demo; the [demo lock](#demo-lock) prevents those transitions.
 
 The demo `RGFX.EXE` has version `1.0`, build `5.0` in its
 [version stamp](engine/startup.md#version-stamp); the CD and GOG executable is
-build `1.0`. It runs the retail data as well. Its change notes read:
+build `1.0`. Build 5.0 contains all of build 1.0 and runs the retail data as
+well. Its change notes read:
 
 - "Fixed rope death-reattach bug."
 - "Fixed texture binding crash bug on certain object flats."
 - "Fixed run of edge fall 'stutter' bug."
 
 The build 1.0 note, "Fixed camera reset bug, (see leaving the catacombs).", is
-not repeated; the build 5.0 executable contains that build's code.
+not repeated.
+
+### Overview
+
+| Change | Kind | In change notes | Applies to retail data |
+|---|---|---|---|
+| [Rope attachment while dying](#rope-attachment-while-dying) | Bug fix | Yes | Yes |
+| [Ledge-fall stutter](#ledge-fall-stutter) | Bug fix | Yes | Yes |
+| [Object-flat textures](#object-flat-textures) | Bug fix | Yes | Yes |
+| [Empty animation slots](#empty-animation-slots) | Bug fix | No | Yes |
+| [String-only dialogue with speech on](#string-only-dialogue-with-speech-on) | Bug fix | No | Yes |
+| [Missing dialogue entries](#missing-dialogue-entries) | Improvement | No | Yes |
+| [Inventory model textures](#inventory-model-textures) | Improvement | No | Yes |
+| [String-only dialogue with subtitles off](#string-only-dialogue-with-subtitles-off) | Demo support | No | Yes |
+| [`[RTX_PATCH]` substitutions](#rtx_patch-substitutions) | Demo support | No | Only when configured |
+| [Demo lock](#demo-lock) | Demo restriction | No | Only when `demo_version` is set |
+| [Diagnostics](#diagnostics) | Diagnostic | No | Yes |
+
+Bug fixes correct build 1.0 behavior that is wrong in the retail game.
+Improvements change working behavior. Demo support exists for the demo's
+text-only dialogue file, and the demo restriction confines play to the island.
+
+### Bug fixes
+
+#### Rope attachment while dying
+
+The rope and hook attachment test also requires that the player is not dead.
+The flag it reads is set when health reaches zero and the death animation
+starts. In build 1.0 a dying player can still attach to a rope.
+
+#### Ledge-fall stutter
+
+When a fall off a ledge begins, the actor is also moved up to 4096 position
+units in its last movement direction, away from the edge.
+
+#### Object-flat textures
+
+A flat's texture ID is resolved when the flat is created: bits 7–15 select the
+[TEXBSI](formats/TEXBSI.md) file and bits 0–6 the image. An ID that cannot be
+resolved is a fatal error. Build 1.0 stores the raw ID. The build 1.0 fatal error `Bad Texture Index %d`
+for indices above 30000 is removed.
+
+#### Empty animation slots
+
+Empty slots in an actor's animation group table are skipped instead of being
+read.
+
+#### String-only dialogue with speech on
+
+An RTX entry without audio is marked as having no voice when it is played.
+With `[dialog] dialog_use_speech=1`, such an entry is then shown for
+`characters × 15` units, the same timing as a line with speech off. Build 1.0
+neither draws nor frees a string-only entry while speech is on (see
+[subtitle timing](engine/subtitles.md#timing)). `ENGLISH.RTX` contains 933
+string-only entries.
+
+### Improvements
+
+#### Missing dialogue entries
+
+A missing RTX entry logs `ERROR: GetRtx( %c%c%c%c ), RTX NOT found` to
+`GENERAL.LOG` and plays entry `cbu1` ("DON'T SUPPOSE YOU KNOW WHAT'S GOING
+ON.") instead. Build 1.0 stops with a fatal error. A missing `cbu1` is still
+fatal.
+
+#### Inventory model textures
+
+Item models load their textures at full resolution:
+[`[3dfx] text_scale`](config/system-ini.md#3dfx) is overridden with `1, 1`
+while the item system loads its models and restored afterwards.
+
+### Demo support
+
+#### String-only dialogue with subtitles off
+
+A string-only entry is drawn even with `dialog_print_text=0`, so its text
+remains readable when it has no voice. Voiced entries follow the setting.
+
+#### `[RTX_PATCH]` substitutions
+
+[`[RTX_PATCH]`](config/system-ini.md#demo-executable-keys) substitutes up to 15
+entries by name. The section is absent from the retail `SYSTEM.INI`.
 
 ### Demo lock
 
@@ -70,40 +152,10 @@ the retail `SYSTEM.INI`. With it on:
 - the player-state update that follows the first world load at startup is
   skipped.
 
-### Gameplay changes
-
-- **Rope attachment while dying.** The rope and hook attachment test also
-  requires that the player is not dead. The flag it reads is set when health
-  reaches zero and the death animation starts.
-- **Ledge falls.** When a fall off a ledge begins, the actor is also moved up
-  to 4096 position units in its last movement direction, away from the edge.
-- **Object flats.** A flat's texture ID is resolved when the flat is created:
-  bits 7–15 select the [TEXBSI](formats/TEXBSI.md) file and bits 0–6 the image.
-  An ID that cannot be resolved is a fatal error. The build 1.0 fatal error
-  `Bad Texture Index %d` for indices above 30000 is removed.
-- **Inventory models.** Item models load their textures at full resolution:
-  [`[3dfx] text_scale`](config/system-ini.md#3dfx) is overridden with `1, 1`
-  while the item system loads its models and restored afterwards.
-- **Animation selection.** Empty animation slots in an actor's group table are
-  skipped instead of being read.
-
-### Dialogue changes
-
-- An RTX entry without audio is marked as having no voice when it is played.
-- With `[dialog] dialog_use_speech=1`, a string-only entry is shown for
-  `characters × 15` units, like a line with speech off. Build 1.0 neither draws
-  nor frees such an entry (see [subtitle timing](engine/subtitles.md#timing)).
-- A string-only entry is drawn even with `dialog_print_text=0`.
-- A missing RTX entry logs `ERROR: GetRtx( %c%c%c%c ), RTX NOT found` to
-  `GENERAL.LOG` and plays entry `cbu1` ("DON'T SUPPOSE YOU KNOW WHAT'S GOING
-  ON.") instead. Build 1.0 stops with a fatal error. A missing `cbu1` is fatal.
-- [`[RTX_PATCH]`](config/system-ini.md#demo-executable-keys) substitutes up to
-  15 entries by name.
-- **F11** toggles an overlay that shows the current entry as `(%d) RTX %c%c%c%c`.
-  Build 1.0 contains the overlay but never calls it.
-
 ### Diagnostics
 
+- **F11** toggles an overlay that shows the current dialogue entry as
+  `(%d) RTX %c%c%c%c`. Build 1.0 contains the overlay but never calls it.
 - [`[3DFX] warnings`](config/system-ini.md#demo-executable-keys) enables two
   texture-manager warnings.
 - A missing texture archive prints `Missing Texture File: FXART\TEXBSI.%03d`
