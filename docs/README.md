@@ -130,6 +130,7 @@ are separate parts of edition compatibility.
 | Cinematics | `.SMK` files in the CD data directory | Data track of `game.gog`, described by `game.ins` |
 | Music | Red Book audio tracks on the CD | Audio tracks in the same `game.gog` image |
 | Host runtime | DOS/4GW and the selected renderer's hardware support | DOSBox configuration and Glide support libraries |
+| Controllers | PC gameport; [SideWinder profiles](formats/SIDEWINDER.md) for Microsoft's SideWinder software | DOSBox gameport emulation, disabled by default (`joysticktype=none`); see [KEYS.INI](config/keys-ini.md#gog-release) |
 
 `RGFX.EXE` is byte-identical between the English CD payload and GOG. The Windows
 `REDGUARD.EXE` launchers differ; they are not the DOS rendering executables.

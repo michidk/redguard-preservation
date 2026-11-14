@@ -154,6 +154,10 @@ Buttons 1 through 4 (codes 132 through 135) are the inverted high nibble of the
 gameport port, bit 4 upward: buttons 1 and 2 of stick A, then buttons 1 and 2 of
 stick B.
 
+The game therefore uses at most two axes and four buttons of a controller.
+[SideWinder profiles](../formats/SIDEWINDER.md) do not change this; they act
+through keyboard input.
+
 For an ordinary keyboard key that passes the interrupt handler's special-key
 handling, a make event writes 1 to its 16-bit state slot and a break event
 writes 0. A make writes the slot even when the key was already held.
@@ -165,6 +169,17 @@ an intervening release; a release clears an unconsumed make.
 
 Controls capture reads the same table: it accepts a keyboard scancode, a mouse
 button release (128 or 129) or a joystick button (132 through 135).
+
+## GOG release
+
+The GOG release runs the game in DOSBox, so the gameport is DOSBox's emulation.
+Its `joysticktype` setting in the `[joystick]` section of `dosbox_redguard.conf`
+selects the emulated device. GOG ships `joysticktype=none`, which disables the
+gameport emulation, so the game has no joystick input. `4axis` emulates one
+joystick with four buttons, all of which the game reads. `2axis` emulates two
+two-button joysticks, so one host controller provides only buttons 1 and 2.
+Further controller buttons reach the game only as keys assigned in DOSBox's
+keyboard mapper (`mapperfile=mapper.txt`, which GOG does not ship).
 
 ## Action semantics
 

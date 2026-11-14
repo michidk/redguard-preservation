@@ -53,6 +53,19 @@ These profiles are controller configuration files. They do not contain game
 assets, save state, or swap memory. [KEYS.INI](../config/keys-ini.md) describes
 the separate game keyboard bindings.
 
+## Use by the game
+
+Neither `RGFX.EXE` nor the `REDGUARD.EXE` launcher opens these files. They are
+read by Microsoft's SideWinder software on the host system, which sends PC
+keyboard scancodes for controller input; the `Inventory` record, for example,
+sends scancode 23 (`I`). The game receives those keystrokes through the keyboard
+bindings in [KEYS.INI](../config/keys-ini.md), not through its joystick input.
+
+The GOG release runs `RGFX.EXE` in DOSBox, where the SideWinder software is not
+involved, so these profiles have no effect. Controller input reaches the game
+only through DOSBox's emulated gameport or keyboard mapper; see
+[joystick polling](../config/keys-ini.md#joystick-polling).
+
 Modern controller input uses game actions and bindings directly. These profiles
 remain references for the original SideWinder presets; their hardware-specific
 mapping data is separate from the game's input configuration. See
