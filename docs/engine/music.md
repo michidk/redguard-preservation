@@ -88,7 +88,10 @@ so the shipped `200` plays at 100 of 127. The book menu's Music slider sets the
 value. On exit the engine sets the CD volume to 127.
 
 `redbook` (`SYSTEM.INI [system]`, shipped `on`) gates the redbook system;
-when it is disabled the CD is never opened and no music plays.
+when it is disabled the CD is never opened and no music plays. CD initialization
+also requires [`sound`](../config/system-ini.md#sound-and-music) to be enabled.
+With sound disabled, the engine skips effects, voice and CD initialization and
+forces text dialogue with speech off.
 
 ## Related
 
