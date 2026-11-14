@@ -65,7 +65,7 @@ not repeated.
 | [Rope attachment while dying](#rope-attachment-while-dying) | Bug fix | Yes | Yes |
 | [Ledge-fall stutter](#ledge-fall-stutter) | Bug fix | Yes | Yes |
 | [Object-flat textures](#object-flat-textures) | Bug fix | Yes | Yes |
-| [Empty animation slots](#empty-animation-slots) | Bug fix | No | Yes |
+| [Animation slots](#animation-slots) | Bug fix | No | Yes |
 | [String-only dialogue with speech on](#string-only-dialogue-with-speech-on) | Bug fix | No | Yes |
 | [Missing dialogue entries](#missing-dialogue-entries) | Improvement | No | Yes |
 | [Inventory model textures](#inventory-model-textures) | Improvement | No | Yes |
@@ -95,13 +95,17 @@ units in its last movement direction, away from the edge.
 
 A flat's texture ID is resolved when the flat is created: bits 7–15 select the
 [TEXBSI](formats/TEXBSI.md) file and bits 0–6 the image. An ID that cannot be
-resolved is a fatal error. Build 1.0 stores the raw ID. The build 1.0 fatal error `Bad Texture Index %d`
-for indices above 30000 is removed.
+resolved is a fatal error. A texture group that is not yet loaded is loaded at
+full resolution. Build 1.0 stores only the raw ID and leaves the resolved index
+at zero; its flat renderer stops with the fatal error `Bad Texture Index %d` when
+the resolved index is zero or above 30000. Build 5.0 removes that check.
 
-#### Empty animation slots
+#### Animation slots
 
-Empty slots in an actor's animation group table are skipped instead of being
-read.
+Animation selection scans the actor's animation group table. In the ordered
+scan, a slot whose group byte is zero no longer matches, so a request for group
+zero selects nothing. The random pick skips a slot whose entry pointer is null
+instead of reading through it.
 
 #### String-only dialogue with speech on
 
