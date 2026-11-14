@@ -47,7 +47,7 @@ See [RGM.md](../formats/RGM.md) for `RASC`/`RAAT` container details and [SOUP.md
 
 ## Notes
 
-- Runtime behavior includes a DEF-to-script compatibility/checksum validation path in the engine.
+- Each RGM stores the byte sum of the SOUP386.DEF it was built against in its [RAHD header](../formats/RGM.md#rahd-actor-header). With [`[debug] def_checksum`](../config/system-ini.md#debug) on, loading a world whose stored sum differs from this file's byte sum is a fatal error.
 - Some declared functions do not appear in shipped map scripts; declaration in DEF does not imply invocation.
 
 ## External References
