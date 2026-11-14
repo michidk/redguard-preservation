@@ -37,7 +37,7 @@ pub fn parse_anm_file(data: &[u8]) -> Result<AnmFile<'_>> {
     if data.len() < 1280 || &data[..4] != b"LPF " || &data[16..20] != b"ANIM" {
         return Err(Error::Parse("ANM: invalid or truncated LPF header".into()));
     }
-    for (index, cycle) in data[128..256].chunks_exact(8).enumerate() {
+    for (index, cycle) in data[128..256].as_chunks::<8>().0.iter().enumerate() {
         if cycle[..6].iter().any(|&byte| byte != 0) {
             return Err(Error::Parse(format!(
                 "ANM: palette cycle {index} has unsupported nonzero control bytes"
