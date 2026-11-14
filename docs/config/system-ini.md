@@ -49,7 +49,7 @@ Standard Windows-style INI file with 10 sections:
 |---|---|---|
 | `candle_mode` | `2` | Candle HUD visibility: `0` = only while the show timer runs, `1` = always, `2` = always with the health number. Any other nonzero value behaves as `1`. F8 cycles 0→1→2 and writes the value back. See [candle](../engine/hud.md#visibility). |
 | `colour_bits` | `8` | **Not read.** |
-| `resolution` | `1` | Software-renderer mode index (`0`/`3`/`4` = 320×200, `1` = 640×480, `2` = 320×400; out-of-range values become `0`). **No effect** in the Glide executable, whose display mode comes from [`[3dfx] resolution`](#3dfx). |
+| `resolution` | `1` | Software-renderer mode index (`0`/`3`/`4` = 320×200, `1` = 640×480, `2` = 320×400; out-of-range values become `0`). It does not change the display in the Glide executable, whose display mode comes from [`[3dfx] resolution`](#3dfx). |
 | `Palette_red` | `0` | **No effect.** Palette brightness offset of the software renderer's Gamma option; the Glide executable never creates that option. |
 | `Palette_green` | `0` | **Not read.** Written only by the software renderer's Gamma option. |
 | `Palette_blue` | `0` | **Not read.** Written only by the software renderer's Gamma option. |
@@ -294,7 +294,7 @@ Developer diagnostics, logging, and display flags. Most are disabled in the ship
 
 | Key | Default Value | Description |
 |---|---|---|
-| `texture_kbytes` | `12000` | **No effect.** |
+| `texture_kbytes` | `12000` | **No effect.** Shown only in the developer console header as the texture heap size. |
 | `gfx_kbytes` | `256` | **No effect.** |
 | `front_plane` | `7` | Near clipping distance of the scene. See [fog and clipping](../engine/fog.md#clipping-distances). |
 | `back_plane` | `3800` | Far clipping distance of the scene; a nonzero `world_back_plane[N]` replaces it for that world. See [fog and clipping](../engine/fog.md#clipping-distances). |
