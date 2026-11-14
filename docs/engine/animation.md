@@ -118,6 +118,14 @@ animation, changing actor state, or calling another native handler.
 
 ## Ordinary requests and default groups
 
+### Receiver eligibility
+
+Animation group requests do nothing when the animation system is disabled,
+when the receiver has no animation state, or when the receiver is excluded
+from ordinary object updates.
+
+### Current, pending and default groups
+
 An actor keeps a current group, one pending group, and a default group. Ordinary
 requests do not form a queue. When the current group is the default, requesting
 the default again returns without restarting it. Requesting another group
