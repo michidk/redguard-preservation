@@ -320,3 +320,17 @@ fn installed_legacy_images_match_reference_decodes() {
     assert_eq!(fingerprint(&anm.frames[0].pixels), 0xd9a8e25b9f205e3b);
     assert_eq!(fingerprint(&anm.frames[24].pixels), 0x8c63c2950b94f301);
 }
+
+#[test]
+fn anm_does_not_silently_decode_nonstatic_palette_controls() {
+    for field in [0, 2, 4] {
+        let mut bytes = animation();
+        bytes[128 + field..130 + field].copy_from_slice(&1u16.to_le_bytes());
+        let error = parse_anm_file(&bytes).unwrap_err().to_string();
+        assert!(error.contains("palette cycle 0"), "{error}");
+        assert!(error.contains("unsupported"), "{error}");
+    }
+    let mut disabled = animation();
+    disabled[134..136].copy_from_slice(&[16, 31]);
+    assert_eq!(parse_anm_file(&disabled).unwrap().frames.len(), 3);
+}

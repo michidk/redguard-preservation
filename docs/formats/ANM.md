@@ -53,7 +53,8 @@ Every installed ANM except `system/gui.anm` has all sixteen records zero. In
 `gui.anm` four records are populated, each with a zero rate and zero flags and
 the palette ranges `0x10`-`0x1f`, `0x20`-`0x2f`, `0x60`-`0x6f` and `0x90`-`0x9f`
 (low and high bytes at record offsets 6 and 7). Because rate and flags are zero,
-no installed ANM defines an active palette cycle; they are the same four ranges
+no installed ANM defines an active palette cycle. The first six bytes of every
+`gui.anm` cycle record are zero, including the four populated ranges. These are the same four ranges
 as the `CRNG` chunks of [`gui.lbm`](LBM.md#additional-chunks).
 
 ## Page table and large pages
