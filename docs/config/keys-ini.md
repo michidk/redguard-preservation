@@ -180,11 +180,13 @@ configuration. The game launch of the GOG `2.0.0.5` installer loads
 joystick input. The `joysticktype=auto` in `DOSBOX/dosbox.conf` is not part of
 that launch, and the Graphic Mode Setup tool changes only display settings.
 
-With `4axis`, DOSBox emulates one joystick with four buttons, all of which the
-game reads. With `2axis` it emulates two two-button joysticks, so one host
-controller provides only buttons 1 and 2. Further controller buttons reach the
-game only as keys assigned in DOSBox's keyboard mapper (`mapperfile=mapper.txt`,
-which the installer does not include).
+With `none`, the bundled DOSBox build also creates no controller bindings in its
+keyboard mapper, so a controller cannot be mapped to keys there either. With
+`4axis`, DOSBox emulates one joystick with four buttons, all of which the game
+reads. With `2axis` it emulates two two-button joysticks, so one host controller
+provides only buttons 1 and 2. Once emulation is enabled, further controller
+buttons reach the game only as keys assigned in DOSBox's keyboard mapper
+(`mapperfile=mapper.txt`, which the installer does not include).
 
 ## Action semantics
 
