@@ -226,6 +226,10 @@ Developer diagnostics, logging, and display flags. Most are disabled in the ship
 | `idebug_refresh` | `no` | With `idebug`, nonzero makes each log message wait for the remote monitor to acknowledge it. |
 | `memory_monitor` | `no` | Nonzero shows an on-screen free-memory readout and a scrolling graph of heap usage changes. It also forces on-screen text on. |
 
+Key read but absent from the shipped file: `camera_log`. Nonzero restarts
+`CAMERA.LOG` when the camera system starts, if `enable_logs` is nonzero. No
+camera messages are written to it.
+
 ---
 
 ## `[game]`
