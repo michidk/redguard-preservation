@@ -118,7 +118,7 @@ into 11025 Hz and an 11025 Hz sample into 5512 Hz.
 | `use_smooth_fps` | `yes` | When on, the frame scale uses a smoothed FPS value instead of the raw measured FPS. Each update moves the smoothed value one step toward the measured value, or half the difference for gaps of 5 or more. |
 | `use_smooth_divisor` | `yes` | When on, the frame scale steps toward its new target over several frames instead of jumping to it. |
 | `min_frame_rate` | `6` | Lowest FPS used in the frame-scale division. Below this rate game time slows down rather than taking larger steps; the shipped value caps each frame at two nominal ticks. |
-| `max_frame_rate` | `300` | Highest FPS used in the frame-scale division. It does not cap rendering. `0` means 36. |
+| `max_frame_rate` | `300` | Highest FPS used in the frame-scale division. It does not cap rendering: above this rate each frame still advances by the step for `max_frame_rate`, so game time runs faster than real time. `0` means 36. |
 | `jump_time` | `6` | Default for actor attribute `attr_jump_time` when the actor's value is zero or negative (low byte used). Values below 1 mean 6. |
 | `jump_height` | `80` | Default for actor attribute `attr_jump_height` when the actor's value is zero. The engine stores bits 8–15 of this value, so the shipped `80` (and the fallback 80 for values below 1) leaves the attribute at zero. |
 | `post_collide_height` | `50` | Vertical probe height in map units for actor collision: forward-obstacle probes, step and support checks, body-shape sphere layout, and the falling-speed limit. See [player movement](../engine/player.md#forward-obstacle-wrapper-and-motion-transition). |

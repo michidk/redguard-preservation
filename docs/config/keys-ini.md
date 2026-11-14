@@ -35,16 +35,12 @@ Action-to-scancode bindings. Two binding slots exist per directional/action key 
 | `key_b[1]` | `133` | Jump (joystick button 2). |
 | `key_c[1]` | `134` | View / Look (joystick button 3). |
 | `key_d[1]` | `132` | Activate / Attack (joystick button 1). |
-| `user_key_up` | `0` | User-remapped forward key. |
-| `user_key_down` | `0` | User-remapped backward key. |
-| `user_key_left` | `0` | User-remapped left key. |
-| `user_key_right` | `0` | User-remapped right key. |
-| `user_key_a` | `0` | User-remapped walk/run modifier. |
-| `user_key_b` | `0` | User-remapped jump key. |
-| `user_key_c` | `0` | User-remapped view key. |
-| `user_key_d` | `0` | User-remapped activate/attack key. |
+| `user_key_up` … `user_key_d` | `0` | Which binding of the action the Controls page shows and edits: `0` = keyboard binding `[0]`, `1` = mouse/joystick binding `[1]`. Only the low bit is used. Both bindings stay active in play. |
 
-A value of `0` in user remap fields means no override (use default binding).
+Assigning a keyboard key on the Controls page stores it in `[0]` and sets the
+action's `user_key_*` to 0; assigning a mouse button or joystick input stores it
+in `[1]` and sets it to 1. The page saves all three keys for the action. A `[0]`
+or `[1]` value of `0` selects the action's built-in binding for that slot.
 
 The shipped file footer contains `NEXT_KEY = 37` and `PREV_KEY = 38` inside `[defined]`. These do not override bindings in `[input]`. Numeric configuration lookup returns the first matching key in the requested section.
 

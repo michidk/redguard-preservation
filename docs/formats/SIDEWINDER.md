@@ -66,10 +66,8 @@ involved, so these profiles have no effect. Controller input reaches the game
 only through DOSBox's emulated gameport or keyboard mapper; see
 [joystick polling](../config/keys-ini.md#joystick-polling).
 
-Modern controller input uses game actions and bindings directly. These profiles
-remain references for the original SideWinder presets; their hardware-specific
-mapping data is separate from the game's input configuration. See
-[Bundled support resources](BUNDLED-RESOURCES.md).
+See [Bundled support resources](BUNDLED-RESOURCES.md) for the other support
+files shipped with the game.
 
 ## External References
 
