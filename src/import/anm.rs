@@ -30,11 +30,19 @@ fn dword(data: &[u8], i: usize) -> u32 {
     u32::from_le_bytes([data[i], data[i + 1], data[i + 2], data[i + 3]])
 }
 
-/// Decode single-bitmap, 8-bit LPF animations. Split records and other codecs
+/// Decode single-bitmap, static-palette, 8-bit LPF animations. Nonzero cycle
+/// control prefixes are unsupported. Split records and other codecs
 /// are rejected. Frames are limited to 16 Mi pixels and 256 MiB of indexed pixels in total.
 pub fn parse_anm_file(data: &[u8]) -> Result<AnmFile<'_>> {
     if data.len() < 1280 || &data[..4] != b"LPF " || &data[16..20] != b"ANIM" {
         return Err(Error::Parse("ANM: invalid or truncated LPF header".into()));
+    }
+    for (index, cycle) in data[128..256].chunks_exact(8).enumerate() {
+        if cycle[..6].iter().any(|&byte| byte != 0) {
+            return Err(Error::Parse(format!(
+                "ANM: palette cycle {index} has unsupported nonzero control bytes"
+            )));
+        }
     }
     let page_count = usize::from(word(data, 6));
     if word(data, 4) != 256
