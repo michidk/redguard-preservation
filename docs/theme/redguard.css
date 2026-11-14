@@ -141,6 +141,56 @@
   color: var(--rg-burgundy-dark);
 }
 
+/* Previous/next chapter buttons */
+.redguard .mobile-nav-chapters {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 56px;
+  font-size: 2em;
+  color: var(--rg-burgundy);
+  background: linear-gradient(var(--rg-parchment-light), var(--rg-parchment-dark));
+  border: 1px solid var(--rg-border);
+  border-radius: 8px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 1px 3px rgba(45, 33, 24, 0.18);
+  transition: color 0.2s, background 0.2s, border-color 0.2s;
+}
+
+.redguard .mobile-nav-chapters:hover,
+.redguard .mobile-nav-chapters:focus-visible {
+  color: var(--rg-gold-light);
+  background: var(--rg-burgundy);
+  border-color: var(--rg-gold-muted);
+  text-decoration: none;
+}
+
+.redguard .nav-chapters {
+  color: var(--rg-text-muted);
+  transition: color 0.2s, background 0.2s;
+}
+
+.redguard .nav-chapters:hover,
+.redguard .nav-chapters:focus-visible {
+  color: var(--rg-burgundy);
+  text-decoration: none;
+}
+
+.redguard .nav-chapters.previous:hover,
+.redguard .nav-chapters.previous:focus-visible {
+  background: linear-gradient(to right, rgba(74, 26, 42, 0.1), transparent);
+}
+
+.redguard .nav-chapters.next:hover,
+.redguard .nav-chapters.next:focus-visible {
+  background: linear-gradient(to left, rgba(74, 26, 42, 0.1), transparent);
+}
+
+.redguard .mobile-nav-chapters:focus-visible,
+.redguard .nav-chapters:focus-visible {
+  outline: 2px solid var(--rg-gold);
+  outline-offset: 2px;
+}
+
 /* A range control stays visible even when the OS hides native scrollbars. */
 .table-scrollbar {
   position: fixed;
