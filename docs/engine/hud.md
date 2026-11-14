@@ -877,6 +877,10 @@ uses the small-font link, whose alpha the reader sets to 200 and 255. Glyph colo
 palette colours multiplied by `A / 255`, except for styles 1 and 2. Index 5 has no initialised entry;
 indices above 9 are not described.
 
+Reader glyphs use the [shared glyph alpha rule](subtitles.md#glyphs): main alpha
+values below 254 blend with the paper, while 254 and 255 draw without blending.
+The palette colour and the style's colour factor are applied before this decision.
+
 The reader draws text glyph by glyph. A glyph whose right edge would pass x = 640
 moves the pen to the entry's starting x and down by the font's line height first, so
 long lines of the large styles wrap inside words. A line feed does the same. Drawing
