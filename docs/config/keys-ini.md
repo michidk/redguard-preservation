@@ -114,6 +114,7 @@ which run at the start of each update:
 | Code | Value |
 |---|---|
 | 128, 129 | Left and right mouse button **release**: nonzero for one update, when the button goes from pressed to released, and zero otherwise. A held button never reads as pressed. |
+| 130, 131 | Horizontal and vertical mouse motion since the previous poll: the mouse driver's signed motion count for that axis, halved and rounded toward zero. Nonzero on an update in which the mouse moved at least two counts along that axis. |
 | 132–135 | Joystick buttons 1 through 4: nonzero while the button is pressed. |
 | 136 | Joystick X reading is more than `joy_tolerance` below the calibrated center. |
 | 137 | Joystick X reading is more than `joy_tolerance` above the calibrated center. |
