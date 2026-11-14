@@ -411,6 +411,12 @@ Glide-specific display, texture, and text settings.
 | `font_norm` | `125,255` | Color scale and alpha for the normal REDSEL style, used for Cyrus's subtitles and unselected topic-menu entries. A missing key copies `font_sel`. |
 | `font_used` | `125,128` | Color scale and alpha for topic-menu entries already chosen. A missing key copies `font_sel`. |
 
+For these styles, the main glyph pass uses alpha `B` and the shadow uses
+`B × 200 / 256`, truncated to an integer. Each pass blends only below alpha
+254; alpha 254 and 255 replace the destination without blending. See
+[subtitle glyph rendering](../engine/subtitles.md#glyphs) for the shadow offsets
+and palette rules.
+
 ---
 
 ## Developer mode
