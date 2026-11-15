@@ -65,6 +65,36 @@ row mapping. Zero or omitted values use the corresponding `[xngine]`
 of 3 and 63 respectively. Opening and closing a sky does not reset the shared
 sky draw counter.
 
+## Software scanlines
+
+For a full 640 by 480 viewport and a square 256- or 512-pixel sky image,
+software sky drawing fills the upper 240 rows and fills the lower 240 rows
+with the `world_background[N]` palette index. Sky index zero is opaque.
+The main game loop supplies both initial scanline increments as Q8 value 256.
+
+Let `S` be the screen scale, `M` the image size minus one, `D` the shared sky
+draw count, and `heading` and `pitch` the 2048-step camera angles. Integer
+division truncates toward zero; right shifts preserve the sign.
+
+- The initial source-row coordinate is `(((-heading & 2047) / 2 & M) + (D & M)) * 256`
+  when movement is enabled. Disabled movement omits the draw-count term.
+- The initial row increment is `(65536 / S) >> 1`. Its per-scanline increment is
+  `(yrotate * 256 / S) >> 1`.
+- The initial column increment is 128. Its per-scanline increment is
+  `(xrotate * 256 / S) >> 1`.
+- Before drawing each scanline, add the row increment to the row coordinate,
+  increase that increment, and increase the column increment.
+- The initial column coordinate is `(pitch & 2047) * 128 - 320 * column_increment`.
+  Add the column increment before each sample. Both coordinates use their
+  integer texel part, masked by `M`, without interpolation.
+
+The selected indexed texel passes through the world's HAZE table. The first
+scanline uses a Q8 haze strength of `63 * 256`. After each scanline the strength
+falls by `16384 / 240`, truncated to an integer, and clamps at zero. The table
+row is `strength >> 8`, so the upper sky starts at row 63 and approaches row 0
+toward the horizon. The resulting index resolves through the selected world
+palette. World palette components are reduced to six-bit VGA values.
+
 ## Glide sky plane
 
 The shipped Glide build uses the following geometry and texture mapping.
