@@ -12,6 +12,17 @@ the reference to a runtime model handle and frame index and patches those two
 values into ten-bit command fields. Playback stores that pair as the actor's
 current pose. It does not interpret the second value as an attachment vertex.
 
+### Held frame selection
+
+The selected pose is the runtime model handle and model-frame index stored by
+`ShowFrame`. A zero-tick update or a countdown decrement that does not execute
+another `ShowFrame` retains that selection. A held pose therefore continues to
+use the selected model frame rather than reverting to model frame zero.
+
+The animation group's frame-progress byte is playback state, not the selected
+model-frame index. Resolving geometry requires the selected model/frame pair;
+the current group and progress byte alone are not a model-frame reference.
+
 ### Placed-object frame sources
 
 RAAN is not the only source of an instance's frame table. After initializing
