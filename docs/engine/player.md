@@ -1142,6 +1142,10 @@ stable position, including when the transition ended in state 18 or cleared the 
 bytes leave the stable record unchanged. The update does not run the body-contact response of states
 other than 0, 15 and 27 through 32.
 
+During a low climb, holding forward with the walk modifier and a turn key
+leaves the climb animation and its position update in control. The turn key
+does not change the heading until ordinary control resumes after the climb.
+
 #### No ledge candidate
 
 When the [ledge scan](#ledge-scan) finds no record, entry from living state zero
