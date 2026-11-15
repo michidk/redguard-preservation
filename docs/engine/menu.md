@@ -1,6 +1,10 @@
 # Book menu
 
 The menu renders textured models from `fxart/MENU.ROB` and paints configured text directly into their TEXBSI surfaces.
+Texture filtering combines the encoded eight-bit interface-palette channels,
+without an sRGB-to-linear conversion before interpolation. The
+[Glide texture filter](sky.md) applies to the painted surfaces as
+well as the unpainted book and table textures.
 
 ## Data and scene
 
