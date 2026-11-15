@@ -844,6 +844,10 @@ refresh draws an animation-table actor only when it has a selected frame, so suc
 drawn; scripts and the other stages still run. Turning the switch on later lets the ordinary default
 request select a group and frame.
 
+Standalone player construction also obeys the animation switch. With the switch zero, the
+initial requests leave the player animation record without a current group or selected frame;
+controller and combat state construction still takes place.
+
 ## Group type byte
 
 The group header's type byte is tested only for the values one and two, by the advance routine's
