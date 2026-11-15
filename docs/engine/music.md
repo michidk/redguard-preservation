@@ -75,10 +75,16 @@ world's track, until a world change to a different track.
 
 ## Repetition
 
-Periodically from the main loop, the engine compares the CD's current track
+Periodically from the active world loop, the engine compares the CD's current track
 with the last track it requested. When they differ — the requested track has
 ended and the CD has stopped — it plays the requested track again. World music
 therefore repeats indefinitely, with a short pause between repetitions.
+
+The book menu and the last-game confirmation do not run this replay check.
+Entering them after death leaves the current CD playback unchanged. A track
+that ends while either is open stays stopped until world execution resumes
+or another operation requests playback. The requested track is retained
+separately from the CD's current playing track.
 
 ## Volume
 

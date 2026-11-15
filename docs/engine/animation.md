@@ -198,6 +198,8 @@ On the outer border, actors with a nonzero attribute byte 113 are excluded.
 Debug and global object-processing switches can further restrict this list.
 Membership alone does not make an actor eligible for an update;
 its runtime exclusion, pause, state and script checks still apply.
+The world draw traversal walks the same combined list, so an ordinary cell
+actor outside the window is not drawn, whatever its visibility state.
 
 Cells are visited in increasing X within increasing Z rows. Eligible actors
 retain their current per-cell linked-list order; the persistent actor list is
@@ -667,7 +669,7 @@ entry 9. Thus bit zero wins when both bits are set, including when admission ref
 The [ordinary jump entry](player.md#ordinary-jump-entry) owns these requests. Group 18 maps
 entry 8 to queued motion 8 and group 34, and entry 9 to queued motion 9 and group 36.
 Group 30 instead requests groups 35 and 37. Other groups select ordinary jump motion 1
-with group 32, or group 33 with a burning torch. A nonzero runtime jump selector overrides
+with group 32, or group 33 with a burning torch. A nonzero rope countdown overrides
 these rows with queued motion 24 and forced group 85. Non-forced requests use reverse zero,
 and successful initialization sets motion direction to two.
 

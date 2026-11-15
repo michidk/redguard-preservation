@@ -309,8 +309,14 @@ action key is not held, and for any other player only while the current group is
 group (forward) or one of the walking groups 19 and 23 (backward).
 
 The helper selection does not bypass the helper's motion, support, animation,
-or movement-marker tests. Water states, drawn weapons, rope motion, jumping,
-and special living states have separate dispatch branches.
+or movement-marker tests. Hanging state 15 selects the sidestep/walk dispatch;
+other ledge states 10 through 19 retain the ordinary forward/backward helper
+selection. A climb does not itself suppress a forward animation request: the
+movement helper can queue its group behind the active climb while its animation
+admission prevents ordinary translation. Jump handling precedes the state-15
+climb and release calls described under [ledge climb request](#ledge-climb-request).
+Water states, drawn weapons, rope motion and jumping retain their own dispatch
+rules.
 
 ### Armed attack input
 
@@ -763,8 +769,24 @@ suppresses displacement. Otherwise, while the accumulated sliding distance is be
 update adds `(0x10000 / attribute 31) * frame_scale >> 8`, limited so the accumulated distance
 does not exceed `0x18000`, to that distance and translates by the same amount; at or above the
 cap nothing moves. Motion 2 (a jump steered forward) does the same with `0xb400` and a cap of
-`0x10000`. Deep water halves neither. Other motion values add no displacement here. A zero attribute
+`0x10000`. Deep water halves neither. A zero attribute
 31 divides by zero in the original.
+
+Motion 3 uses the ordinary backward displacement rule. A held weapon or combat
+stance first refuses a blocked-ahead probe at distance 30. It then sets motion
+direction 3 and applies the deep-water edge probe. An admitted step sets the
+backward update indicator. Its heading is the retained jump heading when the
+queued byte equals 3 exactly, otherwise the current heading, plus 1024 modulo
+2048. Its Q8 step length is attribute 18 shifted left eight in weapon/combat
+stance; otherwise groups 76 and 78 use attribute 8 shifted left seven, and other
+groups use attribute 9 shifted left eight. The upper two movement-counter bits
+apply the attribute-11 startup adjustment and advance toward three. Deep water
+does not halve this backward step. Translation occurs only when the animation
+does not suppress it and the signed step length times frame scale, shifted right
+eight, is positive. It does not consume the accumulated sliding distance.
+
+The stage dispatches the directional displacement helper with the selected
+motion value; its branches are not limited to the forward jump cases above.
 
 Queued arbitration, the queued and falling vertical writers, the edge service,
 landing and fall start are not part of this stage. They run only inside the
@@ -787,7 +809,7 @@ falling byte is cleared and nothing else changes.
 
 ### Ordinary landing decision
 
-On support regained while falling, clear the runtime jump selector and compare
+On support regained while falling, clear the rope countdown and compare
 the absolute wrapping difference between current local Q8 Y and retained fall
 origin. Resolve and store the landing surface before this comparison; surfaces
 1 through 4 replace the compared distance with zero.
@@ -1064,13 +1086,15 @@ a fall. Without that marker, record the ordinary fall origin and timer, set
 falling to one and force 59 without a burning torch or 60 with one.
 These entry branches are distinct from continuation of an existing fall.
 
-### Jump selector at a support miss
+### Rope countdown at a support miss
 
-An animated actor that misses support without falling first tests the runtime jump selector. A
-selector whose distance from 24 is below four (and nonzero) starts the
+An animated actor that misses support without falling first tests its rope countdown, which
+[rope attachment removal](SOUP.md#rope-attachment-removal) sets to 24 and the
+[rope attachment test](SOUP.md#rope-attachment) lowers by the elapsed ticks. A
+countdown whose distance from 24 is below four (and nonzero) starts the
 [ordinary jump entry](#ordinary-jump-entry) for it, which selects queued motion 24 and forces group
 85, and the support miss ends there: the walk-off recovery, the fall start and the edge service do
-not run. Other selectors leave the miss to those services.
+not run. Other countdown values leave the miss to those services.
 
 ### Falling animation continuation
 
@@ -1320,13 +1344,13 @@ ordinary initialization.
 
 For ordinary initialization, clear the stable-position-valid flag, record
 current local Q8 Y as fall origin, set the byte fall timer to zero and clear
-accumulated sliding distance. With the runtime jump selector zero, current
+accumulated sliding distance. With the rope countdown zero, current
 group 18 selects queued 9 and request 36 when the requested motion is 9,
 otherwise queued 8 and request 34. Current group 30 similarly requests 37 or
 35. For the selected player's jump key, current group 19 (or 23 with a burning torch) instead selects
 queued 3 and request 49 (50), copies the heading into the motion vector and sets the controller
 countdown to 6, as the script Jump rows do; the walking backward groups jump standing. Other current groups select queued 1 and request 32 without a burning torch,
-or 33 with a burning torch. A nonzero runtime jump selector instead selects
+or 33 with a burning torch. A nonzero rope countdown instead selects
 queued 24 and forces group 85. Set motion classification to 2 after the request.
 
 The controller itself reads no surface state: water and lava surfaces change its
@@ -1353,7 +1377,7 @@ changing motion state, position or animation.
 
 Ordinary initialization records current local Q8 Y as fall origin, clears the
 fall timer and accumulated sliding distance, then chooses the queued motion and
-animation request below. A nonzero runtime jump selector overrides all rows,
+animation request below. A nonzero rope countdown overrides all rows,
 selecting queued motion 24 and forcing group 85.
 
 | Current group | Queued motion | Requested group | Additional writes |
@@ -1385,7 +1409,9 @@ the mask bit set. Otherwise:
   byte's step field (bits 4 and 5) equals 3. With the step-hold condition true and
   either current group 18 or 30, a clear exit marker sets both low bits of the pending
   action word and clears the jump-window timer. Any other state calls
-  the ordinary jump entry.
+  the zero-argument [SOUP Jump entry](#script-jump), including its distinct
+  backward-group rows. This is separate from the parameterized ordinary entry
+  used by the jump window.
   This jump start refuses, without any state change, while the actor stands on surface 2 or 4
   (deep water), while its current group is 114, 116, 130 or 131, and while its falling byte is nonzero.
 
@@ -2177,7 +2203,7 @@ it; a script can write any byte through `jump_flag` and `fall_flag`.
 | 3 | Backward jump | Jump key while moving backward |
 | 8 | Running jump | Ordinary jump entry from group 18 or 30 |
 | 9 | Running jump, left lead | Ordinary jump entry from group 18 or 30 for requested motion 9 |
-| 24 | Rope jump | Nonzero runtime jump selector |
+| 24 | Rope jump | Nonzero rope countdown |
 
 The overlap pass visits its retained actor-style candidate list in order. Later
 queries read the positions left by earlier responses. If any weighted
