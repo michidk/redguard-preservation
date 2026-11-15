@@ -46,6 +46,25 @@ blending.
 `world_sky[N]` names a GXA asset in `system/`. The Glide renderer does not load
 this asset; its sky comes from the BSI asset instead.
 
+The software renderer loads the GXA named by `world_sky[N]` when opening the
+world. A missing sky setting closes the current sky. `[xngine] sky_disable=1`
+prevents the software sky from opening; other values do not take that branch.
+The GXA pixels are remapped into the selected world palette when loaded.
+
+Each active software sky-render invocation increments a shared draw counter,
+even when movement is disabled.
+`[xngine] sky_move=1` includes that counter in horizontal scrolling; other
+values leave the camera-angle contribution without this automatic motion.
+At a 640-pixel display width the movement contribution advances one source
+texel per draw, wrapping at the image size. This is separate from the Glide
+sky's BIOS-tick-based scrolling.
+
+`world_sky_xrotate[N]` and `world_sky_yrotate[N]` control the software sky's
+row mapping. Zero or omitted values use the corresponding `[xngine]`
+`sky_xrotate` and `sky_yrotate` settings. Zero global settings select defaults
+of 3 and 63 respectively. Opening and closing a sky does not reset the shared
+sky draw counter.
+
 ## Glide sky plane
 
 The shipped Glide build uses the following geometry and texture mapping.
