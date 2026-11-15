@@ -153,51 +153,13 @@ impl TextureCache {
         id: u16,
         bank: crate::import::software_texture::SoftwareTextureBank,
     ) {
-        use crate::import::{bsi::BsiImage, software_texture::SoftwareTextureEntry};
-        let images = bank
-            .entries
-            .into_iter()
-            .enumerate()
-            .filter_map(|(index, entry)| {
-                let image_index = u16::try_from(index).ok()?;
-                let (width, height, x_offset, y_offset, delay, flags, mut frames) = match entry {
-                    SoftwareTextureEntry::SolidColor(color) => {
-                        (1, 1, 0, 0, 0, 0, vec![vec![color]])
-                    }
-                    SoftwareTextureEntry::Image(image) => (
-                        image.width,
-                        image.height,
-                        image.x_offset,
-                        image.y_offset,
-                        image.frame_delay,
-                        image.flags,
-                        image.frames,
-                    ),
-                };
-                if frames.is_empty() {
-                    return None;
-                }
-                if flags & 0x100 == 0 {
-                    self.opaque_images.insert((id, image_index));
-                }
-                Some(BsiImage {
-                    name: format!("{index:03}"),
-                    image_index,
-                    width,
-                    height,
-                    x_offset,
-                    y_offset,
-                    frame_count: u16::try_from(frames.len()).ok()?,
-                    anim_delay: delay as i16,
-                    tex_scale: 256,
-                    data_encoding: 0,
-                    is_animated: frames.len() > 1,
-                    palette: None,
-                    pixel_data: frames.remove(0),
-                    extra_frames: frames,
-                })
-            })
-            .collect();
+        let mut images = Vec::new();
+        for (image, transparent) in bank.into_bsi_images() {
+            if !transparent {
+                self.opaque_images.insert((id, image.image_index));
+            }
+            images.push(image);
+        }
         self.bsi_files.insert(id, BsiFile { images });
     }
 

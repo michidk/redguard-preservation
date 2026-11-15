@@ -248,3 +248,34 @@ fn software_cache_uses_the_engines_three_digit_filename() {
     );
     std::fs::remove_dir_all(root).unwrap();
 }
+
+#[test]
+fn bank_presents_entries_as_bsi_images_with_transparency() {
+    let mut solid = vec![0; 46];
+    solid[0] = 1;
+    solid[27] = 191;
+    let images = parse_texture_bank(&solid).unwrap().into_bsi_images();
+    assert_eq!(images.len(), 1);
+    let (image, transparent) = &images[0];
+    assert_eq!(
+        (image.width, image.height, image.pixel_data.as_slice()),
+        (1, 1, [191].as_slice())
+    );
+    assert!(!transparent);
+
+    let opaque = bank(2, 1, 1, 0, &[7, 9]);
+    let (image, transparent) = parse_texture_bank(&opaque)
+        .unwrap()
+        .into_bsi_images()
+        .remove(0);
+    assert_eq!((image.width, image.height), (2, 1));
+    assert_eq!(image.pixel_data, [7, 9]);
+    assert!(!transparent);
+    // A record without frames is dropped, not replaced by an empty image.
+    assert!(
+        parse_texture_bank(&bank(6, 0, 0, 0x900, &[]))
+            .unwrap()
+            .into_bsi_images()
+            .is_empty()
+    );
+}

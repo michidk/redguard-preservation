@@ -55,6 +55,56 @@ pub struct SoftwareTextureBank {
     pub entries: Vec<SoftwareTextureEntry>,
 }
 
+impl SoftwareTextureBank {
+    /// Presents each non-empty entry as a BSI image (frame 0 in `pixel_data`), paired with whether
+    /// palette index zero is transparent. Solid colors become 1 by 1 images. Entries without
+    /// frames are dropped, so `image_index` keeps the directory index.
+    #[must_use]
+    pub fn into_bsi_images(self) -> Vec<(super::bsi::BsiImage, bool)> {
+        self.entries
+            .into_iter()
+            .enumerate()
+            .filter_map(|(index, entry)| {
+                let image_index = u16::try_from(index).ok()?;
+                let (width, height, x_offset, y_offset, delay, flags, mut frames) = match entry {
+                    SoftwareTextureEntry::SolidColor(color) => {
+                        (1, 1, 0, 0, 0, 0, vec![vec![color]])
+                    }
+                    SoftwareTextureEntry::Image(image) => (
+                        image.width,
+                        image.height,
+                        image.x_offset,
+                        image.y_offset,
+                        image.frame_delay,
+                        image.flags,
+                        image.frames,
+                    ),
+                };
+                if frames.is_empty() {
+                    return None;
+                }
+                let image = super::bsi::BsiImage {
+                    name: format!("{index:03}"),
+                    image_index,
+                    width,
+                    height,
+                    x_offset,
+                    y_offset,
+                    frame_count: u16::try_from(frames.len()).ok()?,
+                    anim_delay: delay as i16,
+                    tex_scale: 256,
+                    data_encoding: 0,
+                    is_animated: frames.len() > 1,
+                    palette: None,
+                    pixel_data: frames.remove(0),
+                    extra_frames: frames,
+                };
+                Some((image, flags & 0x100 != 0))
+            })
+            .collect()
+    }
+}
+
 fn bytes(input: &[u8], offset: usize, count: usize) -> Result<&[u8]> {
     offset
         .checked_add(count)
