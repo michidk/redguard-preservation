@@ -26,6 +26,10 @@ The Glide viewport has horizontal half-field tangent `0.788`. At 640 by 480, scr
 
 Book surfaces are single-sided. With positive screen Y down, visible triangles have negative signed area; the opposite winding is culled. Each main, Movies, Options, and Controls page surface has sixteen projected triangles. Turning the page reverses their winding and exposes its other surface, rather than a mirrored copy of the previous page.
 
+The software Voodoo renderer stores book fragments in an RGB565 framebuffer with
+the configured four-by-four ordered dither, then expands the stored channel bits
+for presentation. Texture filtering precedes this [framebuffer conversion](fog.md#integer-precision-and-framebuffer-dithering).
+
 ## Text
 
 At width 640 the menu uses `FONTS/FONTNORM.FNT` for normal and grayed text, and `FONTS/FONTSEL.FNT` for the current selection. At other widths it can select the smaller `FONTNORS.FNT` and `FONTSELS.FNT` glyphs. `hi_res_menu` affects that font-switch path. The `HINORMAL`/`HISELECT` files are not these book-menu fonts.
