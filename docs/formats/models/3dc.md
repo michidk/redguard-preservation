@@ -83,6 +83,8 @@ Same as [3D.md — Section Layout](3d.md#section-layout), but with animated fram
 
 In v2.6/v2.7, `offset_frame_data` points to a 24-byte animation header. It is not the first frame record. Values are little-endian.
 
+The four embedded menu models in the software `MENU.ROB` (`MENUA001`, `MB_PG01`, `MB_PG02`, `MB_PG03`) have no animation header. Their `offset_frame_data` points straight at the uncompressed 16-byte frame records, and the first record's `vertex_offset` equals the header's `offset_vertex_coords`.
+
 | Offset | Size | Type | Name | Description |
 |---|---|---|---|---|
 | 0x00 | 4 | `u32` | table_offset | Absolute file offset of the frame directory |

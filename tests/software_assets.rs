@@ -279,3 +279,28 @@ fn bank_presents_entries_as_bsi_images_with_transparency() {
             .is_empty()
     );
 }
+
+#[test]
+fn software_model_reads_a_plain_frame_table_at_the_frame_offset() {
+    let mut bytes = vec![0; 176];
+    bytes[..4].copy_from_slice(b"v2.6");
+    for (i, value) in [1u32, 1, 0, 2, 64, 0, 0, 0, 0, 0, 1, 128, 140, 0, 120]
+        .into_iter()
+        .enumerate()
+    {
+        bytes[4 + i * 4..8 + i * 4].copy_from_slice(&value.to_le_bytes());
+    }
+    for (i, (v, n)) in [(128u32, 140u32), (152, 164)].into_iter().enumerate() {
+        let o = 64 + i * 16;
+        bytes[o..o + 4].copy_from_slice(&v.to_le_bytes());
+        bytes[o + 4..o + 8].copy_from_slice(&n.to_le_bytes());
+    }
+    for (o, values) in [(128, [256i32, 512, 768]), (152, [-512, 128, 1024])] {
+        for (axis, value) in values.into_iter().enumerate() {
+            bytes[o + axis * 4..o + axis * 4 + 4].copy_from_slice(&value.to_le_bytes());
+        }
+    }
+    let model = rgpre::model3d::parse_3d_file(&bytes).unwrap();
+    let p = model.at_frame(1).unwrap().vertex_coords[0];
+    assert_eq!([p.x, p.y, p.z], [-2., 0.5, 4.]);
+}

@@ -697,8 +697,20 @@ fn parse_software_frames(
 )> {
     let metadata = usize::try_from(header.offset_frame_data).ok()?;
     let bytes = input.get(metadata..metadata.checked_add(24)?)?;
-    let table = usize::try_from(u32::from_le_bytes(bytes[..4].try_into().ok()?)).ok()?;
-    let flags = u16::from_le_bytes(bytes[12..14].try_into().ok()?);
+    let first = u32::from_le_bytes(bytes[..4].try_into().ok()?);
+    // Embedded menu models store the 16-byte frame records directly at the frame offset.
+    // Their first record starts at the header's vertex block, which no directory pointer does.
+    let plain = first == header.offset_vertex_coords;
+    let table = if plain {
+        metadata
+    } else {
+        usize::try_from(first).ok()?
+    };
+    let flags = if plain {
+        0
+    } else {
+        u16::from_le_bytes(bytes[12..14].try_into().ok()?)
+    };
     let compressed = flags & 1 != 0;
     let reference = usize::from(u16::from_le_bytes(bytes[14..16].try_into().ok()?));
     let shift = bytes[23] & 31;
