@@ -1168,7 +1168,7 @@ other than 0, 15 and 27 through 32.
 
 During a low climb, holding forward with the walk modifier and a turn key
 leaves the climb animation and its position update in control. The turn key
-does not change the heading until ordinary control resumes after the climb.
+does not change the heading until ordinary control resumes after the climb. Forward walking can still probe support and queue the walking group behind the low-climb animation. That pending request does not grant walking displacement while the climb remains current.
 
 #### No ledge candidate
 
