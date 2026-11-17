@@ -1278,6 +1278,10 @@ runs one pass at forward offset `p = 0` and, when that returns zero, a second at
 `p = 6144` (Q8). The result is 1 when a class 1 record exists, else 2 for
 class 2, else 3 for class 3, else 0.
 
+Each pass clears the ledge-record table and underside list before gathering
+contacts. A rejected record from the nearer pass does not occupy a slot in the
+farther pass.
+
 Each pass:
 
 1. Build a segment from actor-local Q8 `(0, 40960, 9728 + p)` to
