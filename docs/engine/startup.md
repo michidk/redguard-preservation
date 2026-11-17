@@ -85,6 +85,14 @@ version information:
 See [Demo release](../demo.md#executable) for the other differences of
 the build 5.0 executable.
 
+## Version information acknowledgement
+
+The pre-world Version Information screen displays the executable's build notes
+and a `<Continue>` prompt. Return acknowledges this screen and allows world
+loading to proceed. This acknowledgement occurs before a selected player and
+ordinary world updates are available, including when startup targets a world
+directly.
+
 ## Splash variants
 
 The full DOS `glide2x_emu.ovl` contains the older "3Dfx Interactive" logo on a
