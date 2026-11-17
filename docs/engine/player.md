@@ -1326,7 +1326,9 @@ class:
   and record heading sets class 0 and skips the fit test.
 - The fit test places the actor's collision spheres, with its current angles, at
   the wall point plus offset 4096 at the record heading and Y
-  `(t − pos − standing_height) × 256`. Candidates are tested in order; a body
+  `(t − pos − standing_height) × 256`. Each Q8 trial coordinate is divided by
+  256 with truncation toward zero before the sphere queries. Candidates are
+  tested in order; a body
   contact fails the body test and ends the loop. Until then each candidate is
   also tested with one sphere of radius `post_collide_height >> 1` centered
   `pos − (post_collide_height >> 1)` below that Y; a class 8 contact fails the
