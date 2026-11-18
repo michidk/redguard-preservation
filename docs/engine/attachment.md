@@ -144,6 +144,10 @@ For weapon items, `hand_object_file` selects the hand model and
 32-bit value before preparing the weapon's collision spheres. The X and Z
 extents do not supply this length.
 
+For torch items, `game_object_file` supplies the held model and its signed
+`bbox_negative_y` supplies attachment length. The emitted light is placed at
+the transformed negative-length tip; see [held-torch lighting](model-lighting.md#held-torch-light).
+
 ## Attachment Transform
 
 The drawn-weapon routine queries the signed RAEX grip vertex pair from the

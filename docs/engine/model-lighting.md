@@ -526,6 +526,47 @@ Local-light registration forwards the current signed RGB strengths and radius.
 The retained intensity word is not an input to this registration and does not
 scale RGB during submission.
 
+## Held-torch light
+
+A held item whose installed item type is three uses the torch attachment draw
+path. The actor must have an admitted animation model, the item system must be
+open, and execution must be outside the shell context. Lighting and dousing
+transitions draw the ordinary hand attachment instead. The torch path registers
+a local light only while the actor's burning counter is nonzero and transient
+attachment allocation succeeds.
+
+The emitter is the torch's tip in integer world coordinates. The grip vertex
+pair and actor transform place the hand attachment as described in
+[attachment transforms](attachment.md#attachment-transform). Transform the
+vector `(0, -length * 256, 0)` by that attachment matrix, shift each result
+arithmetically right eight bits, and add the attachment's floating origin before
+converting to integer. For an installed type-three item, `game_object_file` selects the model. Its ROB
+`bbox_negative_y` supplies the length, interpreted as signed 32-bit map units.
+This differs from a weapon's total Y extent.
+
+The registered radius is 2816 engine units. Each emission draws from the shared
+C random stream and uses the low three bits to choose one of these encoded RGB
+strengths, in table order:
+
+| Index | Red | Green | Blue |
+| --- | --- | --- | --- |
+| 0 | 230 | 220 | 70 |
+| 1 | 235 | 225 | 80 |
+| 2 | 240 | 230 | 90 |
+| 3 | 245 | 235 | 100 |
+| 4 | 250 | 240 | 70 |
+| 5 | 255 | 245 | 80 |
+| 6 | 255 | 250 | 90 |
+| 7 | 255 | 255 | 100 |
+
+The torch's burn-dependent flicker calculation writes the descriptor's intensity
+word. Local-light registration does not consume that word: neither the radius
+nor the RGB strengths are multiplied by it. The emitted light uses the ordinary
+[local-light vertex contribution](#local-light-vertex-contribution), including
+its quantized distance tables and lack of a per-vertex radius cutoff. It is a
+transient light registered by the held-item draw, separate from the authored
+spatial-object light list.
+
 ## Runtime object-light region
 
 The normal world loop selects spatial lists using the target camera's integer
