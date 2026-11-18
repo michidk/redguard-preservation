@@ -815,6 +815,9 @@ their colours from that palette and not from `REDGUARD.COL`. Apart from the colo
 entries it overrides, that palette is `REDGUARD.COL` with each channel truncated to six
 bits (`4 * floor(channel / 4)`).
 
+The reader paper bitmap's opaque draw reduces each nonzero expanded palette
+channel by one before framebuffer storage; a zero channel remains zero.
+
 The software Voodoo renderer stores the reader's paper, lettering and scroll
 fragments in the RGB565 framebuffer with the configured four-by-four ordered
 dither before display. Palette expansion precedes this
