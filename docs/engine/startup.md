@@ -265,6 +265,8 @@ can include world indices before it. These are world-entry loading visuals,
 separate from the startup title's small bottom-edge labels. World loading
 does not display a right-aligned status message or an asset filename.
 
-New-game entry fades the loading screen in from black, fades it out to black
-after loading, and then fades the first world view in from black. Each fade
-step changes a black overlay by 12 out of 256.
+New-game entry and script-requested world changes fade the destination loading
+screen in from black, fade it out to black after loading, and then fade the
+first destination world view in from black. Each fade step changes a black
+overlay by 12 out of 256. World simulation resumes under the final fade-in;
+loading-screen fades do not advance the departing world's ordinary updates.
