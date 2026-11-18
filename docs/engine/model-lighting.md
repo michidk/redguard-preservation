@@ -19,7 +19,12 @@ it does not interpolate a transparent alpha mask and apply an alpha cutoff.
 
 Display initialization selects indexed palette texture mode. Each texture's
 chroma key is the selected palette's entry-zero RGB, copied without channel
-quantization. Palette selection uploads the complete 256-entry RGB table to
+quantization. A texture image whose world [`FLAT` record](../formats/RGM.md#flat)
+sets flag bit 1 instead takes its key from the selected palette table entry of
+the image's first stored texel, the first byte of its `DATA` payload. In the
+shipped worlds only `TEXBSI.357` images 0 and 3, the palm frond textures, set
+this bit. Their first texel is index 60, so under `ISLAND.COL` their key is
+`(12, 56, 0)` and the dark background between the leaflets is rejected. Palette selection uploads the complete 256-entry RGB table to
 texture unit zero. Palette-zero texels retain their RGB through filtering even
 when the material enables chroma rejection.
 

@@ -657,6 +657,12 @@ supplies 1, and a stored 255 supplies 256. The geometry scale and texture
 coordinate scale inputs remain 1. The base flag selects a centered quad;
 attribute flags do not replace that anchor selection.
 
+Texture loading also reads these records for model textures. Flag bit 1
+(`0x02`) replaces the texture's palette-entry-zero chroma key with the palette
+colour of the image's first stored texel; see
+[model texture transparency](../engine/model-lighting.md#texture-transparency).
+Every shipped RGM sets this bit only for `TEXBSI.357` images 0 and 3.
+
 `FLAT` appears in all 27 shipped RGM files as the last section before `END `.
 Its payload is 1111 bytes in 26 files and 1108 bytes in `HIDEOUT.RGM`.
 
