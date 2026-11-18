@@ -281,6 +281,11 @@ those bytes to the buffer. With no output buffer, it instead calls the palette
 installation service for 256 entries. Inventory bitmap initialization uses the
 copy branch for all three resources.
 
+Inventory artwork and opaque font colours retain the current world's fog colour
+at zero table density before ordered RGB565 storage. The encoded channel operation
+is `c + floor((fog_channel - c) / 256)`: channels above the fog colour lose one,
+while other channels remain unchanged. See [fog precision](fog.md#integer-precision-and-framebuffer-dithering).
+
 Bitmap image preparation keeps six texture slots arranged as three columns
 and two rows. The column and row origins are spaced 256 pixels apart. Slots
 outside the image dimensions contain no texture. Each populated slot receives
