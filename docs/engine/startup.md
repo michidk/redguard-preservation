@@ -270,3 +270,12 @@ screen in from black, fade it out to black after loading, and then fade the
 first destination world view in from black. Each fade step changes a black
 overlay by 12 out of 256. World simulation resumes under the final fade-in;
 loading-screen fades do not advance the departing world's ordinary updates.
+
+The loading-screen black rectangle blends in encoded RGB channels, not linear
+light, and leaves the picture's indexed palette unchanged. For opacity `a`,
+reconstruct the stored RGB565 destination using the ordered threshold at that
+pixel, multiply each reconstructed channel by `(256 - a) / 256` with integer
+truncation, then apply the ordered RGB565 store again. Opacity zero leaves the
+stored picture intact; opacity 256 produces black. The destination reconstruction
+is the same as [sun framebuffer blending](sky.md#sun-framebuffer-blending), and
+the rectangle uses the [display-finalization blend state](hud.md#exit).
