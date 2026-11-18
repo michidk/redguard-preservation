@@ -815,6 +815,11 @@ their colours from that palette and not from `REDGUARD.COL`. Apart from the colo
 entries it overrides, that palette is `REDGUARD.COL` with each channel truncated to six
 bits (`4 * floor(channel / 4)`).
 
+The software Voodoo renderer stores the reader's paper, lettering and scroll
+fragments in the RGB565 framebuffer with the configured four-by-four ordered
+dither before display. Palette expansion precedes this
+[framebuffer conversion](fog.md#integer-precision-and-framebuffer-dithering).
+
 `MENU.ROB` supplies two instances of `SCROLL.3D`. Their positions are
 `(-324,-212,362)` and `(-324,200,362)` with initial rotations `(0,512,0)`.
 The rotations apply the second axis, then the first, then the third. Each admitted
