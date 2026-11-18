@@ -89,6 +89,13 @@ and the current music mode is not 1, switches the music mode to 1 for the durati
 loads `SYSTEM\MAPMAP.GXA` and `SYSTEM\CROSS.GXA`, installs the palette read with the second file as palette 5 and
 activates it. The screen is 640 by 480: the map image is drawn at X 0 with its top at `(480 - height) / 2`.
 
+The map and cross retain the current world's fog colour at zero table density.
+The integer fog factor is still 1/256: each encoded channel `c` becomes
+`c + floor((fog_channel - c) / 256)` before ordered RGB565 framebuffer storage
+(see [fog precision](../engine/fog.md#integer-precision-and-framebuffer-dithering)).
+Thus a channel above the fog colour loses one; other channels remain unchanged.
+The rightmost framebuffer column remains the world fog-clear colour.
+
 The marker position is chosen from the current world when the screen opens. With no selected player or no current
 world, and in world 0, it is the fixed Q8 position (X 0xC68000, Z 0x793000), which is map units (50816, 31024).
 In worlds 7 and 14 it is the fixed Q8 position (X -0x196400, Z 0xB1BC00), map units (-6500, 45500). In worlds 1, 6,
