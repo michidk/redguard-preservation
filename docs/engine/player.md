@@ -655,7 +655,11 @@ or reject absent support. A missing slope contact does not itself reject motion.
 
 When the proposed position has no selected slope surface but the current position
 does, classification reads the uninitialized proposed normal. The result is not
-defined. When the proposed position has a selected surface, its classification
+defined. If neither primary nor fallback support exists at the forward position,
+the attempt fails regardless of this classification: rejecting the slope and
+accepting the slope followed by missing support both reject movement. This is a
+blocked forward attempt, not a stop of ordinary actor updates. When the proposed
+position has a selected surface, its classification
 determines rejection even if the current-position probe selects no surface.
 
 ### Queued and falling vertical motion
