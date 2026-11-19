@@ -662,6 +662,11 @@ blocked forward attempt, not a stop of ordinary actor updates. When the proposed
 position has a selected surface, its classification
 determines rejection even if the current-position probe selects no surface.
 
+The harbour ship's gangway has a blocked ship-side approach where forward
+walking leaves the player grounded and stationary while ordinary updates
+continue. The gangway is reachable by walking around the northern side of that
+approach, then following the ramp onto the dock; jumping is not required.
+
 ### Queued and falling vertical motion
 
 Queued and falling vertical motion skip their arithmetic when an animated
