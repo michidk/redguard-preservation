@@ -7,7 +7,9 @@ Outdoor sky configuration and the Glide renderer's BSI sky plane and sun disc.
 In the shipped Glide build, the sky uses `world_skyfx[N]` and a
 matching `.COL` file. The texture is projected onto a horizontal quad before
 scene geometry. A separate billboard draws the sun. The GXA file named by
-`world_sky[N]` is not loaded by this renderer's sky setup.
+`world_sky[N]` is not loaded by this renderer's sky setup. Sky loading does not
+require a terrain WLD; worlds without terrain can declare the same BSI sky
+and sun inputs.
 
 ## Lifecycle
 
