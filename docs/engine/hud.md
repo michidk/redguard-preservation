@@ -824,8 +824,10 @@ their colours from that palette and not from `REDGUARD.COL`. Apart from the colo
 entries it overrides, that palette is `REDGUARD.COL` with each channel truncated to six
 bits (`4 * floor(channel / 4)`).
 
-The reader paper bitmap's opaque draw reduces each nonzero expanded palette
-channel by one before framebuffer storage; a zero channel remains zero.
+The reader paper bitmap retains the current world's fog colour at zero table
+density before framebuffer storage. Each expanded palette channel `c` becomes
+`c + floor((fog_channel - c) / 256)`. With black fog this reduces each nonzero
+channel by one and keeps zero unchanged; coloured world fog changes that boundary.
 
 The software Voodoo renderer stores the reader's paper, lettering and scroll
 fragments in the RGB565 framebuffer with the configured four-by-four ordered
