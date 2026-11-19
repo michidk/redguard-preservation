@@ -723,6 +723,14 @@ all selected source indices: `(256 - (j + 1)) * 256 + (i + 256)` equals
 `(256 - j) * 256 + i`. A cell row outside the rectangular grid can therefore
 still address height-array elements through a column carry. The combined linear
 source index determines whether a corner belongs to the array.
+The far-cache lookup reads a byte at the computed linear index and uses that
+byte directly as an index into the runtime float height table. It does not check
+the heightmap extent or repeat the loader's high-bit mask. A sample read outside
+the heightmap can therefore become an ordinary terrain support result, including
+a steep surface that lands and slides an airborne actor. That result acquires no
+supporting model owner and does not pass through the regional actor or static
+model candidate windows.
+
 A row past the north end of the array reads memory outside the array. Swimming straight north from the NECRISLE
 start (west of the island) keeps the swimming state through the last array row and the row beyond it, and the player
 enters animation group 18 with surface 0 within a few map units of crossing Z 0; the height then drops about 835 map
