@@ -504,6 +504,10 @@ frame, candle or inventory artwork is drawn. In mode 1 the backdrop is the inven
 drawing pass described above: the inventory's copy of the world frame, the candle, the shaded
 quad, `INVBORDR.GXA`, the arrows and the other visible cells.
 
+The description uses the inventory's (2, 2) font shadow. Opaque glyph colours retain the
+world's zero-density fog step before ordered RGB565 storage. Shadows blend in encoded
+integer framebuffer channels against the backdrop and model already drawn.
+
 The current description line's RTX text is drawn in REDSEL, the inventory screen's font. It is
 split into lines by the [inventory name wrap](#layout) with a 30-byte step instead of 13. Line `n`
 is centred on x = 320 with its top at `10 + trunc(0.9 × n × line_height)`. The text is drawn only
