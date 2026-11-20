@@ -73,6 +73,28 @@ Temporary `.TSG` snapshots use the same container and metadata layout.
 Their image chunks can be empty. The engine can restore these snapshots during
 a world reload after initializing the player.
 
+## Object-record framing
+
+`SMOB` concatenates variable-length records. Each record begins with the
+following header; numeric fields are little-endian. The length excludes its own
+four-byte field. The next record therefore starts `4 + record_length` bytes
+after the current record's start.
+
+| Offset | Size | Type | Name | Description |
+|---|---|---|---|---|
+| `0x00` | 4 | `u32` | record_length | Bytes remaining in this record, including its identity header and payload. |
+| `0x04` | 4 | `i32` | object_id | Object identity; `-2` and `-3` select the two player objects, and zero creates an object. |
+| `0x08` | 4 | `u32` | rope_id | Rope identity used to reconstruct the actor's attachment. |
+| `0x0C` | 1 | `u8` | record_kind | Record-kind discriminator used by the restore path. |
+| `0x0D` | variable | `[u8]` | payload | Packed object state and conditional trailing records. |
+
+The full object restore reads a 783-byte packed object body before its
+conditional trailing records. The body is not the complete record: additional
+state includes an optional script-state body of 422 bytes, attachment node and
+motion words, and other object-owned data. The reader seeks to the recorded end
+after applying the supported fields. Record framing alone does not resolve the
+saved references or establish a restorable actor.
+
 ## Global flags
 
 The `SVGF` payload stores the flag values and state bytes in installed global
