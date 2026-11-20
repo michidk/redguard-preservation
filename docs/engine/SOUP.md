@@ -1017,7 +1017,7 @@ the jump key) and C (`key_c`, the view key).
   Its target is `(hand Y + actor Y + 2 × link length − 1) >> 8`, where all
   terms before the shift are Q8. It uses the attachment search's floor clamp,
   eight-link search window and nearest eligible link rule; attachment itself
-  retains the unbiased `(hand Y + actor Y) >> 8` target. It it does nothing unless the result is
+  retains the unbiased `(hand Y + actor Y) >> 8` target. It does nothing unless the result is
   greater than the current index, requests group 83 and returns true when the group was not already 83, and
   otherwise returns whether byte `+0x0b` is nonzero. Each update the rope owner reads the current group:
   group 82 moves the attachment one node toward the base when the shared tick count is nonzero, and group 83 one
