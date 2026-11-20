@@ -126,9 +126,10 @@ lossless edit; they are not portable native pointers.
 `SMSH` starts with a little-endian four-byte shell count. Each shell has a
 186-byte body followed by a private variable array of four-byte words. The
 body's word at `0x28` gives the array count. The first eight bytes identify the
-installed shell by name. Restoration resolves that name against initialized
-shells and retains their runtime binding and variable storage. The saved shell
-count must agree with the initialized world.
+installed shell by name. Restoration clears the live shell list, constructs each
+saved shell from its installed named definition, and retains that fresh shell's
+runtime binding and variable storage while copying saved state. The saved shell
+count must agree with the world's retained shell count before reconstruction.
 
 Code and shell script references remain offsets in saved data. Nonzero native
 hook references are rebased against the world's native-hook base; nonzero script

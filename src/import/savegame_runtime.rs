@@ -207,7 +207,8 @@ impl SaveShell {
     }
 }
 /// Decode counted SMSH records and their private variable arrays.
-/// Consumers must match the count and names against initialized world shells.
+/// Consumers must validate the world shell count, then reconstruct each shell
+/// from its installed named definition before applying saved state.
 pub fn parse_save_shells(mut bytes: &[u8]) -> Result<Vec<SaveShell>> {
     let invalid = |message: &str| Error::Parse(format!("save game SMSH: {message}"));
     if bytes.len() < 4 {
