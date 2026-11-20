@@ -4,6 +4,8 @@
 
 Documentation and tools for preserving *The Elder Scrolls Adventures: Redguard* (1998), Bethesda's action-adventure game. The project reverse-engineers the game's file formats and engine, writes down what it finds, and provides software that reads and converts the game's assets.
 
+<p align="center"><a href="#quick-start">Quick start</a> · <a href="https://michidk.github.io/redguard-preservation/">File formats</a> · <a href="#using-the-rust-library">Rust API</a> · <a href="#native-plugin-ffi">Native plugin</a></p>
+
 ## What is in this repository
 
 | Part | What it gives you | Start here |
@@ -79,6 +81,8 @@ Run `rgpre --help` or `rgpre convert <FORMAT> --help` for the full option list.
 Without `--palette`, image exports show palette indices as grayscale. `rgpre convert system/gui.anm` writes `system/gui_anm/animation.gif` and timing metadata. `rgpre convert system/SKY_61.PCX` and `rgpre convert system/gui.lbm` export PNG images.
 
 ### More examples
+
+Run these examples from the installed game directory; output paths are relative to it.
 
 ```bash
 # Model with palette and asset root
