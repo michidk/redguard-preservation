@@ -1013,8 +1013,11 @@ the jump key) and C (`key_c`, the view key).
 - **Climb.** Without a held weapon and with C up, Up runs the climb-up helper and otherwise Down runs
   the climb-down helper. Climb up does nothing unless the attachment's node index is at least 2; it requests
   group 82 when the current group is not 82 and returns true, otherwise it requests group 82 again while
-  the animation record's byte `+0x0a` is zero and returns whether byte `+0x0b` is nonzero. Climb down asks
-  the [hand-height link choice](#rope-attachment) for node index + 1; it does nothing unless the result is
+  the animation record's byte `+0x0a` is zero and returns whether byte `+0x0b` is nonzero. Climb down uses a separate hand-height link search, starting at node index + 1.
+  Its target is `(hand Y + actor Y + 2 × link length − 1) >> 8`, where all
+  terms before the shift are Q8. It uses the attachment search's floor clamp,
+  eight-link search window and nearest eligible link rule; attachment itself
+  retains the unbiased `(hand Y + actor Y) >> 8` target. It it does nothing unless the result is
   greater than the current index, requests group 83 and returns true when the group was not already 83, and
   otherwise returns whether byte `+0x0b` is nonzero. Each update the rope owner reads the current group:
   group 82 moves the attachment one node toward the base when the shared tick count is nonzero, and group 83 one
@@ -1025,7 +1028,8 @@ the jump key) and C (`key_c`, the view key).
   accumulates the step; the rate clears once the accumulated total exceeds the rate in magnitude. With a zero
   rate and A held, a rope whose amplitude is below 5 either (type bit 0x1 set) starts a turn of rate 1024 for Left or
   −1024 for Right with the accumulated total cleared, or (bit clear) adds `Right × tick scale >> 8 − Left × tick scale >> 8`
-  to the heading.
+  to the heading. Left and Right here are the accelerated directional turn
+  accumulators, shared with ground turning, rather than boolean key states.
 - **Pump.** With C and A up, the pump service runs on the attached rope unless its type bit 0x8 is set. With neither
   Left nor Right held it clears the pending push. Otherwise, while the amplitude is zero it adds 3 to the pending push,
   sets the amplitude to 2 and, with `d` the absolute heading difference between the actor and the rope heading, sets the
