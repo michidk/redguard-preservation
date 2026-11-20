@@ -654,13 +654,13 @@ query still runs and can accept the designated player's fallback sphere contact
 or reject absent support. A missing slope contact does not itself reject motion.
 
 When the proposed position has no selected slope surface but the current position
-does, classification reads the uninitialized proposed normal. The result is not
-defined. If neither primary nor fallback support exists at the forward position,
-the attempt fails regardless of this classification: rejecting the slope and
-accepting the slope followed by missing support both reject movement. This is a
-blocked forward attempt, not a stop of ordinary actor updates. When the proposed
-position has a selected surface, its classification
-determines rejection even if the current-position probe selects no surface.
+does, the attempt continues to the separate support query. Current support alone
+does not make a missing proposed slope surface a slope rejection. The support
+query decides whether the forward position is supported. If neither primary nor
+fallback support exists there, the attempt is blocked while ordinary actor
+updates continue. When the proposed position has a selected surface, its
+classification determines rejection even if the current-position probe selects
+no surface.
 
 The harbour ship's gangway has a blocked ship-side approach where forward
 walking leaves the player grounded and stationary while ordinary updates
