@@ -95,6 +95,46 @@ motion words, and other object-owned data. The reader seeks to the recorded end
 after applying the supported fields. Record framing alone does not resolve the
 saved references or establish a restorable actor.
 
+### Conditional object tails
+
+The full object body is followed by these fields in order. Presence offsets
+refer to the 783-byte body, not the record header. Unnamed blocks remain opaque.
+
+| Presence condition | Size | Contents |
+|---|---|---|
+| Byte `0xC1` equals one | 1 or 10 | Presence byte, then nine name bytes when nonzero. |
+| Word `0x272` nonzero | 256 | Actor attributes. |
+| Word `0x23F` nonzero | 41 | Opaque retained block. |
+| Word `0x243` nonzero | 20 | Opaque retained block with regenerated runtime binding. |
+| Word `0x247` nonzero | 37 | Mutable animation header; installed animation allocation is retained. |
+| Word `0x23B` differs from `0xFFFFFFFF` | 422 | Script state. Zero is a present identity. The loader additionally requires the initialized script allocation. |
+| Record rope identity nonzero | 8 | Attachment node and motion words. |
+| Always | 48 | Saved vector blocks of 36 and 12 bytes. |
+| Word `0x21` equals one | 60 | Retained block with an object identity in its first word. |
+| Word `0x1C` nonzero | `4 × byte at 0x20` | Private variable array. |
+
+Position occupies three signed little-endian 24.8 words at body offsets
+`0xCB`, `0xCF`, and `0xD3`. The saved object references at offsets zero, four,
+eight, twelve, and `0x1D4` are object identities. The 422-byte script state
+starts with a separate installed actor identity followed by two object identities.
+Its other fields include runtime bindings retained from the initialized owner.
+Uninterpreted fields and trailing extensions must remain intact during a
+lossless edit; they are not portable native pointers.
+
+### Shell state
+
+`SMSH` starts with a little-endian four-byte shell count. Each shell has a
+186-byte body followed by a private variable array of four-byte words. The
+body's word at `0x28` gives the array count. The first eight bytes identify the
+installed shell by name. Restoration resolves that name against initialized
+shells and retains their runtime binding and variable storage. The saved shell
+count must agree with the initialized world.
+
+Code and shell script references remain offsets in saved data. Nonzero native
+hook references are rebased against the world's native-hook base; nonzero script
+references are rebased against its script base. These offsets do not identify
+instructions in a different interpreter without an explicit mapping.
+
 ## Global flags
 
 The `SVGF` payload stores the flag values and state bytes in installed global
