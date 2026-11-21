@@ -570,6 +570,14 @@ taken jump marks exit processing active and clears the movement marker; a
 pending through these exit frames until `EndAnimation` starts it in the same
 advancement call, using that call's tick input.
 
+The selected player's ordinary sidestep groups also retain animation-owned
+movement while alignment owns input. A pending idle request does not cancel this
+continuation. When the matching directional called flag is clear, the sidestep
+runs its lateral support check and applies `attr_side_speed` at the shared frame
+scale, subject to the animation's movement-suppression marker. This continuation
+can move the player inside the alignment arrival radius even when the alignment
+mover's distance-permission check declines another step.
+
 ## Ordinary forward-walk support checks
 
 Before an ordinary ground walk is accepted, the engine probes ahead of the
