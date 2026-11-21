@@ -6,6 +6,7 @@
   - [SOUP scripting](engine/SOUP.md)
   - [Actor animation](engine/animation.md)
   - [Player movement](engine/player.md)
+  - [Tavern activations](engine/tavern.md)
   - [Item attachment](engine/attachment.md)
   - [Developer console](engine/console.md)
   - [Hidden cheats](engine/cheats.md)

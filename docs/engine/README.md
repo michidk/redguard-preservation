@@ -13,6 +13,7 @@ the [configuration reference](../config/) describes the INI settings.
 | [SOUP property descriptors](SOUPPROPS.md) | Actor-record offset and width of every script property. |
 | [Actor animation](animation.md) | Model frames, animation requests, loop counts, and placed actor eligibility. |
 | [Player movement](player.md) | Coordinate units, turning, collision, and frame timing. |
+| [Tavern activations](tavern.md) | Conditions for the tavern's conversation prompts and the door exit. |
 | [Item attachment](attachment.md) | Vertex tracking for held weapons and shields. |
 | [Developer console](console.md) | All 82 registered commands, aliases, subcommands, numeric parsing, and command quirks. |
 | [Hidden cheats](cheats.md) | Cheat entry, effects, persistence, and developer controls. |
