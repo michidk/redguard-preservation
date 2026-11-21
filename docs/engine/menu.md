@@ -91,6 +91,13 @@ The credits play CD track 2 at the `redbook_volume` setting. After them the engi
 book menu in its ending mode, which starts no CD audio (only the ordinary in-game book plays
 track 2), so the page that follows the credits is silent.
 
+### Version information
+
+F1 during gameplay suspends the world and displays a centered version dialog.
+The dialog is composited over the retained world view, including the player's
+current model pose. Its interior is translucent; the scene and actors remain
+visible through it. Confirming and releasing Enter returns to gameplay.
+
 ### Credits scroll
 
 The credits come from `CREDITS.TXT` in the game directory. The engine reads the whole
