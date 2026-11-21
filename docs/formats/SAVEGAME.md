@@ -114,7 +114,9 @@ refer to the 783-byte body, not the record header. Unnamed blocks remain opaque.
 | Word `0x1C` nonzero | `4 × byte at 0x20` | Private variable array. |
 
 Position occupies three signed little-endian 24.8 words at body offsets
-`0xCB`, `0xCF`, and `0xD3`. The saved object references at offsets zero, four,
+`0xCB`, `0xCF`, and `0xD3`. The retained orientation occupies three signed
+little-endian words at `0x120`, `0x124`, and `0x128`: pitch, heading and roll.
+Angles wrap modulo 2048; heading is the middle word. The saved object references at offsets zero, four,
 eight, twelve, and `0x1D4` are object identities. The 422-byte script state
 starts with a separate installed actor identity followed by two object identities.
 Its other fields include runtime bindings retained from the initialized owner.
