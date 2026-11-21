@@ -5714,6 +5714,14 @@ through 2047, supplies the starting heading. The three words are cleared when th
 `WonGame`, `PushPlayer` and `PopPlayer` each set one request flag for the main loop, which consumes them.
 `WonGame` ends the world loop and starts the [ending](menu.md#selection-and-actions).
 
+The installed EXTPALAC Richton script admits the final confrontation through
+inventory ownership and proximity. It remains hidden until `HaveItem(79)` is
+one, then shows itself and restores its rotation. It waits for
+`PlayerDistance()` to be strictly below 131072 Q8 units (512 map units), calls
+`showObjLoc(-64, 0, 64)`, waits 12 nominal ticks, and calls `beginCombat`.
+After a further wait of 36 nominal ticks it calls `showPlayer`. This admission
+sequence does not test a quest flag. Its later death branch calls `WonGame`.
+
 `PushPlayer` and `PopPlayer` are consumed at the end of a world-loop iteration that does not leave the loop:
 push first, then pop. Each clears its own flag when consumed, whether or not it acts. The engine keeps the
 CYRUS and GREMLIN player records and one swap state, clear in a fresh world. While the swap state is clear
