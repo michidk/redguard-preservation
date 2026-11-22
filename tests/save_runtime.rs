@@ -16,6 +16,13 @@ fn installed_object_fields_and_round_trip() {
             assert_eq!(encode_save_objects(&records).unwrap(), section.data);
             for player in records.iter().filter(|r| matches!(r.object_id, -2 | -3)) {
                 assert!(player.script_state.is_some());
+                if let Some(identity) = player.support_object_id() {
+                    let owner = records
+                        .iter()
+                        .find(|record| record.object_id == identity)
+                        .expect("saved player support record must be present");
+                    assert_eq!(i32::from(owner.runtime_identifier()), identity);
+                }
                 assert_eq!(
                     player.position_q8(),
                     std::array::from_fn(|i| {
@@ -137,4 +144,27 @@ fn relative_references_keep_their_saved_values() {
         parse_save_code_owners(&encoded).unwrap()[0].script_references(),
         refs
     );
+}
+
+#[test]
+fn saved_support_identity_and_pose_round_trip() {
+    let mut bytes = vec![0; 4 + 9 + 783 + 48];
+    let size = (bytes.len() - 4) as u32;
+    bytes[..4].copy_from_slice(&size.to_le_bytes());
+    bytes[13 + 0x23b..17 + 0x23b].copy_from_slice(&u32::MAX.to_le_bytes());
+    let mut objects = parse_save_objects(&bytes).unwrap();
+    let actor = &mut objects[0];
+    actor.body[20..22].copy_from_slice(&17u16.to_le_bytes());
+    actor.body[468..472].copy_from_slice(&23i32.to_le_bytes());
+    for (axis, angle) in [7i32, 1024, -2].into_iter().enumerate() {
+        actor.body[288 + axis * 4..292 + axis * 4].copy_from_slice(&angle.to_le_bytes());
+    }
+    let decoded = parse_save_objects(&encode_save_objects(&objects).unwrap()).unwrap();
+    assert_eq!(decoded[0].runtime_identifier(), 17);
+    assert_eq!(decoded[0].orientation(), [7, 1024, -2]);
+    assert_eq!(decoded[0].support_object_id(), Some(23));
+    objects[0].body[468..472].copy_from_slice(&(-1i32).to_le_bytes());
+    assert_eq!(objects[0].support_object_id(), None);
+    objects[0].body[468..472].copy_from_slice(&0i32.to_le_bytes());
+    assert_eq!(objects[0].support_object_id(), Some(0));
 }

@@ -117,7 +117,13 @@ Position occupies three signed little-endian 24.8 words at body offsets
 `0xCB`, `0xCF`, and `0xD3`. The retained orientation occupies three signed
 little-endian words at `0x120`, `0x124`, and `0x128`: pitch, heading and roll.
 Angles wrap modulo 2048; heading is the middle word. The saved object references at offsets zero, four,
-eight, twelve, and `0x1D4` are object identities. The 422-byte script state
+eight, twelve, and `0x1D4` are object identities.
+The unsigned two-byte field at `0x14` is the initialized runtime actor identity.
+Ordinary actor records bind to initialized actors by that identity; the special
+player record identities remain distinct. The signed word at `0x1D4` names the
+supporting actor's SMOB record identity, or minus one when no actor supports the
+object. The support record carries its own world position and orientation;
+these are not offsets from the supported player. The 422-byte script state
 starts with a separate installed actor identity followed by two object identities.
 Its other fields include runtime bindings retained from the initialized owner.
 Uninterpreted fields and trailing extensions must remain intact during a

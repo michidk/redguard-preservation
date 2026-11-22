@@ -25,6 +25,26 @@ pub struct SaveObject {
     pub extension: Vec<u8>,
 }
 impl SaveObject {
+    /// Initialized runtime identity used to bind an ordinary saved actor.
+    /// Special player record identities remain distinct from this value.
+    pub fn runtime_identifier(&self) -> u16 {
+        u16::from_le_bytes(self.body[20..22].try_into().unwrap())
+    }
+
+    /// Saved pitch, heading and roll, each wrapping modulo 2048.
+    pub fn orientation(&self) -> [i32; 3] {
+        std::array::from_fn(|i| {
+            i32::from_le_bytes(self.body[288 + i * 4..292 + i * 4].try_into().unwrap())
+        })
+    }
+
+    /// Supporting actor's SMOB identity; minus one denotes no actor support.
+    /// This is an identity to resolve, never a native pointer or a vector offset.
+    pub fn support_object_id(&self) -> Option<i32> {
+        let identity = i32::from_le_bytes(self.body[468..472].try_into().unwrap());
+        (identity != -1).then_some(identity)
+    }
+
     /// World position in signed 24.8 map units.
     pub fn position_q8(&self) -> [i32; 3] {
         std::array::from_fn(|i| {
