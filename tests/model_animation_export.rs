@@ -60,29 +60,33 @@ fn software_bytes(version: &[u8; 4], compressed: bool) -> Vec<u8> {
             }
         }
         let normal_offset = bytes.len();
-        for _ in 0..2 {
-            if compressed {
-                let normal = match frame {
-                    0 => (256u32 << 20) | (896 << 10) | 64,
-                    1 => 256 << 10,
-                    _ => 256,
-                };
-                bytes.extend_from_slice(&normal.to_le_bytes());
-            } else {
-                let normal = match frame {
-                    0 => [256i32, -128, 64],
-                    1 => [0, 256, 0],
-                    _ => [0, 0, 256],
-                };
-                for component in normal {
-                    bytes.extend_from_slice(&component.to_le_bytes());
-                }
-            }
-        }
+        append_software_normals(&mut bytes, frame, compressed);
         word(&mut bytes, 88 + frame * stride, vertex_offset as u32);
         word(&mut bytes, 92 + frame * stride, normal_offset as u32);
     }
     bytes
+}
+
+fn append_software_normals(bytes: &mut Vec<u8>, frame: usize, compressed: bool) {
+    for _ in 0..2 {
+        if compressed {
+            let normal = match frame {
+                0 => (256u32 << 20) | (896 << 10) | 64,
+                1 => 256 << 10,
+                _ => 256,
+            };
+            bytes.extend_from_slice(&normal.to_le_bytes());
+        } else {
+            let normal = match frame {
+                0 => [256i32, -128, 64],
+                1 => [0, 256, 0],
+                _ => [0, 0, 256],
+            };
+            for component in normal {
+                bytes.extend_from_slice(&component.to_le_bytes());
+            }
+        }
+    }
 }
 
 fn palette() -> Palette {
@@ -122,46 +126,7 @@ fn software_morph_animation_preserves_decoded_poses_and_normals_across_material_
             assert_eq!(mesh.primitives().count(), 2);
             assert_eq!(mesh.weights().unwrap(), [0.0, 0.0]);
             for primitive in mesh.primitives() {
-                let extras: serde_json::Value =
-                    serde_json::from_str(primitive.extras().as_ref().unwrap().get()).unwrap();
-                let sources = extras["rgpre_geometry"]["source_vertices"]
-                    .as_array()
-                    .unwrap();
-                let reader = primitive.reader(|_| decoded.blob.as_deref());
-                let base: Vec<_> = reader.read_positions().unwrap().collect();
-                let normals: Vec<_> = reader.read_normals().unwrap().collect();
-                let targets: Vec<_> = reader.read_morph_targets().collect();
-                assert_eq!(targets.len(), 2);
-                for (frame, (positions, normal_deltas, _)) in targets.into_iter().enumerate() {
-                    let positions: Vec<_> = positions.unwrap().collect();
-                    let normal_deltas: Vec<_> = normal_deltas.unwrap().collect();
-                    for vertex in 0..base.len() {
-                        let source = sources[vertex][0].as_u64().unwrap() as f32;
-                        close(base[vertex], [-source / 20.0, -0.2, 0.35]);
-                        close(normals[vertex], [-1.0, 0.5, 0.25]);
-                        let expected = if frame == 0 {
-                            [-(source + 1.0) / 20.0, -0.1, 0.15]
-                        } else {
-                            [-(source + 2.0) / 20.0, 0.0, 0.15]
-                        };
-                        close(
-                            std::array::from_fn(|axis| {
-                                base[vertex][axis] + positions[vertex][axis]
-                            }),
-                            expected,
-                        );
-                        close(
-                            std::array::from_fn(|axis| {
-                                normals[vertex][axis] + normal_deltas[vertex][axis]
-                            }),
-                            if frame == 0 {
-                                [0.0, -1.0, 0.0]
-                            } else {
-                                [0.0, 0.0, 1.0]
-                            },
-                        );
-                    }
-                }
+                assert_software_primitive(&decoded, &primitive);
             }
             let animation = decoded.animations().next().unwrap();
             assert_eq!(animation.channels().count(), 1);
@@ -194,6 +159,45 @@ fn software_morph_animation_preserves_decoded_poses_and_normals_across_material_
                     assert!(root.buffer_views[view.value()].target.is_none());
                 }
             }
+        }
+    }
+}
+
+fn assert_software_primitive(decoded: &gltf::Gltf, primitive: &gltf::Primitive<'_>) {
+    let extras: serde_json::Value =
+        serde_json::from_str(primitive.extras().as_ref().unwrap().get()).unwrap();
+    let sources = extras["rgpre_geometry"]["source_vertices"]
+        .as_array()
+        .unwrap();
+    let reader = primitive.reader(|_| decoded.blob.as_deref());
+    let base: Vec<_> = reader.read_positions().unwrap().collect();
+    let normals: Vec<_> = reader.read_normals().unwrap().collect();
+    let targets: Vec<_> = reader.read_morph_targets().collect();
+    assert_eq!(targets.len(), 2);
+    for (frame, (positions, normal_deltas, _)) in targets.into_iter().enumerate() {
+        let positions: Vec<_> = positions.unwrap().collect();
+        let normal_deltas: Vec<_> = normal_deltas.unwrap().collect();
+        for vertex in 0..base.len() {
+            let source = sources[vertex][0].as_u64().unwrap() as f32;
+            close(base[vertex], [-source / 20.0, -0.2, 0.35]);
+            close(normals[vertex], [-1.0, 0.5, 0.25]);
+            let expected = if frame == 0 {
+                [-(source + 1.0) / 20.0, -0.1, 0.15]
+            } else {
+                [-(source + 2.0) / 20.0, 0.0, 0.15]
+            };
+            close(
+                std::array::from_fn(|axis| base[vertex][axis] + positions[vertex][axis]),
+                expected,
+            );
+            close(
+                std::array::from_fn(|axis| normals[vertex][axis] + normal_deltas[vertex][axis]),
+                if frame == 0 {
+                    [0.0, -1.0, 0.0]
+                } else {
+                    [0.0, 0.0, 1.0]
+                },
+            );
         }
     }
 }
@@ -354,10 +358,9 @@ fn animation_rejects_invalid_rates_incomplete_frames_and_static_only_inputs() {
 
 #[test]
 fn cli_exports_selected_pose_and_animation_and_rejects_invalid_options() {
-    let dir = std::env::temp_dir().join(format!("rgpre-model-animation-{}", std::process::id()));
-    std::fs::create_dir_all(&dir).unwrap();
-    let input = dir.join("model.3dc");
-    let output = dir.join("model.glb");
+    let dir = tempfile::tempdir().unwrap();
+    let input = dir.path().join("model.3dc");
+    let output = dir.path().join("model.glb");
     std::fs::write(&input, software_bytes(b"v2.7", true)).unwrap();
     let run = |args: &[&str]| {
         Command::new(env!("CARGO_BIN_EXE_rgpre"))
@@ -413,7 +416,6 @@ fn cli_exports_selected_pose_and_animation_and_rejects_invalid_options() {
             "unexpected success for {args:?}"
         );
     }
-    std::fs::remove_dir_all(&dir).unwrap();
 }
 
 #[test]

@@ -37,13 +37,38 @@ impl GltfBuilder<'_> {
             ));
         }
         let mesh_index = self.append_mesh(base.clone());
+        self.append_morph_targets(mesh_index, &base, model, palette)?;
+        self.meshes[mesh_index].weights = Some(vec![0.0; target_count]);
+        let input = self.push_animation_scalars(&times, true);
+        let weight_count = times
+            .len()
+            .checked_mul(target_count)
+            .ok_or_else(|| Error::Conversion("Animation weight count overflow".into()))?;
+        let mut weights = vec![0.0; weight_count];
         for frame in 1..frame_count {
+            weights[frame * target_count + frame - 1] = 1.0;
+        }
+        // Hold the final pose for one full frame interval.
+        weights[frame_count * target_count + target_count - 1] = 1.0;
+        let output = self.push_animation_scalars(&weights, false);
+        self.append_pose_channel(input, output);
+        Ok(mesh_index)
+    }
+
+    fn append_morph_targets(
+        &mut self,
+        mesh_index: usize,
+        base: &[UnrolledPrimitive],
+        model: &Model3DFile,
+        palette: Option<&Palette>,
+    ) -> Result<()> {
+        for frame in 1..model.header.num_frames as usize {
             let posed = model.at_frame(frame)?;
             let primitives = build_unrolled_primitives(&posed, palette, self.has_texture_cache());
             if primitives.len() != base.len() {
                 return Err(Error::Conversion("Animation changes mesh topology".into()));
             }
-            for (index, (posed, base)) in primitives.iter().zip(&base).enumerate() {
+            for (index, (posed, base)) in primitives.iter().zip(base).enumerate() {
                 if posed.material_key != base.material_key
                     || posed.positions.len() != base.positions.len()
                     || posed.indices != base.indices
@@ -65,19 +90,10 @@ impl GltfBuilder<'_> {
                     });
             }
         }
-        self.meshes[mesh_index].weights = Some(vec![0.0; target_count]);
-        let input = self.push_animation_scalars(&times, true);
-        let weight_count = times
-            .len()
-            .checked_mul(target_count)
-            .ok_or_else(|| Error::Conversion("Animation weight count overflow".into()))?;
-        let mut weights = vec![0.0; weight_count];
-        for frame in 1..frame_count {
-            weights[frame * target_count + frame - 1] = 1.0;
-        }
-        // Hold the final pose for one full frame interval.
-        weights[frame_count * target_count + target_count - 1] = 1.0;
-        let output = self.push_animation_scalars(&weights, false);
+        Ok(())
+    }
+
+    fn append_pose_channel(&mut self, input: usize, output: usize) {
         if self.animations.is_empty() {
             self.animations.push(Animation {
                 name: Some("Model poses".into()),
@@ -106,7 +122,6 @@ impl GltfBuilder<'_> {
             extensions: None,
             extras: Default::default(),
         });
-        Ok(mesh_index)
     }
 
     fn push_animation_scalars(&mut self, values: &[f32], time_bounds: bool) -> usize {
