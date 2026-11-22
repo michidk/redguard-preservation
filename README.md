@@ -57,7 +57,7 @@ Run `rgpre --help` or `rgpre convert <FORMAT> --help` for the full option list.
 
 | Subcommand | Input | Output | Format-specific flags |
 |---|---|---|---|
-| `convert model` | `.3d`, `.3dc`, `.rob` | `.glb` | `--assets`, `--palette` |
+| `convert model` | `.3d`, `.3dc`, `.rob` | `.glb` | `--assets`, `--palette`, `--frame`, `--animate`, `--fps` |
 | `convert rgm` | `.rgm` scene | directory: `.glb`, scene/actors/navigation `.json`, and per-actor `.soup`/`.json` scripts | `--assets`, `--palette`, `--software` |
 | `convert wld` | `.wld` world | `.glb` plus actor metadata `.json` (scene mode), or a set of map `.png` files | `--assets`, `--palette`, `--software`, `--terrain-only`, `--terrain-textures true\|false` |
 | `convert texbsi` | `TEXBSI.###` texture bank | animated `.gif` and static `.png` files plus `index.json` (directory) | `--format gif\|png\|frames`, `--palette` |
@@ -117,6 +117,28 @@ Redguard shipped with two parallel sets of 3D assets, one per renderer:
 | `3dart/` | Software | v2.6, v2.7 | 18 COL palettes, including `art_pal.col` | Original CD only |
 
 The examples above use the Glide assets in `fxart/`, which both editions have. Model exports select their texture format from the model version. Software textures live in `TEXTURE.###` banks and software lookup tables in `SHADE.###` and `HAZE.###`.
+
+Model conversion exports the base pose by default. Use `--frame N` to select a
+zero-based pose, or `--animate --fps N` to export every pose in file order as a
+GLB morph animation. Animated exports use STEP interpolation and hold the last
+pose for one frame interval. The frame rate is required, finite, and positive.
+It controls inspection playback; game animation groups, command sequences, and
+timing are not reconstructed. Morph targets store position and normal changes
+for each later frame and can make the GLB substantially larger.
+
+These examples use the original CD's software assets in `3dart/`:
+
+```bash
+rgpre convert model 3dart/TIRBA001.3DC --assets . --palette 3dart/ISLAND.COL --frame 12 -o output/TIRBA001-frame12.glb
+rgpre convert model 3dart/TIRBA001.3DC --assets . --palette 3dart/ISLAND.COL --animate --fps 10 -o output/TIRBA001-animated.glb
+```
+
+The same options support Glide models in `fxart/`. `--frame` and `--animate`
+are mutually exclusive. In a ROB with static and animated segments, static
+segments keep their base pose. The requested frame must exist in every animated
+segment. One animation drives all animated segments together; shorter segments hold their
+final pose when longer segments continue.
+Requesting animation for a file with no animated geometry returns an error.
 
 For scene or terrain exports, the tools use software art only when the asset root has `TEXTURE.###` banks and no `TEXBSI.###` banks. An install containing both art trees defaults to Glide; add `--software` to `convert rgm` or `convert wld` to choose software instead:
 

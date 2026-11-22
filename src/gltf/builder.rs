@@ -1,6 +1,9 @@
 // Struct updates on gltf-json extension types are needed when a downstream crate
 // enables gltf-json's `extensions` feature, which adds fields.
 #![allow(clippy::needless_update)]
+#[path = "animation.rs"]
+mod animation;
+
 use gltf_json as json;
 use gltf_json::extensions::scene::khr_lights_punctual;
 use json::validation::{Checked, USize64};
@@ -23,6 +26,7 @@ pub(super) struct GltfBuilder<'a> {
     accessors: Vec<Accessor>,
     buffer_views: Vec<View>,
     meshes: Vec<Mesh>,
+    animations: Vec<json::animation::Animation>,
     pub(super) nodes: Vec<Node>,
     materials: Vec<json::Material>,
     textures: Vec<json::Texture>,
@@ -65,6 +69,7 @@ impl<'a> GltfBuilder<'a> {
             accessors: Vec::new(),
             buffer_views: Vec::new(),
             meshes: Vec::new(),
+            animations: Vec::new(),
             nodes: Vec::new(),
             materials: Vec::new(),
             textures: Vec::new(),
@@ -734,6 +739,7 @@ impl<'a> GltfBuilder<'a> {
             materials: self.materials,
             samplers: self.samplers,
             meshes: self.meshes,
+            animations: self.animations,
             nodes: self.nodes,
             scenes: vec![scene],
             scene: Some(Index::new(0)),

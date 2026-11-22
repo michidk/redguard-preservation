@@ -273,12 +273,22 @@ impl Model3DFile {
         if frame >= (self.header.num_frames as usize).max(1) {
             return Err(invalid("outside frame table"));
         }
-        let mut posed = self.clone();
+        let mut posed = Self {
+            header: self.header.clone(),
+            version: self.version.clone(),
+            frame_data: Vec::new(),
+            face_data: self.face_data.clone(),
+            vertex_coords: Vec::new(),
+            face_normals: Vec::new(),
+            normal_indices: self.normal_indices.clone(),
+            vertex_normals: self.vertex_normals.clone(),
+            frame_vertex_data: Vec::new(),
+            frame_normal_data: Vec::new(),
+        };
         posed.header.num_frames = 1;
-        posed.frame_data.clear();
-        posed.frame_vertex_data.clear();
-        posed.frame_normal_data.clear();
         if frame == 0 {
+            posed.vertex_coords = self.vertex_coords.clone();
+            posed.face_normals = self.face_normals.clone();
             return Ok(posed);
         }
         let encoding = self

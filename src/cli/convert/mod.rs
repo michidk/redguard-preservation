@@ -24,7 +24,8 @@ use hound::{SampleFormat, WavSpec, WavWriter};
 use image::{DynamicImage, Rgba, RgbaImage};
 use log::{info, warn};
 use rgpre::gltf::{
-    TextureCache, convert_models_to_gltf, convert_positioned_models_to_gltf, to_glb,
+    TextureCache, convert_animated_models_to_gltf, convert_models_to_gltf,
+    convert_positioned_models_to_gltf, to_glb,
 };
 use rgpre::import::FileType;
 use rgpre::import::{palette::Palette, png::save_png, registry, sfx::AudioType};
@@ -199,7 +200,20 @@ fn handle_model_convert(args: &ModelArgs) -> Result<()> {
         filetype,
         false,
     )?;
-    let models = parse_file(&args.io.file, Some(filetype), None)?;
+    let mut models = parse_file(&args.io.file, Some(filetype), None)?;
+    if let Some(frame) = args.frame {
+        if frame > 0 && models.iter().all(|model| model.header.num_frames <= 1) {
+            bail!("Requested frame {frame}, but the file contains no animated models");
+        }
+        for model in &mut models {
+            let selected = if model.header.num_frames > 1 {
+                frame
+            } else {
+                0
+            };
+            *model = model.at_frame(selected)?;
+        }
+    }
     let software = models.first().map(|model| model.header.is_v27_or_earlier());
     let mut texture_cache = build_texture_cache(palette.as_ref(), asset_root, software);
 
@@ -216,12 +230,23 @@ fn handle_model_convert(args: &ModelArgs) -> Result<()> {
     info!("Converting file: {}", args.io.file.display());
     info!("Requested output path: {}", output_path.display());
 
-    let (root, buffer) = convert_models_to_gltf(
-        &models,
-        palette.as_ref(),
-        texture_cache.as_mut(),
-        args.compress_textures,
-    )?;
+    let (root, buffer) = if args.animate {
+        convert_animated_models_to_gltf(
+            &models,
+            palette.as_ref(),
+            texture_cache.as_mut(),
+            args.compress_textures,
+            args.fps
+                .ok_or_else(|| color_eyre::eyre::eyre!("--animate requires --fps"))?,
+        )?
+    } else {
+        convert_models_to_gltf(
+            &models,
+            palette.as_ref(),
+            texture_cache.as_mut(),
+            args.compress_textures,
+        )?
+    };
     let glb_data = to_glb(&root, &buffer)?;
     ensure_parent_dir(&output_path)?;
     std::fs::write(&output_path, glb_data)?;
@@ -514,6 +539,9 @@ fn handle_auto_convert(auto: AutoConvertArgs) -> Result<()> {
         }
         FileType::Model3d | FileType::Model3dc | FileType::Rob => {
             let args = ModelArgs {
+                frame: None,
+                animate: false,
+                fps: None,
                 io,
                 assets: None,
                 palette: None,

@@ -14,7 +14,8 @@ pub mod import;
 
 // Re-export main types for convenience
 pub use gltf::{
-    convert_models_to_gltf, convert_positioned_models_to_gltf, convert_wld_scene_to_gltf, to_glb,
+    convert_animated_models_to_gltf, convert_models_to_gltf, convert_positioned_models_to_gltf,
+    convert_wld_scene_to_gltf, to_glb,
 };
 pub use import::{model3d, rob};
 

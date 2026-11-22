@@ -196,6 +196,18 @@ pub struct ModelArgs {
     /// Apply higher PNG compression to embedded GLB textures
     #[arg(long, default_value_t = false)]
     pub compress_textures: bool,
+
+    /// Export one zero-based animation frame (static ROB segments keep their base pose)
+    #[arg(long, conflicts_with = "animate")]
+    pub frame: Option<usize>,
+
+    /// Export all model poses as a STEP morph animation in file order
+    #[arg(long, requires = "fps")]
+    pub animate: bool,
+
+    /// Frames per second for inspection playback, independent of game animation timing
+    #[arg(long, requires = "animate", value_parser = parse_model_fps)]
+    pub fps: Option<f32>,
 }
 
 /// RGM scene → GLB with actor metadata
@@ -333,4 +345,15 @@ pub enum Commands {
     /// Scan a directory for files
     #[clap(alias = "s")]
     Scan(ScanArgs),
+}
+
+fn parse_model_fps(value: &str) -> std::result::Result<f32, String> {
+    let fps = value
+        .parse::<f32>()
+        .map_err(|_| "expected a frame rate".to_string())?;
+    if fps.is_finite() && fps > 0.0 {
+        Ok(fps)
+    } else {
+        Err("frame rate must be finite and greater than zero".to_string())
+    }
 }
