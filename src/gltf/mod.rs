@@ -61,6 +61,35 @@ pub fn convert_models_to_gltf(
     texture_cache: Option<&mut TextureCache>,
     compress_textures: bool,
 ) -> Result<(Root, Vec<u8>)> {
+    convert_models_internal(models, palette, texture_cache, compress_textures, None)
+}
+
+/// Exports poses in file order as a STEP morph animation at an explicit inspection rate.
+/// Game animation groups and their timing are not reconstructed. Static models in a
+/// mixed collection retain their base pose; at least one rendered model must animate.
+#[allow(clippy::missing_errors_doc)]
+pub fn convert_animated_models_to_gltf(
+    models: &[Model3DFile],
+    palette: Option<&Palette>,
+    texture_cache: Option<&mut TextureCache>,
+    compress_textures: bool,
+    fps: f32,
+) -> Result<(Root, Vec<u8>)> {
+    if !fps.is_finite() || fps <= 0.0 {
+        return Err(crate::error::Error::Conversion(
+            "frame rate must be finite and greater than zero".into(),
+        ));
+    }
+    convert_models_internal(models, palette, texture_cache, compress_textures, Some(fps))
+}
+
+fn convert_models_internal(
+    models: &[Model3DFile],
+    palette: Option<&Palette>,
+    texture_cache: Option<&mut TextureCache>,
+    compress_textures: bool,
+    fps: Option<f32>,
+) -> Result<(Root, Vec<u8>)> {
     if models.is_empty() {
         return Err(crate::error::Error::Conversion(
             "No models to convert".to_string(),
@@ -77,11 +106,15 @@ pub fn convert_models_to_gltf(
         .map(|model| build_unrolled_primitives(model, palette, texture_cache_available))
         .collect();
 
-    for unrolled in all_unrolled {
+    for (model, unrolled) in models.iter().zip(all_unrolled) {
         if unrolled.is_empty() {
             continue;
         }
-        let mesh_index = builder.append_mesh(unrolled);
+        let mesh_index = if let Some(fps) = fps.filter(|_| model.header.num_frames > 1) {
+            builder.append_animated_mesh(unrolled, model, palette, fps)?
+        } else {
+            builder.append_mesh(unrolled)
+        };
         builder.add_node(Node {
             mesh: Some(Index::new(index_u32(mesh_index))),
             ..Default::default()
@@ -94,6 +127,11 @@ pub fn convert_models_to_gltf(
         ));
     }
 
+    if fps.is_some() && !builder.has_model_animation() {
+        return Err(crate::error::Error::Conversion(
+            "No animated models found to convert".into(),
+        ));
+    }
     Ok(builder.finish())
 }
 
