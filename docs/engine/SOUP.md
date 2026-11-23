@@ -5676,6 +5676,11 @@ they were. `menuSelection` returns the value at offset 0x14 of the record at the
 test the count, so after `menuNew` it keeps returning the last stored value of that slot until a later
 `menuAddItem` overwrites it.
 
+Accepting a choice stores the highlighted index, not a copy of its item record.
+Script execution can continue through `menuSelection`, clear and repopulate the
+table, and enter another `menuProc` in the same ordinary update. A later lookup
+at the retained committed index can therefore read a replacement item.
+
 ### Flat natives
 
 The `Flat` functions control the receiver's 20-byte [flat sprite record](#killme-and-resurrect) (enable byte at offset 0,
