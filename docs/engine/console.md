@@ -63,6 +63,9 @@ different FNT file.
 
 The console has 512 retained lines, with at most 100 characters in each editable
 command line. A `>` prompt distinguishes command lines from report lines.
+A new editable buffer contains one terminal blank with the insertion cursor
+before it. Inserted characters precede that blank; it is retained after the
+typed text and is not part of the prompt.
 
 F12 and Escape leave the interactive console. Left and Right move the cursor;
 Backspace removes the preceding character and Delete removes the following
