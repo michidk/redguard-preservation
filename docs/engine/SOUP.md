@@ -5304,7 +5304,10 @@ the current update (the same value the elapsed-time tasks consume).
 
 `ShowItem(item, text, first, second)` and `ShowItemNoRtx(item, first, second)`
 return zero and only leave a request for the main loop's item viewer. Each stores
-the item identifier and the two trailing words and marks a request pending. `ShowItem`
+the item identifier and the two trailing words and marks a request pending. The
+pending flag is written before those request arguments; a write observer can
+see the new flag with the previous arguments. The arguments are coherent when
+the main loop enters the viewer. `ShowItem`
 ignores its second argument and leaves the viewer's no-text flag as it was;
 `ShowItemNoRtx` sets that flag. The flag stays set until the viewer consumes the
 request. The handlers perform no display and read no inventory state.
