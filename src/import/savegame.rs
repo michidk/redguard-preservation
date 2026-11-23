@@ -8,6 +8,10 @@ pub use runtime::{
     parse_save_shells,
 };
 
+#[path = "savegame_playback.rs"]
+mod playback;
+pub use playback::{SaveAnimationPlayback, SaveClock, parse_save_clock};
+
 use crate::{Result, error::Error};
 use std::collections::BTreeMap;
 use std::path::Path;
