@@ -629,6 +629,11 @@ the extended window instead. If either window admits the attack, processing
 sets combat flag `0x20` before traversing either collision-candidate list.
 Empty candidate lists leave that flag set.
 
+An incoming hit message clears the receiver's attack intent before its hit
+response. Its current attack animation can continue after that clear. A current
+attack group and an advancing command cursor therefore do not by themselves
+establish attack-processing admission.
+
 The active collision window uses the signed animation command cursor and the
 current motion's `first_collide_frame` and `collide_duration`. It includes the
 start and excludes the end: `start <= cursor < start + duration`. The end uses
