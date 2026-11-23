@@ -3,9 +3,9 @@
 #[path = "savegame_runtime.rs"]
 mod runtime;
 pub use runtime::{
-    SaveCodeOwner, SaveObject, SaveScriptReferences, SaveShell, encode_save_code_owners,
-    encode_save_objects, encode_save_shells, parse_save_code_owners, parse_save_objects,
-    parse_save_shells,
+    SaveCodeOwner, SaveObject, SaveScriptReferences, SaveShell, SaveTaskSlot,
+    encode_save_code_owners, encode_save_objects, encode_save_shells, parse_save_code_owners,
+    parse_save_objects, parse_save_shells,
 };
 
 #[path = "savegame_playback.rs"]

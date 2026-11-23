@@ -325,3 +325,54 @@ impl SaveShell {
         SaveScriptReferences::read(&self.body, 0x0e, 0x12, 0x30)
     }
 }
+
+/// One retained SOUP task slot. Callback values are saved script references,
+/// not native pointers or actor-local instruction indices.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct SaveTaskSlot {
+    /// Zero denotes an empty slot; nonzero values name the byte after its opcode.
+    pub callback: u32,
+    /// Blocking-task byte, retained without boolean normalization.
+    pub status: u8,
+    /// Nonzero pauses the slot without advancing its timer.
+    pub pause: u8,
+    /// Wrapping invocation counter; elapsed input also needs the current frame scale.
+    pub timer: u16,
+}
+
+impl SaveObject {
+    /// Decode all six task slots, preserving inactive-slot words as well.
+    /// Code references require binding against the initialized world's script base.
+    /// Restoring animation alone does not restore these task continuations.
+    pub fn task_slots(&self) -> [SaveTaskSlot; 6] {
+        std::array::from_fn(|index| SaveTaskSlot {
+            callback: word(&self.body, 0x27f + index * 4),
+            status: self.body[0x2af + index],
+            pause: self.body[0x2b5 + index],
+            timer: u16::from_le_bytes(
+                self.body[0x2bb + index * 2..0x2bd + index * 2]
+                    .try_into()
+                    .unwrap(),
+            ),
+        })
+    }
+
+    /// Signed private SOUP variable words in authored order. Object-record parsing
+    /// already validates the byte count against the retained variable count.
+    pub fn script_variables(&self) -> Vec<i32> {
+        self.private_variables
+            .as_chunks::<4>()
+            .0
+            .iter()
+            .map(|bytes| i32::from_le_bytes(*bytes))
+            .collect()
+    }
+}
+
+impl SaveTaskSlot {
+    /// Elapsed input for the next existing-task invocation at the supplied Q8
+    /// frame scale. Arithmetic wraps before shifting; this does not advance the timer.
+    pub fn elapsed(&self, frame_scale: u32) -> i32 {
+        (u32::from(self.timer).wrapping_mul(frame_scale) >> 8) as i32
+    }
+}

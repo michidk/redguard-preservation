@@ -14,6 +14,29 @@ fn installed_object_fields_and_round_trip() {
             }
             let records = parse_save_objects(&section.data).unwrap();
             assert_eq!(encode_save_objects(&records).unwrap(), section.data);
+            for actor in &records {
+                let slots = actor.task_slots();
+                assert_eq!(
+                    slots.map(|slot| slot.callback),
+                    actor.script_references().callbacks
+                );
+                for (index, slot) in slots.iter().enumerate() {
+                    assert_eq!(
+                        slot.timer,
+                        u16::from_le_bytes(
+                            actor.body[699 + index * 2..701 + index * 2]
+                                .try_into()
+                                .unwrap()
+                        )
+                    );
+                    assert_eq!(slot.status, actor.body[687 + index]);
+                    assert_eq!(slot.pause, actor.body[693 + index]);
+                }
+                assert_eq!(
+                    actor.script_variables().len() * 4,
+                    actor.private_variables.len()
+                );
+            }
             for player in records.iter().filter(|r| matches!(r.object_id, -2 | -3)) {
                 assert!(player.script_state.is_some());
                 if let Some(identity) = player.support_object_id() {
@@ -167,4 +190,51 @@ fn saved_support_identity_and_pose_round_trip() {
     assert_eq!(objects[0].support_object_id(), None);
     objects[0].body[468..472].copy_from_slice(&0i32.to_le_bytes());
     assert_eq!(objects[0].support_object_id(), Some(0));
+}
+
+#[test]
+fn task_continuation_survives_round_trip_and_first_explicit_frame() {
+    let mut bytes = vec![0; 4 + 9 + 783 + 48];
+    let size = (bytes.len() - 4) as u32;
+    bytes[..4].copy_from_slice(&size.to_le_bytes());
+    bytes[13 + 0x23b..17 + 0x23b].copy_from_slice(&u32::MAX.to_le_bytes());
+    let mut objects = parse_save_objects(&bytes).unwrap();
+    let actor = &mut objects[0];
+    actor.body[0x27f..0x283].copy_from_slice(&203u32.to_le_bytes());
+    actor.body[0x2af] = 1;
+    actor.body[0x2bb..0x2bd].copy_from_slice(&12u16.to_le_bytes());
+    actor.body[0x2b0] = 7;
+    actor.body[0x2b6] = 2;
+    actor.body[0x2bd..0x2bf].copy_from_slice(&u16::MAX.to_le_bytes());
+    actor.body[0x1c..0x20].copy_from_slice(&1u32.to_le_bytes());
+    actor.body[0x20] = 2;
+    actor.private_variables = [(-1i32).to_le_bytes(), 37i32.to_le_bytes()].concat();
+    let encoded = encode_save_objects(&objects).unwrap();
+    let decoded = parse_save_objects(&encoded).unwrap();
+    assert_eq!(encode_save_objects(&decoded).unwrap(), encoded);
+    let tasks = decoded[0].task_slots();
+    assert_eq!(tasks[0].callback, 203);
+    assert_eq!(
+        (tasks[0].status, tasks[0].pause, tasks[0].timer),
+        (1, 0, 12)
+    );
+    assert_eq!(tasks[0].elapsed(118), 5);
+    assert_eq!(
+        tasks[0].timer, 12,
+        "observing the next frame must not consume it"
+    );
+    assert_eq!(
+        (
+            tasks[1].callback,
+            tasks[1].status,
+            tasks[1].pause,
+            tasks[1].timer
+        ),
+        (0, 7, 2, u16::MAX)
+    );
+    assert_eq!(
+        tasks[1].elapsed(u32::MAX),
+        (u32::from(u16::MAX).wrapping_mul(u32::MAX) >> 8) as i32
+    );
+    assert_eq!(decoded[0].script_variables(), [-1, 37]);
 }

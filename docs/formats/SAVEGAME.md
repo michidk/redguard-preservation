@@ -302,3 +302,22 @@ it is separate from the historical TXT tool reports described in
 ## External References
 
 - [UESP: Redguard file formats](https://en.uesp.net/wiki/Mod:Redguard_File_Formats)
+
+## Actor task slots
+
+The object body retains six SOUP task slots. Each slot combines the following
+parallel fields; slot order is allocation and execution order.
+
+| Body offset | Size | Contents |
+|---|---|---|
+| `0x27F` | 24 | Six little-endian callback references. Zero is empty; a nonzero reference names the byte after the task opcode. |
+| `0x2AF` | 6 | Blocking-status bytes. |
+| `0x2B5` | 6 | Pause bytes. Nonzero suspends invocation and timer advancement. |
+| `0x2BB` | 12 | Six little-endian wrapping invocation counters. |
+
+Callbacks retain the saved script-reference domain and require the initialized
+world's script base. The counter is not elapsed game time: a task invocation
+computes elapsed input from its counter and the current frame scale as described
+in [SOUP task execution](../engine/SOUP.md). Private variable tails contain signed
+little-endian 32-bit SOUP values in authored order. Playback, private variables,
+script cursors and task slots are independent parts of a saved continuation.
