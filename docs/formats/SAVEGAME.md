@@ -189,6 +189,10 @@ little-endian words. Offsets are relative to the payload.
 | `0x0F4` | 4 | `u32` | use_smooth_divisor | Retained movement-scale smoothing switch. |
 | `0x0F8` | 4 | `u32` | normal_rate_scaled | Retained normal frame rate multiplied by 256. |
 
+The global clock fields are restored before the saved actor lists are
+reconstructed. Observing saved clock values alone therefore does not establish
+that actor restoration has completed.
+
 The two scaled totals advance by `next_scale`; their low eight and five bits
 retain the fractional remainders. Exposed timing can differ from the last
 computed timing. Save restoration copies these fields directly, then captures
