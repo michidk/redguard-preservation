@@ -5734,6 +5734,13 @@ one, then shows itself and restores its rotation. It waits for
 After a further wait of 36 nominal ticks it calls `showPlayer`. This admission
 sequence does not test a quest flag. Its later death branch calls `WonGame`.
 
+The separate EXTPALAC SCENE11 entrance sequence owns its own player lockout.
+After its proximity gate, it locks the player and sets the player's collision
+attribute to 11. At the end of its staged dialogue and actor movements, it sets
+its local completion variable, restores the collision attribute to 15, releases
+the lockout, returns the camera to the player and resets the camera. Richton's
+combat-entry sequence does not release that lockout.
+
 `PushPlayer` and `PopPlayer` are consumed at the end of a world-loop iteration that does not leave the loop:
 push first, then pop. Each clears its own flag when consumed, whether or not it acts. The engine keeps the
 CYRUS and GREMLIN player records and one swap state, clear in a fresh world. While the swap state is clear
