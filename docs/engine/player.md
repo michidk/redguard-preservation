@@ -2783,6 +2783,14 @@ the calculated scale and accumulated increments.
 Entering the world loop starts the twelve-update countdown again without
 resetting the measurement or accumulation state.
 
+An active world-entry fade restarts the countdown after the ordinary update on
+each fade iteration, including the iteration that clears the fade. Its progress
+uses the calculated whole nominal increment with bit zero set, multiplied by 12;
+it does not use the warmup's exposed nominal increment. The remaining countdown
+then expires after the fade clears. A book save reload can return while the
+existing world-entry fade is still active; restoring the saved clock does not
+clear that presentation fade.
+
 ## Related documentation
 
 - [Keyboard bindings](../config/keys-ini.md)
