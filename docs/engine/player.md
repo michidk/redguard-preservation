@@ -2791,6 +2791,14 @@ then expires after the fade clears. A book save reload can return while the
 existing world-entry fade is still active; restoring the saved clock does not
 clear that presentation fade.
 
+A retail book load is processed after the current world-loop counter has
+already advanced. Returning from the load continues that iteration through
+clock and actor updates before the next ordinary loop boundary. Consequently,
+the next loop-counter boundary is not an untouched restored-save snapshot:
+scripted actors can already have moved, and accumulated clocks can include
+the first resumed step. Exact saved-state inspection requires a boundary after
+restoration and before those updates.
+
 ## Related documentation
 
 - [Keyboard bindings](../config/keys-ini.md)
