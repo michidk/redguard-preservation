@@ -435,3 +435,28 @@ range and returns its identity with the words.
 ## External References
 
 - [UESP: Redguard file formats](https://en.uesp.net/wiki/Mod:Redguard_File_Formats)
+
+### Map-code allocation identity
+
+The map-code owner counter starts at zero for a world load. Each type-two MPOB
+placement consumes its next value in installed placement order, independently
+of the editor object ID. The resulting identity is the SMCO owner ID. Cell
+linked-list insertion and save traversal order do not change that identity.
+
+Type-six coloured-light placements allocate compact records but do not consume
+the type-two identity counter. Their compact records carry the light marker and
+are excluded when collecting SMCO save owners. They must not shift the saved
+code-owner binding for later type-two placements.
+
+### Spatial task continuation words
+
+The first two words of a RotateByAxis slot retain its signed fixed-point target
+and accumulator. RotateToAxis retains its signed movement and accumulator in
+those words. MoveObjectAxis retains signed target and traveled distance.
+MoveByAxis retains its signed target in the first word. The remaining words of
+these handlers are zero. Loading these slots preserves the retained words;
+continuation must not run the initial callback to reconstruct them.
+
+AmbientSound retains its sample slot in the first word, with all-ones meaning
+no sample. Its other three words are zero. A retained active sample index refers
+to the playback service owner, not to a new playback request.
