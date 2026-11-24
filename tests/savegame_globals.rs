@@ -37,7 +37,7 @@ fn session_globals_decode_health_selection_and_power_up_slots() {
     }
     let saved = SaveSessionGlobals::parse(&bytes).unwrap();
     assert_eq!(saved.player_health, 74);
-    assert_eq!(saved.health_candle_feedback, -2);
+    assert_eq!(saved.compass_display, -2);
     assert_eq!(saved.selected_player_switch, 7);
     assert_eq!(saved.power_ups.frames, [31, 19]);
     assert_eq!(saved.power_ups.frame_indices, [-1, 1]);
@@ -62,7 +62,9 @@ fn saved_controller_restores_fields_then_applies_world_entry_resets() {
     use rgpre::import::savegame::SaveGameplayGlobals;
     let mut bytes = vec![0; 1542];
     for (offset, value) in [
-        (0x10, 3i32), (0x130, 12), (0x30, 1i32),
+        (0x10, 3i32),
+        (0x130, 12),
+        (0x30, 1i32),
         (0x34, 74),
         (0x38, 29),
         (0x40, 2),

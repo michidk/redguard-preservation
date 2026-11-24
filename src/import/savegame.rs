@@ -267,6 +267,13 @@ pub struct SaveItem {
     pub unknown_12: u32,
 }
 
+impl SaveItem {
+    /// Wrapping use count returned unchanged by the `ItemUsed` native.
+    pub fn item_used(&self) -> u32 {
+        self.unknown_0e
+    }
+}
+
 /// SVIT inventory records followed by the selected item's ID, or -1 for no item.
 /// Restoration overwrites initialized records; it does not acquire the items again.
 #[derive(Debug, Clone, PartialEq, Eq)]

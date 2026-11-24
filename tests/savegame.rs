@@ -268,6 +268,7 @@ fn inventory_decodes_literal_fields_and_encodes_the_original_bytes() {
         selected_item: 0x12345678,
     };
     assert_eq!(parse_save_inventory(&bytes, 1).unwrap(), expected);
+    assert_eq!(expected.items[0].item_used(), 0x11223344);
     assert_eq!(encode_save_inventory(&expected).unwrap(), bytes);
     assert_eq!(
         parse_save_inventory(&[255; 4], 0).unwrap(),

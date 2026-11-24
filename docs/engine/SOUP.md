@@ -3085,6 +3085,9 @@ These flags are not cleared by a later improving link within that same scan.
 The final scan's flags accompany the selected next hop.
 A shared backtracking-inhibition word equal to one returns -1 and clears both
 flags before scanning. Other values allow backtracking.
+The two link-result flags and backtracking-inhibition word are outside the save
+globals. Save loading retains their process values until a route operation
+changes them.
 
 When the shared player-proximity exclusion switch is zero, node admission
 returns true without reading the player. When enabled, a valid node in a
@@ -3093,6 +3096,8 @@ strictly below the shared signed threshold. Node X/Z are unsigned and node Y
 is signed. The player coordinates are the local actor position shifted right
 by eight. An absent map or an index outside its node range returns true without
 a distance calculation.
+The exclusion switch is the same shared word as sound-maintenance inhibition;
+menu, dialogue and lockout handling therefore control both uses of that word.
 
 ### Point-navigation command state
 

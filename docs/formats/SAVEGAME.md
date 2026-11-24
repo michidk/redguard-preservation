@@ -433,14 +433,14 @@ per-field headers, in this order:
 | Size | Contents |
 |---|---|
 | 4 | Retained player health, copied into both player records at load. |
-| 4 | Health-candle feedback state. |
+| 4 | Compass display flag; nonzero draws the compass. |
 | 2 | Retained state word, written only by the save loader. |
 | 12 | Retained state block. |
 | 1600 | The journal tag table: 400 four-byte tags, zero marking an empty entry. |
 | 4 | Selected-player switch. |
-| 4 × 5 | Power-up slots: the two slots' frame values, their two retained frame indices (`-1` empty), then the slot alternation (see [power-up slots](../engine/hud.md#power-up-slots)). |
+| 4 × 5 | Power-up slots: the two slots' `ShowBitmap` IDs, their two retained atlas-frame indices (`-1` empty), then the next slot (zero or one; see [power-up slots](../engine/hud.md#power-up-slots)). |
 | 4 × 4 | Four retained world-state words written when a world loads. |
-| 4 | Retained HUD state word. |
+| 4 | Health-candle feedback countdown. Zero is inactive; 50 pins the display; positive values below 50 decrease after drawing by the elapsed nominal ticks, stopping at zero. |
 
 ## Inventory
 
@@ -448,8 +448,9 @@ per-field headers, in this order:
 followed by a signed 32-bit selected-item ID. All numeric fields are little-endian.
 The payload contains neither an item count nor per-record IDs. Its length is
 `22 × saved_record_count + 4`. The save reader and writer traverse one fewer
-record than item initialization creates. The final initialized item remains at
-its initialized values when loading; it has no record in `SVIT`.
+record than item initialization creates. The reader leaves the final item
+unchanged; it has no record in `SVIT`. Loading into an existing item list
+therefore retains that item's current values.
 
 | Offset | Size | Type | Name | Description |
 |---|---|---|---|---|
@@ -458,11 +459,13 @@ its initialized values when loading; it has no record in `SVIT`.
 | `0x02` | 4 | `i32` | total | Current item total limit. |
 | `0x06` | 4 | `i32` | player_max | Current player ownership limit. |
 | `0x0A` | 4 | `i32` | player_total | Current owned count. |
-| `0x0E` | 4 | `u32` | unknown_0e | Retained item-state word. |
+| `0x0E` | 4 | `u32` | item_used | Wrapping use count returned unchanged by `ItemUsed`. |
 | `0x12` | 4 | `u32` | saved_player_total | Count saved by the first push and restored by a pop. |
 
 The pushed byte and saved count are restored directly, without normalizing the
 byte or replacing the saved count with the current count.
+The use count is also restored directly. A completed use increments it with
+32-bit wrapping; refused attempts and torch dousing do not increment it.
 [PushItem and PopItem](../engine/SOUP.md#pushitem-saved-value-replacement) use
 these fields: the first push saves the current count, later pushes retain that
 saved count, and a pop clears the pushed byte and restores the saved count.

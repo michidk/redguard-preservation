@@ -31,7 +31,7 @@ pub struct SavePowerUps {
 pub struct SaveSessionGlobals {
     /// Published player health, copied into both player records by full load.
     pub player_health: i32,
-    pub health_candle_feedback: i32,
+    pub compass_display: i32,
     /// Selected camera record flags retained by full load.
     pub camera_flags: u16,
     pub retained_block: [u8; 12],
@@ -51,7 +51,7 @@ impl SaveSessionGlobals {
         check(bytes, 1666, "SVG2")?;
         Ok(Self {
             player_health: word(bytes, 0),
-            health_candle_feedback: word(bytes, 4),
+            compass_display: word(bytes, 4),
             camera_flags: u16::from_le_bytes(bytes[8..10].try_into().unwrap()),
             retained_block: bytes[10..22].try_into().unwrap(),
             journal_tags: std::array::from_fn(|i| word(bytes, 22 + i * 4) as u32),
@@ -69,7 +69,7 @@ impl SaveSessionGlobals {
     pub fn encode(&self) -> Vec<u8> {
         let mut bytes = Vec::with_capacity(1666);
         bytes.extend_from_slice(&self.player_health.to_le_bytes());
-        bytes.extend_from_slice(&self.health_candle_feedback.to_le_bytes());
+        bytes.extend_from_slice(&self.compass_display.to_le_bytes());
         bytes.extend_from_slice(&self.camera_flags.to_le_bytes());
         bytes.extend_from_slice(&self.retained_block);
         for tag in self.journal_tags {
