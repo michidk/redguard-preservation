@@ -129,6 +129,37 @@ Its other fields include runtime bindings retained from the initialized owner.
 Uninterpreted fields and trailing extensions must remain intact during a
 lossless edit; they are not portable native pointers.
 
+### Retained actor spatial and controller state
+
+Full object restoration copies the saved local, attached, previous and initial
+position and angle triples independently. Angles retain signed word values;
+reading the save does not wrap them or rebuild a transform. The stable-position
+validity byte and its stored Q8 coordinates are independent fields. A zero
+validity byte disables recovery without erasing those coordinates; any nonzero
+byte enables it. See [actor history properties](../engine/SOUPPROPS.md#position-and-angle-history-properties).
+
+The embedded model-instance translation and orientation matrix are retained
+single-precision values. They have a separate lifetime from logical position
+and angles. Translation uses map units; it must not be replaced by the current
+Q8 coordinates divided by 256. The saved matrix must not be regenerated from
+the current angle triple. The redundant trailing vector blocks remain part of
+the lossless record.
+
+The actor's property-backed controller state is retained with the body,
+including the movement counter, pending and accepted action words, motion and
+AI selectors, timers, hand/ledge vectors, collision marks and stable recovery
+state. Loading these values does not request an animation, enter a motion or
+invoke a native callback. Script writes can leave values outside the ordinary
+engine-produced ranges; semantic views preserve their stored widths.
+
+Parent, linked and supporting actors and the optional position-link owner use
+saved object identities. Minus one denotes no owner. A consumer binds these
+against its independently initialized actor allocations, preserving special
+player identities separately from runtime identity words. Missing, ambiguous
+or mismatched owners invalidate the complete binding population before native
+state is replaced. The optional position-link record retains its allocation
+even after its owner is cleared.
+
 ### Selected and previous model frames
 
 The actor body retains five signed little-endian two-byte fields separately

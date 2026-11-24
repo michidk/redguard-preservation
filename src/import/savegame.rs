@@ -23,6 +23,13 @@ pub use pose::{
     BoundSaveModelFrame, SaveActorPose, SaveModelAllocation, SaveModelAllocations, SaveModelFrame,
 };
 
+#[path = "savegame_actor.rs"]
+mod actor;
+pub use actor::{
+    SaveActorBinding, SaveActorController, SaveActorOwners, SaveActorReferences, SaveActorSpatial,
+    SaveActorState, SaveActorTransform,
+};
+
 use crate::{Result, error::Error};
 use std::collections::BTreeMap;
 use std::path::Path;
