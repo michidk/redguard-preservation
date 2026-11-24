@@ -299,11 +299,12 @@ impl SaveObject {
     pub fn script_references(&self) -> SaveScriptReferences {
         SaveScriptReferences::read(&self.body, 0x25c, 0x260, 0x27f)
     }
-    /// Installed actor identity in the optional script-state record.
+    /// Next combat allocation identity in the optional combat record.
+    /// Prefer [`SaveObject::combat`] for typed combat ownership.
     pub fn script_owner_id(&self) -> Option<u32> {
         self.script_state.as_ref().map(|state| word(state, 0))
     }
-    /// Object identities in the optional script-state record. Retains saved
+    /// Combat owner and target identities in the optional combat record. Retains saved
     /// sentinel identities rather than resolving them against a live world.
     pub fn script_object_ids(&self) -> Option<[i32; 2]> {
         self.script_state.as_ref().map(|state| {

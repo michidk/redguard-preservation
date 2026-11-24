@@ -333,6 +333,48 @@ as well. If the selected player has no attachment, the current head is freed
 and the restored head is null. The rope jump latch is restored through `SVGV`
 independently of these attachment pointers.
 
+## Actor combat restoration
+
+The optional 422-byte allocation framed as `script_state` by the lossless
+parser is the actor's combat record. SOUP continuation, task words and authored
+locals have separate storage in the object body and `SVRG`.
+
+Combat allocations are constructed from installed model and attribute data
+before saved combat state is applied. Loading retains the initialized model
+bindings, taunt-list storage, nine attack bindings and four defence bindings.
+It resolves the next combat-list reference by allocation index and the owner
+and target references by actor identity. The saved RTX-cache pointer is cleared,
+and flag `0x40` is cleared. Other dynamic combat values are copied.
+
+All offsets below are relative to the combat allocation. Integer words are
+little-endian.
+
+| Offset | Type | Meaning |
+|---|---|---|
+| `0x00` | `u32` | Next combat allocation index; all-ones means absent. |
+| `0x04`, `0x08` | `i32` | Owner and target actor identities. |
+| `0x0C` | `i32` | Retained allocation index. |
+| `0x28` | `[i32; 3]` | Retained target position in Q8 units. |
+| `0x38` | `i32` | Combat action selector. |
+| `0x3C` | `[i32; 3]` | Near, far and midpoint spacing ranges. |
+| `0x48`, `0x4C` | `i32` | Attack and defence selectors. |
+| `0x58`, `0x5C` | `i32` | Strength and armour. |
+| `0x60`, `0x62` | `i16`, `i32` | Contact vertex and Q8 radius. |
+| `0x139` | `i32` | Aggression budget. |
+| `0x13D` | `i32` | Death-default animation group. |
+| `0x141` | `i32` | Consecutive close-distance decision passes. |
+| `0x145` | `i32` | Attacker coordination selection state. |
+| `0x14D` | `i32` | Attack/defence executor state. |
+| `0x151` | `i32` | Current move-table selector. |
+| `0x159` | `u32` | Combat cooldown. |
+| `0x161`, `0x165`, `0x169` | `i32` | Attack pacing, defence pacing and defence counter. |
+| `0x179`, `0x17D` | `i32` | Taunt activity and dialogue-slot identity. |
+| `0x181` | `u32` | RTX-cache pointer, cleared on load. |
+| `0x185`, `0x189` | `i32` | Taunt and spacing periods. |
+| `0x18D` | `u8` | Combat flags. |
+| `0x18E`, `0x192`, `0x196` | `i32`, `u32`, `i32` | Wall-avoidance side, mask and hold ticks. |
+| `0x19A`, `0x19E` | `i32` | Lost-sight ticks and routed-pursuit flag. |
+
 ## Actor light and flat records
 
 The optional 41-byte light record stores lock, enable and inactive-tick bytes at

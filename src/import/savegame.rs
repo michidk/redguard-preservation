@@ -13,6 +13,10 @@ pub use runtime::{
 mod playback;
 pub use playback::{SaveAnimationPlayback, SaveClock, parse_save_clock};
 
+#[path = "savegame_combat.rs"]
+mod combat;
+pub use combat::SaveActorCombat;
+
 #[path = "savegame_navigation.rs"]
 mod navigation;
 pub use navigation::SaveActorNavigation;
