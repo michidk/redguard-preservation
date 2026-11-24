@@ -225,6 +225,36 @@ as well. If the selected player has no attachment, the current head is freed
 and the restored head is null. The rope jump latch is restored through `SVGV`
 independently of these attachment pointers.
 
+## Actor navigation restoration
+
+The object body retains the actor's current walk-map identity and four signed
+node indices. The save writer replaces the live map pointer with the map's
+runtime identity; all-ones means no map, and zero is a valid map identity.
+The reader resolves that identity against the initialized walk-map list before
+copying the object body. An unknown identity is an error. It does not choose a
+nearest map or node from the restored position.
+
+| Object-body offset | Type | Meaning |
+|---|---|---|
+| `0x1E9` | `u32` | Walk-map identity, or all-ones for no map. |
+| `0x1ED` | `i32` | Held current node. |
+| `0x1F1` | `i32` | Held next node. |
+| `0x1F5` | `i32` | Previous-next node history. |
+| `0x1F9` | `i32` | Final destination node. |
+
+The node indices are copied from the saved body, including minus-one sentinels
+and stale values. They are not replaced by initialized placement navigation.
+The navigation core performs its ordinary map/index validation when it runs.
+These fields are independent of the optional script-state allocation and of
+each task slot's four native invocation words.
+
+After full save restoration, the main load path clears every walk-node
+reservation byte. It does not reclaim reservations from the restored actors'
+held indices. A retained next-node index can therefore coexist with an unowned
+node after load and on resumed walking updates. Later navigation assignments,
+releases and periodic maintenance apply the ordinary
+[walk-map ownership rules](../engine/SOUP.md#navigation-map-validation).
+
 ## Actor script-state ownership
 
 `SMOB` retains the actor's existing script-state pointer instead of restoring the
