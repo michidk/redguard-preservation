@@ -60,6 +60,8 @@ pub struct SaveActorController {
     pub ai_length: i32,
     pub weapon_drawn: u8,
     pub torch_timer: u8,
+    /// Burning counter retained by dousing and consumed by the next lighting transition.
+    pub extinguished_torch_timer: u8,
     pub held_item: u8,
     pub motion_q8: [i32; 3],
     pub ledge_position_q8: [i32; 3],
@@ -186,6 +188,7 @@ impl SaveObject {
                 ai_length: word(0x1e5) as i32,
                 weapon_drawn: self.body[0x1fd],
                 torch_timer: self.body[0x1fe],
+                extinguished_torch_timer: self.body[0x1ff],
                 held_item: self.body[0x200],
                 motion_q8: triple(0x15c),
                 ledge_position_q8: triple(0x168),

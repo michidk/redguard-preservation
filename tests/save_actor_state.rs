@@ -112,6 +112,7 @@ fn raw_histories_and_controller_words_are_retained_without_normalization() {
     object.body[0x107] = 255;
     object.body[0x1cc] = 255;
     object.body[0x1fe] = 123;
+    object.body[0x1ff] = 87;
     object.body[0x51..0x55].copy_from_slice(&0.75f32.to_bits().to_le_bytes());
     object.body[0x39..0x3d].copy_from_slice(&(-0.5f32).to_bits().to_le_bytes());
     let state = object.actor_state().unwrap();
@@ -123,6 +124,7 @@ fn raw_histories_and_controller_words_are_retained_without_normalization() {
     assert_eq!(state.controller.accepted_action, 1 << 31);
     assert_eq!(state.controller.movement_counter, 255);
     assert_eq!(state.controller.torch_timer, 123);
+    assert_eq!(state.controller.extinguished_torch_timer, 87);
     assert_eq!(state.model_transform.matrix()[0][0], 0.75);
     assert_eq!(state.model_transform.translation()[0], -0.5);
     object.body[0x107] = 0;

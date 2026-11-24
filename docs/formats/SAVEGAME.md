@@ -148,7 +148,10 @@ the lossless record.
 The actor's property-backed controller state is retained with the body,
 including the movement counter, pending and accepted action words, motion and
 AI selectors, timers, hand/ledge vectors, collision marks and stable recovery
-state. Loading these values does not request an animation, enter a motion or
+state. The extinguished-torch timer is retained independently of the burning
+counter: dousing saves the counter and clears burning; lighting uses the saved
+counter, initializing it from the item configuration only when it is zero.
+Loading these values does not request an animation, enter a motion or
 invoke a native callback. Script writes can leave values outside the ordinary
 engine-produced ranges; semantic views preserve their stored widths.
 
