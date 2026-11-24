@@ -460,3 +460,22 @@ continuation must not run the initial callback to reconstruct them.
 AmbientSound retains its sample slot in the first word, with all-ones meaning
 no sample. Its other three words are zero. A retained active sample index refers
 to the playback service owner, not to a new playback request.
+
+### Dialogue and animation task service ownership
+
+An RTX slot retains its signed dialogue-record index in the first native word
+and its signed sample slot in the second. All-ones is the absent sample; the
+remaining two words are zero. These words do not serialize the dialogue record
+or audio payload. World-state loading clears the shared dialogue table and
+sample channels before restoring object tasks. A resumed RTX task observes the
+cleared record and completes without looking up or replaying its saved label.
+
+PushAnimation and PushControlAnimation retain their started phase in the first
+native word, zero before starting and one afterward. Their other three words
+are zero. Playback belongs to the receiving actor's saved animation record,
+not the task slot. Load restores that record separately, including its current
+and pending group, command cursor, countdown and loop count. The first resumed
+handler re-evaluates its group operand. A started task observes the receiver's
+current group without repeating its request or resetting its loop count. An
+unstarted task follows ordinary request arbitration and sets its requested
+loop count only once the requested group is current.
