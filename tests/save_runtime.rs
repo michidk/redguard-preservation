@@ -33,7 +33,7 @@ fn installed_object_fields_and_round_trip() {
                     assert_eq!(slot.pause, actor.body[693 + index]);
                 }
                 assert_eq!(
-                    actor.script_variables().len() * 4,
+                    actor.private_variable_words().len() * 4,
                     actor.private_variables.len()
                 );
             }
@@ -236,7 +236,7 @@ fn task_continuation_survives_round_trip_and_first_explicit_frame() {
         tasks[1].elapsed(u32::MAX),
         (u32::from(u16::MAX).wrapping_mul(u32::MAX) >> 8) as i32
     );
-    assert_eq!(decoded[0].script_variables(), [-1, 37]);
+    assert_eq!(decoded[0].private_variable_words(), [-1, 37]);
 }
 
 #[test]
@@ -287,4 +287,113 @@ fn actor_invocation_words_and_script_results_survive_lossless_save_round_trip() 
         }
     }
     assert_eq!(encode_save_objects(&decoded).unwrap(), encoded);
+}
+
+#[test]
+fn authored_locals_bind_to_saved_actor_ranges_not_private_tails() {
+    use rgpre::import::savegame::parse_save_script_locals;
+    let mut bytes = vec![0; 4 + 9 + 783 + 48];
+    let size = (bytes.len() - 4) as u32;
+    bytes[..4].copy_from_slice(&size.to_le_bytes());
+    bytes[13 + 0x23b..17 + 0x23b].copy_from_slice(&u32::MAX.to_le_bytes());
+    let mut actors = parse_save_objects(&bytes).unwrap();
+    let actor = &mut actors[0];
+    actor.object_id = -2;
+    actor.body[20..22].copy_from_slice(&1u16.to_le_bytes());
+    actor.body[0x276..0x27a].copy_from_slice(&4u32.to_le_bytes());
+    actor.body[0x1c..0x20].copy_from_slice(&1u32.to_le_bytes());
+    actor.body[0x20] = 1;
+    actor.private_variables = 77i32.to_le_bytes().to_vec();
+    let payload = [0i32, i32::MIN, -1, i32::MAX]
+        .map(i32::to_le_bytes)
+        .concat();
+    let region = parse_save_script_locals(&payload).unwrap();
+    let bound = region.bind_actor(actor, 3).unwrap().unwrap();
+    assert_eq!(
+        (bound.object_id, bound.runtime_identifier, bound.byte_offset),
+        (-2, 1, 4)
+    );
+    assert_eq!(bound.words, [i32::MIN, -1, i32::MAX]);
+    assert_eq!(actor.private_variable_words(), [77]);
+    assert!(region.bind_actor(actor, 4).is_err());
+    actor.body[0x276..0x27a].copy_from_slice(&0u32.to_le_bytes());
+    assert_eq!(region.bind_actor(actor, 1).unwrap().unwrap().words, [0]);
+    actor.body[0x276..0x27a].copy_from_slice(&3u32.to_le_bytes());
+    assert!(region.bind_actor(actor, 1).is_err());
+    actor.body[0x276..0x27a].copy_from_slice(&u32::MAX.to_le_bytes());
+    assert!(region.bind_actor(actor, 0).unwrap().is_none());
+    assert!(region.bind_actor(actor, 1).is_err());
+    assert!(parse_save_script_locals(&payload[..15]).is_err());
+}
+
+#[test]
+fn installed_authored_locals_use_initialized_script_counts() {
+    use rgpre::import::{rgm, savegame::parse_save_script_locals};
+    let (Some(root), Some(path)) = (
+        std::env::var_os("REDGUARD_DIR"),
+        std::env::var_os("REDGUARD_SAVE_SLOT"),
+    ) else {
+        eprintln!("SKIP installed authored locals: REDGUARD_DIR/REDGUARD_SAVE_SLOT absent");
+        return;
+    };
+    let slot = load_save_slot(path).unwrap();
+    let (map_name, actor_id, actor_name) = match slot.game.metadata.world_id {
+        1 => ("ISLAND.RGM", 303, "KOTARO"),
+        20 => ("BELLTOWR.RGM", 37, "FAVIS"),
+        world => panic!("authored-local fixture world {world} is unsupported"),
+    };
+    let map = rgm::parse_rgm_file(
+        &std::fs::read(std::path::Path::new(&root).join("maps").join(map_name)).unwrap(),
+    )
+    .unwrap();
+    let scripts = rgm::disassemble_rgm_scripts(&map, None);
+    let objects = parse_save_objects(
+        &slot
+            .game
+            .sections
+            .iter()
+            .find(|s| s.name == *b"SMOB")
+            .unwrap()
+            .data,
+    )
+    .unwrap();
+    let region = parse_save_script_locals(
+        &slot
+            .game
+            .sections
+            .iter()
+            .find(|s| s.name == *b"SVRG")
+            .unwrap()
+            .data,
+    )
+    .unwrap();
+    let mut bound_count = 0;
+    for actor in objects
+        .iter()
+        .filter(|a| a.runtime_identifier() == 1 || a.runtime_identifier() == actor_id)
+    {
+        let name = if actor.runtime_identifier() == 1 {
+            "CYRUS"
+        } else {
+            actor_name
+        };
+        let (_, script) = scripts.iter().find(|(n, _)| n == name).unwrap();
+        let count = usize::try_from(script.num_variables).unwrap();
+        let bound = region.bind_actor(actor, count).unwrap().unwrap();
+        assert_eq!(bound.words.len(), script.variables.len());
+        assert_eq!(bound.object_id, actor.object_id);
+        assert_eq!(bound.runtime_identifier, actor.runtime_identifier());
+        assert!(actor.private_variable_words().is_empty());
+        eprintln!(
+            "bound {name} saved owner {} runtime {}: {} authored words",
+            bound.object_id,
+            bound.runtime_identifier,
+            bound.words.len()
+        );
+        bound_count += 1;
+    }
+    assert!(
+        bound_count >= 3,
+        "retained world must contain both player records and dialogue actor"
+    );
 }

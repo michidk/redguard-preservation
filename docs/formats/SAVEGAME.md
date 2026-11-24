@@ -340,3 +340,28 @@ state does not restore the actor's continuation.
 ## External References
 
 - [UESP: Redguard file formats](https://en.uesp.net/wiki/Mod:Redguard_File_Formats)
+
+## Authored script locals
+
+`SVRG` stores the current world's authored script-local storage as a flat array
+of little-endian signed 32-bit words. Its length is a multiple of four. The
+loader copies this array into the initialized world's variable allocation;
+it does not reconstruct its ownership from adjacent saved objects.
+
+Each `SMOB` body's word at `0x276` is a byte offset into that array. The value
+`0xFFFFFFFF` means no authored-local allocation; zero is a valid offset. Script
+variable indices address words relative to that actor's offset. The range
+length comes from the matching initialized script definition, including its
+instance allocation, rather than the optional object-private count.
+
+The optional `SMOB` private-variable tail is a separate allocation, identified
+by the body pointer marker at `0x1C` and byte count at `0x20`. An empty private
+tail does not imply that the actor has no authored locals. Neither allocation
+is interchangeable with the four native invocation words per task slot.
+
+`parse_save_script_locals` decodes the `SVRG` payload. `bind_actor` binds a
+bounded range to the saved object and runtime identities using the installed
+definition's word count. Consumers must establish the matching initialized
+world and script definition before supplying that count; a name or adjacent
+actor offset alone is insufficient. Binding does not relocate code references,
+execute a callback, or advance a timer.
