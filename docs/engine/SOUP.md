@@ -1473,6 +1473,14 @@ emits message `0xd000` from defender to attacker, requests defender taunt catego
 4, clears intent masks `0x01` and `0x02` on the defender followed by the attacker,
 and toggles defender flag `0x08`. It returns one. Other combat flag bits survive.
 
+Reverse playback is written only after all hit-defence admission gates and the
+current-motion contact query succeed. On the zero-radius range/arc path, that
+contact success includes orientation, strict three-dimensional query range and
+elevation, in that order. A defence response can therefore reverse an attack
+whose contact geometry passes. The attack-contact mark alone does not identify
+this branch. The success result is assigned after the impact cue, response
+message, taunt request, intent consumption and defender parity toggle complete.
+
 The impact cue comes from `COMBAT.INI` section `[misc]`: `sword_clank_1`
 on an even world-loop counter and `sword_clank_2` on an odd counter. It uses
 one random draw with bound 128 and pitch offset `draw * 16 - 1024` Hz.
