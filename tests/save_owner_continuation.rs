@@ -1,4 +1,15 @@
-use rgpre::import::savegame::*;
+use rgpre::import::{
+    rgm::{
+        self,
+        script::ActorScript,
+        script_program::{CallKind, Operation, decode_script_program},
+    },
+    savegame::*,
+    soup_def::{SoupDef, load_soup_def},
+};
+use std::collections::BTreeSet;
+
+type InstalledScripts = [(String, ActorScript)];
 
 fn put(body: &mut [u8], at: usize, value: u32) {
     body[at..at + 4].copy_from_slice(&value.to_le_bytes());
@@ -68,34 +79,38 @@ fn complete_code_and_shell_views_preserve_independent_slot_words() {
         (code.script_continuation(), code.task_slots()),
         (shell.script_continuation(), shell.task_slots()),
     ] {
+        assert_compact_continuation(continuation, tasks);
+    }
+}
+
+fn assert_compact_continuation(continuation: SaveScriptContinuation, tasks: [SaveTaskSlot; 6]) {
+    assert_eq!(
+        (
+            continuation.data,
+            continuation.entry,
+            continuation.cursor,
+            continuation.return_to
+        ),
+        (100, 101, 102, 103)
+    );
+    assert_eq!(
+        (
+            continuation.result,
+            continuation.saved_result,
+            continuation.anchor
+        ),
+        (8, 9, 0)
+    );
+    for (slot, task) in tasks.iter().enumerate() {
+        assert_eq!(task.callback, if slot == 5 { 0 } else { 201 + slot as u32 });
         assert_eq!(
-            (
-                continuation.data,
-                continuation.entry,
-                continuation.cursor,
-                continuation.return_to
-            ),
-            (100, 101, 102, 103)
+            (task.status, task.pause, task.timer),
+            (slot as u8 + 1, 0, u16::MAX - slot as u16)
         );
         assert_eq!(
-            (
-                continuation.result,
-                continuation.saved_result,
-                continuation.anchor
-            ),
-            (8, 9, 0)
+            task.variables,
+            std::array::from_fn(|array| 0xf0000000 | (array as u32) << 8 | slot as u32)
         );
-        for (slot, task) in tasks.iter().enumerate() {
-            assert_eq!(task.callback, if slot == 5 { 0 } else { 201 + slot as u32 });
-            assert_eq!(
-                (task.status, task.pause, task.timer),
-                (slot as u8 + 1, 0, u16::MAX - slot as u16)
-            );
-            assert_eq!(
-                task.variables,
-                std::array::from_fn(|array| 0xf0000000 | (array as u32) << 8 | slot as u32)
-            );
-        }
     }
 }
 
@@ -155,13 +170,6 @@ fn actor_anchor_is_retained_independently_of_results() {
 
 #[test]
 fn installed_owner_callbacks_and_locals_bind_to_initialized_programs() {
-    use rgpre::import::{
-        rgm::{
-            self,
-            script_program::{CallKind, Operation, decode_script_program},
-        },
-        soup_def::load_soup_def,
-    };
     let (Some(root), Some(path)) = (
         std::env::var_os("REDGUARD_DIR"),
         std::env::var_os("REDGUARD_SAVE_SLOT"),
@@ -194,12 +202,24 @@ fn installed_owner_callbacks_and_locals_bind_to_initialized_programs() {
     let shells = parse_save_shells(section(*b"SMSH")).unwrap();
     assert_eq!(owners.len(), expected_owners);
     assert_eq!(shells.len(), expected_shells);
-    let mut calls = std::collections::BTreeSet::new();
-    for (_, script) in &scripts {
+    let calls = installed_task_operands(&scripts, &definition);
+    let active = assert_code_owners(&owners, &region, &scripts, &calls);
+    assert_eq!(active, expected_active);
+    assert_shell_owners(&shells, &scripts);
+    eprintln!(
+        "bound {} code owners including {active} active callback owners, and {} shells",
+        owners.len(),
+        shells.len()
+    );
+}
+
+fn installed_task_operands(scripts: &InstalledScripts, definition: &SoupDef) -> BTreeSet<u32> {
+    let mut calls = BTreeSet::new();
+    for (_, script) in scripts {
         if let Ok(program) = decode_script_program(
             &script.bytecode,
             script.script_pc.try_into().unwrap(),
-            &definition,
+            definition,
         ) {
             for (at, step) in program {
                 let (call, operand) = match step.operation {
@@ -213,8 +233,17 @@ fn installed_owner_callbacks_and_locals_bind_to_initialized_programs() {
             }
         }
     }
+    calls
+}
+
+fn assert_code_owners(
+    owners: &[SaveCodeOwner],
+    region: &SaveScriptLocals,
+    scripts: &InstalledScripts,
+    calls: &BTreeSet<u32>,
+) -> usize {
     let mut active = 0;
-    for owner in &owners {
+    for owner in owners {
         let continuation = owner.script_continuation();
         let (_, script) = scripts
             .iter()
@@ -249,8 +278,11 @@ fn installed_owner_callbacks_and_locals_bind_to_initialized_programs() {
             );
         }
     }
-    assert_eq!(active, expected_active);
-    for shell in &shells {
+    active
+}
+
+fn assert_shell_owners(shells: &[SaveShell], scripts: &InstalledScripts) {
+    for shell in shells {
         let name = std::str::from_utf8(shell.name())
             .unwrap()
             .trim_end_matches('\0');
@@ -275,9 +307,4 @@ fn installed_owner_callbacks_and_locals_bind_to_initialized_programs() {
             shell.script_references().callbacks
         );
     }
-    eprintln!(
-        "bound {} code owners including {active} active callback owners, and {} shells",
-        owners.len(),
-        shells.len()
-    );
 }
