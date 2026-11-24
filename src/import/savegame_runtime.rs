@@ -361,15 +361,30 @@ impl SaveObject {
         })
     }
 
-    /// Signed private SOUP variable words in authored order. Object-record parsing
-    /// already validates the byte count against the retained variable count.
-    pub fn script_variables(&self) -> Vec<i32> {
+    /// Signed words from the optional object-private allocation. These are
+    /// separate from authored script locals in SVRG.
+    pub fn private_variable_words(&self) -> Vec<i32> {
         self.private_variables
             .as_chunks::<4>()
             .0
             .iter()
             .map(|bytes| i32::from_le_bytes(*bytes))
             .collect()
+    }
+
+    /// Optional authored-local byte offset into the world's SVRG array.
+    /// Zero is a valid offset; only the all-ones sentinel means absent.
+    pub fn script_local_offset(&self) -> Option<u32> {
+        let offset = word(&self.body, 0x276);
+        (offset != u32::MAX).then_some(offset)
+    }
+
+    /// Optional object-private words, not authored script locals.
+    #[deprecated(
+        note = "use private_variable_words; bind authored locals through SaveScriptLocals"
+    )]
+    pub fn script_variables(&self) -> Vec<i32> {
+        self.private_variable_words()
     }
 }
 
@@ -406,5 +421,84 @@ impl SaveObject {
             result: self.body[0x270],
             saved_result: self.body[0x271],
         }
+    }
+}
+
+/// Saved world's authored script-local storage from SVRG, in signed word order.
+/// This is distinct from each object's optional private allocation.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct SaveScriptLocals {
+    words: Vec<i32>,
+}
+
+/// Authored-local range bound to one saved actor identity.
+/// The initialized world must establish the actor's matching script definition.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct SaveActorLocals<'a> {
+    pub object_id: i32,
+    pub runtime_identifier: u16,
+    pub byte_offset: u32,
+    pub words: &'a [i32],
+}
+
+/// Decode SVRG's flat little-endian signed words without executing scripts.
+pub fn parse_save_script_locals(bytes: &[u8]) -> Result<SaveScriptLocals> {
+    if !bytes.len().is_multiple_of(4) {
+        return Err(Error::Parse(format!(
+            "save game SVRG: unaligned payload length {}",
+            bytes.len()
+        )));
+    }
+    Ok(SaveScriptLocals {
+        words: bytes
+            .as_chunks::<4>()
+            .0
+            .iter()
+            .map(|word| i32::from_le_bytes(*word))
+            .collect(),
+    })
+}
+
+impl SaveScriptLocals {
+    /// Bind an actor's retained byte offset using its initialized script's word
+    /// count. The count must come from the matching installed definition, never
+    /// from a neighboring actor offset or the private-variable tail.
+    /// Missing storage is accepted only for a definition with no variables.
+    pub fn bind_actor(
+        &self,
+        actor: &SaveObject,
+        variable_count: usize,
+    ) -> Result<Option<SaveActorLocals<'_>>> {
+        let fail = |reason: &str| {
+            Error::Parse(format!(
+                "save game SVRG: actor {} (runtime {}) local count {variable_count}: {reason}",
+                actor.object_id,
+                actor.runtime_identifier()
+            ))
+        };
+        let Some(byte_offset) = actor.script_local_offset() else {
+            return if variable_count == 0 {
+                Ok(None)
+            } else {
+                Err(fail("missing authored-local storage"))
+            };
+        };
+        if !byte_offset.is_multiple_of(4) {
+            return Err(fail("unaligned authored-local offset"));
+        }
+        let start = usize::try_from(byte_offset / 4).map_err(|_| fail("local offset overflow"))?;
+        let end = start
+            .checked_add(variable_count)
+            .ok_or_else(|| fail("local count overflow"))?;
+        let words = self
+            .words
+            .get(start..end)
+            .ok_or_else(|| fail("authored-local range exceeds payload"))?;
+        Ok(Some(SaveActorLocals {
+            object_id: actor.object_id,
+            runtime_identifier: actor.runtime_identifier(),
+            byte_offset,
+            words,
+        }))
     }
 }
