@@ -322,9 +322,10 @@ parallel fields; slot order is allocation and execution order.
 Callbacks retain the saved script-reference domain and require the initialized
 world's script base. The counter is not elapsed game time: a task invocation
 computes elapsed input from its counter and the current frame scale as described
-in [SOUP task execution](../engine/SOUP.md). Private variable tails contain signed
-little-endian 32-bit SOUP values in authored order. Playback, private variables,
-script cursors and task slots are independent parts of a saved continuation.
+in [SOUP task execution](../engine/SOUP.md). Optional private-variable tails contain signed little-endian 32-bit SOUP
+values separately from authored locals in `SVRG`. Playback, both local
+allocations, script cursors and task slots are independent parts of a saved
+continuation.
 
 
 ## Actor script continuation
@@ -334,12 +335,8 @@ The actor body retains script data, entry, cursor and return references at
 follow at `0x270` and `0x271`. References retain the saved code domain and must
 be bound against the initialized world. Result bytes and all four invocation
 words of each task slot are retained without normalization, including empty
-and paused slots. Restoring a cursor without its task and private-variable
-state does not restore the actor's continuation.
-
-## External References
-
-- [UESP: Redguard file formats](https://en.uesp.net/wiki/Mod:Redguard_File_Formats)
+and paused slots. Restoring a cursor without its task, authored-local and
+native invocation state does not restore the actor's continuation.
 
 ## Authored script locals
 
@@ -365,3 +362,46 @@ definition's word count. Consumers must establish the matching initialized
 world and script definition before supplying that count; a name or adjacent
 actor offset alone is insufficient. Binding does not relocate code references,
 execute a callback, or advance a timer.
+
+## Code and shell continuations
+
+Code owners and shells execute through a cleared temporary actor record. The
+persistent owner supplies the script references, result bytes, task callbacks,
+status, timers and four native invocation words. Updated fields are copied back
+after execution. Neither compact owner retains an Anchor byte or a task-pause
+array. Those fields start at zero for each temporary actor execution; they are
+not restored from an ordinary actor or a fresh-world baseline. Ordinary actors
+retain Anchor at body offset `0x25B` and retain their own pause array.
+
+The following offsets are relative to each packed body. Arrays have six entries
+in slot order, with words stored little-endian.
+
+| Field | Type | Code owner | Shell |
+|---|---|---|---|
+| Script data / entry / main / return | `[u32; 4]` | `0x23` | `0x12` |
+| Current / saved result | `[u8; 2]` | `0x33` | `0x22` |
+| Task callbacks | `[u32; 6]` | `0x42` | `0x30` |
+| Invocation word one | `[u32; 6]` | `0x5A` | `0x48` |
+| Blocking status | `[u8; 6]` | `0x72` | `0x60` |
+| Invocation timers | `[u16; 6]` | `0x78` | `0x66` |
+| Invocation word two | `[u32; 6]` | `0x84` | `0x72` |
+| Invocation word three | `[u32; 6]` | `0x9C` | `0x8A` |
+| Invocation word four | `[u32; 6]` | `0xB4` | `0xA2` |
+
+A code owner's word at `0x3A` is its authored-local byte offset in world `SVRG`,
+using the same all-ones absent sentinel as ordinary actors. The matching
+initialized script definition supplies the local count. Code-owner identity
+and installed source must both match before binding that range.
+
+A shell owns its local allocation separately from `SVRG`. Its saved count at
+`0x28` determines the words following the 186-byte body. Loading reconstructs
+the shell by installed name, retains the new allocation pointer, and reads the
+saved words into that allocation. Consumers must validate the saved count
+against the matching installed definition. The pointer at `0x24` is not a
+portable binding. `bind_locals` returns signed words tied to the saved name
+only after count validation; `bind_code_owner` bounds a code owner's world
+range and returns its identity with the words.
+
+## External References
+
+- [UESP: Redguard file formats](https://en.uesp.net/wiki/Mod:Redguard_File_Formats)

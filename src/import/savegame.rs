@@ -3,10 +3,10 @@
 #[path = "savegame_runtime.rs"]
 mod runtime;
 pub use runtime::{
-    SaveActorLocals, SaveCodeOwner, SaveObject, SaveScriptContinuation, SaveScriptLocals,
-    SaveScriptReferences, SaveShell, SaveTaskSlot, encode_save_code_owners, encode_save_objects,
-    encode_save_shells, parse_save_code_owners, parse_save_objects, parse_save_script_locals,
-    parse_save_shells,
+    SaveActorLocals, SaveCodeLocals, SaveCodeOwner, SaveObject, SaveScriptContinuation,
+    SaveScriptLocals, SaveScriptReferences, SaveShell, SaveShellLocals, SaveTaskSlot,
+    encode_save_code_owners, encode_save_objects, encode_save_shells, parse_save_code_owners,
+    parse_save_objects, parse_save_script_locals, parse_save_shells,
 };
 
 #[path = "savegame_playback.rs"]
