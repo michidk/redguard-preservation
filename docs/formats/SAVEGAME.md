@@ -73,6 +73,56 @@ Temporary `.TSG` snapshots use the same container and metadata layout.
 Their image chunks can be empty. The engine can restore these snapshots during
 a world reload after initializing the player.
 
+## Camera records
+
+`SVCM` is 1016 bytes: a little-endian `u32` record count of nine,
+nine 112-byte records, and a little-endian `u32` selected-record slot.
+The final slot identifies the selected record, independently of the camera's
+separate selected-index word.
+
+All numeric record fields are little-endian.
+
+| Offset | Size | Type | Name | Description |
+|---|---|---|---|---|
+| `0x00` | 12 | `[i32; 3]` | position_offset | Camera offset. |
+| `0x0c` | 12 | `[i32; 3]` | angle_offset | Camera angle offset. |
+| `0x18` | 12 | `[i32; 3]` | request | Requested position or displacement. |
+| `0x24` | 24 | `[[i32; 3]; 2]` | basis | Retained camera basis vectors. |
+| `0x3c` | 4 | `u32` | position_reference | Runtime pointer, reconstructed during load. |
+| `0x40` | 12 | `[i32; 3]` | bound_position_history | Retained bound position. |
+| `0x4c` | 4 | `u32` | angle_reference | Runtime pointer, reconstructed during load. |
+| `0x50` | 4 | `i32` | owner | Saved actor identity; zero and minus one resolve to no actor. |
+| `0x54` | 12 | `[i32; 3]` | target_offset | Target offset. |
+| `0x60` | 4 | `i32` | distance | Distance before candidate-stage Q8 conversion. |
+| `0x64` | 4 | `i32` | minimum_distance | Minimum distance. |
+| `0x68` | 4 | `u32` | flags | Camera stages consume the low-byte flags. |
+| `0x6c` | 4 | `u32` | maximum_movement | Movement limit. |
+
+The loader resolves each owner against the initialized actors. For a resolved
+owner, it reconstructs the position and angle references using that actor's
+local position and local angles, and retains the initialized slot's angle offset
+instead of the saved angle offset. Every other record byte is copied from the
+save. The selected record must have a resolved owner.
+
+The chunk does not contain the published logical pose, render pose, glide marks,
+or separate selected-index word. The saved runtime pointer words do not provide
+portable references to these values.
+
+`SVGV` retains the previous position at `0x17c`, current position at `0x18c`,
+current angles at `0x198`, previous angles at `0x1a4`, two transformed basis
+vectors at `0x1b0` and `0x1bc`, scripted-camera active word at `0x22e`, nesting
+count at `0x230`, and selected-index word at `0x24e`. Vectors contain three
+signed 32-bit components; the active word is 16 bits and the nesting count is
+32 bits. The render position at `0x5fa` contains three rounded signed map-unit
+coordinates. The reader converts these coordinates to renderer floats.
+
+After restoring the chunks, the session loader selects the record identified
+by the low byte of the saved selected-index word, replacing the temporary SVCM
+selection. It replaces that record's flags with the sign-extended 16-bit word
+at `SVG2` offset `0x08`, clears the transition and screen-shake state, and marks
+the next presentation as a cut. That first presentation copies the published
+pose instead of interpolating from earlier renderer angles.
+
 ## Object-record framing
 
 `SMOB` concatenates variable-length records. Each record begins with the
@@ -104,8 +154,8 @@ refer to the 783-byte body, not the record header. Unnamed blocks remain opaque.
 |---|---|---|
 | Byte `0xC1` equals one | 1 or 10 | Presence byte, then nine name bytes when nonzero. |
 | Word `0x272` nonzero | 256 | Actor attributes. |
-| Word `0x23F` nonzero | 41 | Opaque retained block. |
-| Word `0x243` nonzero | 20 | Opaque retained block with regenerated runtime binding. |
+| Word `0x23F` nonzero | 41 | Retained script light controls, strength and modulation. |
+| Word `0x243` nonzero | 20 | Retained flat sprite controls and playback, with regenerated texture binding. |
 | Word `0x247` nonzero | 37 | Mutable animation header; installed animation allocation is retained. |
 | Word `0x23B` differs from `0xFFFFFFFF` | 422 | Script state. Zero is a present identity. The loader additionally requires the initialized script allocation. |
 | Record rope identity nonzero | 8 | Attachment node and motion words. |
@@ -282,6 +332,54 @@ player has an attachment, the rope's current attachment-list head is retained
 as well. If the selected player has no attachment, the current head is freed
 and the restored head is null. The rope jump latch is restored through `SVGV`
 independently of these attachment pointers.
+
+## Actor light and flat records
+
+The optional 41-byte light record stores lock, enable and inactive-tick bytes at
+0–2; three signed 16-bit offsets at 3; starting and current intensity at 9 and
+11; starting and current radius at 13 and 15; three 16-bit flicker words at 17;
+three size-effect words at 23; current signed RGB strengths at 29; and starting
+signed RGB strengths at 35. Each modulation triple holds amplitude, phase and
+period. Loading copies these values without calling a light native.
+
+The optional 20-byte flat sprite record stores enable and inactive-tick bytes
+at 0 and 1; three 16-bit offsets at 2; a texture identifier at 8; a native
+bitmap-cache slot at 10; last-frame, counter and current-frame words at 12, 14
+and 16; and animation bytes at 18 and 19. Loading regenerates the cache slot
+from the saved texture identifier while retaining the playback words.
+
+## World spatial and family tables
+
+`SMGR` starts with a little-endian `u32` list count. Each entry contains a
+little-endian `u32` spatial-list identity followed by a signed `i32` actor
+identity for the first serialized actor in that list. The entries are followed
+by 16,384 little-endian `u16` cell-to-list identities, occupying 32,768 bytes.
+Zero cells denote no list. The writer omits leading actors whose runtime
+identity is zero when choosing the saved head. It can clear cells belonging to
+an empty object-only list in the serialized copy without changing the live grid.
+
+`SMFM` contains 256 consecutive 28-byte family slots. Each slot contains a
+signed little-endian actor identity followed by its accumulated group position
+in Q8 map units and accumulated group angles. Each vector has three signed
+little-endian 32-bit components. All vector words are copied on load,
+including vectors in slots with no actor. Actor identities zero and minus one
+resolve to no actor; minus two and minus three select the two player owners.
+Other identities resolve against initialized actors. These tables are independent
+of each actor's linked-position record. Family updates overwrite entries for
+masters they visit; absent entries retain their vectors. `FixSlaveAngle` reads
+the retained group-angle entry directly, including a slot with no actor.
+
+`SMRP` consists of 142-byte records: a four-byte rope identity followed by a
+138-byte body. The first three words of the body are rope list references,
+resolved by rope identity. The saved body also contains pointer fields that
+must be replaced with initialized runtime owners as described under
+[rope jump latch](#rope-jump-latch).
+The retained oscillator fields are current amplitude at body offset `0x56`,
+phase at `0x6A`, link step at `0x66`, pending push at `0x62`, direction byte at
+`0x38`, and preceding link-step sum at `0x5E`. All except direction are signed
+32-bit little-endian words. Restoring the body copies these values without
+advancing the oscillator or invoking the amplitude service.
+
 
 ## Actor navigation restoration
 
@@ -537,3 +635,61 @@ handler re-evaluates its group operand. A started task observes the receiver's
 current group without repeating its request or resetting its loop count. An
 unstarted task follows ordinary request arbitration and sets its requested
 loop count only once the requested group is current.
+
+## Gameplay globals and full-load ownership
+
+The following `SVGV` fields are little-endian. Offsets are relative to its
+1,542-byte payload.
+
+| Offset | Size | Type | Name | Description |
+|---|---|---|---|---|
+| `0x010` | 4 | `i32` | activation_consumed_use | Successful activation retains action consumption until release. |
+| `0x030` | 4 | `i32` | hit_inhibited | Selected-player hit inhibition. |
+| `0x034` | 4 | `i32` | death_animation_override | Requested death-animation group. |
+| `0x038` | 4 | `u32` | death_progress | Death-controller elapsed nominal ticks. |
+| `0x040` | 4 | `i32` | death_mode | Death-effect selector. |
+| `0x048` | 12 | `[i32; 3]` | death_position | Captured local position in signed 24.8 map units. |
+| `0x05C` | 4 | `u32` | falling_elapsed | World-loop falling timeout in nominal ticks. |
+| `0x060` | 4 | `u32` | action_ticks | Unconditional player-controller preliminary countdown in nominal ticks. |
+| `0x064` | 4 | `i32` | lineup_result | Shared lineup result and selected-player combat-entry inhibition. |
+| `0x090` | 4 | `u32` | world_loop_frame | World-loop iteration counter. |
+| `0x10C` | 4 | `i32` | idle_counter | Ordinary idle counter advanced by clock measurement windows. |
+| `0x130` | 4 | `u32` | body_response_contacts | Retained body-response count used by the sliding-state test. |
+| `0x224` | 2 | `u16` | lockout | Player lockout word. |
+| `0x5EA` | 4 | `i32` | health_candle_level | Retained candle level used by health animation. |
+| `0x5EE` | 4 | `i32` | health_candle_frame | Retained frame within the candle level. |
+| `0x5F2` | 8 | `[i32; 2]` | health_candle_position | Health-candle drawing coordinates. |
+
+Reading these fields and entering the world loop are separate operations.
+After a full load, world-loop entry clears hit inhibition, the death-animation
+override, death progress and the iteration counter. It also clears the dragon's
+breath cooldown. Death mode, captured position, falling elapsed time, the saved
+action countdown, idle counter, lineup result and lockout retain their loaded
+values. The full-load finalizer clears the pending player-action flag before
+world-loop entry.
+
+The secondary preliminary countdown and ledge-action inhibition are the same
+unsigned 32-bit global. The lineup result and selected-player combat-entry
+inhibition are likewise the same signed word, rather than independent state.
+
+A full save does not serialize every gameplay global. The loader retains the
+running session's maximum health, conditional preliminary countdown, secondary
+preliminary countdown, sound-maintenance inhibition, script-menu mode, potion
+counters, queued movie and selected-player ledge result. These values require
+an established prior session; a missing save field does not request a new
+player initializer. The standalone player initializer clears the preliminary
+countdowns and sound-maintenance inhibition and assigns maximum health 100.
+
+The script menu's existing entries are rebuilt during full load. Shared
+dialogue records and sample channels are cleared before actor task restoration;
+no active dialogue line is reconstructed from a saved RTX task. World-loop
+entry resets the sound-maintenance counter, while retaining its inhibition.
+
+
+Full loading also retains the running session's dialogue-mode word, item-viewer
+request, item-use latch and cached ground-prevalidation results. The item-viewer
+request includes its pending switch, no-text switch, item and two request words.
+The ordinary actor wrapper clears the prevalidation-used switch before its next
+query; that query replaces the cached rollback and sliding results. The item-use
+latch clears when the action input is released. The remembered topic-menu text
+clears when `DialogBegin` or `LockoutPlayer` runs.

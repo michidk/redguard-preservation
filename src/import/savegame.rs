@@ -30,6 +30,27 @@ pub use actor::{
     SaveActorState, SaveActorTransform, SavePositionLink,
 };
 
+#[path = "savegame_camera.rs"]
+mod camera;
+pub use camera::{
+    BoundSaveCamera, SaveCameraGlobals, SaveCameraRecord, SaveCameraValues, SaveCameras,
+    encode_save_cameras, parse_save_camera_globals, parse_save_cameras,
+};
+
+#[path = "savegame_globals.rs"]
+mod globals;
+pub use globals::{
+    LoadRetainedPlayerGlobals, SaveGameplayGlobals, SavePlayerControllerGlobals, SavePowerUps,
+    SaveSessionGlobals,
+};
+
+#[path = "savegame_world.rs"]
+mod world;
+pub use world::{
+    SaveActorFlat, SaveActorLight, SaveFamily, SaveRope, SaveRopeSwing, SaveSpatialGrid,
+    SaveSpatialList, parse_save_families, parse_save_ropes, parse_save_spatial_grid,
+};
+
 use crate::{Result, error::Error};
 use std::collections::BTreeMap;
 use std::path::Path;
