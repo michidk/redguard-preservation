@@ -104,6 +104,7 @@ fn raw_histories_and_controller_words_are_retained_without_normalization() {
         (0x120, -4097i32),
         (0x144, 9999),
         (0x108, -713),
+        (0x114, 31415),
         (0x1b6, -1),
         (0x1ba, i32::MIN),
     ] {
@@ -118,6 +119,7 @@ fn raw_histories_and_controller_words_are_retained_without_normalization() {
     let state = object.actor_state().unwrap();
     assert_eq!(state.spatial.angles[0], -4097);
     assert_eq!(state.spatial.initial_angles[0], 9999);
+    assert_eq!(state.spatial.water_rollback_position_q8, [31415, 0, 0]);
     assert_eq!(state.spatial.stable_validity, 255);
     assert_eq!(state.spatial.stable_position_q8, Some([-713, 0, 0]));
     assert_eq!(state.controller.pending_action, u32::MAX);

@@ -136,7 +136,10 @@ position and angle triples independently. Angles retain signed word values;
 reading the save does not wrap them or rebuild a transform. The stable-position
 validity byte and its stored Q8 coordinates are independent fields. A zero
 validity byte disables recovery without erasing those coordinates; any nonzero
-byte enables it. See [actor history properties](../engine/SOUPPROPS.md#position-and-angle-history-properties).
+byte enables it. The separate water-rollback position is retained independently
+of the update-entry and stable positions. An ordinary update replaces it when
+the surface is not water or falling is active; otherwise it stays unchanged.
+See [actor history properties](../engine/SOUPPROPS.md#position-and-angle-history-properties).
 
 The embedded model-instance translation and orientation matrix are retained
 single-precision values. They have a separate lifetime from logical position

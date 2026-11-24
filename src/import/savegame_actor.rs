@@ -13,6 +13,8 @@ pub struct SaveActorSpatial {
     pub previous_attached_position_q8: [i32; 3],
     pub initial_position_q8: [i32; 3],
     pub previous_position_q8: [i32; 3],
+    /// Separate end-of-update position retained for nonplayer water rollback.
+    pub water_rollback_position_q8: [i32; 3],
     /// Preserve the byte as well as its nonzero validity interpretation.
     pub stable_validity: u8,
     pub stored_stable_position_q8: [i32; 3],
@@ -147,6 +149,7 @@ impl SaveObject {
                 previous_attached_position_q8: triple(0xe3),
                 initial_position_q8: triple(0xef),
                 previous_position_q8: triple(0xfb),
+                water_rollback_position_q8: triple(0x114),
                 stable_validity: self.body[0x107],
                 stored_stable_position_q8: stable,
                 stable_position_q8: (self.body[0x107] != 0).then_some(stable),
