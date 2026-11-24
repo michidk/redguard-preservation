@@ -117,7 +117,33 @@ pub struct SaveActorState {
     pub references: SaveActorReferences,
 }
 
+/// Retained position-link allocation, including caches after detachment.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct SavePositionLink {
+    pub owner: Option<i32>,
+    pub offset_q8: [i32; 3],
+    pub position_q8: [i32; 3],
+    pub previous_position_q8: [i32; 3],
+}
+
 impl SaveObject {
+    /// Read the optional position-link allocation without discarding detached caches.
+    /// Presence is validated by the actor view; owner identities require population binding.
+    pub fn position_link(&self) -> Result<Option<SavePositionLink>> {
+        self.actor_state()?;
+        Ok(self.opaque_60.as_ref().map(|record| {
+            let word = |offset| i32::from_le_bytes(record[offset..offset + 4].try_into().unwrap());
+            let triple = |offset| std::array::from_fn(|axis| word(offset + axis * 4));
+            let owner = word(0);
+            SavePositionLink {
+                owner: (owner != -1).then_some(owner),
+                offset_q8: triple(4),
+                position_q8: triple(16),
+                previous_position_q8: triple(28),
+            }
+        }))
+    }
+
     /// Decode retained actor state without substituting initialized values.
     /// Missing conditional link storage is rejected before owner binding.
     pub fn actor_state(&self) -> Result<SaveActorState> {

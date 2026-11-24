@@ -173,3 +173,24 @@ fn foreign_references_duplicate_saved_owners_and_missing_link_storage_reject() {
         .is_err()
     );
 }
+
+#[test]
+fn position_link_preserves_detached_independent_caches() {
+    let mut object = synthetic();
+    object.body[0x21..0x25].copy_from_slice(&1u32.to_le_bytes());
+    let mut record = [0u8; 60];
+    for (index, value) in [-1i32, 11, 12, 13, 21, 22, 23, 31, 32, 33]
+        .into_iter()
+        .enumerate()
+    {
+        record[index * 4..index * 4 + 4].copy_from_slice(&value.to_le_bytes());
+    }
+    object.opaque_60 = Some(record);
+    let link = object.position_link().unwrap().unwrap();
+    assert_eq!(link.owner, None);
+    assert_eq!(link.offset_q8, [11, 12, 13]);
+    assert_eq!(link.position_q8, [21, 22, 23]);
+    assert_eq!(link.previous_position_q8, [31, 32, 33]);
+    object.opaque_60 = None;
+    assert!(object.position_link().is_err());
+}

@@ -27,7 +27,7 @@ pub use pose::{
 mod actor;
 pub use actor::{
     SaveActorBinding, SaveActorController, SaveActorOwners, SaveActorReferences, SaveActorSpatial,
-    SaveActorState, SaveActorTransform,
+    SaveActorState, SaveActorTransform, SavePositionLink,
 };
 
 use crate::{Result, error::Error};

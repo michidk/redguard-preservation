@@ -164,7 +164,9 @@ against its independently initialized actor allocations, preserving special
 player identities separately from runtime identity words. Missing, ambiguous
 or mismatched owners invalidate the complete binding population before native
 state is replaced. The optional position-link record retains its allocation
-even after its owner is cleared.
+even after its owner is cleared. Its signed owner word is followed by the Q8
+offset triple, cached position triple and previous cached position triple.
+Detachment clears the owner but preserves the allocation and both caches.
 
 ### Selected and previous model frames
 
