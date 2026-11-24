@@ -303,21 +303,21 @@ retain state for other worlds. `LOGBOOK.TXT` contains game journal content;
 it is separate from the historical TXT tool reports described in
 [Bundled support resources](BUNDLED-RESOURCES.md).
 
-## External References
-
-- [UESP: Redguard file formats](https://en.uesp.net/wiki/Mod:Redguard_File_Formats)
-
 ## Actor task slots
 
 The object body retains six SOUP task slots. Each slot combines the following
 parallel fields; slot order is allocation and execution order.
 
-| Body offset | Size | Contents |
-|---|---|---|
-| `0x27F` | 24 | Six little-endian callback references. Zero is empty; a nonzero reference names the byte after the task opcode. |
-| `0x2AF` | 6 | Blocking-status bytes. |
-| `0x2B5` | 6 | Pause bytes. Nonzero suspends invocation and timer advancement. |
-| `0x2BB` | 12 | Six little-endian wrapping invocation counters. |
+| Offset | Size | Type | Name | Description |
+|---|---|---|---|---|
+| `0x27F` | 24 | `[u32; 6]` | task callbacks | Six little-endian callback references. Zero is empty; a nonzero reference names the byte after the task opcode. |
+| `0x297` | 24 | `[u32; 6]` | task variables | First native invocation word for each of the six slots. |
+| `0x2AF` | 6 | `[u8; 6]` | task status | Blocking-status bytes. |
+| `0x2B5` | 6 | `[u8; 6]` | task pause | Pause bytes. Nonzero suspends invocation and timer advancement. |
+| `0x2BB` | 12 | `[u16; 6]` | task timers | Six little-endian wrapping invocation counters. |
+| `0x2C7` | 24 | `[u32; 6]` | task variables 2 | Second native invocation word for each slot. |
+| `0x2DF` | 24 | `[u32; 6]` | task variables 3 | Third native invocation word for each slot. |
+| `0x2F7` | 24 | `[u32; 6]` | task variables 4 | Fourth native invocation word for each slot. |
 
 Callbacks retain the saved script-reference domain and require the initialized
 world's script base. The counter is not elapsed game time: a task invocation
@@ -325,3 +325,18 @@ computes elapsed input from its counter and the current frame scale as described
 in [SOUP task execution](../engine/SOUP.md). Private variable tails contain signed
 little-endian 32-bit SOUP values in authored order. Playback, private variables,
 script cursors and task slots are independent parts of a saved continuation.
+
+
+## Actor script continuation
+
+The actor body retains script data, entry, cursor and return references at
+`0x260`, `0x264`, `0x268` and `0x26C`. The current and saved script result bytes
+follow at `0x270` and `0x271`. References retain the saved code domain and must
+be bound against the initialized world. Result bytes and all four invocation
+words of each task slot are retained without normalization, including empty
+and paused slots. Restoring a cursor without its task and private-variable
+state does not restore the actor's continuation.
+
+## External References
+
+- [UESP: Redguard file formats](https://en.uesp.net/wiki/Mod:Redguard_File_Formats)

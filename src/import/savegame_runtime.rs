@@ -338,6 +338,9 @@ pub struct SaveTaskSlot {
     pub pause: u8,
     /// Wrapping invocation counter; elapsed input also needs the current frame scale.
     pub timer: u16,
+    /// Four retained native invocation words in task-variable field order.
+    /// Preserve all bits, including values retained by an empty or paused slot.
+    pub variables: [u32; 4],
 }
 
 impl SaveObject {
@@ -354,6 +357,7 @@ impl SaveObject {
                     .try_into()
                     .unwrap(),
             ),
+            variables: [0x297, 0x2c7, 0x2df, 0x2f7].map(|base| word(&self.body, base + index * 4)),
         })
     }
 
@@ -374,5 +378,33 @@ impl SaveTaskSlot {
     /// frame scale. Arithmetic wraps before shifting; this does not advance the timer.
     pub fn elapsed(&self, frame_scale: u32) -> i32 {
         (u32::from(self.timer).wrapping_mul(frame_scale) >> 8) as i32
+    }
+}
+
+/// Saved actor script references and result bytes, before world binding.
+/// References stay in the saved code domain; zero references remain zero.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct SaveScriptContinuation {
+    pub data: u32,
+    pub entry: u32,
+    pub cursor: u32,
+    pub return_to: u32,
+    pub result: u8,
+    pub saved_result: u8,
+}
+
+impl SaveObject {
+    /// Read the actor's script continuation without relocating code or executing it.
+    /// Restore with matching task slots, invocation words and local variables.
+    pub fn script_continuation(&self) -> SaveScriptContinuation {
+        let [data, entry, cursor, return_to] = self.script_references().scripts;
+        SaveScriptContinuation {
+            data,
+            entry,
+            cursor,
+            return_to,
+            result: self.body[0x270],
+            saved_result: self.body[0x271],
+        }
     }
 }

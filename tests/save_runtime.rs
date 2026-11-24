@@ -238,3 +238,53 @@ fn task_continuation_survives_round_trip_and_first_explicit_frame() {
     );
     assert_eq!(decoded[0].script_variables(), [-1, 37]);
 }
+
+#[test]
+fn actor_invocation_words_and_script_results_survive_lossless_save_round_trip() {
+    let mut bytes = vec![0; 4 + 9 + 783 + 48];
+    let size = (bytes.len() - 4) as u32;
+    bytes[..4].copy_from_slice(&size.to_le_bytes());
+    bytes[13 + 0x23b..17 + 0x23b].copy_from_slice(&u32::MAX.to_le_bytes());
+    let mut objects = parse_save_objects(&bytes).unwrap();
+    let actor = &mut objects[0];
+    let references = [101u32, 203, 307, 409];
+    for (index, reference) in references.into_iter().enumerate() {
+        actor.body[0x260 + index * 4..0x264 + index * 4].copy_from_slice(&reference.to_le_bytes());
+    }
+    actor.body[0x270] = 0x81;
+    actor.body[0x271] = 0xfe;
+    // Every slot and every parallel word array has a distinct bit pattern,
+    // including empty/paused slots. Do not normalize pointers or signed words.
+    for slot in 0..6 {
+        for (array, base) in [0x297, 0x2c7, 0x2df, 0x2f7].into_iter().enumerate() {
+            let value = 0x8000_0000u32 | (array as u32) << 16 | slot as u32;
+            actor.body[base + slot * 4..base + slot * 4 + 4].copy_from_slice(&value.to_le_bytes());
+        }
+        actor.body[0x2af + slot] = slot as u8;
+        actor.body[0x2b5 + slot] = (slot * 2) as u8;
+    }
+    let encoded = encode_save_objects(&objects).unwrap();
+    let decoded = parse_save_objects(&encoded).unwrap();
+    let continuation = decoded[0].script_continuation();
+    assert_eq!(
+        [
+            continuation.data,
+            continuation.entry,
+            continuation.cursor,
+            continuation.return_to
+        ],
+        references
+    );
+    assert_eq!(
+        (continuation.result, continuation.saved_result),
+        (0x81, 0xfe)
+    );
+    for (slot, task) in decoded[0].task_slots().iter().enumerate() {
+        assert_eq!(task.callback, 0);
+        assert_eq!((task.status, task.pause), (slot as u8, (slot * 2) as u8));
+        for (array, value) in task.variables.iter().enumerate() {
+            assert_eq!(*value, 0x8000_0000u32 | (array as u32) << 16 | slot as u32);
+        }
+    }
+    assert_eq!(encode_save_objects(&decoded).unwrap(), encoded);
+}
