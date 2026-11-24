@@ -17,6 +17,12 @@ pub use playback::{SaveAnimationPlayback, SaveClock, parse_save_clock};
 mod navigation;
 pub use navigation::SaveActorNavigation;
 
+#[path = "savegame_pose.rs"]
+mod pose;
+pub use pose::{
+    BoundSaveModelFrame, SaveActorPose, SaveModelAllocation, SaveModelAllocations, SaveModelFrame,
+};
+
 use crate::{Result, error::Error};
 use std::collections::BTreeMap;
 use std::path::Path;

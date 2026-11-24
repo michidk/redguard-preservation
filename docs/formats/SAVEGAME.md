@@ -129,6 +129,25 @@ Its other fields include runtime bindings retained from the initialized owner.
 Uninterpreted fields and trailing extensions must remain intact during a
 lossless edit; they are not portable native pointers.
 
+### Selected and previous model frames
+
+The actor body retains five signed little-endian two-byte fields separately
+from its optional animation header:
+
+| Offset | Field |
+|---|---|
+| `0x24F` | Selected model-frame index. |
+| `0x251` | Selected runtime model handle. |
+| `0x253` | Previous model-frame index. |
+| `0x255` | Previous runtime model handle. |
+| `0x257` | Stored default animation group. |
+
+Full object load copies these fields unchanged. A minus-one model handle means
+no selected model; the accompanying frame word can be stale. Positive handles
+bind to the initialized world's model allocations, including distinct texture
+variants. They are not file-frame references. See
+[save-load pose ownership](../engine/animation.md#save-load-pose-ownership).
+
 ### Shell state
 
 `SMSH` starts with a little-endian four-byte shell count. Each shell has a

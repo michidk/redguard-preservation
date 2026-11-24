@@ -877,3 +877,27 @@ Groups not listed have class zero.
 |---|---|---|
 | 1 | Fighting group | 8, 31, 91 through 120, 129 through 133, 135 through 140, 175, 176, 177 |
 | 2 | Hit-reaction or death group | 74, 121 through 128, 134 |
+
+## Save-load pose ownership
+
+The actor body retains the selected model handle and model-frame index, the
+previous model handle and model-frame index, and the stored default group.
+Full object load copies these independently of the animation playback header.
+A command cursor does not replace either selected pose. A minus-one model
+handle denotes an absent pose; its frame word can retain an earlier value.
+An ordinary update invalidates the selected model handle before selecting a
+new pose without clearing the frame word.
+
+Animated model registration assigns positive handles in request order. A repeated
+resolved filename reuses its base allocation. A texture variant first registers
+its base filename, then reuses or creates a separate allocation keyed by the base
+handle and texture identifier. Variant geometry comes from that base resource;
+its handle remains distinct. These handles are neither RAAN entry indices nor
+installed resource identifiers. File-frame references resolve through the
+actor's initialized frame table, whose entries contain the registered handle and
+successive model-frame indices.
+
+An importer binds both saved poses to the initialized allocation table and
+validates the frame against the installed model. It preserves the stored default
+separately. A missing allocation, ambiguous handle or invalid frame cannot be
+repaired by selecting a baseline pose or replaying a callback.
