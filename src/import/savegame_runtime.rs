@@ -406,6 +406,9 @@ pub struct SaveScriptContinuation {
     pub return_to: u32,
     pub result: u8,
     pub saved_result: u8,
+    /// Actor Anchor byte. Code and shell owners do not retain Anchor between
+    /// their temporary actor executions, so their execution view starts at zero.
+    pub anchor: u8,
 }
 
 impl SaveObject {
@@ -420,6 +423,7 @@ impl SaveObject {
             return_to,
             result: self.body[0x270],
             saved_result: self.body[0x271],
+            anchor: self.body[0x25b],
         }
     }
 }
@@ -497,6 +501,162 @@ impl SaveScriptLocals {
         Ok(Some(SaveActorLocals {
             object_id: actor.object_id,
             runtime_identifier: actor.runtime_identifier(),
+            byte_offset,
+            words,
+        }))
+    }
+}
+
+/// Authored-local range bound to a saved code-owner identity in SVRG.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct SaveCodeLocals<'a> {
+    pub owner_id: u32,
+    pub byte_offset: u32,
+    pub words: &'a [i32],
+}
+
+/// Shell-owned local words. The installed definition supplies the expected
+/// count; saved allocation pointers are never accepted as ownership.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct SaveShellLocals {
+    pub name: [u8; 8],
+    pub words: Vec<i32>,
+}
+
+impl SaveCodeOwner {
+    /// Complete code-owner interpreter view before relocation. Anchor is cleared
+    /// in the temporary actor and is not copied back to the code record.
+    pub fn script_continuation(&self) -> SaveScriptContinuation {
+        let [data, entry, cursor, return_to] = self.script_references().scripts;
+        SaveScriptContinuation {
+            data,
+            entry,
+            cursor,
+            return_to,
+            result: self.body[0x33],
+            saved_result: self.body[0x34],
+            anchor: 0,
+        }
+    }
+
+    /// All retained native words/status/timers, including empty slots. Pause is
+    /// zero at each temporary actor invocation and is not retained by this owner.
+    pub fn task_slots(&self) -> [SaveTaskSlot; 6] {
+        compact_task_slots(&self.body, 0x42, 0x72, 0x78, [0x5a, 0x84, 0x9c, 0xb4])
+    }
+
+    /// Byte offset in the world's SVRG allocation, with the all-ones absent
+    /// sentinel. The initialized code owner's script determines its word count.
+    pub fn script_local_offset(&self) -> Option<u32> {
+        let offset = word(&self.body, 0x3a);
+        (offset != u32::MAX).then_some(offset)
+    }
+}
+
+impl SaveShell {
+    /// Complete shell interpreter view. Anchor is cleared for each temporary
+    /// actor execution rather than persisted in the shell record.
+    pub fn script_continuation(&self) -> SaveScriptContinuation {
+        let [data, entry, cursor, return_to] = self.script_references().scripts;
+        SaveScriptContinuation {
+            data,
+            entry,
+            cursor,
+            return_to,
+            result: self.body[0x22],
+            saved_result: self.body[0x23],
+            anchor: 0,
+        }
+    }
+
+    /// All retained task words/status/timers. Pause is reset for each shell run;
+    /// there is no saved pause array in the shell body.
+    pub fn task_slots(&self) -> [SaveTaskSlot; 6] {
+        compact_task_slots(&self.body, 0x30, 0x60, 0x66, [0x48, 0x72, 0x8a, 0xa2])
+    }
+
+    /// Validate the shell-local allocation against its matching initialized
+    /// named definition. Shell words are separate from world SVRG storage.
+    /// This never relocates or uses the saved allocation pointer.
+    pub fn bind_locals(&self, variable_count: usize) -> Result<SaveShellLocals> {
+        let fail = || {
+            Error::Parse(format!(
+                "save game SMSH shell {:?}: local allocation differs from installed count {variable_count}",
+                String::from_utf8_lossy(self.name())
+            ))
+        };
+        if usize::try_from(word(&self.body, 0x28)).ok() != Some(variable_count)
+            || variable_count.checked_mul(4) != Some(self.variables.len())
+        {
+            return Err(fail());
+        }
+        Ok(SaveShellLocals {
+            name: self.body[..8].try_into().unwrap(),
+            words: self
+                .variables
+                .as_chunks::<4>()
+                .0
+                .iter()
+                .map(|bytes| i32::from_le_bytes(*bytes))
+                .collect(),
+        })
+    }
+}
+
+fn compact_task_slots(
+    body: &[u8],
+    callbacks: usize,
+    status: usize,
+    timers: usize,
+    variables: [usize; 4],
+) -> [SaveTaskSlot; 6] {
+    std::array::from_fn(|index| SaveTaskSlot {
+        callback: word(body, callbacks + index * 4),
+        status: body[status + index],
+        pause: 0,
+        timer: u16::from_le_bytes(
+            body[timers + index * 2..timers + index * 2 + 2]
+                .try_into()
+                .unwrap(),
+        ),
+        variables: variables.map(|base| word(body, base + index * 4)),
+    })
+}
+
+impl SaveScriptLocals {
+    /// Bind SVRG storage to the initialized code owner's installed script count.
+    /// Zero is a valid offset. No range is inferred from adjacent owners.
+    pub fn bind_code_owner(
+        &self,
+        owner: &SaveCodeOwner,
+        variable_count: usize,
+    ) -> Result<Option<SaveCodeLocals<'_>>> {
+        let fail = |reason: &str| {
+            Error::Parse(format!(
+                "save game SVRG code owner {} local count {variable_count}: {reason}",
+                owner.owner_id
+            ))
+        };
+        let Some(byte_offset) = owner.script_local_offset() else {
+            return if variable_count == 0 {
+                Ok(None)
+            } else {
+                Err(fail("missing authored-local storage"))
+            };
+        };
+        if !byte_offset.is_multiple_of(4) {
+            return Err(fail("unaligned authored-local offset"));
+        }
+        let start = usize::try_from(byte_offset / 4).map_err(|_| fail("local offset overflow"))?;
+        let end = start
+            .checked_add(variable_count)
+            .ok_or_else(|| fail("local count overflow"))?;
+        let words = self
+            .words
+            .get(start..end)
+            .ok_or_else(|| fail("authored-local range exceeds payload"))?;
+        Ok(Some(SaveCodeLocals {
+            owner_id: owner.owner_id,
             byte_offset,
             words,
         }))
