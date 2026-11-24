@@ -6040,6 +6040,10 @@ reads the counter and animation state changed by this query.
 
 ### Movement continuation
 
+Movement continuation follows the current animation rather than requiring a
+held directional key. Releasing backward input does not truncate the remaining
+backward steps of an already selected fight-back animation.
+
 Each ordinary actor update clears the four movement-called flags before its script and
 decision stages. After those stages and the animation processing, an actor with no rope
 attachment, no queued-motion or living-state value and a clear forward-called flag continues
