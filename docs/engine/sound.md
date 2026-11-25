@@ -139,6 +139,21 @@ volume and a pan.
   gain. A changed master reaches a playing sound only at its next volume set;
   one-shots keep their start volume.
 
+### Digital sample completion
+
+Digital sample status describes source consumption by the mixer, independently
+of the output device draining its queued audio. A playing sample has status four.
+The driver services playing samples when its active output-buffer half changes,
+mixing each source into the other half. For a finite sample, consuming the final
+source bytes on the final pass changes its status to two during that service.
+Sample callbacks run after the source's mixing loop. Subsequent status queries
+see completion without waiting for the mixed output buffer to finish playing.
+
+The source cursor advances in mixer-buffer work, rather than continuously with
+elapsed time. Its completion boundary therefore depends on the driver buffer
+geometry and service phase as well as the source rate and length; dividing PCM
+length by its playback rate does not determine the status-transition instant.
+
 ### Animation PlaySound
 
 Animation opcode 4 ([attachment](attachment.md)) starts a positional sound:
