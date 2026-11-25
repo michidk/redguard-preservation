@@ -738,3 +738,8 @@ The ordinary actor wrapper clears the prevalidation-used switch before its next
 query; that query replaces the cached rollback and sliding results. The item-use
 latch clears when the action input is released. The remembered topic-menu text
 clears when `DialogBegin` or `LockoutPlayer` runs.
+
+The actor byte at body offset `0x237` is the runtime object-update exclusion.
+Zero admits ordinary updates; a nonzero byte suppresses the ordinary animation
+and main-script stages. The public controller view retains this raw byte in
+`active`; it is an exclusion flag rather than an inverted enable flag.

@@ -71,6 +71,7 @@ pub struct SaveActorController {
     pub hand_angles: [i32; 3],
     pub grip: [i16; 2],
     pub scabbard: [i16; 2],
+    /// Runtime object-update exclusion byte: zero admits ordinary updates.
     pub active: u8,
     pub hidden: u8,
     pub dead: u8,
