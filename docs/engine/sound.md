@@ -273,6 +273,11 @@ clears the topic-menu delay counter.
 Its record is an ordinary record owned by the player rather than the reserved player record, its distance gate
 measures the player's own position, and it does not change the topic-menu state.
 
+Speech source playback advances on the audio sample clock. Its cursor can
+advance between ordinary updates even when the FPS measurement's BIOS sample
+is unchanged. The nominal movement scale and whole BIOS-tick delta therefore
+do not specify the source cursor or its completion boundary.
+
 Dialogue lifetime is initialized from the loaded audio duration when a sample
 handle is remembered. Duration uses integer units of 1/256 second:
 `(PCM_byte_count << 8) / (channels * sample_rate * bytes_per_sample)`.
