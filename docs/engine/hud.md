@@ -601,7 +601,8 @@ requires combat capability, the weapon-drawn flag, and no sheathing state.
   prompt draws nothing and still hides the icon.
 
 A pending prompt is consumed when its text is drawn, not at the start or end of
-every frame. Lockout 1, activation hold-off, prompt override, and early exits
+every frame. Independently, a running `rtxAnim` animation cycle clears the pending
+prompt, and completion of that cycle clears the prompt-override timer. Lockout 1, activation hold-off, prompt override, and early exits
 that suppress prompt drawing retain it. The drawing checks use the selected
 player's rope attachment, `IsOnEdge`, and `IsInDeepWater` state, as well as the
 dialogue topic menu. `IsInDeepWater` is true for water states 2 and 4.

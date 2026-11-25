@@ -287,12 +287,13 @@ group (an ordinary request with speed modifier zero) and sets the animation's lo
 invocation, including that one, when the actor's current group differs from the group last requested and the line
 is active, it requests the next group in the cycle, wrapping after the third, and again sets the loop countdown to
 one. The task keeps running while the line is active or the actor's current group equals the group last requested,
-and otherwise completes. While it keeps running it clears the topic-menu pending flag, and when it completes it
-clears the topic-menu delay counter.
+and otherwise completes. While this animation cycle keeps running it clears the pending activation prompt.
+When the cycle completes it clears the HUD prompt-override timer. Sample-reset and distance-gate early returns
+do not perform these animation-cycle side effects.
 
 `RTXpAnim(label, a, b, c)` follows the same steps with the selected player as the animated actor and the speaker.
 Its record is an ordinary record owned by the player rather than the reserved player record, its distance gate
-measures the player's own position, and it does not change the topic-menu state.
+measures the player's own position, and it does not change the pending activation prompt or HUD prompt-override timer.
 
 Speech source playback advances on the audio sample clock. Its cursor can
 advance between ordinary updates even when the FPS measurement's BIOS sample
