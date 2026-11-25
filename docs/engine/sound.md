@@ -149,6 +149,12 @@ source bytes on the final pass changes its status to two during that service.
 Sample callbacks run after the source's mixing loop. Subsequent status queries
 see completion without waiting for the mixed output buffer to finish playing.
 
+Starting a sample resets its active source-buffer cursor before marking it
+playing. If the digital driver is stopped, sample start resumes the driver after
+marking the sample playing. Starting a sample while the driver is already
+running does not restart that driver. Active samples share the driver's output
+service phase.
+
 The source cursor advances in mixer-buffer work, rather than continuously with
 elapsed time. Its completion boundary therefore depends on the driver buffer
 geometry and service phase as well as the source rate and length; dividing PCM
