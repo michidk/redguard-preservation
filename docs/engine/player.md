@@ -2680,6 +2680,18 @@ bit 4 while preserving the other bits.
 
 ## FPS-derived frame scale
 
+The ordinary-loop counter advances before clock measurement and movement-scale
+publication. A counter stop therefore still exposes the preceding movement
+scale. At movement-scale publication, the accumulated clock already includes
+the pending movement increment; subtract that increment to obtain the clock
+of completed movement updates.
+
+The normal BIOS measurement stores its current sample before replacing the
+previous measurement baseline. It adds the difference between that sample and
+the previous baseline to the measurement remainder, then makes the baseline
+equal to the sample. The retained engine sample, rather than an assumed
+conventional-memory mapping, identifies the BIOS input consumed by this path.
+
 The normal FPS measurement path counts one frame per update and accumulates
 elapsed BIOS ticks. A measurement window contains 18 BIOS ticks. Once at least
 one complete window has elapsed, measured FPS becomes the frame count divided
