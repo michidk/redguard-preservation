@@ -346,6 +346,15 @@ It resolves the next combat-list reference by allocation index and the owner
 and target references by actor identity. The saved RTX-cache pointer is cleared,
 and flag `0x40` is cleared. Other dynamic combat values are copied.
 
+The first retained selector addresses the nine installed attack bindings; the
+second addresses the four installed defence bindings. Current attack collision
+and motion queries use the first selector together with the current motion
+selector. The two selectors are independent: a populated first selector and an
+absent second selector describe an attack without a pending defence. Executor
+state one advances the nine-binding motion sequence; state two advances the
+four-binding sequence. Loading preserves these selector values and executor
+state rather than deriving them from the animation group or action selector.
+
 All offsets below are relative to the combat allocation. Integer words are
 little-endian.
 
