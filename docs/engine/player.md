@@ -2686,11 +2686,18 @@ scale. At movement-scale publication, the accumulated clock already includes
 the pending movement increment; subtract that increment to obtain the clock
 of completed movement updates.
 
-The normal BIOS measurement stores its current sample before replacing the
-previous measurement baseline. It adds the difference between that sample and
-the previous baseline to the measurement remainder, then makes the baseline
-equal to the sample. The retained engine sample, rather than an assumed
-conventional-memory mapping, identifies the BIOS input consumed by this path.
+The normal BIOS measurement first stores a BIOS sample, then reads the BIOS
+clock again to add its difference from the previous baseline to the measurement
+remainder. It finally makes the baseline equal to the first stored sample. A
+timer tick between those reads can make the accumulated elapsed value differ
+from the stored sample minus the previous baseline. The remainder addition,
+before measurement-window reduction, identifies the elapsed input; the stored
+sample identifies the next baseline.
+
+Timing restores replace the measurement baseline without consuming ordinary
+movement. Successive stored samples can therefore include suspended time that
+the next measurement excludes. The baseline in effect at measurement, rather
+than the preceding movement publication's sample, determines its elapsed input.
 
 The normal FPS measurement path counts one frame per update and accumulates
 elapsed BIOS ticks. A measurement window contains 18 BIOS ticks. Once at least
