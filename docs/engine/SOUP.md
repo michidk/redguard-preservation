@@ -5261,6 +5261,11 @@ All additions and negations in those comparisons wrap as signed 32-bit values.
 The motion passes only when its elevation equals the required value. Band edges
 belong to elevation zero; they do not pass either outer band.
 
+Each elevation query reads both current bounds records again. It does not read
+the actors' queued or falling motion, animation group, or a band cached when the
+attack started. A jumping attack therefore uses the same bounds-based band test
+as a grounded attack.
+
 Arc admission reads both actors' ordinary local origins and the receiver's local
 heading, without attached or linked query-position substitution. It subtracts
 receiver position from target position in each coordinate
