@@ -272,8 +272,8 @@ first destination world view in from black. Each fade step changes a black
 overlay by 12 out of 256. World simulation resumes under the final fade-in;
 loading-screen fades do not advance the departing world's ordinary updates.
 
-The world-entry overlay starts fully black and remains black through the first
-ordinary world update. Starting with the second update, each active fade step
+The world-entry overlay starts fully black. Fade progression requires the
+retained main-loop counter, interpreted as signed, to exceed one. Each active fade step
 adds `(measured_nominal_ticks | 1) * 12` to a signed fade value initially equal
 to -256, clamping at zero. The tick count is the nominal carry from the measured
 FPS calculation, before warmup overrides the exposed gameplay step. A measured
