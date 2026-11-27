@@ -450,7 +450,9 @@ and returns before idle-counter reset, lockout and ordinary keyboard dispatch.
 
 ### Armed proximity sampling
 
-The armed controller's proximity probe consumes one shared random draw. When
+The armed controller's proximity probe consumes one shared random draw,
+including on eligible calls without directional or action input. This sampling
+does not require an idle-animation request or a support-state transition. When
 `draw * 100 / 32767` is at least 2, it returns without querying actors or
 changing the player's combat target.
 
