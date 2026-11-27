@@ -239,9 +239,10 @@ point's reciprocal Z, and the shadow texture spans the projected quad.
 ## World loading screen
 
 World entry uses the destination's `WORLD.INI` `world_flash_filename` GXA.
-An archive with several frames supplies a randomly selected background; a
-single-frame archive uses its only frame. The full-screen picture uses its
-own palette. New-game entry uses `start_world` and `start_marker` from the
+An archive with several frames selects its background through the shared engine
+random stream. Selection consumes one draw through the [bounded random helper](SOUP.md#rnd-and-quickrnd),
+with the archive's frame count as the bound. A single-frame archive selects frame
+zero without consuming a draw. The full-screen picture uses its own palette. New-game entry uses `start_world` and `start_marker` from the
 `[world]` section.
 
 Completing the New Game Introduction, including leaving through its configured
