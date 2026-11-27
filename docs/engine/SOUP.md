@@ -5133,6 +5133,12 @@ The nonplayer decision stage (death and state selector 6, actor not dead) begins
 
 The decision entry caches the current 32-bit clock sample for combat pacing and timed
 taunts. In normal clock mode this is the raw BIOS-clock sample, interpreted as signed.
+This copy precedes the receiver-state, alive and combat-record admission checks;
+a dispatched receiver can replace it even when those checks reject combat.
+Spacing, counter-attack, defence and timed-taunt selection use this retained
+decision sample. A later refresh of the shared clock sample and measurement
+baseline does not replace the decision sample; the next decision entry copies it
+again.
 It is distinct from nominal-tick increments and from the world-loop frame counter.
 Combat pacing retains the absolute phase of that sample: adding the receiver
 allocation index and taking a signed remainder uses the cached sample itself,
