@@ -19,6 +19,18 @@ and sun inputs.
 | Render | Every frame in the main loop | Sky layers are drawn before terrain and scene geometry |
 | Close | Session close | Sky textures are released and the system is shut down |
 
+Opening a configured Glide sky closes the previous sky and resets its scrolling
+continuation before selecting a direction. A successful texture open consumes
+one shared random value, including when the requested filename is unchanged.
+A null filename, failed texture open, or `sky_disable=1` does not enter the
+random direction selection branch.
+
+Retail book Load reopens the sky during world restoration. Loading the palace
+exterior from the starting exterior reuses the sky texture allocation but resets
+scroll offsets and the BIOS baseline and selects a new direction. Equal texture
+handles or identical installed sky settings do not imply retained direction or
+scroll phase. Subsequent rendering advances the new scroll phase from BIOS ticks.
+
 ## Background Fill
 
 The shipped Glide build selects `world_fogrgb[N]` as the RGB color used to
