@@ -438,7 +438,8 @@ serialized cell-list links. For each restored object whose runtime update
 exclusion byte is zero, it clears both list links and the cell-list identity,
 then prepends the object to its restored position cell. Objects are processed
 in `SMOB` record order. An attached object uses its restored attached position
-for this insertion while retaining its local position. Consequently, actors
+for this insertion while retaining its local position. A bound position-link
+cache takes precedence over that position during cell insertion. Consequently, actors
 restored into the same cell appear in reverse `SMOB` record order. Regional
 selection subsequently visits those cells in row-major order.
 
