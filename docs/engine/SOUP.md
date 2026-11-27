@@ -4094,6 +4094,9 @@ draw = (state >> 16) & 32767
 
 The executable's stored initial state is 1. The state belongs to the shared
 generator, not to an individual script or actor.
+Selecting a native source receiver does not itself advance this stream.
+Random-consuming operations dispatched with that receiver advance the same
+process-wide generator; changing the receiver does not create a new stream.
 
 `QuickRnd(mask)` returns `draw & mask`, using the complete 32-bit argument.
 The argument is a bit mask rather than an exclusive upper bound. A zero mask
