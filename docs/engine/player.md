@@ -2441,6 +2441,23 @@ For both primary and fallback model support, a steep classification (2) becomes
 ordinary ground (4) in the stored support state when collision-attribute bit 2
 is clear. The geometric normal itself is unchanged.
 
+### Support-result lifetime
+
+The current support result is shared query scratch. Other actors' support
+queries replace it. The designated-player wrapper copies its completed result
+into separate player support storage before applying the player ground response.
+Neither selecting the player nor entering `PlayerMain` refreshes that copy.
+Retail book loading can retain the preceding player-support copy until the
+first query in the restored world completes. A source kind, normal or height
+read before that query therefore does not establish the restored player's
+current support.
+
+Query ownership, completion and contact validity are separate. A completed
+model result with ordinary ground classification supplies the returned actor
+height to the grounded response. With no airborne or special state diverting
+that response, this remains supported movement rather than entry into falling;
+a drawn weapon alone does not request the fighting-fall animation.
+
 ### Support-query misses
 
 A support-query miss clears the selected model, source kind and classification,
