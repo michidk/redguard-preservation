@@ -1813,6 +1813,13 @@ current separate-record context but neither redirects that source to the
 separate record nor clears the source. The retained source therefore names the
 shared temporary storage, whose contents describe its most recent conversion;
 it does not establish a persistent reference to that separate record's allocation.
+Full save loading retains this shared source and the temporary actor and
+attribute-table contents until ordinary execution resumes, including when the
+previous separate record is absent from the loaded world. The first restored
+separate-object pass clears and fills the same temporary storage for the newly
+processed records. The retained storage identity and its last copied script,
+local-variable and position context are distinct from membership in the loaded
+world's separate-record census.
 The separate-object traversal runs after ordinary actor traversal and retains
 its own list membership. Outside editor mode, it maintains the optional light
 record after script/task dispatch and before copying the temporary actor back
