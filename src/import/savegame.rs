@@ -55,6 +55,10 @@ pub use world::{
     SaveSpatialList, parse_save_families, parse_save_ropes, parse_save_spatial_grid,
 };
 
+#[path = "savegame_image.rs"]
+mod image;
+pub use image::{SaveImage, SaveImageKind};
+
 use crate::{Result, error::Error};
 use std::collections::BTreeMap;
 use std::path::Path;

@@ -44,6 +44,18 @@ when the format version matches.
 The stored bitmap filename is separate from the `THMB` thumbnail and `SCR3`
 screen-image chunks.
 
+## Saved images
+
+`SCR3` stores a 640 by 480 screen image and `THMB` stores a 256 by 192
+book preview. Each pixel occupies one little-endian 16-bit framebuffer word,
+with consecutive pixels forming rows. Neither payload has an image header or
+an embedded palette. Their nonempty payload sizes are 614400 and 98304 bytes,
+respectively. Empty image chunks contain no image.
+
+The book Load path displays `SCR3` behind its progress bar instead of selecting
+the destination world's loading artwork. The metadata bitmap filename does not
+supply this screen.
+
 ## State chunks
 
 Save containers include global state and per-world state. Object and script
