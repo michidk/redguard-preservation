@@ -2741,6 +2741,13 @@ movement. Successive stored samples can therefore include suspended time that
 the next measurement excludes. The baseline in effect at measurement, rather
 than the preceding movement publication's sample, determines its elapsed input.
 
+Between FPS calculations, the cached BIOS sample can be refreshed together with
+the measurement baseline without adding a frame or adding to the FPS tick
+remainder. A completed ordinary body can therefore expose a different cached
+sample from the one stored at the beginning of its FPS calculation. Combat
+pacing uses the sample cached when its decision executes; a later body-boundary
+sample does not identify that earlier input.
+
 The normal FPS measurement path counts one frame per update and accumulates
 elapsed BIOS ticks. A measurement window contains 18 BIOS ticks. Once at least
 one complete window has elapsed, measured FPS becomes the frame count divided
