@@ -448,6 +448,21 @@ sliding state zero repeats it. The two unconditional countdowns are processed af
 selected hit-inhibition test. Nonzero hit inhibition invokes the death controller
 and returns before idle-counter reset, lockout and ordinary keyboard dispatch.
 
+### Armed proximity sampling
+
+The armed controller's proximity probe consumes one shared random draw. When
+`draw * 100 / 32767` is at least 2, it returns without querying actors or
+changing the player's combat target.
+
+An admitted sample temporarily sets the player's combat target to the player
+itself. It searches the ordinary actor traversal for the nearest qualifying
+attacker using the same eligibility, strict three-dimensional distance bound
+and stable tie order as the [fighting query](SOUP.md#fighting-query). When an
+attacker is found, it evaluates their rounded horizontal distance. The distance
+comparison does not start an action, change animation or send a combat message.
+The probe clears the player's combat target after the search, including when
+no attacker qualifies. It does not restore the previous target.
+
 ### Idle animation requests
 
 The ordinary idle counter starts at zero in a freshly loaded executable.
