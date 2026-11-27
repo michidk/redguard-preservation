@@ -272,6 +272,15 @@ first destination world view in from black. Each fade step changes a black
 overlay by 12 out of 256. World simulation resumes under the final fade-in;
 loading-screen fades do not advance the departing world's ordinary updates.
 
+The world-entry overlay starts fully black and remains black through the first
+ordinary world update. Starting with the second update, each active fade step
+adds `(nominal_ticks | 1) * 12` to a signed fade value initially equal to -256,
+clamping at zero. Thus a zero-tick update still advances the fade, and an even
+nominal-tick count advances it as the next odd count. After drawing each such
+step, including the step that clears the overlay, the clock warmup countdown
+is reset to twelve. Measurement counters and fractional accumulators continue;
+only the warmup countdown restarts.
+
 The loading-screen black rectangle blends in encoded RGB channels, not linear
 light, and leaves the picture's indexed palette unchanged. For opacity `a`,
 reconstruct the stored RGB565 destination using the ordered threshold at that
