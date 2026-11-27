@@ -1755,6 +1755,13 @@ previous source, including its string table. A string parameter therefore need
 not use either the native receiver's table or the alternate path's executing
 actor's table.
 
+Native local-variable parameters use the receiving actor's instance byte offset
+in the current process variable pool. String parameters instead use the retained
+source actor's string-instance byte offset in the current process string-pointer
+pool; the selected entry is an already relocated string pointer. Retaining the
+source actor does not retain a private copy of either process pool. Replacing a
+world can therefore change the values reached through unchanged instance offsets.
+
 A routed initial call preserves the retained source's string table. A later
 normal interpreter entry on the receiving actor establishes that receiver as the
 source before reevaluating its active task's string indices. The stored task
