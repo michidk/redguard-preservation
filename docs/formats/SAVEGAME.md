@@ -56,6 +56,18 @@ The book Load path displays `SCR3` behind its progress bar instead of selecting
 the destination world's loading artwork. The metadata bitmap filename does not
 supply this screen.
 
+The book Load handler disables destination artwork selection before starting the
+saved-game restoration. That route configures progress over the saved screen
+without drawing from the shared random stream for a loading image. The retained
+world-artwork frame index is not a new selection when this policy is disabled.
+
+The ordinary world-artwork route opens the configured GXA. A one-frame image
+selects frame zero without consuming shared randomness. An image with multiple
+frames consumes one value from the shared engine random stream through the
+bounded selector, then stores the selected frame index. This selection belongs
+to opening that loading presentation, rather than each progress update. Sky
+opening has its own independent random-direction selection.
+
 ## State chunks
 
 Save containers include global state and per-world state. Object and script
