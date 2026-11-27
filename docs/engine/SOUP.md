@@ -1806,6 +1806,13 @@ and clears its attribute table. It restores the object's position, script
 continuations, local-variable and string pointers, and native task-slot state.
 After processing, it copies position, continuations and task state back to the
 separate record. Attribute writes in that temporary actor are not copied back.
+The temporary actor and its attribute table use shared process-global storage,
+reused for every separate record. Normal interpreter entry retains a pointer to
+this temporary actor as the native-command source. Copying state back clears the
+current separate-record context but neither redirects that source to the
+separate record nor clears the source. The retained source therefore names the
+shared temporary storage, whose contents describe its most recent conversion;
+it does not establish a persistent reference to that separate record's allocation.
 The separate-object traversal runs after ordinary actor traversal and retains
 its own list membership. Outside editor mode, it maintains the optional light
 record after script/task dispatch and before copying the temporary actor back
