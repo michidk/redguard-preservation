@@ -245,6 +245,12 @@ with the archive's frame count as the bound. A single-frame archive selects fram
 zero without consuming a draw. The full-screen picture uses its own palette. New-game entry uses `start_world` and `start_marker` from the
 `[world]` section.
 
+Loading an existing save from the book suppresses the destination loading
+artwork. The progress bar uses the saved screen image instead. This path does
+not select an artwork frame and consumes no artwork-selection random draw.
+Cross-world loading still opens the destination sky and consumes its initial
+scroll-direction draw from the shared engine random stream.
+
 Completing the New Game Introduction, including leaving through its configured
 forward skip points, enters the starting marker with heading 1024 in the
 2048-unit turn. The direct world-entry path that bypasses Introduction uses
