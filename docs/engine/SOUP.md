@@ -3172,7 +3172,11 @@ increments its unsigned 16-bit call count once. The pass sums the blocking flags
 of still-pending calls with byte wrapping.
 
 The ordinary actor main stage performs native-hook and combat maintenance before
-its body/task processing. Task resumption can therefore replace command scratch
+its body/task processing. The hook dispatcher records its native receiver before
+invoking the handler. The shared script source is assigned by the later body/task
+setup, so a native hook can run with a receiver different from that retained
+source. A source observation alone does not identify the active native receiver.
+Task resumption can therefore replace command scratch
 for a later actor even when that later actor has no active task of its own.
 The direct native-call dispatcher does not clear the shared pause delay.
 
