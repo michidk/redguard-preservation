@@ -5134,6 +5134,13 @@ The nonplayer decision stage (death and state selector 6, actor not dead) begins
 The decision entry caches the current 32-bit clock sample for combat pacing and timed
 taunts. In normal clock mode this is the raw BIOS-clock sample, interpreted as signed.
 It is distinct from nominal-tick increments and from the world-loop frame counter.
+Combat pacing retains the absolute phase of that sample: adding the receiver
+allocation index and taking a signed remainder uses the cached sample itself,
+not the BIOS interval used by frame measurement. Equal frame scales and equal
+measurement intervals do not imply equal combat selections when the absolute
+samples differ. Spacing runs before counter-attack and defence selection; a
+synchronous defence start can replace the animation requested by spacing in
+the same decision pass.
 The world-loop counter resets to zero on loop entry and increments once at the beginning
 of each iteration. In the waiting branch, after spacing, one random draw admits a
 chance taunt when `draw * 100 / 32767 < 2`. The taunt type is 5 when the wrapping sum
@@ -5251,6 +5258,10 @@ The initial choice is zero. One random draw in the inclusive range zero through
 replaces the initial choice only if it exists and passes the strict distance
 window. The maximum draw therefore probes slot six. This fallback does not
 require arc or elevation admission and does not remap the slot.
+
+A failed fallback probe retains slot zero even when slot zero itself is outside
+its distance window. After the picker returns, its caller tests elevation before
+starting the move; it does not repeat the selected slot's distance-window test.
 
 The picker then scans slots zero through five in ascending order. A populated
 slot must pass distance, arc and elevation admission, in that order. A failed
