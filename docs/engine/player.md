@@ -318,6 +318,14 @@ climb and release calls described under [ledge climb request](#ledge-climb-reque
 Water states, drawn weapons, rope motion and jumping retain their own dispatch
 rules.
 
+### Input-free animation continuation
+
+An iteration without directional, look, jump or action input does not by itself
+request a standing animation. The ordinary actor stage advances the current
+animation before the player's `PlayerMain` invocation. With no input selecting
+a replacement, that invocation can leave the advanced group and frame intact,
+including when the sword is drawn and the current group is the actor's default.
+
 ### Armed attack input
 
 The input sampler keeps a tap latch per key (up, left, right, the walk key, jump, look and action).

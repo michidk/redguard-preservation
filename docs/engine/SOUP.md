@@ -351,7 +351,9 @@ third 19500. The first word of a `type` 4 (finishing) motion has not been
 read from the original. The installed COMBAT.INI contains attacks of `type`
 0, 2, 3 and 4 only.
 
-Fight spacing runs only when the action selector is -1. With the combat-stance
+Fight spacing runs only when the action selector is -1. This gate precedes
+spacing's target-facing call; an active action does not enter that turn through
+the spacing path. With the combat-stance
 predicate set, it uses the constructor's spacing ranges directly. Both stance
 paths turn toward the target after preparing their ranges and period, and continue
 only when the absolute returned angle is strictly below 128. Below the near range it tries backward, right and left
