@@ -433,6 +433,15 @@ Zero cells denote no list. The writer omits leading actors whose runtime
 identity is zero when choosing the saved head. It can clear cells belonging to
 an empty object-only list in the serialized copy without changing the live grid.
 
+Full object load rebuilds ordinary spatial membership rather than retaining the
+serialized cell-list links. For each restored object whose runtime update
+exclusion byte is zero, it clears both list links and the cell-list identity,
+then prepends the object to its restored position cell. Objects are processed
+in `SMOB` record order. An attached object uses its restored attached position
+for this insertion while retaining its local position. Consequently, actors
+restored into the same cell appear in reverse `SMOB` record order. Regional
+selection subsequently visits those cells in row-major order.
+
 `SMFM` contains 256 consecutive 28-byte family slots. Each slot contains a
 signed little-endian actor identity followed by its accumulated group position
 in Q8 map units and accumulated group angles. Each vector has three signed
