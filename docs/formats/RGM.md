@@ -416,7 +416,9 @@ A stored record begins with a little-endian `u16` native function index and a
 `u8` argument count, followed by five-byte encoded arguments. Each argument has
 a one-byte parameter-mode tag and four operand bytes. Function indices use the
 installed SOUP definition table. Parameter evaluation uses the receiving actor
-for local-variable references and the executing actor's string context.
+for local-variable references and the retained native-command source's string
+context. Both use their instance offsets in the current process pools; see
+[parameter source context](../engine/SOUP.md#vm-architecture).
 
 The native hook is not a table of RASC offsets and has no group-indexed array.
 Its execution gates are described in
