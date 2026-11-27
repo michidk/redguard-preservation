@@ -51,6 +51,11 @@ pub struct ActorScript {
     pub instances: u16,
     /// Separate authored RAVA slices in instance allocation order.
     pub instance_variables: Vec<Vec<i32>>,
+    /// Authored byte offset into the current process variable pool. Successive
+    /// instances advance by four bytes per authored variable.
+    pub variable_offset: i32,
+    /// Byte offset into the current relocated string-pointer pool.
+    pub string_offsets_index: i32,
     /// The exact actor-local RASC slice. Empty when the stored slice is invalid.
     pub bytecode: Vec<u8>,
     pub script_length: i32,
@@ -726,6 +731,8 @@ pub fn disassemble_actor_scripts(
                 header_index: i,
                 instances,
                 instance_variables,
+                variable_offset,
+                string_offsets_index,
                 bytecode,
                 script_length,
                 script_data_offset,

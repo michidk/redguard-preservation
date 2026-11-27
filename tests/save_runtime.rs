@@ -397,3 +397,18 @@ fn installed_authored_locals_use_initialized_script_counts() {
         "retained world must contain both player records and dialogue actor"
     );
 }
+
+#[test]
+fn retained_instance_offsets_resolve_against_the_current_variable_pool() {
+    use rgpre::import::savegame::parse_save_script_locals;
+    let prior =
+        parse_save_script_locals(&[0i32, 11, 22, 33].map(i32::to_le_bytes).concat()).unwrap();
+    let current =
+        parse_save_script_locals(&[0i32, -7, 91, 44].map(i32::to_le_bytes).concat()).unwrap();
+    assert_eq!(prior.bind_offset(4, 2).unwrap(), [11, 22]);
+    assert_eq!(current.bind_offset(4, 2).unwrap(), [-7, 91]);
+    assert!(current.bind_offset(3, 2).is_err());
+    assert!(current.bind_offset(12, 2).is_err());
+    assert!(current.bind_offset(u32::MAX - 3, usize::MAX).is_err());
+    assert!(current.bind_offset(16, 0).unwrap().is_empty());
+}

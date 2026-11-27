@@ -107,7 +107,9 @@ fn actor_headers_retain_authored_order_and_separate_instance_locals() {
     row[13..15].copy_from_slice(&2u16.to_le_bytes());
     row[0x4D..0x51].copy_from_slice(&5i32.to_le_bytes());
     row[0x75..0x79].copy_from_slice(&1i32.to_le_bytes());
-    let variables: Vec<_> = [4i32, 9i32]
+    row[0x7D..0x81].copy_from_slice(&4i32.to_le_bytes());
+    row[0x49..0x4D].copy_from_slice(&20i32.to_le_bytes());
+    let variables: Vec<_> = [0i32, 4i32, 9i32]
         .into_iter()
         .flat_map(i32::to_le_bytes)
         .collect();
@@ -122,6 +124,8 @@ fn actor_headers_retain_authored_order_and_separate_instance_locals() {
     assert_eq!(actors.len(), 1);
     assert_eq!(actors[0].1.header_index, 0);
     assert_eq!(actors[0].1.instances, 2);
+    assert_eq!(actors[0].1.variable_offset, 4);
+    assert_eq!(actors[0].1.string_offsets_index, 20);
     assert_eq!(actors[0].1.instance_variables, [vec![4], vec![9]]);
 }
 

@@ -465,6 +465,27 @@ pub fn parse_save_script_locals(bytes: &[u8]) -> Result<SaveScriptLocals> {
 }
 
 impl SaveScriptLocals {
+    /// Resolve a retained instance byte offset against this current SVRG pool.
+    /// Counts come from the matching installed script definition. The source
+    /// need not remain a member of the loaded world's actor census.
+    ///
+    /// # Errors
+    /// Rejects unaligned offsets, overflowing counts and ranges outside the pool.
+    pub fn bind_offset(&self, byte_offset: u32, variable_count: usize) -> Result<&[i32]> {
+        if !byte_offset.is_multiple_of(4) {
+            return Err(Error::Parse(format!(
+                "save game SVRG: retained local offset {byte_offset} is unaligned"
+            )));
+        }
+        let start = usize::try_from(byte_offset / 4)
+            .map_err(|_| Error::Parse("save game SVRG: retained local offset overflow".into()))?;
+        let end = start
+            .checked_add(variable_count)
+            .ok_or_else(|| Error::Parse("save game SVRG: retained local count overflow".into()))?;
+        self.words.get(start..end).ok_or_else(|| Error::Parse(format!(
+            "save game SVRG: retained local offset {byte_offset} count {variable_count} exceeds current pool"
+        )))
+    }
     /// Bind an actor's retained byte offset using its initialized script's word
     /// count. The count must come from the matching installed definition, never
     /// from a neighboring actor offset or the private-variable tail.
