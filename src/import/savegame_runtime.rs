@@ -464,7 +464,24 @@ pub fn parse_save_script_locals(bytes: &[u8]) -> Result<SaveScriptLocals> {
     })
 }
 
+impl From<Vec<i32>> for SaveScriptLocals {
+    /// Construct the complete authored-local pool from caller-established words.
+    /// Actor offsets and ownership must be validated against installed definitions.
+    fn from(words: Vec<i32>) -> Self {
+        Self { words }
+    }
+}
+
 impl SaveScriptLocals {
+    /// Encode every authored-local word in pool order, without normalization.
+    /// This emits only the SVRG payload, not object ownership or a complete slot.
+    pub fn encode(&self) -> Vec<u8> {
+        self.words
+            .iter()
+            .flat_map(|word| word.to_le_bytes())
+            .collect()
+    }
+
     /// Resolve a retained instance byte offset against this current SVRG pool.
     /// Counts come from the matching installed script definition. The source
     /// need not remain a member of the loaded world's actor census.

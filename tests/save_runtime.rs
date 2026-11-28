@@ -412,3 +412,40 @@ fn retained_instance_offsets_resolve_against_the_current_variable_pool() {
     assert!(current.bind_offset(u32::MAX - 3, usize::MAX).is_err());
     assert!(current.bind_offset(16, 0).unwrap().is_empty());
 }
+
+#[test]
+fn authored_local_encoder_preserves_signed_words_and_pool_boundaries() {
+    use rgpre::import::savegame::{SaveScriptLocals, parse_save_script_locals};
+    let words = vec![i32::MIN, -1, 0, 1, i32::MAX];
+    let saved = SaveScriptLocals::from(words.clone());
+    let bytes = saved.encode();
+    let expected: Vec<u8> = words.iter().flat_map(|word| word.to_le_bytes()).collect();
+    assert_eq!(bytes, expected);
+    let decoded = parse_save_script_locals(&bytes).unwrap();
+    assert_eq!(decoded, saved);
+    assert_eq!(decoded.bind_offset(4, 3).unwrap(), &words[1..4]);
+    assert!(decoded.bind_offset(20, 1).is_err());
+    assert!(decoded.bind_offset(1, 1).is_err());
+    assert!(SaveScriptLocals::from(Vec::new()).encode().is_empty());
+}
+
+#[test]
+fn installed_authored_local_pool_round_trip() {
+    use rgpre::import::savegame::parse_save_script_locals;
+    let Some(path) = std::env::var_os("REDGUARD_SAVE_SLOT") else {
+        eprintln!("SKIP installed authored locals: REDGUARD_SAVE_SLOT is absent");
+        return;
+    };
+    let slot = load_save_slot(path).unwrap();
+    let mut count = 0;
+    for game in std::iter::once(&slot.game).chain(slot.maps.values()) {
+        for section in &game.sections {
+            if section.name == *b"SVRG" {
+                let saved = parse_save_script_locals(&section.data).unwrap();
+                assert_eq!(saved.encode(), section.data);
+                count += 1;
+            }
+        }
+    }
+    assert!(count > 0, "slot contains no SVRG record");
+}

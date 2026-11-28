@@ -630,6 +630,11 @@ by the body pointer marker at `0x1C` and byte count at `0x20`. An empty private
 tail does not imply that the actor has no authored locals. Neither allocation
 is interchangeable with the four native invocation words per task slot.
 
+`SaveScriptLocals` encodes the complete signed-word pool without normalization.
+Construction from words preserves their order; it does not derive actor offsets
+or replace missing live allocations with installed initial values. Encoding a
+local pool alone does not produce a complete original save slot.
+
 `parse_save_script_locals` decodes the `SVRG` payload. `bind_actor` binds a
 bounded range to the saved object and runtime identities using the installed
 definition's word count. Consumers must establish the matching initialized
