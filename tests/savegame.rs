@@ -229,6 +229,20 @@ fn installed_save_slot() {
             .unwrap();
         let inventory = parse_save_inventory(&section.data, count).unwrap();
         assert_eq!(encode_save_inventory(&inventory).unwrap(), section.data);
+        let mut changed = inventory.items[0].state();
+        changed.player_total = 17;
+        changed.player_max = 29;
+        changed.total = 31;
+        changed.item_used = changed.item_used.wrapping_add(1);
+        changed.pushed = 1;
+        changed.saved_player_total = 23;
+        let mut replacement = inventory.clone();
+        replacement.items[0] = changed.clone().into();
+        let bytes = encode_save_inventory(&replacement).unwrap();
+        assert_ne!(bytes, section.data);
+        let decoded = parse_save_inventory(&bytes, count).unwrap();
+        assert_eq!(decoded.items[0].state(), changed);
+        assert_eq!(decoded.items[1..], inventory.items[1..]);
     }
     assert!(
         slot.game
@@ -377,4 +391,44 @@ fn flag_payload_has_signed_values_then_states_without_interleaving() {
         })
         .is_err()
     );
+}
+
+#[test]
+fn semantic_item_state_round_trips_changed_limits_and_wrapping_history() {
+    use rgpre::import::savegame::{
+        SaveInventory, SaveItem, SaveItemState, encode_save_inventory, parse_save_inventory,
+    };
+    let state = SaveItemState {
+        hide: 0x81,
+        pushed: 0xfe,
+        total: i32::MAX,
+        player_max: -7,
+        player_total: 123,
+        item_used: u32::MAX,
+        saved_player_total: 0x8765_4321,
+    };
+    let saved = SaveInventory {
+        items: vec![SaveItem::from(state.clone())],
+        selected_item: -1,
+    };
+    let bytes = encode_save_inventory(&saved).unwrap();
+    assert_eq!(&bytes[..2], &[0x81, 0xfe]);
+    assert_eq!(&bytes[2..6], &i32::MAX.to_le_bytes());
+    assert_eq!(&bytes[6..10], &(-7i32).to_le_bytes());
+    assert_eq!(&bytes[10..14], &123i32.to_le_bytes());
+    assert_eq!(&bytes[14..18], &u32::MAX.to_le_bytes());
+    assert_eq!(&bytes[18..22], &0x8765_4321u32.to_le_bytes());
+    let decoded = parse_save_inventory(&bytes, 1).unwrap();
+    assert_eq!(decoded.items[0].state(), state);
+    let mut changed = decoded.items[0].state();
+    changed.player_total = 17;
+    changed.item_used = changed.item_used.wrapping_add(1);
+    changed.pushed = 0;
+    let saved = SaveInventory {
+        items: vec![changed.clone().into()],
+        selected_item: 12,
+    };
+    let decoded = parse_save_inventory(&encode_save_inventory(&saved).unwrap(), 1).unwrap();
+    assert_eq!(decoded.items[0].state(), changed);
+    assert_eq!(decoded.selected_item, 12);
 }

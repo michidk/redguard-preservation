@@ -275,7 +275,47 @@ pub struct SaveItem {
     pub unknown_12: u32,
 }
 
+/// Complete mutable inventory state stored by an SVIT item record.
+/// Byte flags retain their original representation; counters retain all 32 bits.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SaveItemState {
+    pub hide: u8,
+    pub pushed: u8,
+    pub total: i32,
+    pub player_max: i32,
+    pub player_total: i32,
+    pub item_used: u32,
+    pub saved_player_total: u32,
+}
+
+impl From<SaveItemState> for SaveItem {
+    fn from(state: SaveItemState) -> Self {
+        Self {
+            hide: state.hide,
+            unknown_01: state.pushed,
+            total: state.total,
+            player_max: state.player_max,
+            player_total: state.player_total,
+            unknown_0e: state.item_used,
+            unknown_12: state.saved_player_total,
+        }
+    }
+}
+
 impl SaveItem {
+    /// Return the lossless semantic state, including push history.
+    pub fn state(&self) -> SaveItemState {
+        SaveItemState {
+            hide: self.hide,
+            pushed: self.unknown_01,
+            total: self.total,
+            player_max: self.player_max,
+            player_total: self.player_total,
+            item_used: self.unknown_0e,
+            saved_player_total: self.unknown_12,
+        }
+    }
+
     /// Wrapping use count returned unchanged by the `ItemUsed` native.
     pub fn item_used(&self) -> u32 {
         self.unknown_0e
