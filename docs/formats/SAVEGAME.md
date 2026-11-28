@@ -659,6 +659,13 @@ array. Those fields start at zero for each temporary actor execution; they are
 not restored from an ordinary actor or a fresh-world baseline. Ordinary actors
 retain Anchor at body offset `0x25B` and retain their own pause array.
 
+`SaveCodeOwner::replace_execution` replaces the saved script continuation and
+all six task slots without changing owner identity, authored-local allocation,
+native-hook reference or other packed fields. References supplied to it remain
+in the saved world's code-offset domain. Nonzero temporary Anchor or task-pause
+state is not representable and rejects before mutation. This record-level
+operation does not validate a complete world or save slot.
+
 The following offsets are relative to each packed body. Arrays have six entries
 in slot order, with words stored little-endian.
 

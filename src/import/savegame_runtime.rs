@@ -563,6 +563,61 @@ pub struct SaveShellLocals {
 }
 
 impl SaveCodeOwner {
+    /// Replace the retained interpreter and six native task slots in an SMCO body.
+    /// References must already be in the saved world's code-offset domain.
+    /// Owner identity, authored-local range, native-hook reference and every other
+    /// packed field remain unchanged. This does not bind a world or certify a slot.
+    ///
+    /// # Errors
+    /// Rejects nonzero temporary-actor Anchor or pause state, which SMCO cannot
+    /// represent. Validation finishes before any retained byte is changed.
+    pub fn replace_execution(
+        &mut self,
+        continuation: SaveScriptContinuation,
+        tasks: [SaveTaskSlot; 6],
+    ) -> Result<()> {
+        if continuation.anchor != 0 {
+            return Err(Error::Parse(format!(
+                "save game SMCO owner {}: temporary Anchor cannot be retained",
+                self.owner_id
+            )));
+        }
+        for (index, task) in tasks.iter().enumerate() {
+            if task.pause != 0 {
+                return Err(Error::Parse(format!(
+                    "save game SMCO owner {} task {index}: temporary pause cannot be retained",
+                    self.owner_id
+                )));
+            }
+        }
+        let write = |body: &mut [u8], at: usize, value: u32| {
+            body[at..at + 4].copy_from_slice(&value.to_le_bytes());
+        };
+        for (index, value) in [
+            continuation.data,
+            continuation.entry,
+            continuation.cursor,
+            continuation.return_to,
+        ]
+        .into_iter()
+        .enumerate()
+        {
+            write(&mut self.body, 0x23 + index * 4, value);
+        }
+        self.body[0x33] = continuation.result;
+        self.body[0x34] = continuation.saved_result;
+        for (index, task) in tasks.into_iter().enumerate() {
+            write(&mut self.body, 0x42 + index * 4, task.callback);
+            self.body[0x72 + index] = task.status;
+            self.body[0x78 + index * 2..0x7a + index * 2]
+                .copy_from_slice(&task.timer.to_le_bytes());
+            for (base, value) in [0x5a, 0x84, 0x9c, 0xb4].into_iter().zip(task.variables) {
+                write(&mut self.body, base + index * 4, value);
+            }
+        }
+        Ok(())
+    }
+
     /// Complete code-owner interpreter view before relocation. Anchor is cleared
     /// in the temporary actor and is not copied back to the code record.
     pub fn script_continuation(&self) -> SaveScriptContinuation {

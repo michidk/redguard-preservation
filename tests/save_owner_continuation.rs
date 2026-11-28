@@ -308,3 +308,114 @@ fn assert_shell_owners(shells: &[SaveShell], scripts: &InstalledScripts) {
         );
     }
 }
+
+#[test]
+fn code_execution_replacement_roundtrips_and_rejects_unrepresentable_state_atomically() {
+    let mut owner = SaveCodeOwner {
+        owner_id: 73,
+        body: [0xa5; 204],
+    };
+    let original = owner.clone();
+    let continuation = SaveScriptContinuation {
+        data: 101,
+        entry: 202,
+        cursor: 303,
+        return_to: 404,
+        result: 7,
+        saved_result: 251,
+        anchor: 0,
+    };
+    let tasks = std::array::from_fn(|index| SaveTaskSlot {
+        callback: if index == 5 { 0 } else { 500 + index as u32 },
+        status: index as u8 + 128,
+        pause: 0,
+        timer: u16::MAX - index as u16,
+        variables: [u32::MAX, index as u32, 0x80000000, 0],
+    });
+    owner.replace_execution(continuation, tasks).unwrap();
+    let decoded = parse_save_code_owners(&encode_save_code_owners(&[owner.clone()]))
+        .unwrap()
+        .remove(0);
+    assert_eq!(decoded.script_continuation(), continuation);
+    assert_eq!(decoded.task_slots(), tasks);
+    assert_eq!(decoded.owner_id, original.owner_id);
+    assert_eq!(
+        decoded.script_local_offset(),
+        original.script_local_offset()
+    );
+    assert_eq!(
+        decoded.script_references().native_hook,
+        original.script_references().native_hook
+    );
+    // Replacing execution must not change independently retained packed fields.
+    assert_eq!(&decoded.body[..0x23], &original.body[..0x23]);
+    assert_eq!(&decoded.body[0x35..0x42], &original.body[0x35..0x42]);
+    let before = owner.clone();
+    let error = owner
+        .replace_execution(
+            SaveScriptContinuation {
+                anchor: 1,
+                ..continuation
+            },
+            tasks,
+        )
+        .unwrap_err()
+        .to_string();
+    assert!(
+        error.contains("SMCO owner 73") && error.contains("Anchor"),
+        "{error}"
+    );
+    assert_eq!(owner, before);
+    for index in 0..6 {
+        let mut paused = tasks;
+        paused[index].pause = 1;
+        let error = owner
+            .replace_execution(continuation, paused)
+            .unwrap_err()
+            .to_string();
+        assert!(
+            error.contains(&format!("owner 73 task {index}")) && error.contains("pause"),
+            "{error}"
+        );
+        assert_eq!(owner, before);
+    }
+}
+
+#[test]
+fn installed_code_execution_changed_state_roundtrips_without_replacing_other_owners() {
+    let Some(path) = std::env::var_os("REDGUARD_SAVE_SLOT") else {
+        eprintln!("SKIP installed code execution export: REDGUARD_SAVE_SLOT absent");
+        return;
+    };
+    let slot = load_save_slot(path).unwrap();
+    let payload = &slot
+        .game
+        .sections
+        .iter()
+        .find(|section| section.name == *b"SMCO")
+        .expect("installed SMCO absent")
+        .data;
+    let mut owners = parse_save_code_owners(payload).unwrap();
+    let original = owners.clone();
+    let owner = owners
+        .first_mut()
+        .expect("installed SMCO has no code owners");
+    let mut continuation = owner.script_continuation();
+    continuation.result = continuation.result.wrapping_add(1);
+    continuation.saved_result = continuation.saved_result.wrapping_add(7);
+    let mut tasks = owner.task_slots();
+    tasks[5].timer = tasks[5].timer.wrapping_add(17);
+    tasks[5].variables[3] ^= u32::MAX;
+    owner.replace_execution(continuation, tasks).unwrap();
+    let encoded = encode_save_code_owners(&owners);
+    assert_ne!(encoded, *payload);
+    let decoded = parse_save_code_owners(&encoded).unwrap();
+    assert_eq!(decoded[0].script_continuation(), continuation);
+    assert_eq!(decoded[0].task_slots(), tasks);
+    assert_eq!(decoded[0].owner_id, original[0].owner_id);
+    assert_eq!(
+        decoded[0].script_local_offset(),
+        original[0].script_local_offset()
+    );
+    assert_eq!(decoded[1..], original[1..]);
+}
