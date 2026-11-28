@@ -625,6 +625,13 @@ variable indices address words relative to that actor's offset. The range
 length comes from the matching initialized script definition, including its
 instance allocation, rather than the optional object-private count.
 
+Authored-pool ownership is independent of live receiver dispatch. A definition's
+allocated variable range remains part of `SVRG` when its executable context is a
+shell rather than a map actor. In particular, COMMON's authored pool range and
+its shell-private continuation variables are separate storage. The complete
+pool also retains words outside the ranges bound to live receivers; rebuilding
+it by concatenating receiver variables discards those words.
+
 The optional `SMOB` private-variable tail is a separate allocation, identified
 by the body pointer marker at `0x1C` and byte count at `0x20`. An empty private
 tail does not imply that the actor has no authored locals. Neither allocation
