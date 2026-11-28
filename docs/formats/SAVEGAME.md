@@ -47,10 +47,20 @@ screen-image chunks.
 ## Saved images
 
 `SCR3` stores a 640 by 480 screen image and `THMB` stores a 256 by 192
-book preview. Each pixel occupies one little-endian 16-bit framebuffer word,
-with consecutive pixels forming rows. Neither payload has an image header or
+book preview. Each pixel occupies one little-endian RGB565 framebuffer word: red
+is in bits 11 through 15, green in bits 5 through 10, and blue in bits 0 through
+4. Consecutive pixels form rows from the upper-left origin. Neither payload has an image header or
 an embedded palette. Their nonempty payload sizes are 614400 and 98304 bytes,
 respectively. Empty image chunks contain no image.
+
+The screen and preview capture routines sample the framebuffer independently.
+Each computes single-precision horizontal and vertical source-to-output ratios.
+For output pixel `(x, y)`, it truncates the scaled source coordinates toward zero
+and copies that source pixel's two bytes. It does not average neighbouring
+pixels. The preview samples the source framebuffer directly, rather than a
+previously reduced screen image. Book entry captures the screen before the
+preview and before book rendering; startup and ending entries omit the preview
+capture. Quick Save also refreshes the screen before the preview.
 
 The book Load path displays `SCR3` behind its progress bar instead of selecting
 the destination world's loading artwork. The metadata bitmap filename does not
