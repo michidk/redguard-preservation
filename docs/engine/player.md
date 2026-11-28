@@ -452,8 +452,12 @@ and returns before idle-counter reset, lockout and ordinary keyboard dispatch.
 
 The armed controller's proximity probe consumes one shared random draw,
 including on eligible calls without directional or action input. This sampling
-does not require an idle-animation request or a support-state transition. When
-`draw * 100 / 32767` is at least 2, it returns without querying actors or
+does not require an idle-animation request or a support-state transition.
+Queued motion and falling do not bypass the armed tail of the controller:
+air steering is followed by proximity sampling, then the look and action
+handlers when the jump key is released. Holding jump still permits proximity
+sampling but skips those key handlers.
+When `draw * 100 / 32767` is at least 2, it returns without querying actors or
 changing the player's combat target.
 
 An admitted sample temporarily sets the player's combat target to the player
